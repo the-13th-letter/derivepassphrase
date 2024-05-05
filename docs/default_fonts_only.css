@@ -1,0 +1,4 @@
+body {
+    --md-text-font-family: var(--md-text-font,sans-serif),sans-serif;
+    --md-code-font-family: var(--md-code-font,monospace),monospace;
+}
