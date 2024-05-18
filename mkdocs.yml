@@ -56,6 +56,8 @@ plugins:
             docstring_options:
               ignore_init_summary: true
               returns_multiple_items: false
+            merge_init_into_class: true
+            show_source: false
             heading_level: 2
             show_object_full_path: false
             show_root_members_full_path: false
@@ -75,7 +77,11 @@ nav:
   - derivepassphrase documentation: index.md
   #- tutorials.md
   #- How-Tos: how-tos.md
-  - Reference: reference.md
+  - Reference:
+    - API overview: reference.md
+    - Module derivepassphrase: reference/derivepassphrase.md
+    - Module sequin: reference/sequin.md
+    - Module ssh_agent_client: reference/ssh_agent_client.md
   #- explanation.md
 
 markdown_extensions:
