@@ -24,7 +24,7 @@ from __future__ import annotations
 import collections
 import math
 
-from collections.abc import Sequence, MutableSequence
+from collections.abc import Iterator, MutableSequence, Sequence
 from typing import assert_type, Literal, TypeAlias
 
 __all__ = ('Sequin', 'SequinExhaustedException')
@@ -54,6 +54,7 @@ class Sequin:
     def __init__(
         self,
         sequence: str | bytes | bytearray | Sequence[int],
+        /, *, is_bitstring: bool = False
     ):
         """Initialize the Sequin.
 
@@ -65,6 +66,15 @@ class Sequin:
                 (Conversion will fail if the text string contains
                 non-ISO-8859-1 characters.)  The numbers are then
                 converted to bits.
+            is_bitstring:
+                If true, treat the input as a bitstring.  By default,
+                the input is treated as a string of 8-bit integers, from
+                which the individual bits must still be extracted.
+
+        Raises:
+            ValueError:
+                The sequence contains values outside the permissible
+                range.
 
         """
         def uint8_to_bits(value):
@@ -72,13 +82,23 @@ class Sequin:
             for i in (0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01):
                 yield 1 if value | i == value else 0
         if isinstance(sequence, str):
-            sequence = tuple(sequence.encode('iso-8859-1'))
+            try:
+                sequence = tuple(sequence.encode('iso-8859-1'))
+            except UnicodeError as e:
+                raise ValueError('sequence item out of range') from e
         else:
             sequence = tuple(sequence)
         assert_type(sequence, tuple[int, ...])
-        self.bases: dict[int, MutableSequence[int]] = {}
-        gen = (bit for num in sequence for bit in uint8_to_bits(num))
-        self.bases[2] = collections.deque(gen)
+        self.bases: dict[int, collections.deque[int]] = {}
+        def gen() -> Iterator[int]:
+            for num in sequence:
+                if num not in range(2 if is_bitstring else 256):
+                    raise ValueError('sequence item out of range')
+                if is_bitstring:
+                    yield num
+                else:
+                    yield from uint8_to_bits(num)
+        self.bases[2] = collections.deque(gen())
 
     def _all_or_nothing_shift(
         self, count: int, /, *, base: int = 2
@@ -99,7 +119,8 @@ class Sequin:
             sequences.
 
         Examples:
-            >>> seq = Sequin([1, 0, 1, 0, 0, 1, 0, 0, 0, 1])
+            >>> seq = Sequin([1, 0, 1, 0, 0, 1, 0, 0, 0, 1],
+            ...              is_bitstring=True)
             >>> seq.bases
             {2: deque([1, 0, 1, 0, 0, 1, 0, 0, 0, 1])}
             >>> seq._all_or_nothing_shift(3)
@@ -122,15 +143,17 @@ class Sequin:
             seq = self.bases[base]
         except KeyError:
             return ()
-        else:
-            chunk = tuple(seq[:count])
-            if len(chunk) == count:
-                del seq[:count]
-                # Clean up queues.
-                if not seq:
-                    del self.bases[base]
-                return chunk
+        stash: collections.deque[int] = collections.deque()
+        try:
+            for i in range(count):
+                stash.append(seq.popleft())
+        except IndexError:
+            seq.extendleft(reversed(stash))
             return ()
+        # Clean up queues.
+        if not seq:
+            del self.bases[base]
+        return tuple(stash)
 
     @staticmethod
     def _big_endian_number(
@@ -192,16 +215,20 @@ class Sequin:
         Args:
             n:
                 Generate numbers in the range 0, ..., `n` - 1.
-                (Inclusive.)
+                (Inclusive.)  Must be larger than 0.
 
         Returns:
             A pseudorandom number in the range 0, ..., `n` - 1.
 
         Raises:
+            ValueError:
+                The range is empty.
             SequinExhaustedException:
                 The sequin is exhausted.
 
         """
+        if 2 not in self.bases:
+            raise SequinExhaustedException('Sequin is exhausted')
         value = self._generate_inner(n, base=2)
         if value == n:
             raise SequinExhaustedException('Sequin is exhausted')
@@ -225,7 +252,7 @@ class Sequin:
         Args:
             n:
                 Generate numbers in the range 0, ..., `n` - 1.
-                (Inclusive.)
+                (Inclusive.)  Must be larger than 0.
             base:
                 Use the base `base` sequence as a source for
                 pseudorandom numbers.
@@ -234,7 +261,15 @@ class Sequin:
             A pseudorandom number in the range 0, ..., `n` - 1 if
             possible, or `n` if the stream is exhausted.
 
+        Raises:
+            ValueError:
+                The range is empty.
+
         """
+        if n < 1:
+            raise ValueError('invalid target range')
+        if base < 2:
+            raise ValueError(f'invalid base: {base!r}')
         # p = base ** k, where k is the smallest integer such that
         # p >= n.  We determine p and k inductively.
         p = 1
@@ -251,7 +286,10 @@ class Sequin:
         while v > n - 1:
             list_slice = self._all_or_nothing_shift(k, base=base)
             if not list_slice:
-                return n
+                if n != 1:
+                    return n
+                else:
+                    v = 0
             v = self._big_endian_number(list_slice, base=base)
             if v > n - 1:
                 # If r is 0, then p == n, so v < n, or rather

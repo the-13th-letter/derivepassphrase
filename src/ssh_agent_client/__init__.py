@@ -106,10 +106,13 @@ class SSHAgentClient:
     @classmethod
     def string(cls, payload: bytes | bytearray, /) -> bytes | bytearray:
         """Format the payload as an SSH string, as per the agent protocol."""
-        ret = bytearray()
-        ret.extend(cls.uint32(len(payload)))
-        ret.extend(payload)
-        return ret
+        try:
+            ret = bytearray()
+            ret.extend(cls.uint32(len(payload)))
+            ret.extend(payload)
+            return ret
+        except Exception as e:
+            raise TypeError('invalid payload type') from e
 
     @classmethod
     def unstring(cls, bytestring: bytes | bytearray, /) -> bytes | bytearray:

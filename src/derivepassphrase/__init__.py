@@ -122,7 +122,7 @@ class Vault:
         subtract_or_require(space, self._CHARSETS['space'])
         subtract_or_require(dash, self._CHARSETS['dash'])
         subtract_or_require(symbol, self._CHARSETS['symbol'])
-        if len(self._required) < self._length:
+        if len(self._required) > self._length:
             raise ValueError('requested passphrase length too short')
         if not self._allowed:
             raise ValueError('no allowed characters left')
@@ -175,9 +175,10 @@ class Vault:
                                    salt=message, iterations=8, dklen=length)
 
     def generate(
-        self, service_name: str, /, *, phrase: bytes | bytearray = b'',
-    ) -> bytes | bytearray:
-        """Generate a service passphrase.
+        self, service_name: str | bytes | bytearray, /, *,
+        phrase: bytes | bytearray = b'',
+    ) -> bytes:
+        r"""Generate a service passphrase.
 
         Args:
             service_name:
@@ -193,6 +194,13 @@ class Vault:
         # exactly the right length.
         safety_factor = 2
         hash_length = int(math.ceil(safety_factor * entropy_bound / 8))
+        # Ensure the phrase is a bytes object.  Needed later for safe
+        # concatenation.
+        if isinstance(service_name, str):
+            service_name = service_name.encode('utf-8')
+        elif not isinstance(service_name, bytes):
+            service_name = bytes(service_name)
+        assert_type(service_name, bytes)
         if not phrase:
             phrase = self._phrase
         # Repeat the passphrase generation with ever-increasing hash
@@ -203,8 +211,7 @@ class Vault:
             try:
                 required = self._required[:]
                 seq = sequin.Sequin(self.create_hash(
-                    key=phrase,
-                    message=(service_name.encode('utf-8') + self._UUID),
+                    key=phrase, message=(service_name + self._UUID),
                     length=hash_length))
                 result = bytearray()
                 while len(result) < self._length:
@@ -229,12 +236,12 @@ class Vault:
                         assert previous is not None  # for the type checker
                         charset = self._subtract(bytes([previous]), charset)
                     # End checking for repeated characters.
-                    index = seq.generate(len(charset))
-                    result.extend(charset[index:index+1])
+                    pos = seq.generate(len(charset))
+                    result.extend(charset[pos:pos+1])
             except sequin.SequinExhaustedException:
                 hash_length *= 2
             else:
-                return result
+                return bytes(result)
 
     @classmethod
     def phrase_from_signature(
@@ -298,7 +305,7 @@ class Vault:
         for c in charset:
             try:
                 pos = allowed.index(c)
-            except LookupError:
+            except ValueError:
                 pass
             else:
                 allowed[pos:pos+1] = []
