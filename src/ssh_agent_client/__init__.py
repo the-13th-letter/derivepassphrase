@@ -99,13 +99,42 @@ class SSHAgentClient:
         )
 
     @staticmethod
-    def uint32(num, /) -> bytes:
-        """Format the number as a `uint32`, as per the agent protocol."""
+    def uint32(num: int, /) -> bytes:
+        r"""Format the number as a `uint32`, as per the agent protocol.
+
+        Args:
+            num: A number.
+
+        Returns:
+            The number in SSH agent wire protocol format, i.e. as
+            a 32-bit big endian number.
+
+        Raises:
+            OverflowError:
+                As per [`int.to_bytes`][].
+
+        Examples:
+            >>> SSHAgentClient.uint32(16777216)
+            b'\x01\x00\x00\x00'
+
+        """
         return int.to_bytes(num, 4, 'big', signed=False)
 
     @classmethod
     def string(cls, payload: bytes | bytearray, /) -> bytes | bytearray:
-        """Format the payload as an SSH string, as per the agent protocol."""
+        r"""Format the payload as an SSH string, as per the agent protocol.
+
+        Args:
+            payload: A byte string.
+
+        Returns:
+            The payload, framed in the SSH agent wire protocol format.
+
+        Examples:
+            >>> bytes(SSHAgentClient.string(b'ssh-rsa'))
+            b'\x00\x00\x00\x07ssh-rsa'
+
+        """
         try:
             ret = bytearray()
             ret.extend(cls.uint32(len(payload)))
@@ -116,7 +145,25 @@ class SSHAgentClient:
 
     @classmethod
     def unstring(cls, bytestring: bytes | bytearray, /) -> bytes | bytearray:
-        """Unpack an SSH string."""
+        r"""Unpack an SSH string.
+
+        Args:
+            bytestring: A framed byte string.
+
+        Returns:
+            The unframed byte string, i.e., the payload.
+
+        Raises:
+            ValueError:
+                The bytestring is not an SSH string.
+
+        Examples:
+            >>> bytes(SSHAgentClient.unstring(b'\x00\x00\x00\x07ssh-rsa'))
+            b'ssh-rsa'
+            >>> bytes(SSHAgentClient.unstring(SSHAgentClient.string(b'ssh-ed25519')))
+            b'ssh-ed25519'
+
+        """
         n = len(bytestring)
         if n < 4:
             raise ValueError('malformed SSH byte string')

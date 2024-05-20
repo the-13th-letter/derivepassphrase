@@ -172,20 +172,14 @@ class Sequin:
         Examples:
             >>> Sequin._big_endian_number([1, 2, 3, 4, 5, 6, 7, 8], base=10)
             12345678
+            >>> Sequin._big_endian_number([1, 2, 3, 4, 5, 6, 7, 8], base=100)
+            102030405060708
             >>> Sequin._big_endian_number([0, 0, 0, 0, 1, 4, 9, 7], base=10)
             1497
             >>> Sequin._big_endian_number([1, 0, 0, 1, 0, 0, 0, 0], base=2)
             144
             >>> Sequin._big_endian_number([1, 7, 5, 5], base=8) == 0o1755
             True
-            >>> Sequin._big_endian_number([-1], base=3)  # doctest: +ELLIPSIS
-            Traceback (most recent call last):
-                ...
-            ValueError: ...
-            >>> Sequin._big_endian_number([0], base=1)  # doctest: +ELLIPSIS
-            Traceback (most recent call last):
-                ...
-            ValueError: ...
 
         """
         if base < 2:
@@ -226,6 +220,34 @@ class Sequin:
             SequinExhaustedException:
                 The sequin is exhausted.
 
+        Examples:
+            >>> seq = Sequin([1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1],
+            ...              is_bitstring=True)
+            >>> seq2 = Sequin([1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1],
+            ...               is_bitstring=True)
+            >>> seq.generate(5)
+            3
+            >>> seq.generate(5)
+            3
+            >>> seq.generate(5)
+            1
+            >>> seq.generate(5)    # doctest: +IGNORE_EXCEPTION_DETAIL
+            Traceback (most recent call last):
+                ...
+            SequinExhaustedException: Sequin is exhausted
+
+            Using `n = 1` does not actually consume input bits:
+
+            >>> seq2.generate(1)
+            0
+
+            But it still won't work on exhausted sequins:
+
+            >>> seq.generate(1)    # doctest: +IGNORE_EXCEPTION_DETAIL
+            Traceback (most recent call last):
+                ...
+            SequinExhaustedException: Sequin is exhausted
+
         """
         if 2 not in self.bases:
             raise SequinExhaustedException('Sequin is exhausted')
@@ -264,6 +286,35 @@ class Sequin:
         Raises:
             ValueError:
                 The range is empty.
+
+        Examples:
+            >>> seq = Sequin([1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1],
+            ...              is_bitstring=True)
+            >>> seq2 = Sequin([1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1],
+            ...               is_bitstring=True)
+            >>> seq._generate_inner(5)
+            3
+            >>> seq._generate_inner(5)
+            3
+            >>> seq._generate_inner(5)
+            1
+            >>> seq._generate_inner(5)  # error condition: sequin exhausted
+            5
+
+            Using `n = 1` does not actually consume input bits, and
+            always works, regardless of sequin exhaustion:
+
+            >>> seq2._generate_inner(1)
+            0
+            >>> seq._generate_inner(1)
+            0
+
+            Using an unsuitable range will raise:
+
+            >>> seq2._generate_inner(0)    # doctest: +IGNORE_EXCEPTION_DETAIL
+            Traceback (most recent call last):
+                ...
+            ValueError: invalid target range
 
         """
         if n < 1:

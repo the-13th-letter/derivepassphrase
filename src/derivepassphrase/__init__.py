@@ -187,6 +187,15 @@ class Vault:
                 If given, override the passphrase given during
                 construction.
 
+        Examples:
+            >>> phrase = b'She cells C shells bye the sea shoars'
+            >>> # Using default options in constructor.
+            >>> Vault(phrase=phrase).generate(b'google')
+            b': 4TVH#5:aZl8LueOT\\{'
+            >>> # Also possible:
+            >>> Vault().generate(b'google', phrase=phrase)
+            b': 4TVH#5:aZl8LueOT\\{'
+
         """
         entropy_bound = self._entropy_upper_bound()
         # Use a safety factor, because a sequin will potentially throw

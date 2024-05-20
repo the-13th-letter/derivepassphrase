@@ -44,7 +44,7 @@ sqlite_cache = true
 [tool.pytest.ini_options]
 addopts = '--doctest-modules'
 pythonpath = ['src']
-testpaths = ['tests']
+testpaths = ['src', 'tests']
 xfail_strict = true
 
 [tool.hatch.version]
