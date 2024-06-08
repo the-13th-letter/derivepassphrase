@@ -353,14 +353,14 @@ def test_sign_data_via_agent(keytype, data_dict):
     else:
         try:
             client = ssh_agent_client.SSHAgentClient()
-        except OSError:
+        except OSError:  # pragma: no cover
             pytest.skip('communication error with the SSH agent')
     with client:
         key_comment_pairs = {bytes(k): bytes(c)
                              for k, c in client.list_keys()}
         public_key_data = data_dict['public_key_data']
         expected_signature = data_dict['expected_signature']
-        if public_key_data not in key_comment_pairs:
+        if public_key_data not in key_comment_pairs:  # pragma: no cover
             pytest.skip('prerequisite SSH key not loaded')
         signature = bytes(client.sign(
             payload=derivepassphrase.Vault._UUID, key=public_key_data))
@@ -380,22 +380,22 @@ def test_sign_data_via_agent_unsupported(keytype, data_dict):
         result = subprocess.run(['ssh-add', '-t', '30', '-q', '-'],
                                 input=private_key, check=True,
                                 capture_output=True)
-    except subprocess.CalledProcessError as e:
-        pytest.xfail(
+    except subprocess.CalledProcessError as e:  # pragma: no cover
+        pytest.skip(
             f"uploading test key: {e!r}, stdout={e.stdout!r}, "
             f"stderr={e.stderr!r}"
         )
     else:
         try:
             client = ssh_agent_client.SSHAgentClient()
-        except OSError:
+        except OSError:  # pragma: no cover
             pytest.skip('communication error with the SSH agent')
     with client:
         key_comment_pairs = {bytes(k): bytes(c)
                              for k, c in client.list_keys()}
         public_key_data = data_dict['public_key_data']
         expected_signature = data_dict['expected_signature']
-        if public_key_data not in key_comment_pairs:
+        if public_key_data not in key_comment_pairs:  # pragma: no cover
             pytest.skip('prerequisite SSH key not loaded')
         signature = bytes(client.sign(
             payload=derivepassphrase.Vault._UUID, key=public_key_data))

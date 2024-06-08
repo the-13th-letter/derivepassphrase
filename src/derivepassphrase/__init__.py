@@ -264,7 +264,7 @@ class Vault:
                                                      charset)
                     pos = seq.generate(len(charset))
                     result.extend(charset[pos:pos+1])
-            except sequin.SequinExhaustedException:
+            except sequin.SequinExhaustedException:  # pragma: no cover
                 hash_length *= 2
             else:
                 return bytes(result)

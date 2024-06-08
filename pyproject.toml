@@ -90,6 +90,7 @@ branch = true
 parallel = true
 omit = [
   "src/derivepassphrase/__about__.py",
+  "src/derivepassphrase/__main__.py",
 ]
 
 [tool.coverage.paths]
