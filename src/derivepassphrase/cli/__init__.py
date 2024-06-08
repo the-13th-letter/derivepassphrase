@@ -6,6 +6,10 @@ import click
 from derivepassphrase.__about__ import __version__
 
 
+__all__ = ('derivepassphrase',)
+
+prog_name = 'derivepassphrase'
+
 @click.group(context_settings={"help_option_names": ["-h", "--help"]}, invoke_without_command=True)
 @click.version_option(version=__version__, prog_name="derivepassphrase")
 def derivepassphrase():
