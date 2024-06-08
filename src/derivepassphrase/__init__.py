@@ -295,6 +295,8 @@ class Vault:
         deterministic_signature_types = {
             'ssh-ed25519':
                 lambda k: k.startswith(b'\x00\x00\x00\x0bssh-ed25519'),
+            'ssh-ed448':
+                lambda k: k.startswith(b'\x00\x00\x00\x09ssh-ed448'),
             'ssh-rsa':
                 lambda k: k.startswith(b'\x00\x00\x00\x07ssh-rsa'),
         }
