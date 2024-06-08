@@ -28,15 +28,17 @@ idwcakUGCekJD/vCEml2AAAAG3Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQEC
 ''',
         'public_key_data': bytes.fromhex('''
             00 00 00 0b 73 73 68 2d 65 64 32 35 35 31 39
-            00 00 00 20 81 78 81 68 26 d6 02 48 5f 0f ff 32 48 6f
-            e4 c1 30 89 dc 1c 6a 45 06 09 e9 09 0f fb c2 12 69 76
+            00 00 00 20
+            81 78 81 68 26 d6 02 48 5f 0f ff 32 48 6f e4 c1
+            30 89 dc 1c 6a 45 06 09 e9 09 0f fb c2 12 69 76
 '''),
         'expected_signature': bytes.fromhex('''
             00 00 00 0b 73 73 68 2d 65 64 32 35 35 31 39
-            00 00 00 40 f0 98 19 80 6c 1a 97 d5 26 03 6e cc e3 65 8f 86
-            66 07 13 19 13 09 21 33 33 f9 e4 36 53 1d af fd 0d 08 1f ec
-            f8 73 9b 8c 5f 55 39 16 7c 53 54 2c 1e 52 bb 30 ed 7f 89 e2
-            2f 69 51 55 d8 9e a6 02
+            00 00 00 40
+            f0 98 19 80 6c 1a 97 d5 26 03 6e cc e3 65 8f 86
+            66 07 13 19 13 09 21 33 33 f9 e4 36 53 1d af fd
+            0d 08 1f ec f8 73 9b 8c 5f 55 39 16 7c 53 54 2c
+            1e 52 bb 30 ed 7f 89 e2 2f 69 51 55 d8 9e a6 02
         '''),
     },
     # Currently only supported by PuTTY (which is deficient in other
@@ -57,20 +59,24 @@ dGhvdXQgcGFzc3BocmFzZQECAwQFBgcICQ==
 ''',
         'public_key_data': bytes.fromhex('''
             00 00 00 09 73 73 68 2d 65 64 34 34 38
-            00 00 00 39 e2 f6 72 d3 4f 56 bb cc 04 c6 3b c4 6f 78 6a b4
-            bc f5 18 ef fe 77 9b e6 19 46 c4 ad 64 38 01 43 bd 99 82 d3
-            cc 72 47 73 69 b8 b3 ec 96 cc fd bd 09 cd c4 73 18 b3 2c 6f
-            00
+            00 00 00 39
+            e2 f6 72 d3 4f 56 bb cc 04 c6 3b c4 6f 78 6a b4
+            bc f5 18 ef fe 77 9b e6 19 46 c4 ad 64 38 01 43
+            bd 99 82 d3 cc 72 47 73 69 b8 b3 ec 96 cc fd bd
+            09 cd c4 73 18 b3 2c 6f 00
         '''),
 
-        'expected_signature': (
-            b'\x00\x00\x00\tssh-ed448\x00\x00\x00r\x06\x86\xf4d\xa4\xa6\xba\xd9\xc3"\xc4'
-            b'\x93I\x99\xfc\x11\xdeg\x97\x08\xf2\xd8\xb7<,\x13\xe7\xc5\x1c\x1e\x92'
-            b'\xa6\x0e\xd8/m\x81\x03\x82\x00\xe3r\xe42mr\xd2m2\x84?\xcc\xa9\x1eW'
-            b',\x00\x9a\xb3\x99\xdeE\xda\xce.\xd1\xdb\xe5\x89\xf35\xbe$X\x90'
-            b'\xc6\xca\x04\xf0\xdb\x88\x80\xdb\xbdw|\x80 \x7f:Ha\xf6\x1f\xae\xa9^S{'
-            b'\xe0\x9d\x93\x1e\xea\xdc\xeb\xb5\xcdVL\xea\x8f\x08\x00'
-        ),
+        'expected_signature': bytes.fromhex('''
+            00 00 00 09 73 73 68 2d 65 64 34 34 38
+            00 00 00 72 06 86
+            f4 64 a4 a6 ba d9 c3 22 c4 93 49 99 fc 11 de 67
+            97 08 f2 d8 b7 3c 2c 13 e7 c5 1c 1e 92 a6 0e d8
+            2f 6d 81 03 82 00 e3 72 e4 32 6d 72 d2 6d 32 84
+            3f cc a9 1e 57 2c 00 9a b3 99 de 45 da ce 2e d1
+            db e5 89 f3 35 be 24 58 90 c6 ca 04 f0 db 88 80
+            db bd 77 7c 80 20 7f 3a 48 61 f6 1f ae a9 5e 53
+            7b e0 9d 93 1e ea dc eb b5 cd 56 4c ea 8f 08 00
+        '''),
 
     },
     'rsa': {
@@ -118,49 +124,59 @@ Bgp6142WnSCQAAABt0ZXN0IGtleSB3aXRob3V0IHBhc3NwaHJhc2UB
         'public_key_data': bytes.fromhex('''
             00 00 00 07 73 73 68 2d 72 73 61
             00 00 00 03 01 00 01
-            00 00 01 81 00 b1 a1 ee e9 7b 38 71 5b 2e 0d 23 49 94 c0 aa
-            a0 f5 60 98 38 04 be 22 3c 4d f5 e6 1c aa 97 dc 99 08 a8 8d
-            cb b2 f5 7b 22 37 fc 58 27 53 bd e1 2a ec 29 2e 66 12 26 b6
-            c4 79 d8 03 84 54 0a 14 f2 60 d7 0c da fe 9c 9e 70 50 fc df
-            d5 42 1a 46 30 de d2 57 17 5b 84 a5 17 4d 61 42 c1 b8 c1 80
-            ee ab 1b 21 c1 e9 6b 68 1f cb dd ed 33 84 3e df 8d 81 c5 f0
-            86 c5 b2 a1 a5 14 75 84 c0 eb 65 7e 18 5f 6f 12 6c 4c 68 2e
-            2e 6e 00 f3 f8 1d 10 90 f9 da b9 2a 0d c6 69 21 70 87 b4 96
-            c2 cd 6f 5a 42 95 9c b3 f3 c3 c3 9c a5 c2 5f f7 74 1e e3 7f
-            1c 9f ac 6c f8 3b 74 2b ce ca a1 58 4b 22 a7 de e6 3a 6c 25
-            ea a0 87 6e af 15 f3 1f 73 bb cf 43 fc 7f 9b 1b 98 a3 ab 18
-            62 8d b8 dc 55 45 b7 95 97 f0 ff de e0 cb d2 7a ac 6d f5 1c
-            d6 ab e4 7f 06 c9 c2 d3 17 0b 82 15 ea 43 99 31 29 36 04 0b
-            2a 87 bc 78 f2 04 3e ae 16 1e 11 54 a2 f0 5d c2 5a ce 07 25
-            0a 2a ac 6b 7b 2b d6 b7 98 24 a5 30 11 cf ef 4b b7 c3 a3 04
-            ed eb a6 a2 bc b1 95 4a 1f 7b 04 dd d7 b6 44 93 37 57 d3 c9
-            76 66 52 b3 66 fc 10 52 b7 3e c5 06 76 53 0f 33 da 67 d6 e9
-            38 b8 82 2d 29 60 66 a2 83 b2 9e e0 fc 2e 5e 9a 3f 0b 96 00
-            59 f7 97 c9 cb 2f 25 9d ae 69 84 63 31 d6 5e 24 63 40 9c 72
-            d4 18 b9 01 b1 cc 39 68 8f
+            00 00 01 81 00
+            b1 a1 ee e9 7b 38 71 5b 2e 0d 23 49 94 c0 aa a0
+            f5 60 98 38 04 be 22 3c 4d f5 e6 1c aa 97 dc 99
+            08 a8 8d cb b2 f5 7b 22 37 fc 58 27 53 bd e1 2a
+            ec 29 2e 66 12 26 b6 c4 79 d8 03 84 54 0a 14 f2
+            60 d7 0c da fe 9c 9e 70 50 fc df d5 42 1a 46 30
+            de d2 57 17 5b 84 a5 17 4d 61 42 c1 b8 c1 80 ee
+            ab 1b 21 c1 e9 6b 68 1f cb dd ed 33 84 3e df 8d
+            81 c5 f0 86 c5 b2 a1 a5 14 75 84 c0 eb 65 7e 18
+            5f 6f 12 6c 4c 68 2e 2e 6e 00 f3 f8 1d 10 90 f9
+            da b9 2a 0d c6 69 21 70 87 b4 96 c2 cd 6f 5a 42
+            95 9c b3 f3 c3 c3 9c a5 c2 5f f7 74 1e e3 7f 1c
+            9f ac 6c f8 3b 74 2b ce ca a1 58 4b 22 a7 de e6
+            3a 6c 25 ea a0 87 6e af 15 f3 1f 73 bb cf 43 fc
+            7f 9b 1b 98 a3 ab 18 62 8d b8 dc 55 45 b7 95 97
+            f0 ff de e0 cb d2 7a ac 6d f5 1c d6 ab e4 7f 06
+            c9 c2 d3 17 0b 82 15 ea 43 99 31 29 36 04 0b 2a
+            87 bc 78 f2 04 3e ae 16 1e 11 54 a2 f0 5d c2 5a
+            ce 07 25 0a 2a ac 6b 7b 2b d6 b7 98 24 a5 30 11
+            cf ef 4b b7 c3 a3 04 ed eb a6 a2 bc b1 95 4a 1f
+            7b 04 dd d7 b6 44 93 37 57 d3 c9 76 66 52 b3 66
+            fc 10 52 b7 3e c5 06 76 53 0f 33 da 67 d6 e9 38
+            b8 82 2d 29 60 66 a2 83 b2 9e e0 fc 2e 5e 9a 3f
+            0b 96 00 59 f7 97 c9 cb 2f 25 9d ae 69 84 63 31
+            d6 5e 24 63 40 9c 72 d4 18 b9 01 b1 cc 39 68 8f
 '''),
         'expected_signature': bytes.fromhex('''
             00 00 00 07 73 73 68 2d 72 73 61
-            00 00 01 80 a2 10 7c 2e f6 bb 53 a8 74 2a a1 19 99 ad 81 be
-            79 9c ed d6 9d 09 4e 6e c5 18 48 33 90 77 99 68 f7 9e 03 5a
-            cd 4e 18 eb 89 7d 85 a2 ee ae 4a 92 f6 6f ce b9 fe 86 7f 2a
-            6b 31 da 6e 1a fe a2 a5 88 b8 44 7f a1 76 73 b3 ec 75 b5 d0
-            a6 b9 15 97 65 09 13 7d 94 21 d1 fb 5d 0f 8b 23 04 77 c2 c3
-            55 22 b1 a0 09 8a f5 38 2a d6 7f 1b 87 29 a0 25 d3 25 6f cb
-            64 61 07 98 dc 14 c5 84 f8 92 24 5e 50 11 6b 49 e5 f0 cc 29
-            cb 29 a9 19 d8 a7 71 1f 91 0b 05 b1 01 4b c2 5f 00 a5 b6 21
-            bf f8 2c 9d 67 9b 47 3b 0a 49 6b 79 2d fc 1d ec 0c b0 e5 27
-            22 d5 a9 f8 d3 c3 f9 df 48 68 e9 fb ef 3c dc 26 bf cf ea 29
-            43 01 a6 e3 c5 51 95 f4 66 6d 8a 55 e2 47 ec e8 30 45 4c ae
-            47 e7 c9 a4 21 8b 64 ba b6 88 f6 21 f8 73 b9 cb 11 a1 78 75
-            92 c6 5a e5 64 fe ed 42 d9 95 99 e6 2b 6f 3c 16 3c 28 74 a4
-            72 2f 0d 3f 2c 33 67 aa 35 19 8e e7 b5 11 2f b3 f7 6a c5 02
-            e2 6f a3 42 e3 62 19 99 03 ea a5 20 e7 a1 e3 bc c8 06 a3 b5
-            7c d6 76 5d df 6f 60 46 83 2a 08 00 d6 d3 d9 a4 c1 41 8c f8
-            60 56 45 81 da 3b a2 16 1f 9e 4e 75 83 17 da c3 53 c3 3e 19
-            a4 1b bc d2 29 b8 78 61 2b 78 e6 b1 52 b0 d5 ec de 69 2c 48
-            62 d9 fd d1 9b 6b b0 49 db d3 ff 38 e7 10 d9 2d ce 9f 0d 5e
-            09 7b 37 d2 7b c3 bf ce
+            00 00 01 80
+            a2 10 7c 2e f6 bb 53 a8 74 2a a1 19 99 ad 81 be
+            79 9c ed d6 9d 09 4e 6e c5 18 48 33 90 77 99 68
+            f7 9e 03 5a cd 4e 18 eb 89 7d 85 a2 ee ae 4a 92
+            f6 6f ce b9 fe 86 7f 2a 6b 31 da 6e 1a fe a2 a5
+            88 b8 44 7f a1 76 73 b3 ec 75 b5 d0 a6 b9 15 97
+            65 09 13 7d 94 21 d1 fb 5d 0f 8b 23 04 77 c2 c3
+            55 22 b1 a0 09 8a f5 38 2a d6 7f 1b 87 29 a0 25
+            d3 25 6f cb 64 61 07 98 dc 14 c5 84 f8 92 24 5e
+            50 11 6b 49 e5 f0 cc 29 cb 29 a9 19 d8 a7 71 1f
+            91 0b 05 b1 01 4b c2 5f 00 a5 b6 21 bf f8 2c 9d
+            67 9b 47 3b 0a 49 6b 79 2d fc 1d ec 0c b0 e5 27
+            22 d5 a9 f8 d3 c3 f9 df 48 68 e9 fb ef 3c dc 26
+            bf cf ea 29 43 01 a6 e3 c5 51 95 f4 66 6d 8a 55
+            e2 47 ec e8 30 45 4c ae 47 e7 c9 a4 21 8b 64 ba
+            b6 88 f6 21 f8 73 b9 cb 11 a1 78 75 92 c6 5a e5
+            64 fe ed 42 d9 95 99 e6 2b 6f 3c 16 3c 28 74 a4
+            72 2f 0d 3f 2c 33 67 aa 35 19 8e e7 b5 11 2f b3
+            f7 6a c5 02 e2 6f a3 42 e3 62 19 99 03 ea a5 20
+            e7 a1 e3 bc c8 06 a3 b5 7c d6 76 5d df 6f 60 46
+            83 2a 08 00 d6 d3 d9 a4 c1 41 8c f8 60 56 45 81
+            da 3b a2 16 1f 9e 4e 75 83 17 da c3 53 c3 3e 19
+            a4 1b bc d2 29 b8 78 61 2b 78 e6 b1 52 b0 d5 ec
+            de 69 2c 48 62 d9 fd d1 9b 6b b0 49 db d3 ff 38
+            e7 10 d9 2d ce 9f 0d 5e 09 7b 37 d2 7b c3 bf ce
 '''),
     },
 }
@@ -202,8 +218,8 @@ u7HfrQhdOiKSa+ZO9AAojbURqrLDRfBJa5dXn2AAAAFQDJHfenj4EJ9WkehpdJatPBlqCW
             23 80 b3 2e 9f 0a 57 76 21 f2 59 25 91 31 70 29
             a1 7b d4 ac 8e c7 77 61 20 0f 25 19 6e 39 71 50
             73 de 4c 66 84 79 84 cc 25 20 30 fc 43 3a c4 ed
-            00 00 00 15 00 f7 d9 ce 64 e8 1d ed a1 cc 54 6a
-            17 a5 41 01 72 7e c7 a2 cb
+            00 00 00 15 00 f7 d9 ce 64
+            e8 1d ed a1 cc 54 6a 17 a5 41 01 72 7e c7 a2 cb
             00 00 00 80
             2e bd 80 83 78 71 33 7a ca 77 1c d5 53 0f 1f 5f
             45 55 3d 73 be df e2 ab f2 11 9e d0 a7 3f ec dc
