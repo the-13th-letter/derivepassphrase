@@ -145,17 +145,24 @@ class Vault:
 
     @classmethod
     def create_hash(
-        cls, key: bytes | bytearray, message: bytes | bytearray, *,
+        cls, phrase: bytes | bytearray, service: bytes | bytearray, *,
         length: int = 32,
     ) -> bytes:
-        """Create a pseudorandom byte stream from key and message.
+        r"""Create a pseudorandom byte stream from phrase and service.
+
+        Create a pseudorandom byte stream from `phrase` and `service` by
+        feeding them into the key-derivation function PBKDF2
+        (8 iterations, using SHA-1).
 
         Args:
-            key:
-                A cryptographic key.  Typically a master passphrase, or
-                an SSH signature.
-            message:
-                A message.  Typically a vault service name.
+            phrase:
+                A master passphrase, or sometimes an SSH signature.
+                Used as the key for PBKDF2, the underlying cryptographic
+                primitive.
+            service:
+                A vault service name.  Will be suffixed with
+                `Vault._UUID`, and then used as the salt value for
+                PBKDF2.
             length:
                 The length of the byte stream to generate.
 
@@ -170,9 +177,27 @@ class Vault:
             call this method with the same input with ever-increasing
             target lengths.
 
+        Examples:
+            >>> # See also Vault.phrase_from_signature examples.
+            >>> phrase = bytes.fromhex('''
+            ... 00 00 00 0b 73 73 68 2d 65 64 32 35 35 31 39
+            ... 00 00 00 40
+            ... f0 98 19 80 6c 1a 97 d5 26 03 6e cc e3 65 8f 86
+            ... 66 07 13 19 13 09 21 33 33 f9 e4 36 53 1d af fd
+            ... 0d 08 1f ec f8 73 9b 8c 5f 55 39 16 7c 53 54 2c
+            ... 1e 52 bb 30 ed 7f 89 e2 2f 69 51 55 d8 9e a6 02
+            ... ''')
+            >>> Vault.create_hash(phrase, b'some_service', length=4)
+            b'M\xb1<S'
+            >>> Vault.create_hash(phrase, b'some_service', length=16)
+            b'M\xb1<S\x827E\xd1M\xaf\xf8~\xc8n\x10\xcc'
+            >>> Vault.create_hash(phrase, b'NOSUCHSERVICE', length=16)
+            b'\x1c\xc3\x9c\xd9\xb6\x1a\x99CS\x07\xc41\xf4\x85#s'
+
         """
-        return hashlib.pbkdf2_hmac(hash_name='sha1', password=key,
-                                   salt=message, iterations=8, dklen=length)
+        salt = bytes(service) + cls._UUID
+        return hashlib.pbkdf2_hmac(hash_name='sha1', password=phrase,
+                                   salt=salt, iterations=8, dklen=length)
 
     def generate(
         self, service_name: str | bytes | bytearray, /, *,
@@ -220,8 +245,7 @@ class Vault:
             try:
                 required = self._required[:]
                 seq = sequin.Sequin(self.create_hash(
-                    key=phrase, message=(service_name + self._UUID),
-                    length=hash_length))
+                    phrase=phrase, service=service_name, length=hash_length))
                 result = bytearray()
                 while len(result) < self._length:
                     pos = seq.generate(len(required))
