@@ -18,6 +18,8 @@ from typing import Any, NamedTuple, Self, TypeAlias
 from ssh_agent_client.types import KeyCommentPair, SSH_AGENT, SSH_AGENTC
 
 __all__ = ('SSHAgentClient',)
+__author__ = 'Marco Ricci <m@the13thletter.info>'
+__version__ = "0.1.0"
 
 _socket = socket
 

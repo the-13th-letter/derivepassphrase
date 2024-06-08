@@ -3,8 +3,10 @@
 # SPDX-License-Identifier: MIT
 import click
 
-from derivepassphrase.__about__ import __version__
+import derivepassphrase as dpp
 
+__author__ = dpp.__author__
+__version__ = dpp.__version__
 
 __all__ = ('derivepassphrase',)
 

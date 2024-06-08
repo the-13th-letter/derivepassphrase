@@ -18,6 +18,9 @@ from typing import assert_type, reveal_type
 import sequin
 import ssh_agent_client
 
+__author__ = "Marco Ricci <m@the13thletter.info>"
+__version__ = "0.1.0"
+
 class Vault:
     """A work-alike of James Coglan's vault.
 

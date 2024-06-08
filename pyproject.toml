@@ -55,7 +55,7 @@ testpaths = ['src', 'tests']
 xfail_strict = true
 
 [tool.hatch.version]
-path = "src/derivepassphrase/__about__.py"
+path = "src/derivepassphrase/__init__.py"
 
 [tool.hatch.envs.hatch-test]
 default-args = ['src', 'tests']
@@ -89,7 +89,6 @@ source_pkgs = ["derivepassphrase", "tests"]
 branch = true
 parallel = true
 omit = [
-  "src/derivepassphrase/__about__.py",
   "src/derivepassphrase/__main__.py",
 ]
 

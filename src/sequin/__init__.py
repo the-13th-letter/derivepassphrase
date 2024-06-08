@@ -28,6 +28,8 @@ from collections.abc import Iterator, MutableSequence, Sequence
 from typing import assert_type, Literal, TypeAlias
 
 __all__ = ('Sequin', 'SequinExhaustedException')
+__author__ = 'Marco Ricci <m@the13thletter.info>'
+__version__ = "0.1.0"
 
 class Sequin:
     """Generate pseudorandom non-negative numbers in different ranges.
