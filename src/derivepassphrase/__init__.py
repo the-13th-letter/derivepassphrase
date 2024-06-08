@@ -291,6 +291,25 @@ class Vault:
                 Usually this means that the signature is not
                 deterministic.
 
+        Examples:
+            >>> # Actual test public key.
+            >>> public_key = bytes.fromhex('''
+            ... 00 00 00 0b 73 73 68 2d 65 64 32 35 35 31 39
+            ... 00 00 00 20
+            ... 81 78 81 68 26 d6 02 48 5f 0f ff 32 48 6f e4 c1
+            ... 30 89 dc 1c 6a 45 06 09 e9 09 0f fb c2 12 69 76
+            ... ''')
+            >>> expected_sig = bytes.fromhex('''
+            ... 00 00 00 0b 73 73 68 2d 65 64 32 35 35 31 39
+            ... 00 00 00 40
+            ... f0 98 19 80 6c 1a 97 d5 26 03 6e cc e3 65 8f 86
+            ... 66 07 13 19 13 09 21 33 33 f9 e4 36 53 1d af fd
+            ... 0d 08 1f ec f8 73 9b 8c 5f 55 39 16 7c 53 54 2c
+            ... 1e 52 bb 30 ed 7f 89 e2 2f 69 51 55 d8 9e a6 02
+            ... ''')
+            >>> Vault.phrase_from_signature(public_key) == expected_sig  # doctest:+SKIP
+            True
+
         """
         deterministic_signature_types = {
             'ssh-ed25519':
