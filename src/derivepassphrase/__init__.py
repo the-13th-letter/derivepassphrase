@@ -257,18 +257,11 @@ class Vault:
                     # (where r is the repeat limit that must not be
                     # reached), and if so, remove this same character
                     # from the current character's allowed set.
-                    previous = result[-1] if result else None
-                    i = self._repeat - 1
-                    same = (i >= 0) if previous is not None else False
-                    while same and i > 0:
-                        i -= 1
-                        if same:
-                            other_pos = -(self._repeat - i)
-                            same = (result[other_pos] == previous)
-                    if same:
-                        assert previous is not None  # for the type checker
-                        charset = self._subtract(bytes([previous]), charset)
-                    # End checking for repeated characters.
+                    if self._repeat and result:
+                        bad_suffix = bytes(result[-1:]) * (self._repeat - 1)
+                        if result.endswith(bad_suffix):
+                            charset = self._subtract(bytes(result[-1:]),
+                                                     charset)
                     pos = seq.generate(len(charset))
                     result.extend(charset[pos:pos+1])
             except sequin.SequinExhaustedException:

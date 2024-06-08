@@ -94,3 +94,22 @@ def test_218_all_character_classes():
               space=3, dash=2, symbol=1).generate('google') ==
         b': : fv_wqt>a-4w1S  R'
     )
+
+def test_219_only_numbers_and_very_high_repetition_limit():
+    generated = Vault(phrase=b'', length=40, lower=0, upper=0, space=0,
+                      dash=0, symbol=0, repeat=4).generate('abcdef')
+    assert b'0000' not in generated
+    assert b'1111' not in generated
+    assert b'2222' not in generated
+    assert b'3333' not in generated
+    assert b'4444' not in generated
+    assert b'5555' not in generated
+    assert b'6666' not in generated
+    assert b'7777' not in generated
+    assert b'8888' not in generated
+    assert b'9999' not in generated
+
+def test_220_very_limited_character_set():
+    generated = Vault(phrase=b'', length=24, lower=0, upper=0,
+                      space=0, symbol=0).generate('testing')
+    assert b'763252593304946694588866' == generated
