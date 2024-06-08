@@ -31,6 +31,12 @@ def test_202_reproducibility_and_bytes_service_name():
         Vault(phrase=phrase).generate('google')
     )
 
+def test_203_reproducibility_and_bytearray_service_name():
+    assert (
+        Vault(phrase=phrase).generate(b'google') ==
+        Vault(phrase=phrase).generate(bytearray(b'google'))
+    )
+
 def test_210_nonstandard_length():
     assert Vault(phrase=phrase, length=4).generate('google') == b'xDFu'
 
