@@ -113,3 +113,12 @@ def test_220_very_limited_character_set():
     generated = Vault(phrase=b'', length=24, lower=0, upper=0,
                       space=0, symbol=0).generate('testing')
     assert b'763252593304946694588866' == generated
+
+def test_300_character_set_subtraction():
+    assert Vault._subtract(b'be', b'abcdef') == bytearray(b'acdf')
+
+def test_301_character_set_subtraction_duplicate():
+    with pytest.raises(ValueError, match='duplicate characters'):
+        Vault._subtract(b'abcdef', b'aabbccddeeff')
+    with pytest.raises(ValueError, match='duplicate characters'):
+        Vault._subtract(b'aabbccddeeff', b'abcdef')

@@ -305,27 +305,35 @@ class Vault:
             ret = client.sign(key, cls._UUID)
         return ret
 
+    @staticmethod
     def _subtract(
-        self, charset: bytes | bytearray, allowed: bytes | bytearray,
+        charset: bytes | bytearray, allowed: bytes | bytearray,
     ) -> bytearray:
         """Remove the characters in charset from allowed.
 
         This preserves the relative order of characters in `allowed`.
 
         Args:
-            charset: Characters to remove.
-            allowed: Character set to remove the other characters from.
+            charset:
+                Characters to remove.  Must not contain duplicate
+                characters.
+            allowed:
+                Character set to remove the other characters from.  Must
+                not contain duplicate characters.
 
         Returns:
-            The pruned character set.
+            The pruned "allowed" character set.
 
         Raises:
-            ValueError: `charset` contained duplicate characters.
+            ValueError:
+                `allowed` or `charset` contained duplicate characters.
 
         """
         allowed = (allowed if isinstance(allowed, bytearray)
                    else bytearray(allowed))
         assert_type(allowed, bytearray)
+        if len(frozenset(allowed)) != len(allowed):
+            raise ValueError('duplicate characters in set')
         if len(frozenset(charset)) != len(charset):
             raise ValueError('duplicate characters in set')
         for c in charset:
