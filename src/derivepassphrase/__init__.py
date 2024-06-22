@@ -8,9 +8,11 @@
 
 from __future__ import annotations
 
+import base64
 import collections
 import hashlib
 import math
+import unicodedata
 import warnings
 
 from typing import assert_type, reveal_type
@@ -20,6 +22,9 @@ import ssh_agent_client
 
 __author__ = "Marco Ricci <m@the13thletter.info>"
 __version__ = "0.1.0"
+
+class AmbiguousByteRepresentationError(ValueError):
+    """The object has an ambiguous byte representation."""
 
 class Vault:
     """A work-alike of James Coglan's vault.
@@ -68,8 +73,8 @@ class Vault:
                         + _CHARSETS['symbol'])
 
     def __init__(
-        self, *, phrase: bytes | bytearray = b'', length: int = 20,
-        repeat: int = 0, lower: int | None = None,
+        self, *, phrase: bytes | bytearray | str = b'',
+        length: int = 20, repeat: int = 0, lower: int | None = None,
         upper: int | None = None, number: int | None = None,
         space: int | None = None, dash: int | None = None,
         symbol: int | None = None,
@@ -79,19 +84,20 @@ class Vault:
         Args:
             phrase:
                 The master passphrase from which to derive the service
-                passphrases.
+                passphrases.  If a text string, then the byte
+                representation must be unique.
             length:
                 Desired passphrase length.
             repeat:
                 The maximum number of immediate character repetitions
                 allowed in the passphrase.  Disabled if set to 0.
             lower:
-                Optional constraint on lowercase characters.  If
+                Optional constraint on ASCII lowercase characters.  If
                 positive, include this many lowercase characters
                 somewhere in the passphrase.  If 0, avoid lowercase
                 characters altogether.
             upper:
-                Same as `lower`, but for uppercase characters.
+                Same as `lower`, but for ASCII uppercase characters.
             number:
                 Same as `lower`, but for ASCII digits.
             space:
@@ -103,8 +109,13 @@ class Vault:
                 Same as `lower`, but for all other hitherto unlisted
                 ASCII printable characters (except backquote).
 
+        Raises:
+            AmbiguousByteRepresentationError:
+                The phrase is a text string with differing NFC- and
+                NFD-normalized UTF-8 byte representations.
+
         """
-        self._phrase = bytes(phrase)
+        self._phrase = self._get_binary_string(phrase)
         self._length = length
         self._repeat = repeat
         self._allowed = bytearray(self._CHARSETS['all'])
@@ -197,10 +208,38 @@ class Vault:
         entropy_bound = max(1, self._entropy())
         return int(math.ceil(safety_factor * entropy_bound / 8))
 
+    @staticmethod
+    def _get_binary_string(s: bytes | bytearray | str, /) -> bytes:
+        """Convert the input string to a read-only, binary string.
+
+        If it is a text string, then test for an unambiguous UTF-8
+        representation, otherwise abort.  (That is, check whether the
+        NFC and NFD forms of the string coincide.)
+
+        Args:
+            s: The string to (check and) convert.
+
+        Returns:
+            A read-only, binary copy of the string.
+
+        Raises:
+            AmbiguousByteRepresentationError:
+                The text string has differing NFC- and NFD-normalized
+                UTF-8 byte representations.
+
+        """
+        if isinstance(s, str):
+            norm = unicodedata.normalize
+            if norm('NFC', s) != norm('NFD', s):
+                raise AmbiguousByteRepresentationError(
+                    'text string has ambiguous byte representation')
+            return s.encode('UTF-8')
+        return bytes(s)
+
     @classmethod
     def create_hash(
-        cls, phrase: bytes | bytearray, service: bytes | bytearray, *,
-        length: int = 32,
+        cls, phrase: bytes | bytearray | str,
+        service: bytes | bytearray, *, length: int = 32,
     ) -> bytes:
         r"""Create a pseudorandom byte stream from phrase and service.
 
@@ -213,6 +252,9 @@ class Vault:
                 A master passphrase, or sometimes an SSH signature.
                 Used as the key for PBKDF2, the underlying cryptographic
                 primitive.
+
+                If a text string, then the byte representation must be
+                unique.
             service:
                 A vault service name.  Will be suffixed with
                 `Vault._UUID`, and then used as the salt value for
@@ -222,6 +264,11 @@ class Vault:
 
         Returns:
             A pseudorandom byte string of length `length`.
+
+        Raises:
+            AmbiguousByteRepresentationError:
+                The phrase is a text string with differing NFC- and
+                NFD-normalized UTF-8 byte representations.
 
         Note:
             Shorter values returned from this method (with the same key
@@ -249,13 +296,15 @@ class Vault:
             b'\x1c\xc3\x9c\xd9\xb6\x1a\x99CS\x07\xc41\xf4\x85#s'
 
         """
+        phrase = cls._get_binary_string(phrase)
+        assert not isinstance(phrase, str)
         salt = bytes(service) + cls._UUID
         return hashlib.pbkdf2_hmac(hash_name='sha1', password=phrase,
                                    salt=salt, iterations=8, dklen=length)
 
     def generate(
         self, service_name: str | bytes | bytearray, /, *,
-        phrase: bytes | bytearray = b'',
+        phrase: bytes | bytearray | str = b'',
     ) -> bytes:
         r"""Generate a service passphrase.
 
@@ -265,6 +314,17 @@ class Vault:
             phrase:
                 If given, override the passphrase given during
                 construction.
+
+                If a text string, then the byte representation must be
+                unique.
+
+        Returns:
+            The service passphrase.
+
+        Raises:
+            AmbiguousByteRepresentationError:
+                The phrase is a text string with differing NFC- and
+                NFD-normalized UTF-8 byte representations.
 
         Examples:
             >>> phrase = b'She cells C shells bye the sea shoars'
@@ -287,6 +347,7 @@ class Vault:
         assert_type(service_name, bytes)
         if not phrase:
             phrase = self._phrase
+        phrase = self._get_binary_string(phrase)
         # Repeat the passphrase generation with ever-increasing hash
         # lengths, until the passphrase can be formed without exhausting
         # the sequin.  See the guarantee in the create_hash method for
