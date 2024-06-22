@@ -35,16 +35,8 @@ class SSHAgentClient:
     issue other requests as defined in the protocol---it's merely the
     wrapper functions and the protocol numbers table that are missing.
 
-    Attributes:
-        connection:
-            The socket connected to the SSH agent.
-        ssh_auth_sock:
-            The UNIX domain socket the SSH agent is listening on.  Unset
-            if socket auto-discovery is not used.
-
     """
-    connection: socket.socket
-    ssh_auth_sock: str | None
+    _connection: socket.socket
     def __init__(
         self, /, *, socket: socket.socket | None = None, timeout: int = 125
     ) -> None:
@@ -62,41 +54,43 @@ class SSHAgentClient:
                 SSH on high-latency networks (e.g. Tor).
 
         """
-        self.ssh_auth_sock = None
         if socket is not None:
-            self.connection = socket
+            self._connection = socket
         else:
-            self.connection = _socket.socket(family=_socket.AF_UNIX)
+            self._connection = _socket.socket(family=_socket.AF_UNIX)
         try:
-            self.connection.getpeername()
+            # Test whether the socket is connected.
+            self._connection.getpeername()
         except OSError as e:
-            if e.errno != errno.ENOTCONN:
+            # This condition is hard to test purposefully, so exclude
+            # from coverage.
+            if e.errno != errno.ENOTCONN:  # pragma: no cover
                 raise
             try:
-                self.ssh_auth_sock = os.environ['SSH_AUTH_SOCK']
+                ssh_auth_sock = os.environ['SSH_AUTH_SOCK']
             except KeyError as e:
                 raise RuntimeError(
                     "Can't find running ssh-agent: missing SSH_AUTH_SOCK"
                 ) from e
-            self.connection.settimeout(timeout)
+            self._connection.settimeout(timeout)
             try:
-                self.connection.connect(self.ssh_auth_sock)
+                self._connection.connect(ssh_auth_sock)
             except FileNotFoundError as e:
                 raise RuntimeError(
                     "Can't find running ssh-agent: unusable SSH_AUTH_SOCK"
                 ) from e
 
     def __enter__(self) -> Self:
-        """Context management: defer to `self.connection`."""
-        self.connection.__enter__()
+        """Close socket connection upon context manager completion."""
+        self._connection.__enter__()
         return self
 
     def __exit__(
         self, exc_type: Any, exc_val: Any, exc_tb: Any
     ) -> bool:
-        """Context management: defer to `self.connection`."""
+        """Close socket connection upon context manager completion."""
         return bool(
-            self.connection.__exit__(
+            self._connection.__exit__(
                 exc_type, exc_val, exc_tb)  # type: ignore[func-returns-value]
         )
 
@@ -200,12 +194,12 @@ class SSHAgentClient:
         """
         request_message = bytearray([code])
         request_message.extend(payload)
-        self.connection.sendall(self.string(request_message))
-        chunk = self.connection.recv(4)
+        self._connection.sendall(self.string(request_message))
+        chunk = self._connection.recv(4)
         if len(chunk) < 4:
             raise EOFError('cannot read response length')
         response_length = int.from_bytes(chunk, 'big', signed=False)
-        response = self.connection.recv(response_length)
+        response = self._connection.recv(response_length)
         if len(response) < response_length:
             raise EOFError('truncated response from SSH agent')
         return response[0], response[1:]
