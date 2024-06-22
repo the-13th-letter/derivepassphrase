@@ -132,19 +132,70 @@ class Vault:
         for _ in range(len(self._required), self._length):
             self._required.append(bytes(self._allowed))
 
-    def _entropy_upper_bound(self) -> int:
+    def _entropy(self) -> float:
         """Estimate the passphrase entropy, given the current settings.
 
         The entropy is the base 2 logarithm of the amount of
-        possibilities.  We operate directly on the logarithms, and round
-        each summand up, overestimating the true entropy.
+        possibilities.  We operate directly on the logarithms, and use
+        sorting and [`math.fsum`][] to keep high accuracy.
+
+        Note:
+            We actually overestimate the entropy here because of poor
+            handling of character repetitions.  In the extreme, assuming
+            that only one character were allowed, then because there is
+            only one possible string of each given length, the entropy
+            of that string `s` is always be zero.  However, we calculate
+            the entropy as `math.log2(math.factorial(len(s)))`, i.e. we
+            assume the characters at the respective string position are
+            distinguishable from each other.
+
+        Returns:
+            A valid (and somewhat close) upper bound to the entropy.
 
         """
         factors: list[int] = []
+        if not self._required or any(not x for x in self._required):
+            return float('-inf')
         for i, charset in enumerate(self._required):
             factors.append(i + 1)
             factors.append(len(charset))
-        return sum(int(math.ceil(math.log2(f))) for f in factors)
+        factors.sort()
+        return math.fsum(math.log2(f) for f in factors)
+
+    def _estimate_sufficient_hash_length(
+        self, safety_factor: float = 2.0,
+    ) -> int:
+        """Estimate the sufficient hash length, given the current settings.
+
+        Using the entropy (via `_entropy`) and a safety factor, give an
+        initial estimate of the length to use for `create_hash` such
+        that using a `Sequin` with this hash will not exhaust it during
+        passphrase generation.
+
+        Args:
+            safety_factor: The safety factor.  Must be at least 1.
+
+        Returns:
+            The estimated sufficient hash length.
+
+        Warning:
+            This is a heuristic, not an exact computation; it may
+            underestimate the true necessary hash length.  It is
+            intended as a starting point for searching for a sufficient
+            hash length, usually by doubling the hash length each time
+            it does not yet prove so.
+
+        """
+        try:
+            safety_factor = float(safety_factor)
+        except TypeError as e:
+            raise TypeError(f'invalid safety factor: not a float: '
+                            f'{safety_factor!r}') from e
+        if not math.isfinite(safety_factor) or safety_factor < 1.0:
+            raise ValueError(f'invalid safety factor {safety_factor!r}')
+        # Ensure the bound is strictly positive.
+        entropy_bound = max(1, self._entropy())
+        return int(math.ceil(safety_factor * entropy_bound / 8))
 
     @classmethod
     def create_hash(
@@ -225,12 +276,8 @@ class Vault:
             b': 4TVH#5:aZl8LueOT\\{'
 
         """
-        entropy_bound = self._entropy_upper_bound()
-        # Use a safety factor, because a sequin will potentially throw
-        # bits away and we cannot rely on having generated a hash of
-        # exactly the right length.
-        safety_factor = 2
-        hash_length = int(math.ceil(safety_factor * entropy_bound / 8))
+        hash_length = self._estimate_sufficient_hash_length()
+        assert hash_length >= 1
         # Ensure the phrase is a bytes object.  Needed later for safe
         # concatenation.
         if isinstance(service_name, str):
@@ -267,10 +314,35 @@ class Vault:
                                                      charset)
                     pos = seq.generate(len(charset))
                     result.extend(charset[pos:pos+1])
-            except sequin.SequinExhaustedException:  # pragma: no cover
+            except sequin.SequinExhaustedException:
                 hash_length *= 2
             else:
                 return bytes(result)
+
+    @staticmethod
+    def _is_suitable_ssh_key(key: bytes | bytearray, /) -> bool:
+        """Check whether the key is suitable for passphrase derivation.
+
+        Currently, this only checks whether signatures with this key
+        type are deterministic.
+
+        Args:
+            key: SSH public key to check.
+
+        Returns:
+            True if and only if the key is suitable for use in deriving
+            a passphrase deterministically.
+
+        """
+        deterministic_signature_types = {
+            'ssh-ed25519':
+                lambda k: k.startswith(b'\x00\x00\x00\x0bssh-ed25519'),
+            'ssh-ed448':
+                lambda k: k.startswith(b'\x00\x00\x00\x09ssh-ed448'),
+            'ssh-rsa':
+                lambda k: k.startswith(b'\x00\x00\x00\x07ssh-rsa'),
+        }
+        return any(v(key) for v in deterministic_signature_types.values())
 
     @classmethod
     def phrase_from_signature(
@@ -314,15 +386,7 @@ class Vault:
             True
 
         """
-        deterministic_signature_types = {
-            'ssh-ed25519':
-                lambda k: k.startswith(b'\x00\x00\x00\x0bssh-ed25519'),
-            'ssh-ed448':
-                lambda k: k.startswith(b'\x00\x00\x00\x09ssh-ed448'),
-            'ssh-rsa':
-                lambda k: k.startswith(b'\x00\x00\x00\x07ssh-rsa'),
-        }
-        if not any(v(key) for v in deterministic_signature_types.values()):
+        if not cls._is_suitable_ssh_key(key):
             raise ValueError(
                 'unsuitable SSH key: bad key, or signature not deterministic')
         with ssh_agent_client.SSHAgentClient() as client:

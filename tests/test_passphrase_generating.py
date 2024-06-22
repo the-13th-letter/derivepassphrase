@@ -4,17 +4,22 @@
 
 """Test passphrase generation via derivepassphrase.Vault."""
 
-import pytest
+from __future__ import annotations
+
+import math
 
 import derivepassphrase
 import sequin
+import pytest
 
 Vault = derivepassphrase.Vault
 phrase = b'She cells C shells bye the sea shoars'
+google_phrase = rb': 4TVH#5:aZl8LueOT\{'
+twitter_phrase = rb"[ (HN_N:lI&<ro=)3'g9"
 
-@pytest.mark.parametrize('service,expected', [
-    (b'google', rb': 4TVH#5:aZl8LueOT\{'),
-    ('twitter', rb"[ (HN_N:lI&<ro=)3'g9"),
+@pytest.mark.parametrize(['service', 'expected'], [
+    (b'google', google_phrase),
+    ('twitter', twitter_phrase),
 ])
 def test_200_basic_configuration(service, expected):
     assert Vault(phrase=phrase).generate(service) == expected
@@ -122,3 +127,71 @@ def test_301_character_set_subtraction_duplicate():
         Vault._subtract(b'abcdef', b'aabbccddeeff')
     with pytest.raises(ValueError, match='duplicate characters'):
         Vault._subtract(b'aabbccddeeff', b'abcdef')
+
+@pytest.mark.parametrize(['length', 'settings', 'entropy'], [
+    (20, {}, math.log2(math.factorial(20)) + 20 * math.log2(94)),
+    (
+        20,
+        {'upper': 0, 'number': 0, 'space': 0, 'symbol': 0},
+        math.log2(math.factorial(20)) + 20 * math.log2(26)
+    ),
+    (0, {}, float('-inf')),
+    (0, {'lower': 0, 'number': 0, 'space': 0, 'symbol': 0}, float('-inf')),
+    (1, {}, math.log2(94)),
+    (1, {'upper': 0, 'lower': 0, 'number': 0, 'symbol': 0}, 0.0),
+])
+def test_400_entropy(
+    length: int, settings: dict[str, int], entropy: int
+) -> None:
+    v = Vault(length=length, **settings)
+    assert math.isclose(v._entropy(), entropy)
+    assert v._estimate_sufficient_hash_length() > 0
+    if math.isfinite(entropy) and entropy:
+        assert v._estimate_sufficient_hash_length(1.0) == math.ceil(entropy / 8)
+    assert v._estimate_sufficient_hash_length(8.0) >= entropy
+
+def test_401_hash_length_estimation(
+) -> None:
+    v = Vault(phrase=phrase)
+    with pytest.raises(ValueError,
+                       match='invalid safety factor'):
+        assert v._estimate_sufficient_hash_length(-1.0)
+    with pytest.raises(TypeError,
+                       match='invalid safety factor: not a float'):
+        assert v._estimate_sufficient_hash_length(None)  # type: ignore
+    v2 = Vault(phrase=phrase, lower=0, upper=0, number=0, symbol=0,
+               space=1, length=1)
+    assert v2._entropy() == 0.0
+    assert v2._estimate_sufficient_hash_length() > 0
+
+@pytest.mark.parametrize(['service', 'expected'], [
+    (b'google', google_phrase),
+    ('twitter', twitter_phrase),
+])
+def test_402_hash_length_expansion(
+    monkeypatch: Any, service: str | bytes, expected: bytes
+) -> None:
+    v = Vault(phrase=phrase)
+    monkeypatch.setattr(v,
+                        '_estimate_sufficient_hash_length',
+                        lambda *args, **kwargs: 1)
+    assert v._estimate_sufficient_hash_length
+    assert v.generate(service) == expected
+
+@pytest.mark.parametrize(['s', 'raises'], [
+    ('ñ', True), ('Düsseldorf', True),
+    ('liberté, egalité, fraternité', True), ('ASCII', False),
+    ('Düsseldorf'.encode('UTF-8'), False),
+    (bytearray([2, 3, 5, 7, 11, 13]), False),
+])
+def test_403_binary_strings(s: str | bytes | bytearray, raises: bool) -> None:
+    binstr = derivepassphrase.Vault._get_binary_string
+    if raises:
+        with pytest.raises(derivepassphrase.AmbiguousByteRepresentationError):
+            binstr(s)
+    elif isinstance(s, str):
+        assert binstr(s) == s.encode('UTF-8')
+        assert binstr(binstr(s)) == s.encode('UTF-8')
+    else:
+        assert binstr(s) == bytes(s)
+        assert binstr(binstr(s)) == bytes(s)
