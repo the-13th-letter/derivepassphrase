@@ -151,7 +151,7 @@ class SSHAgentClient:
 
         Raises:
             ValueError:
-                The bytestring is not an SSH string.
+                The byte string is not an SSH string.
 
         Examples:
             >>> bytes(SSHAgentClient.unstring(b'\x00\x00\x00\x07ssh-rsa'))
@@ -166,6 +166,45 @@ class SSHAgentClient:
         elif n != 4 + int.from_bytes(bytestring[:4], 'big', signed=False):
             raise ValueError('malformed SSH byte string')
         return bytestring[4:]
+
+    @classmethod
+    def unstring_prefix(
+        cls, bytestring: bytes | bytearray, /
+    ) -> tuple[bytes | bytearray, bytes | bytearray]:
+        r"""Unpack an SSH string at the beginning of the byte string.
+
+        Args:
+            bytestring:
+                A (general) byte string, beginning with a framed/SSH
+                byte string.
+
+        Returns:
+            A 2-tuple `(a, b)`, where `a` is the unframed byte
+            string/payload at the beginning of input byte string, and
+            `b` is the remainder of the input byte string.
+
+        Raises:
+            ValueError:
+                The byte string does not begin with an SSH string.
+
+        Examples:
+            >>> a, b = SSHAgentClient.unstring_prefix(
+            ...     b'\x00\x00\x00\x07ssh-rsa____trailing data')
+            >>> (bytes(a), bytes(b))
+            (b'ssh-rsa', b'____trailing data')
+            >>> a, b = SSHAgentClient.unstring_prefix(
+            ...     SSHAgentClient.string(b'ssh-ed25519'))
+            >>> (bytes(a), bytes(b))
+            (b'ssh-ed25519', b'')
+
+        """
+        n = len(bytestring)
+        if n < 4:
+            raise ValueError('malformed SSH byte string')
+        m = int.from_bytes(bytestring[:4], 'big', signed=False)
+        if m + 4 > n:
+            raise ValueError('malformed SSH byte string')
+        return (bytestring[4:m + 4], bytestring[m + 4:])
 
     def request(
         self, code: int, payload: bytes | bytearray, /

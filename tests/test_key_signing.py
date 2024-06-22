@@ -331,20 +331,35 @@ def test_client_string(input, expected):
 ])
 def test_client_unstring(input, expected):
     unstring = ssh_agent_client.SSHAgentClient.unstring
+    unstring_prefix = ssh_agent_client.SSHAgentClient.unstring_prefix
     assert bytes(unstring(input)) == expected
+    assert tuple(bytes(x) for x in unstring_prefix(input)) == (expected, b'')
 
-@pytest.mark.parametrize(['input', 'exc_type', 'exc_pattern'], [
-    (b'ssh', ValueError, 'malformed SSH byte string'),
-    (b'\x00\x00\x00\x08ssh-rsa', ValueError, 'malformed SSH byte string'),
-    (
-        b'\x00\x00\x00\x04XXX trailing text',
-        ValueError, 'malformed SSH byte string',
-    ),
+@pytest.mark.parametrize(
+    ['input', 'exc_type', 'exc_pattern', 'has_trailer', 'parts'], [
+        (b'ssh', ValueError, 'malformed SSH byte string', False, None),
+        (
+            b'\x00\x00\x00\x08ssh-rsa',
+            ValueError, 'malformed SSH byte string',
+            False, None,
+        ),
+        (
+            b'\x00\x00\x00\x04XXX trailing text',
+            ValueError, 'malformed SSH byte string',
+            True, (b'XXX ', b'trailing text'),
+        ),
 ])
-def test_client_unstring_exceptions(input, exc_type, exc_pattern):
+def test_client_unstring_exceptions(input, exc_type, exc_pattern,
+                                    has_trailer, parts):
     unstring = ssh_agent_client.SSHAgentClient.unstring
+    unstring_prefix = ssh_agent_client.SSHAgentClient.unstring_prefix
     with pytest.raises(exc_type, match=exc_pattern):
         unstring(input)
+    if has_trailer:
+        assert tuple(bytes(x) for x in unstring_prefix(input)) == parts
+    else:
+        with pytest.raises(exc_type, match=exc_pattern):
+            unstring_prefix(input)
 
 def test_key_decoding():
     public_key = SUPPORTED['ed25519']['public_key']
