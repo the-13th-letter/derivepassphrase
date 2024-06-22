@@ -232,7 +232,7 @@ class Vault:
             target lengths.
 
         Examples:
-            >>> # See also Vault.phrase_from_signature examples.
+            >>> # See also Vault.phrase_from_key examples.
             >>> phrase = bytes.fromhex('''
             ... 00 00 00 0b 73 73 68 2d 65 64 32 35 35 31 39
             ... 00 00 00 40
@@ -345,9 +345,9 @@ class Vault:
         return any(v(key) for v in deterministic_signature_types.values())
 
     @classmethod
-    def phrase_from_signature(
+    def phrase_from_key(
         cls, key: bytes | bytearray, /
-    ) -> bytes | bytearray:
+    ) -> bytes:
         """Obtain the master passphrase from a configured SSH key.
 
         vault allows the usage of certain SSH keys to derive a master
@@ -358,7 +358,8 @@ class Vault:
             key: The (public) SSH key to use for signing.
 
         Returns:
-            The signature of the vault UUID under this key.
+            The signature of the vault UUID under this key, unframed but
+            encoded in base64.
 
         Raises:
             ValueError:
@@ -367,14 +368,15 @@ class Vault:
                 deterministic.
 
         Examples:
-            >>> # Actual test public key.
+            >>> import base64
+            >>> # Actual Ed25519 test public key.
             >>> public_key = bytes.fromhex('''
             ... 00 00 00 0b 73 73 68 2d 65 64 32 35 35 31 39
             ... 00 00 00 20
             ... 81 78 81 68 26 d6 02 48 5f 0f ff 32 48 6f e4 c1
             ... 30 89 dc 1c 6a 45 06 09 e9 09 0f fb c2 12 69 76
             ... ''')
-            >>> expected_sig = bytes.fromhex('''
+            >>> expected_sig_raw = bytes.fromhex('''
             ... 00 00 00 0b 73 73 68 2d 65 64 32 35 35 31 39
             ... 00 00 00 40
             ... f0 98 19 80 6c 1a 97 d5 26 03 6e cc e3 65 8f 86
@@ -382,7 +384,10 @@ class Vault:
             ... 0d 08 1f ec f8 73 9b 8c 5f 55 39 16 7c 53 54 2c
             ... 1e 52 bb 30 ed 7f 89 e2 2f 69 51 55 d8 9e a6 02
             ... ''')
-            >>> Vault.phrase_from_signature(public_key) == expected_sig  # doctest:+SKIP
+            >>> # Raw Ed25519 signatures are 64 bytes long.
+            >>> signature_blob = expected_sig_raw[-64:]
+            >>> phrase = base64.standard_b64encode(signature_blob)
+            >>> Vault.phrase_from_key(phrase) == expected  # doctest:+SKIP
             True
 
         """
@@ -390,8 +395,10 @@ class Vault:
             raise ValueError(
                 'unsuitable SSH key: bad key, or signature not deterministic')
         with ssh_agent_client.SSHAgentClient() as client:
-            ret = client.sign(key, cls._UUID)
-        return ret
+            raw_sig = client.sign(key, cls._UUID)
+        keytype, trailer = client.unstring_prefix(raw_sig)
+        signature_blob = client.unstring(trailer)
+        return bytes(base64.standard_b64encode(signature_blob))
 
     @staticmethod
     def _subtract(

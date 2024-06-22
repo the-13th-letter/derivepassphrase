@@ -40,6 +40,7 @@ idwcakUGCekJD/vCEml2AAAAG3Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQEC
             0d 08 1f ec f8 73 9b 8c 5f 55 39 16 7c 53 54 2c
             1e 52 bb 30 ed 7f 89 e2 2f 69 51 55 d8 9e a6 02
         '''),
+        'derived_passphrase': rb'8JgZgGwal9UmA27M42WPhmYHExkTCSEzM/nkNlMdr/0NCB/s+HObjF9VORZ8U1QsHlK7MO1/ieIvaVFV2J6mAg==',
     },
     # Currently only supported by PuTTY (which is deficient in other
     # niceties of the SSH agent and the agent's client).
@@ -77,7 +78,7 @@ dGhvdXQgcGFzc3BocmFzZQECAwQFBgcICQ==
             db bd 77 7c 80 20 7f 3a 48 61 f6 1f ae a9 5e 53
             7b e0 9d 93 1e ea dc eb b5 cd 56 4c ea 8f 08 00
         '''),
-
+        'derived_passphrase': rb'Bob0ZKSmutnDIsSTSZn8Ed5nlwjy2Lc8LBPnxRwekqYO2C9tgQOCAONy5DJtctJtMoQ/zKkeVywAmrOZ3kXazi7R2+WJ8zW+JFiQxsoE8NuIgNu9d3yAIH86SGH2H66pXlN74J2THurc67XNVkzqjwgA',
     },
     'rsa': {
         'private_key': rb'''-----BEGIN OPENSSH PRIVATE KEY-----
@@ -178,6 +179,7 @@ Bgp6142WnSCQAAABt0ZXN0IGtleSB3aXRob3V0IHBhc3NwaHJhc2UB
             de 69 2c 48 62 d9 fd d1 9b 6b b0 49 db d3 ff 38
             e7 10 d9 2d ce 9f 0d 5e 09 7b 37 d2 7b c3 bf ce
 '''),
+        'derived_passphrase': rb'ohB8Lva7U6h0KqEZma2Bvnmc7dadCU5uxRhIM5B3mWj3ngNazU4Y64l9haLurkqS9m/Ouf6GfyprMdpuGv6ipYi4RH+hdnOz7HW10Ka5FZdlCRN9lCHR+10PiyMEd8LDVSKxoAmK9Tgq1n8bhymgJdMlb8tkYQeY3BTFhPiSJF5QEWtJ5fDMKcspqRnYp3EfkQsFsQFLwl8ApbYhv/gsnWebRzsKSWt5Lfwd7Ayw5Sci1an408P530ho6fvvPNwmv8/qKUMBpuPFUZX0Zm2KVeJH7OgwRUyuR+fJpCGLZLq2iPYh+HO5yxGheHWSxlrlZP7tQtmVmeYrbzwWPCh0pHIvDT8sM2eqNRmO57URL7P3asUC4m+jQuNiGZkD6qUg56HjvMgGo7V81nZd329gRoMqCADW09mkwUGM+GBWRYHaO6IWH55OdYMX2sNTwz4ZpBu80im4eGEreOaxUrDV7N5pLEhi2f3Rm2uwSdvT/zjnENktzp8NXgl7N9J7w7/O',
     },
 }
 
@@ -240,6 +242,7 @@ u7HfrQhdOiKSa+ZO9AAojbURqrLDRfBJa5dXn2AAAAFQDJHfenj4EJ9WkehpdJatPBlqCW
             40 02 88 db 51 1a ab 2c 34 5f 04 96 b9 75 79 f6
 '''),
         'expected_signature': None,
+        'derived_passphrase': None,
     },
     'ecdsa256': {
         'private_key': rb'''-----BEGIN OPENSSH PRIVATE KEY-----
@@ -265,6 +268,7 @@ dGhvdXQgcGFzc3BocmFzZQECAwQ=
             49 ff c6 7a 81 fc f9 ed 9d da a5 49 1a 30 99 ba
 '''),
         'expected_signature': None,
+        'derived_passphrase': None,
     },
     'ecdsa384': {
         'private_key': rb'''-----BEGIN OPENSSH PRIVATE KEY-----
@@ -294,6 +298,7 @@ JAu0J3Q+cypZuKQVAAAAMQD5sTy8p+B1cn/DhOmXquui1BcxvASqzzevkBlbQoBa73y04B
             79 fb c1 b1 24 0b b4 27 74 3e 73 2a 59 b8 a4 15
 '''),
         'expected_signature': None,
+        'derived_passphrase': None,
     },
 }
 
