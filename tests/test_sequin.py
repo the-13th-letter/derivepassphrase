@@ -25,6 +25,7 @@ def test_big_endian_number(sequence, base, expected):
 @pytest.mark.parametrize(['exc_type', 'exc_pattern', 'sequence' , 'base'], [
     (ValueError, 'invalid base 3 digit:', [-1], 3),
     (ValueError, 'invalid base:', [0], 1),
+    (TypeError, 'not an integer:', [0.0, 1.0, 0.0, 1.0], 2),
 ])
 def test_big_endian_number_exceptions(exc_type, exc_pattern, sequence, base):
     with pytest.raises(exc_type, match=exc_pattern):
@@ -103,3 +104,5 @@ def test_internal_generating():
     assert seq._generate_inner(1) == 0
     with pytest.raises(ValueError, match='invalid target range'):
         seq._generate_inner(0)
+    with pytest.raises(ValueError, match='invalid base:'):
+        seq._generate_inner(16, base=1)

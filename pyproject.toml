@@ -43,6 +43,7 @@ Source = "https://github.com/the-13th-letter/derivepassphrase"
 derivepassphrase = "derivepassphrase.cli:derivepassphrase"
 
 [tool.mypy]
+files = ['src/**/*.py']
 mypy_path = '$MYPY_CONFIG_FILE_DIR/src'
 explicit_package_bases = true
 implicit_reexport = false
@@ -84,21 +85,32 @@ extra-dependencies = [
 [tool.hatch.envs.types.scripts]
 check = "mypy --install-types --non-interactive {args:src/derivepassphrase tests}"
 
+[tool.coverage.html]
+directory = "docs/reference/coverage"
+
 [tool.coverage.run]
-source_pkgs = ["derivepassphrase", "tests"]
+source_pkgs = ["derivepassphrase", "sequin", "ssh_agent_client", "tests"]
 branch = true
 parallel = true
 omit = [
-  "src/derivepassphrase/__main__.py",
+  "__main__.py",
 ]
 
 [tool.coverage.paths]
-derivepassphrase = ["src/derivepassphrase", "*/derivepassphrase/src/derivepassphrase"]
-tests = ["tests", "*/derivepassphrase/tests"]
+src = ["src"]
+tests = ["tests"]
 
 [tool.coverage.report]
-exclude_lines = [
-  "no cov",
+skip_covered = false
+skip_empty = true
+precision = 3
+partial_branches = [
+    'pragma: no branch',
+]
+exclude_also = [
   "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
+  'if (?:typing\.)?TYPE_CHECKING:',
+  "raise AssertionError",
+  "raise NotImplementedError",
+  'assert False',
 ]

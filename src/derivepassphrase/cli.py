@@ -8,14 +8,24 @@
 
 from __future__ import annotations
 
+import base64
+import collections
+from collections.abc import MutableMapping
+import contextlib
 import inspect
 import json
+import os
 import pathlib
-from typing import Any, TextIO
+import socket
+from typing import (
+    Any, assert_never, cast, reveal_type, Iterator, Never, NotRequired,
+    Sequence, TextIO, TypedDict, TYPE_CHECKING,
+)
 
 import click
 import derivepassphrase as dpp
 from derivepassphrase import types as dpp_types
+import ssh_agent_client
 
 __author__ = dpp.__author__
 __version__ = dpp.__version__
@@ -90,6 +100,202 @@ def _save_config(config: dpp_types.VaultConfig, /) -> None:
     filename = _config_filename()
     with open(filename, 'wt', encoding='UTF-8') as fileobj:
         json.dump(config, fileobj)
+
+
+def _get_suitable_ssh_keys(
+    conn: ssh_agent_client.SSHAgentClient | socket.socket | None = None,
+    /
+) -> Iterator[ssh_agent_client.types.KeyCommentPair]:
+    """Yield all SSH keys suitable for passphrase derivation.
+
+    Suitable SSH keys are queried from the running SSH agent (see
+    [`ssh_agent_client.SSHAgentClient.list_keys`][]).
+
+    Args:
+        conn:
+            An optional connection hint to the SSH agent; specifically,
+            an SSH agent client, or a socket connected to an SSH agent.
+
+            If an existing SSH agent client, then this client will be
+            queried for the SSH keys, and otherwise left intact.
+
+            If a socket, then a one-shot client will be constructed
+            based on the socket to query the agent, and deconstructed
+            afterwards.
+
+            If neither are given, then the agent's socket location is
+            looked up in the `SSH_AUTH_SOCK` environment variable, and
+            used to construct/deconstruct a one-shot client, as in the
+            previous case.
+
+    Yields:
+        :
+            Every SSH key from the SSH agent that is suitable for
+            passphrase derivation.
+
+    Raises:
+        RuntimeError:
+            There was an error communicating with the SSH agent.
+        RuntimeError:
+            No keys usable for passphrase derivation are loaded into the
+            SSH agent.
+
+    """
+    client: ssh_agent_client.SSHAgentClient
+    client_context: contextlib.AbstractContextManager
+    match conn:
+        case ssh_agent_client.SSHAgentClient():
+            client = conn
+            client_context = contextlib.nullcontext()
+        case socket.socket() | None:
+            client = ssh_agent_client.SSHAgentClient(socket=conn)
+            client_context = client
+        case _:  # pragma: no cover
+            assert_never(conn)
+            raise TypeError(f'invalid connection hint: {conn!r}')
+    with client_context:
+        try:
+            all_key_comment_pairs = list(client.list_keys())
+        except EOFError as e:  # pragma: no cover
+            raise RuntimeError(
+                'error communicating with the SSH agent'
+            ) from e
+    suitable_keys = all_key_comment_pairs[:]
+    for pair in all_key_comment_pairs:
+        key, comment = pair
+        if dpp.Vault._is_suitable_ssh_key(key):
+            yield pair
+    if not suitable_keys:  # pragma: no cover
+        raise RuntimeError('No usable SSH keys were found')
+
+
+def _prompt_for_selection(
+    items: Sequence[str | bytes], heading: str = 'Possible choices:',
+    single_choice_prompt: str = 'Confirm this choice?',
+) -> int:
+    """Prompt user for a choice among the given items.
+
+    Print the heading, if any, then present the items to the user.  If
+    there are multiple items, prompt the user for a selection, validate
+    the choice, then return the list index of the selected item.  If
+    there is only a single item, request confirmation for that item
+    instead, and return the correct index.
+
+    Args:
+        heading:
+            A heading for the list of items, to print immediately
+            before.  Defaults to a reasonable standard heading.  If
+            explicitly empty, print no heading.
+        single_choice_prompt:
+            The confirmation prompt if there is only a single possible
+            choice.  Defaults to a reasonable standard prompt.
+
+    Returns:
+        An index into the items sequence, indicating the user's
+        selection.
+
+    Raises:
+        IndexError:
+            The user made an invalid or empty selection, or requested an
+            abort.
+
+    """
+    n = len(items)
+    if heading:
+        click.echo(click.style(heading, bold=True))
+    for i, x in enumerate(items, start=1):
+        click.echo(click.style(f'[{i}]', bold=True), nl=False)
+        click.echo(' ', nl=False)
+        click.echo(x)
+    if n > 1:
+        choices = click.Choice([''] + [str(i) for i in range(1, n + 1)])
+        choice = click.prompt(
+            f'Your selection? (1-{n}, leave empty to abort)',
+            err=True, type=choices, show_choices=False,
+            show_default=False, default='')
+        if not choice:
+            raise IndexError('empty selection')
+        return int(choice) - 1
+    else:
+        prompt_suffix = (' '
+                         if single_choice_prompt.endswith(tuple('?.!'))
+                         else ': ')
+        try:
+            click.confirm(single_choice_prompt,
+                          prompt_suffix=prompt_suffix, err=True,
+                          abort=True, default=False, show_default=False)
+        except click.Abort:
+            raise IndexError('empty selection') from None
+        return 0
+
+
+def _select_ssh_key(
+    conn: ssh_agent_client.SSHAgentClient | socket.socket | None = None,
+    /
+) -> bytes | bytearray:
+    """Interactively select an SSH key for passphrase derivation.
+
+    Suitable SSH keys are queried from the running SSH agent (see
+    [`ssh_agent_client.SSHAgentClient.list_keys`][]), then the user is
+    prompted interactively (see [`click.prompt`][]) for a selection.
+
+    Args:
+        conn:
+            An optional connection hint to the SSH agent; specifically,
+            an SSH agent client, or a socket connected to an SSH agent.
+
+            If an existing SSH agent client, then this client will be
+            queried for the SSH keys, and otherwise left intact.
+
+            If a socket, then a one-shot client will be constructed
+            based on the socket to query the agent, and deconstructed
+            afterwards.
+
+            If neither are given, then the agent's socket location is
+            looked up in the `SSH_AUTH_SOCK` environment variable, and
+            used to construct/deconstruct a one-shot client, as in the
+            previous case.
+
+    Returns:
+        The selected SSH key.
+
+    Raises:
+        IndexError:
+            The user made an invalid or empty selection, or requested an
+            abort.
+        RuntimeError:
+            There was an error communicating with the SSH agent.
+        RuntimeError:
+            No keys usable for passphrase derivation are loaded into the
+            SSH agent.
+    """
+    suitable_keys = list(_get_suitable_ssh_keys(conn))
+    key_listing: list[str] = []
+    unstring_prefix = ssh_agent_client.SSHAgentClient.unstring_prefix
+    for key, comment in suitable_keys:
+        keytype = unstring_prefix(key)[0].decode('ASCII')
+        key_str = base64.standard_b64encode(key).decode('ASCII')
+        key_prefix = key_str if len(key_str) < 30 else key_str[:27] + '...'
+        comment_str = comment.decode('UTF-8', errors='replace')
+        key_listing.append(f'{keytype} {key_prefix} {comment_str}')
+    choice = _prompt_for_selection(
+        key_listing, heading='Suitable SSH keys:',
+        single_choice_prompt='Use this key?')
+    return suitable_keys[choice].key
+
+
+def _prompt_for_passphrase() -> str:
+    """Interactively prompt for the passphrase.
+
+    Calls [`click.prompt`][] internally.  Moved into a separate function
+    mainly for testing/mocking purposes.
+
+    Returns:
+        The user input.
+
+    """
+    return click.prompt('Passphrase', default='', hide_input=True,
+                        show_default=False, err=True)
 
 
 class OptionGroupOption(click.Option):
@@ -240,15 +446,36 @@ def _validate_length(
         raise click.BadParameter('not a positive integer')
     return int_value
 
+DEFAULT_NOTES_TEMPLATE = '''\
+# Enter notes below the line with the cut mark (ASCII scissors and
+# dashes).  Lines above the cut mark (such as this one) will be ignored.
+#
+# If you wish to clear the notes, leave everything beyond the cut mark
+# blank.  However, if you leave the *entire* file blank, also removing
+# the cut mark, then the edit is aborted, and the old notes contents are
+# retained.
+#
+# - - - - - >8 - - - - - >8 - - - - - >8 - - - - - >8 - - - - -
+'''
+DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
+
+
 @click.command(
     context_settings={"help_option_names": ["-h", "--help"]},
     cls=CommandWithHelpGroups,
-    epilog='''
+    epilog=r'''
         WARNING: There is NO WAY to retrieve the generated passphrases
         if the master passphrase, the SSH key, or the exact passphrase
         settings are lost, short of trying out all possible
         combinations.  You are STRONGLY advised to keep independent
         backups of the settings and the SSH key, if any.
+
+        Configuration is stored in a directory according to the
+        DERIVEPASSPHRASE_PATH variable, which defaults to
+        `~/.derivepassphrase` on UNIX-like systems and
+        `C:\Users\<user>\AppData\Roaming\Derivepassphrase` on Windows.
+        The configuration is NOT encrypted, and you are STRONGLY
+        discouraged from using a stored passphrase.
     ''',
 )
 @click.option('-p', '--phrase', 'use_phrase', is_flag=True,
@@ -513,11 +740,166 @@ def derivepassphrase(
             opt_str = param.opts[0]
             raise click.UsageError(
                 f'{opt_str} does not take a SERVICE argument')
-    #if kwargs['length'] is None:
-    #    kwargs['length'] = dpp.Vault.__init__.__kwdefaults__['length']
-    #if kwargs['repeat'] is None:
-    #    kwargs['repeat'] = dpp.Vault.__init__.__kwdefaults__['repeat']
-    click.echo(repr(ctx.params))
+
+    if edit_notes:
+        assert service is not None
+        configuration = get_config()
+        text = (DEFAULT_NOTES_TEMPLATE +
+                configuration['services']
+                .get(service, cast(dpp_types.VaultConfigServicesSettings, {}))
+                .get('notes', ''))
+        notes_value = click.edit(text=text)
+        if notes_value is not None:
+            notes_lines = collections.deque(notes_value.splitlines(True))
+            while notes_lines:
+                line = notes_lines.popleft()
+                if line.startswith(DEFAULT_NOTES_MARKER):
+                    notes_value = ''.join(notes_lines)
+                    break
+            else:
+                if not notes_value.strip():
+                    ctx.fail('not saving new notes: user aborted request')
+            configuration['services'].setdefault(service, {})['notes'] = (
+                notes_value.strip('\n'))
+            _save_config(configuration)
+    elif delete_service_settings:
+        assert service is not None
+        configuration = get_config()
+        if service in configuration['services']:
+            del configuration['services'][service]
+            _save_config(configuration)
+    elif delete_globals:
+        configuration = get_config()
+        if 'global' in configuration:
+            del configuration['global']
+            _save_config(configuration)
+    elif clear_all_settings:
+        _save_config({'services': {}})
+    elif import_settings:
+        try:
+            # TODO: keep track of auto-close; try os.dup if feasible
+            infile = (cast(TextIO, import_settings)
+                      if hasattr(import_settings, 'close')
+                      else click.open_file(os.fspath(import_settings), 'rt'))
+            with infile:
+                maybe_config = json.load(infile)
+        except json.JSONDecodeError as e:
+            ctx.fail(f'Cannot load config: cannot decode JSON: {e}')
+        except OSError as e:
+            ctx.fail(f'Cannot load config: {e.strerror}')
+        if dpp_types.is_vault_config(maybe_config):
+            _save_config(maybe_config)
+        else:
+            ctx.fail('not a valid config')
+    elif export_settings:
+        configuration = get_config()
+        try:
+            # TODO: keep track of auto-close; try os.dup if feasible
+            outfile = (cast(TextIO, export_settings)
+                       if hasattr(export_settings, 'close')
+                       else click.open_file(os.fspath(export_settings), 'wt'))
+            with outfile:
+                json.dump(configuration, outfile)
+        except OSError as e:
+            ctx.fail('cannot write config: {e.strerror}')
+    else:
+        configuration = get_config()
+        # This block could be type checked more stringently, but this
+        # would probably involve a lot of code repetition.  Since we
+        # have a type guarding function anyway, assert that we didn't
+        # make any mistakes at the end instead.
+        global_keys = {'key', 'phrase'}
+        service_keys = {'key', 'phrase', 'length', 'repeat', 'lower',
+                        'upper', 'number', 'space', 'dash', 'symbol'}
+        settings: collections.ChainMap[str, Any] = collections.ChainMap(
+            {k: v for k, v in locals().items()
+             if k in service_keys and v is not None},
+            cast(dict[str, Any],
+                 configuration['services'].get(service or '', {})),
+            {},
+            cast(dict[str, Any], configuration.get('global', {}))
+        )
+        if use_key:
+            try:
+                key = base64.standard_b64encode(
+                    _select_ssh_key()).decode('ASCII')
+            except IndexError:
+                ctx.fail('no valid SSH key selected')
+            except RuntimeError as e:
+                ctx.fail(str(e))
+        elif use_phrase:
+            maybe_phrase = _prompt_for_passphrase()
+            if not maybe_phrase:
+                ctx.fail('no passphrase given')
+            else:
+                phrase = maybe_phrase
+        if store_config_only:
+            view: collections.ChainMap[str, Any]
+            view = (collections.ChainMap(*settings.maps[:2]) if service
+                    else settings.parents.parents)
+            if use_key:
+                view['key'] = key
+                for m in view.maps:
+                    m.pop('phrase', '')
+            elif use_phrase:
+                view['phrase'] = phrase
+                for m in view.maps:
+                    m.pop('key', '')
+            if service:
+                if not view.maps[0]:
+                    raise click.UsageError('cannot update service settings '
+                                           'without actual settings')
+                else:
+                    configuration['services'].setdefault(
+                        service, {}).update(view)  # type: ignore[typeddict-item]
+            else:
+                if not view.maps[0]:
+                    raise click.UsageError('cannot update global settings '
+                                           'without actual settings')
+                else:
+                    configuration.setdefault(
+                        'global', {}).update(view)  # type: ignore[typeddict-item]
+            assert dpp_types.is_vault_config(configuration), (
+                f'invalid vault configuration: {configuration!r}'
+            )
+            _save_config(configuration)
+        else:
+            if not service:
+                raise click.UsageError(f'SERVICE is required')
+            kwargs: dict[str, Any] = {k: v for k, v in settings.items()
+                                      if k in service_keys and v is not None}
+            # If either --key or --phrase are given, use that setting.
+            # Otherwise, if both key and phrase are set in the config,
+            # one must be global (ignore it) and one must be
+            # service-specific (use that one). Otherwise, if only one of
+            # key and phrase is set in the config, use that one.  In all
+            # these above cases, set the phrase via
+            # derivepassphrase.Vault.phrase_from_key if a key is
+            # given. Finally, if nothing is set, error out.
+            key_to_phrase = lambda key: dpp.Vault.phrase_from_key(
+                base64.standard_b64decode(key))
+            if use_key or use_phrase:
+                if use_key:
+                    kwargs['phrase'] = key_to_phrase(key)
+                else:
+                    kwargs['phrase'] = phrase
+                    kwargs.pop('key', '')
+            elif kwargs.get('phrase') and kwargs.get('key'):
+                if any('key' in m for m in settings.maps[:2]):
+                    kwargs['phrase'] = key_to_phrase(kwargs.pop('key'))
+                else:
+                    kwargs.pop('key')
+            elif kwargs.get('key'):
+                kwargs['phrase'] = key_to_phrase(kwargs.pop('key'))
+            elif kwargs.get('phrase'):
+                pass
+            else:
+                raise click.UsageError(
+                    'no passphrase or key given on command-line '
+                    'or in configuration')
+            vault = dpp.Vault(**kwargs)
+            result = vault.generate(service)
+            click.echo(result.decode('ASCII'))
 
 
 if __name__ == '__main__':

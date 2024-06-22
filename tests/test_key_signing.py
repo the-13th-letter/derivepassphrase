@@ -4,15 +4,24 @@
 
 """Test OpenSSH key loading and signing."""
 
+from __future__ import annotations
+
+import click
 import pytest
 
 import derivepassphrase
+import derivepassphrase.cli
 import ssh_agent_client
 
 import base64
+import errno
+import io
 import os
 import socket
 import subprocess
+
+if not os.environ.get('SSH_AUTH_SOCK'):  # pragma: no cover
+    pytest.skip('no running SSH agent detected', allow_module_level=True)
 
 SUPPORTED = {
     'ed25519': {
@@ -327,6 +336,14 @@ def test_client_string(input, expected):
     string = ssh_agent_client.SSHAgentClient.string
     assert bytes(string(input)) == expected
 
+@pytest.mark.parametrize(['input', 'exc_type', 'exc_pattern'], [
+    ('some string', TypeError, 'invalid payload type'),
+])
+def test_client_string_exceptions(input, exc_type, exc_pattern):
+    string = ssh_agent_client.SSHAgentClient.string
+    with pytest.raises(exc_type, match=exc_pattern):
+        string(input)
+
 @pytest.mark.parametrize(['input', 'expected'], [
     (b'\x00\x00\x00\x07ssh-rsa', b'ssh-rsa'),
     (
@@ -396,6 +413,7 @@ def test_sign_data_via_agent(keytype, data_dict):
                              for k, c in client.list_keys()}
         public_key_data = data_dict['public_key_data']
         expected_signature = data_dict['expected_signature']
+        derived_passphrase = data_dict['derived_passphrase']
         if public_key_data not in key_comment_pairs:  # pragma: no cover
             pytest.skip('prerequisite SSH key not loaded')
         signature = bytes(client.sign(
@@ -405,8 +423,8 @@ def test_sign_data_via_agent(keytype, data_dict):
             payload=derivepassphrase.Vault._UUID, key=public_key_data))
         assert signature2 == expected_signature, 'SSH signature mismatch'
         assert (
-            derivepassphrase.Vault.phrase_from_signature(public_key_data) ==
-            expected_signature
+            derivepassphrase.Vault.phrase_from_key(public_key_data) ==
+            derived_passphrase
         ), 'SSH signature mismatch'
 
 @pytest.mark.parametrize(['keytype', 'data_dict'], list(UNSUITABLE.items()))
@@ -439,4 +457,142 @@ def test_sign_data_via_agent_unsupported(keytype, data_dict):
             payload=derivepassphrase.Vault._UUID, key=public_key_data))
         assert signature != signature2, 'SSH signature repeatable?!'
         with pytest.raises(ValueError, match='unsuitable SSH key'):
-            derivepassphrase.Vault.phrase_from_signature(public_key_data)
+            derivepassphrase.Vault.phrase_from_key(public_key_data)
+
+@pytest.mark.parametrize(['this_data', 'all_data'],
+                         [(v, tuple(SUPPORTED.values()))
+                          for v in SUPPORTED.values()])
+def test_ssh_key_selector(monkeypatch, this_data, all_data):
+    successfully_uploaded_keys: list[bytes] = []
+    for data in all_data:
+        private_key = data['private_key']
+        try:
+            result = subprocess.run(['ssh-add', '-t', '60', '-q', '-'],
+                                    input=private_key, check=True,
+                                    capture_output=True)
+        except subprocess.CalledProcessError as e:
+            if data == this_data:
+                pytest.skip(
+                    f"uploading non-optional test key: {e!r}, "
+                    f"stdout={e.stdout!r}, stderr={e.stderr!r}"
+                )
+        else:
+            successfully_uploaded_keys.append(data['public_key_data'])
+    index = 1 + successfully_uploaded_keys.index(this_data['public_key_data'])
+    b64_key = base64.standard_b64encode(
+        this_data['public_key_data']).decode('ASCII')
+    n = len(successfully_uploaded_keys)
+    text = (f'Your selection? (1-{n}, leave empty to abort): {index}\n'
+            if n > 1 else 'Use this key? yes\n')
+
+    @click.command()
+    def driver():
+        key = derivepassphrase.cli._select_ssh_key()
+        click.echo(base64.standard_b64encode(key).decode('ASCII'))
+
+    runner = click.testing.CliRunner(mix_stderr=True)
+    result = runner.invoke(driver, [],
+                           input=(f'{index}\n' if n > 1 else f'yes\n'),
+                           catch_exceptions=True)
+    assert result.exit_code == 0, 'driver program failed?!'
+    assert result.stdout.startswith('Suitable SSH keys:\n'), (
+        'missing expected output'
+    )
+    assert text in result.stdout, 'missing expected output'
+    assert result.stdout.endswith(f'\n{b64_key}\n'), 'missing expected output'
+
+@pytest.mark.parametrize(['conn_hint'], [('none',), ('socket',), ('client',)])
+def test_get_suitable_ssh_keys(conn_hint):
+    hint: ssh_agent_client.SSHAgentClient | socket.socket | None
+    match conn_hint:
+        case 'client':
+            hint = ssh_agent_client.SSHAgentClient()
+        case 'socket':
+            hint = socket.socket(family=socket.AF_UNIX)
+            hint.connect(os.environ['SSH_AUTH_SOCK'])
+        case _:
+            assert conn_hint == 'none'
+            hint = None
+    exception: type[Exception] | None = None
+    try:
+        list(derivepassphrase.cli._get_suitable_ssh_keys(hint))
+    except RuntimeError:  # pragma: no cover
+        pass
+    except Exception as e:  # pragma: no cover
+        exception = e
+    finally:
+        assert exception == None, 'exception querying suitable SSH keys'
+
+def test_constructor_no_running_agent(monkeypatch):
+    monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
+    sock = socket.socket(family=socket.AF_UNIX)
+    with pytest.raises(RuntimeError, match='missing SSH_AUTH_SOCK'):
+        ssh_agent_client.SSHAgentClient(socket=sock)
+
+def test_constructor_bad_running_agent(monkeypatch):
+    monkeypatch.setenv('SSH_AUTH_SOCK', os.environ['SSH_AUTH_SOCK'] + '~')
+    sock = socket.socket(family=socket.AF_UNIX)
+    with pytest.raises(RuntimeError, match='unusable SSH_AUTH_SOCK'):
+        ssh_agent_client.SSHAgentClient(socket=sock)
+
+@pytest.mark.parametrize(['response'], [
+    (b'\x00\x00',),
+    (b'\x00\x00\x00\x1f some bytes missing',),
+])
+def test_truncated_server_response(monkeypatch, response):
+    client = ssh_agent_client.SSHAgentClient()
+    response_stream = io.BytesIO(response)
+    class PseudoSocket(object):
+        pass
+    pseudo_socket = PseudoSocket()
+    pseudo_socket.sendall = lambda *a, **kw: None
+    pseudo_socket.recv = response_stream.read
+    monkeypatch.setattr(client, '_connection', pseudo_socket)
+    with pytest.raises(EOFError):
+        client.request(255, b'')
+
+@pytest.mark.parametrize(
+    ['response_code', 'response', 'exc_type', 'exc_pattern'],
+    [
+        (255, b'', RuntimeError, 'error return from SSH agent:'),
+        (12, b'\x00\x00\x00\x01', EOFError, 'truncated response'),
+        (12, b'\x00\x00\x00\x00abc', RuntimeError, 'overlong response'),
+    ]
+)
+def test_list_keys_error_responses(monkeypatch, response_code, response,
+                                   exc_type, exc_pattern):
+    client = ssh_agent_client.SSHAgentClient()
+    monkeypatch.setattr(client, 'request',
+                        lambda *a, **kw: (response_code, response))
+    with pytest.raises(exc_type, match=exc_pattern):
+        client.list_keys()
+
+@pytest.mark.parametrize(
+    ['key', 'check', 'response', 'exc_type', 'exc_pattern'],
+    [
+        (
+            b'invalid-key',
+            True,
+            (255, b''),
+            RuntimeError,
+            'target SSH key not loaded into agent',
+        ),
+        (
+            SUPPORTED['ed25519']['public_key_data'],
+            True,
+            (255, b''),
+            RuntimeError,
+            'signing data failed:',
+        )
+    ]
+)
+def test_sign_error_responses(monkeypatch, key, check, response, exc_type,
+                              exc_pattern):
+    client = ssh_agent_client.SSHAgentClient()
+    monkeypatch.setattr(client, 'request', lambda a, b: response)
+    KeyCommentPair = ssh_agent_client.types.KeyCommentPair
+    loaded_keys = [KeyCommentPair(v['public_key_data'], b'no comment')
+                   for v in SUPPORTED.values()]
+    monkeypatch.setattr(client, 'list_keys', lambda: loaded_keys)
+    with pytest.raises(exc_type, match=exc_pattern):
+        client.sign(key, b'abc', check_if_key_loaded=check)

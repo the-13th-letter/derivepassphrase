@@ -52,6 +52,7 @@ plugins:
         python:
           import:
             - https://docs.python.org/3/objects.inv
+            - https://click.palletsprojects.com/en/8.1.x/objects.inv
           options:
             docstring_options:
               ignore_init_summary: true
@@ -82,6 +83,7 @@ nav:
     - Module derivepassphrase: reference/derivepassphrase.md
     - Module sequin: reference/sequin.md
     - Module ssh_agent_client: reference/ssh_agent_client.md
+    - Coverage: reference/coverage/index.html
   #- explanation.md
 
 markdown_extensions:
