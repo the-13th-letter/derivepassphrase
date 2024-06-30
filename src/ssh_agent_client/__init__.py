@@ -327,7 +327,7 @@ class SSHAgentClient:
                 The response from the SSH agent is too long.
             RuntimeError:
                 The agent failed to complete the request.
-            RuntimeError:
+            KeyError:
                 `check_if_key_loaded` is true, and the `key` was not
                 loaded into the agent.
 
@@ -335,7 +335,7 @@ class SSHAgentClient:
         if check_if_key_loaded:
             loaded_keys = frozenset({pair.key for pair in self.list_keys()})
             if bytes(key) not in loaded_keys:
-                raise RuntimeError('target SSH key not loaded into agent')
+                raise KeyError('target SSH key not loaded into agent')
         request_data = bytearray(self.string(key))
         request_data.extend(self.string(payload))
         request_data.extend(self.uint32(flags))
