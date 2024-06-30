@@ -56,6 +56,13 @@ class SSHAgentClient:
                 gives ample time for agent connections forwarded via
                 SSH on high-latency networks (e.g. Tor).
 
+        Raises:
+            KeyError:
+                The `SSH_AUTH_SOCK` environment was not found.
+            OSError:
+                There was an error setting up a socket connection to the
+                agent.
+
         """
         if socket is not None:
             self._connection = socket
@@ -69,19 +76,11 @@ class SSHAgentClient:
             # from coverage.
             if e.errno != errno.ENOTCONN:  # pragma: no cover
                 raise
-            try:
-                ssh_auth_sock = os.environ['SSH_AUTH_SOCK']
-            except KeyError as e:
-                raise RuntimeError(
-                    "Can't find running ssh-agent: missing SSH_AUTH_SOCK"
-                ) from e
+            if 'SSH_AUTH_SOCK' not in os.environ:
+                raise KeyError('SSH_AUTH_SOCK environment variable')
+            ssh_auth_sock = os.environ['SSH_AUTH_SOCK']
             self._connection.settimeout(timeout)
-            try:
-                self._connection.connect(ssh_auth_sock)
-            except FileNotFoundError as e:
-                raise RuntimeError(
-                    "Can't find running ssh-agent: unusable SSH_AUTH_SOCK"
-                ) from e
+            self._connection.connect(ssh_auth_sock)
 
     def __enter__(self) -> Self:
         """Close socket connection upon context manager completion."""

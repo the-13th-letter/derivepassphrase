@@ -36,7 +36,7 @@ class TestStaticFunctionality:
     def test_200_constructor_no_running_agent(self, monkeypatch):
         monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
         sock = socket.socket(family=socket.AF_UNIX)
-        with pytest.raises(RuntimeError,
+        with pytest.raises(KeyError,
                            match='SSH_AUTH_SOCK environment variable'):
             ssh_agent_client.SSHAgentClient(socket=sock)
 
