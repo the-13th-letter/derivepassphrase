@@ -23,6 +23,9 @@ __version__ = "0.1.0"
 
 _socket = socket
 
+class TrailingDataError(RuntimeError):
+    """The result contained trailing data."""
+
 class SSHAgentClient:
     """A bare-bones SSH agent client supporting signing and key listing.
 
@@ -252,8 +255,10 @@ class SSHAgentClient:
         Raises:
             EOFError:
                 The response from the SSH agent is truncated or missing.
-            RuntimeError:
+            TrailingDataError:
                 The response from the SSH agent is too long.
+            RuntimeError:
+                The agent failed to complete the request.
 
         """
         response_code, response = self.request(
@@ -286,7 +291,7 @@ class SSHAgentClient:
             # Both `key` and `comment` are not wrapped as SSH strings.
             keys.append(KeyCommentPair(key, comment))
         if response_stream:
-            raise RuntimeError('overlong response from SSH agent')
+            raise TrailingDataError('overlong response from SSH agent')
         return keys
 
     def sign(
@@ -319,7 +324,7 @@ class SSHAgentClient:
         Raises:
             EOFError:
                 The response from the SSH agent is truncated or missing.
-            RuntimeError:
+            TrailingDataError:
                 The response from the SSH agent is too long.
             RuntimeError:
                 The agent failed to complete the request.

@@ -273,7 +273,12 @@ class TestAgentInteraction:
         [
             (255, b'', RuntimeError, 'error return from SSH agent:'),
             (12, b'\x00\x00\x00\x01', EOFError, 'truncated response'),
-            (12, b'\x00\x00\x00\x00abc', RuntimeError, 'overlong response'),
+            (
+                12,
+                b'\x00\x00\x00\x00abc',
+                ssh_agent_client.TrailingDataError,
+                'overlong response',
+            ),
         ]
     )
     def test_320_list_keys_error_responses(self, monkeypatch, response_code,
