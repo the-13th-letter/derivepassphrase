@@ -27,7 +27,7 @@ import math
 from collections.abc import Iterator, MutableSequence, Sequence
 from typing import assert_type, Literal, TypeAlias
 
-__all__ = ('Sequin', 'SequinExhaustedException')
+__all__ = ('Sequin', 'SequinExhaustedError')
 __author__ = 'Marco Ricci <m@the13thletter.info>'
 __version__ = "0.1.0"
 
@@ -219,7 +219,7 @@ class Sequin:
         Raises:
             ValueError:
                 The range is empty.
-            SequinExhaustedException:
+            SequinExhaustedError:
                 The sequin is exhausted.
 
         Examples:
@@ -236,7 +236,7 @@ class Sequin:
             >>> seq.generate(5)    # doctest: +IGNORE_EXCEPTION_DETAIL
             Traceback (most recent call last):
                 ...
-            SequinExhaustedException: Sequin is exhausted
+            SequinExhaustedError: Sequin is exhausted
 
             Using `n = 1` does not actually consume input bits:
 
@@ -248,14 +248,14 @@ class Sequin:
             >>> seq.generate(1)    # doctest: +IGNORE_EXCEPTION_DETAIL
             Traceback (most recent call last):
                 ...
-            SequinExhaustedException: Sequin is exhausted
+            SequinExhaustedError: Sequin is exhausted
 
         """
         if 2 not in self.bases:
-            raise SequinExhaustedException('Sequin is exhausted')
+            raise SequinExhaustedError('Sequin is exhausted')
         value = self._generate_inner(n, base=2)
         if value == n:
-            raise SequinExhaustedException('Sequin is exhausted')
+            raise SequinExhaustedError('Sequin is exhausted')
         return value
 
     def _generate_inner(
@@ -360,7 +360,7 @@ class Sequin:
             self.bases[base] = collections.deque()
         self.bases[base].append(value)
 
-class SequinExhaustedException(Exception):
+class SequinExhaustedError(Exception):
     """The sequin is exhausted.
 
     No more values can be generated from this sequin.

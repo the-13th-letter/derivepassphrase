@@ -61,9 +61,9 @@ class TestSequin:
         assert seq.generate(5) == 3
         assert seq.generate(5) == 3
         assert seq.generate(5) == 1
-        with pytest.raises(sequin.SequinExhaustedException):
+        with pytest.raises(sequin.SequinExhaustedError):
             seq.generate(5)
-        with pytest.raises(sequin.SequinExhaustedException):
+        with pytest.raises(sequin.SequinExhaustedError):
             seq.generate(1)
         seq = sequin.Sequin([1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1],
                             is_bitstring=True)
