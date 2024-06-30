@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Any, cast, TYPE_CHECKING, NamedTuple
 
-import derivepassphrase as dpp
+import derivepassphrase.types
 import pytest
 
 @pytest.mark.parametrize(['obj', 'comment'], [
@@ -43,9 +43,13 @@ import pytest
       'services': {'sv': {'phrase': 'abc', 'length': 10}}}, ''),
     ({'global': {'key': '...'},
       'services': {'sv': {'phrase': 'abc', 'length': 10}}}, ''),
+    ({'global': {'key': '...'},
+      'services': {'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
+                   'sv2': {'length': 10, 'repeat': 1, 'lower': 1}}}, ''),
 ])
 def test_200_is_vault_config(obj: Any, comment: str) -> None:
-    assert dpp.types.is_vault_config(obj) == (not comment), (
+    is_vault_config = derivepassphrase.types.is_vault_config
+    assert is_vault_config(obj) == (not comment), (
         'failed to complain about: ' + comment if comment
         else 'failed on valid example'
     )
