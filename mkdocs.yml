@@ -1,9 +1,9 @@
-site_name: derivepassphrase documentation
+site_name: derivepassphrase
 site_url: null
 repo_url: https://github.com/the-13th-letter/derivepassphrase
 site_description: An almost faithful Python reimplementation of James Coglan's vault.
 site_author: Marco Ricci
-copyright: Copyright 2024 Marco Ricci (the-13th-letter).  All rights reserved.
+copyright: Copyright 2024 Marco Ricci (the-13th-letter).  All rights reserved.  Distributed under the MIT license.
 
 docs_dir: docs
 site_dir: html
@@ -75,7 +75,7 @@ plugins:
             - src
 
 nav:
-  - derivepassphrase documentation: index.md
+  - Overview: index.md
   #- tutorials.md
   #- How-Tos: how-tos.md
   - Reference:

@@ -572,11 +572,15 @@ def derivepassphrase(
 ) -> None:
     """Derive a strong passphrase, deterministically, from a master secret.
 
-    Using a master passphrase or a master SSH key, derive a strong
-    passphrase for SERVICE, deterministically, subject to length,
-    character and character repetition constraints.  The service name
-    and constraints themselves need not be kept secret; the latter are
-    usually stored in a world-readable file.
+    Using a master passphrase or a master SSH key, derive a passphrase
+    for SERVICE, subject to length, character and character repetition
+    constraints.  The derivation is cryptographically strong, meaning
+    that even if a single passphrase is compromised, guessing the master
+    passphrase or a different service's passphrase is computationally
+    infeasible.  The derivation is also deterministic, given the same
+    inputs, thus the resulting passphrase need not be stored explicitly.
+    The service name and constraints themselves also need not be kept
+    secret; the latter are usually stored in a world-readable file.
 
     If operating on global settings, or importing/exporting settings,
     then SERVICE must be omitted.  Otherwise it is required.\f
