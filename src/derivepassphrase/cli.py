@@ -134,11 +134,11 @@ def _get_suitable_ssh_keys(
             passphrase derivation.
 
     Raises:
-        RuntimeError:
-            There was an error communicating with the SSH agent.
-        RuntimeError:
+        LookupError:
             No keys usable for passphrase derivation are loaded into the
             SSH agent.
+        RuntimeError:
+            There was an error communicating with the SSH agent.
 
     """
     client: ssh_agent_client.SSHAgentClient
@@ -166,7 +166,7 @@ def _get_suitable_ssh_keys(
         if dpp.Vault._is_suitable_ssh_key(key):
             yield pair
     if not suitable_keys:  # pragma: no cover
-        raise RuntimeError('No usable SSH keys were found')
+        raise IndexError('No usable SSH keys were found')
 
 
 def _prompt_for_selection(
@@ -263,11 +263,11 @@ def _select_ssh_key(
         IndexError:
             The user made an invalid or empty selection, or requested an
             abort.
-        RuntimeError:
-            There was an error communicating with the SSH agent.
-        RuntimeError:
+        LookupError:
             No keys usable for passphrase derivation are loaded into the
             SSH agent.
+        RuntimeError:
+            There was an error communicating with the SSH agent.
     """
     suitable_keys = list(_get_suitable_ssh_keys(conn))
     key_listing: list[str] = []
@@ -825,7 +825,7 @@ def derivepassphrase(
                     _select_ssh_key()).decode('ASCII')
             except IndexError:
                 ctx.fail('no valid SSH key selected')
-            except RuntimeError as e:
+            except (LookupError, RuntimeError) as e:
                 ctx.fail(str(e))
         elif use_phrase:
             maybe_phrase = _prompt_for_passphrase()
