@@ -15,7 +15,7 @@ import socket
 
 from collections.abc import Sequence, MutableSequence
 from typing import Any, NamedTuple, Self, TypeAlias
-from ssh_agent_client.types import KeyCommentPair, SSH_AGENT, SSH_AGENTC
+from ssh_agent_client import types
 
 __all__ = ('SSHAgentClient',)
 __author__ = 'Marco Ricci <m@the13thletter.info>'
@@ -245,7 +245,7 @@ class SSHAgentClient:
             raise EOFError('truncated response from SSH agent')
         return response[0], response[1:]
 
-    def list_keys(self) -> Sequence[KeyCommentPair]:
+    def list_keys(self) -> Sequence[types.KeyCommentPair]:
         """Request a list of keys known to the SSH agent.
 
         Returns:
@@ -261,8 +261,8 @@ class SSHAgentClient:
 
         """
         response_code, response = self.request(
-            SSH_AGENTC.REQUEST_IDENTITIES.value, b'')
-        if response_code != SSH_AGENT.IDENTITIES_ANSWER.value:
+            types.SSH_AGENTC.REQUEST_IDENTITIES.value, b'')
+        if response_code != types.SSH_AGENT.IDENTITIES_ANSWER.value:
             raise RuntimeError(
                 f'error return from SSH agent: '
                 f'{response_code = }, {response = }'
@@ -281,14 +281,15 @@ class SSHAgentClient:
                 buf.append(val)
             return bytes(buf)
         key_count = int.from_bytes(shift(4), 'big')
-        keys: collections.deque[KeyCommentPair] = collections.deque()
+        keys: collections.deque[types.KeyCommentPair]
+        keys = collections.deque()
         for i in range(key_count):
             key_size = int.from_bytes(shift(4), 'big')
             key = shift(key_size)
             comment_size = int.from_bytes(shift(4), 'big')
             comment = shift(comment_size)
             # Both `key` and `comment` are not wrapped as SSH strings.
-            keys.append(KeyCommentPair(key, comment))
+            keys.append(types.KeyCommentPair(key, comment))
         if response_stream:
             raise TrailingDataError('overlong response from SSH agent')
         return keys
@@ -340,8 +341,8 @@ class SSHAgentClient:
         request_data.extend(self.string(payload))
         request_data.extend(self.uint32(flags))
         response_code, response = self.request(
-            SSH_AGENTC.SIGN_REQUEST.value, request_data)
-        if response_code != SSH_AGENT.SIGN_RESPONSE.value:
+            types.SSH_AGENTC.SIGN_REQUEST.value, request_data)
+        if response_code != types.SSH_AGENT.SIGN_RESPONSE.value:
             raise RuntimeError(
                 f'signing data failed: {response_code = }, {response = }'
             )
