@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import base64
+from collections.abc import Callable
 import json
 import os
 import socket
@@ -131,7 +132,7 @@ SINGLES: dict[tuple[str, ...], SingleConfiguration] = {
     ('--import', '-'): SingleConfiguration(False, b'{"services": {}}', True),
 }
 INTERESTING_OPTION_COMBINATIONS: list[OptionCombination] = []
-config: OptionCombination | SingleConfiguration
+config: IncompatibleConfiguration | SingleConfiguration
 for opt, config in INCOMPATIBLE.items():
     for opt2 in config.other_options:
         INTERESTING_OPTION_COMBINATIONS.extend([
@@ -180,7 +181,7 @@ class TestCLI:
             f'program died unexpectedly with exit code {result.exit_code}'
         )
         assert not result.stderr_bytes, (
-            f'program barfed on stderr: {result.stderr_bytes}'
+            f'program barfed on stderr: {result.stderr_bytes!r}'
         )
         for c in charset:
             assert c not in result.stdout, (
@@ -198,7 +199,7 @@ class TestCLI:
             f'program died unexpectedly with exit code {result.exit_code}'
         )
         assert not result.stderr_bytes, (
-            f'program barfed on stderr: {result.stderr_bytes}'
+            f'program barfed on stderr: {result.stderr_bytes!r}'
         )
         passphrase = result.stdout.rstrip('\r\n')
         for i in range(len(passphrase) - 1):
@@ -422,13 +423,17 @@ class TestCLI:
         self, monkeypatch: Any,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
+        # `isolated_config` validates the configuration.  So, to pass an
+        # actual broken configuration, we must open the configuration file
+        # ourselves afterwards, inside the context.
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner,
                                    config={'services': {}}):
             with open(cli._config_filename(), 'wt') as outfile:
                 print('This string is not valid JSON.', file=outfile)
+            dname = os.path.dirname(cli._config_filename())
             result = runner.invoke(
                 cli.derivepassphrase,
-                ['--import', os.path.dirname(cli._config_filename())],
+                ['--import', os.fsdecode(dname)],
                 catch_exceptions=False)
             assert result.exit_code > 0, (
                 'program unexpectedly succeeded'
@@ -504,7 +509,7 @@ class TestCLI:
                                    config={'services': {}}):
             dname = os.path.dirname(cli._config_filename())
             result = runner.invoke(cli.derivepassphrase,
-                                   ['--export', dname],
+                                   ['--export', os.fsdecode(dname)],
                                    input=b'null', catch_exceptions=False)
             assert result.exit_code > 0, (
                 'program unexpectedly succeeded'
@@ -579,6 +584,7 @@ contents go here
             result = runner.invoke(cli.derivepassphrase, ['--notes', 'sv'],
                                    catch_exceptions=False)
             assert result.exit_code != 0, 'program unexpectedly succeeded'
+            assert result.stderr_bytes is not None
             assert b'user aborted request' in result.stderr_bytes, (
                 'expected error message missing'
             )
@@ -648,7 +654,7 @@ contents go here
     ])
     def test_225_store_config_fail(
         self, monkeypatch: Any, command_line: list[str],
-        input: bytes, err_text: str,
+        input: bytes, err_text: bytes,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner,
@@ -660,6 +666,7 @@ contents go here
                                    ['--config'] + command_line,
                                    catch_exceptions=False, input=input)
             assert result.exit_code != 0, 'program unexpectedly succeeded?!'
+            assert result.stderr_bytes is not None
             assert err_text in result.stderr_bytes, (
                 'expected error message missing'
             )
@@ -678,6 +685,7 @@ contents go here
                                    ['--key', '--config'],
                                    catch_exceptions=False)
             assert result.exit_code != 0, 'program unexpectedly succeeded'
+            assert result.stderr_bytes is not None
             assert b'custom error message' in result.stderr_bytes, (
                 'expected error message missing'
             )
@@ -687,6 +695,7 @@ contents go here
         result = runner.invoke(cli.derivepassphrase, [],
                                catch_exceptions=False)
         assert result.exit_code != 0, 'program unexpectedly succeeded'
+        assert result.stderr_bytes is not None
         assert b'SERVICE is required' in result.stderr_bytes, (
             'expected error message missing'
         )
@@ -696,6 +705,7 @@ contents go here
         result = runner.invoke(cli.derivepassphrase, [DUMMY_SERVICE],
                                catch_exceptions=False)
         assert result.exit_code != 0, 'program unexpectedly succeeded'
+        assert result.stderr_bytes is not None
         assert b'no passphrase or key given' in result.stderr_bytes, (
             'expected error message missing'
         )
@@ -887,7 +897,9 @@ Boo.
     @tests.skip_if_no_agent
     @pytest.mark.parametrize(['conn_hint'],
                              [('none',), ('socket',), ('client',)])
-    def test_227_get_suitable_ssh_keys(self, monkeypatch, conn_hint):
+    def test_227_get_suitable_ssh_keys(
+        self, monkeypatch: Any, conn_hint: str,
+    ) -> None:
         monkeypatch.setattr(ssh_agent_client.SSHAgentClient,
                             'list_keys', tests.list_keys)
         hint: ssh_agent_client.SSHAgentClient | socket.socket | None

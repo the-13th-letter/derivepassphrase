@@ -11,6 +11,7 @@ import json
 import os
 from typing import Any, TYPE_CHECKING, TypedDict
 
+import click.testing
 import derivepassphrase
 import derivepassphrase.cli
 import derivepassphrase.types
