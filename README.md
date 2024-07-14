@@ -18,9 +18,9 @@ The service name and constraints themselves also need not be kept secret; the la
 
 ### With `pip`
 
-```console
+```` shell-session
 $ pip install derivepassphrase
-```
+````
 
 ### Manually
 
@@ -31,19 +31,19 @@ $ pip install derivepassphrase
 
 ## Quick Usage
 
-```console
+```` shell-session
 $ derivepassphrase -p --length 30 --upper 3 --lower 1 --number 2 --space 0 --symbol 0 my-email-account
 Passphrase: This passphrase is for demonstration purposes only.
 JKeet7GeBpxysOgdCEJo6UzmP8A0Ih
-```
+````
 
 Some time later…
 
-```console
+```` shell-session
 $ derivepassphrase -p --length 30 --upper 3 --lower 1 --number 2 --space 0 --symbol 0 my-email-account
 Passphrase: This passphrase is for demonstration purposes only.
 JKeet7GeBpxysOgdCEJo6UzmP8A0Ih
-```
+````
 
 (The user input `This passphrase is for demonstration purposes only.` for the passphrase prompt is not actually displayed on-screen.)
 
