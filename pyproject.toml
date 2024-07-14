@@ -4,7 +4,6 @@ build-backend = "hatchling.build"
 
 [project]
 name = "derivepassphrase"
-dynamic = ["version"]
 description = "An almost faithful Python reimplementation of James Coglan's vault."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -28,6 +27,7 @@ dependencies = [
   "click>=8.1",
   "typing_extensions",
 ]
+version = "0.1.0c1"
 
 [project.optional-dependencies]
 dev = ["black", "coverage", "hatch>=1.10", "mkdocs", "mkdocs-material",

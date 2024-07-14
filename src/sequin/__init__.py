@@ -28,7 +28,7 @@ from typing_extensions import assert_type
 
 __all__ = ('Sequin', 'SequinExhaustedError')
 __author__ = 'Marco Ricci <m@the13thletter.info>'
-__version__ = "0.1.0"
+# Use importlib.metadata.version(...) to query the version.
 
 class Sequin:
     """Generate pseudorandom non-negative numbers in different ranges.
