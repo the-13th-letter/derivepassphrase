@@ -87,7 +87,6 @@ nav:
     - Module derivepassphrase: reference/derivepassphrase.md
     - Module sequin: reference/sequin.md
     - Module ssh_agent_client: reference/ssh_agent_client.md
-    - Coverage: reference/coverage/index.html
   #- Design & Background: explanation.md
 
 markdown_extensions:

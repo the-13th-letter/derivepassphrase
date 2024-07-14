@@ -63,12 +63,6 @@ default-args = ['src', 'tests']
 [[tool.hatch.envs.hatch-test.matrix]]
 python = ["3.10", "3.11", "3.12", "pypy3.10"]
 
-[tool.hatch.envs.hatch-test.scripts]
-run = "pytest{env:HATCH_TEST_ARGS:} {args}"
-run-cov = "coverage run -m pytest{env:HATCH_TEST_ARGS:} {args}"
-cov-combine = "coverage combine"
-cov-report = ["coverage report", "coverage html"]
-
 [tool.hatch.env]
 requires = [
   "hatch-mkdocs",
@@ -93,7 +87,7 @@ extra-dependencies = [
 check = "mypy --install-types --non-interactive {args:src/derivepassphrase tests}"
 
 [tool.coverage.html]
-directory = "docs/reference/coverage"
+directory = "html/coverage"
 
 [tool.coverage.run]
 source_pkgs = ["derivepassphrase", "sequin", "ssh_agent_client", "tests"]
