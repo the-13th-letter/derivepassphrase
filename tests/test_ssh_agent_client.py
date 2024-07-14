@@ -7,12 +7,11 @@
 from __future__ import annotations
 
 import base64
-import errno
 import io
 import os
 import socket
 import subprocess
-from typing import Any
+from typing_extensions import Any
 
 import click
 import click.testing

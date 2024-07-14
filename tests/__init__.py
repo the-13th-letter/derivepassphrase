@@ -9,15 +9,16 @@ from collections.abc import Iterator, Mapping
 import contextlib
 import json
 import os
-from typing import Any, TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING
+from typing_extensions import Any, TypedDict
 
 import click.testing
 import derivepassphrase
 import derivepassphrase.cli
 import derivepassphrase.types
+import pytest
 import ssh_agent_client
 import ssh_agent_client.types
-import pytest
 
 __all__ = ()
 

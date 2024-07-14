@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import Any, cast, TYPE_CHECKING, NamedTuple
+from typing_extensions import Any
 
 import derivepassphrase.types
 import pytest

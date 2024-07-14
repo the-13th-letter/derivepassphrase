@@ -10,16 +10,14 @@ from __future__ import annotations
 
 import base64
 import collections
-from collections.abc import MutableMapping
 import contextlib
 import inspect
 import json
 import os
 import pathlib
 import socket
-from typing import (
-    Any, assert_never, cast, reveal_type, Iterator, Never, NotRequired,
-    Sequence, TextIO, TypedDict, TYPE_CHECKING,
+from typing_extensions import (
+    Any, assert_never, cast, Iterator, Sequence, TextIO,
 )
 
 import click

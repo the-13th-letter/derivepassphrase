@@ -22,10 +22,9 @@ thoroughly documented.
 from __future__ import annotations
 
 import collections
-import math
 
-from collections.abc import Iterator, MutableSequence, Sequence
-from typing import assert_type, Literal, TypeAlias
+from collections.abc import Iterator, Sequence
+from typing_extensions import assert_type
 
 __all__ = ('Sequin', 'SequinExhaustedError')
 __author__ = 'Marco Ricci <m@the13thletter.info>'

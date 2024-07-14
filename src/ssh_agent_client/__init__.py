@@ -7,14 +7,13 @@
 from __future__ import annotations
 
 import collections
-import enum
 import errno
 import os
-import pathlib
 import socket
 
-from collections.abc import Sequence, MutableSequence
-from typing import Any, NamedTuple, Self, TypeAlias
+from collections.abc import Sequence
+from typing_extensions import Any, Self
+
 from ssh_agent_client import types
 
 __all__ = ('SSHAgentClient',)

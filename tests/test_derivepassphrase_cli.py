@@ -4,12 +4,11 @@
 
 from __future__ import annotations
 
-import base64
 from collections.abc import Callable
 import json
 import os
 import socket
-from typing import Any, cast, TYPE_CHECKING, NamedTuple
+from typing_extensions import Any, cast, NamedTuple
 
 import click.testing
 import derivepassphrase as dpp

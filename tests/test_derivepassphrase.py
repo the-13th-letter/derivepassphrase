@@ -10,9 +10,7 @@ import math
 from typing import Any
 
 import derivepassphrase
-import sequin
 import pytest
-import tests
 
 Vault = derivepassphrase.Vault
 

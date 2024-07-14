@@ -8,7 +8,9 @@
 
 from __future__ import annotations
 
-from typing import Any, NotRequired, Required, TypedDict, TypeGuard
+from typing_extensions import (
+    Any, NotRequired, Required, TypedDict, TypeGuard,
+)
 
 import derivepassphrase
 

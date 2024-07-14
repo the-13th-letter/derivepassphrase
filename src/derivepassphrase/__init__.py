@@ -13,9 +13,8 @@ import collections
 import hashlib
 import math
 import unicodedata
-import warnings
 
-from typing import assert_type, reveal_type
+from typing_extensions import assert_type
 
 import sequin
 import ssh_agent_client
