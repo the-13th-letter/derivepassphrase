@@ -79,15 +79,16 @@ plugins:
 
 nav:
   - Overview: index.md
-  #- tutorials.md
+  #- Tutorials & Examples: tutorials.md
   #- How-Tos: how-tos.md
   - Reference:
-    - API overview: reference.md
+    - Reference overview: reference.md
+    - 'Man page: derivepassphrase': reference/derivepassphrase.1.md
     - Module derivepassphrase: reference/derivepassphrase.md
     - Module sequin: reference/sequin.md
     - Module ssh_agent_client: reference/ssh_agent_client.md
     - Coverage: reference/coverage/index.html
-  #- explanation.md
+  #- Design & Background: explanation.md
 
 markdown_extensions:
   - abbr
