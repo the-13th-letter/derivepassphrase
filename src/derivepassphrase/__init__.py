@@ -20,7 +20,7 @@ import sequin
 import ssh_agent_client
 
 __author__ = "Marco Ricci <m@the13thletter.info>"
-# Use importlib.metadata.version(...) to query the version.
+__version__ = "0.1.0"
 
 class AmbiguousByteRepresentationError(ValueError):
     """The object has an ambiguous byte representation."""
