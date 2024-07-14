@@ -10,7 +10,6 @@ docs_dir: docs
 site_dir: html
 extra_css:
   - mkdocstrings_recommended_styles.css
-  - default_fonts_only.css
 
 theme:
   name: "material"
