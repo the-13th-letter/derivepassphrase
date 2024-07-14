@@ -1,5 +1,5 @@
 site_name: derivepassphrase
-site_url: null
+site_url: https://the13thletter.info/derivepassphrase/
 repo_url: https://github.com/the-13th-letter/derivepassphrase
 repo_name: the-13th-letter/derivepassphrase
 site_description: An almost faithful Python reimplementation of James Coglan's vault.
@@ -46,7 +46,7 @@ theme:
 
 plugins:
   - offline:
-      enabled: true
+      enabled: false  # set to true for offline versions
   #- privacy:
   #    enabled: true
   - mkdocstrings:
