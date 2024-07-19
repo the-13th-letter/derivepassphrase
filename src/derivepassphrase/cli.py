@@ -810,7 +810,7 @@ def derivepassphrase(
             with outfile:
                 json.dump(configuration, outfile)
         except OSError as e:
-            ctx.fail('cannot write config: {e.strerror}')
+            ctx.fail(f'cannot write config: {e.strerror}')
     else:
         configuration = get_config()
         # This block could be type checked more stringently, but this
@@ -874,7 +874,7 @@ def derivepassphrase(
             _save_config(configuration)
         else:
             if not service:
-                raise click.UsageError(f'SERVICE is required')
+                raise click.UsageError('SERVICE is required')
             kwargs: dict[str, Any] = {k: v for k, v in settings.items()
                                       if k in service_keys and v is not None}
             # If either --key or --phrase are given, use that setting.
@@ -885,8 +885,11 @@ def derivepassphrase(
             # these above cases, set the phrase via
             # derivepassphrase.Vault.phrase_from_key if a key is
             # given. Finally, if nothing is set, error out.
-            key_to_phrase = lambda key: dpp.Vault.phrase_from_key(
-                base64.standard_b64decode(key))
+            def key_to_phrase(
+                key: str | bytes | bytearray
+            ) -> bytes | bytearray:
+                return dpp.Vault.phrase_from_key(
+                    base64.standard_b64decode(key))
             if use_key or use_phrase:
                 if use_key:
                     kwargs['phrase'] = key_to_phrase(key)

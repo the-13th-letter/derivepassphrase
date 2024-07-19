@@ -81,7 +81,6 @@ detached = false
 [tool.hatch.envs.types]
 extra-dependencies = [
   "mypy>=1.0.0",
-  "pytest",
 ]
 [tool.hatch.envs.types.scripts]
 check = "mypy --install-types --non-interactive {args:src/derivepassphrase tests}"
@@ -115,3 +114,13 @@ exclude_also = [
   "raise NotImplementedError",
   'assert False',
 ]
+
+[tool.ruff]
+line-length = 79
+src = ["src"]
+
+[tool.ruff.format]
+quote-style = 'single'
+
+[tool.ruff.lint.pydocstyle]
+convention = 'google'

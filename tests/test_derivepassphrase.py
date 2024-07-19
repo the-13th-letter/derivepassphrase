@@ -137,11 +137,10 @@ class TestVault:
         assert v._estimate_sufficient_hash_length(8.0) >= entropy
 
     def test_222_hash_length_estimation(self) -> None:
-        v = Vault(phrase=self.phrase)
-        v2 = Vault(phrase=self.phrase, lower=0, upper=0, number=0,
+        v = Vault(phrase=self.phrase, lower=0, upper=0, number=0,
                    symbol=0, space=1, length=1)
-        assert v2._entropy() == 0.0
-        assert v2._estimate_sufficient_hash_length() > 0
+        assert v._entropy() == 0.0
+        assert v._estimate_sufficient_hash_length() > 0
 
     @pytest.mark.parametrize(['service', 'expected'], [
         (b'google', google_phrase),

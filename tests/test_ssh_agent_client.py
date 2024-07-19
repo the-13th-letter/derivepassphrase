@@ -124,9 +124,9 @@ class TestAgentInteraction:
     def test_200_sign_data_via_agent(self, keytype, data_dict):
         private_key = data_dict['private_key']
         try:
-            result = subprocess.run(['ssh-add', '-t', '30', '-q', '-'],
-                                    input=private_key, check=True,
-                                    capture_output=True)
+            _ = subprocess.run(['ssh-add', '-t', '30', '-q', '-'],
+                               input=private_key, check=True,
+                               capture_output=True)
         except subprocess.CalledProcessError as e:
             pytest.skip(
                 f"uploading test key: {e!r}, stdout={e.stdout!r}, "
@@ -161,9 +161,9 @@ class TestAgentInteraction:
     def test_201_sign_data_via_agent_unsupported(self, keytype, data_dict):
         private_key = data_dict['private_key']
         try:
-            result = subprocess.run(['ssh-add', '-t', '30', '-q', '-'],
-                                    input=private_key, check=True,
-                                    capture_output=True)
+            _ = subprocess.run(['ssh-add', '-t', '30', '-q', '-'],
+                               input=private_key, check=True,
+                               capture_output=True)
         except subprocess.CalledProcessError as e:  # pragma: no cover
             pytest.skip(
                 f"uploading test key: {e!r}, stdout={e.stdout!r}, "
@@ -178,7 +178,7 @@ class TestAgentInteraction:
             key_comment_pairs = {bytes(k): bytes(c)
                                  for k, c in client.list_keys()}
             public_key_data = data_dict['public_key_data']
-            expected_signature = data_dict['expected_signature']
+            _ = data_dict['expected_signature']
             if public_key_data not in key_comment_pairs:  # pragma: no cover
                 pytest.skip('prerequisite SSH key not loaded')
             signature = bytes(client.sign(
@@ -211,7 +211,7 @@ class TestAgentInteraction:
             keys = [pair.key for pair in tests.list_keys_singleton()
                     if key_is_suitable(pair.key)]
             index = '1'
-            text = f'Use this key? yes\n'
+            text = 'Use this key? yes\n'
         else:
             monkeypatch.setattr(ssh_agent_client.SSHAgentClient,
                                 'list_keys', tests.list_keys)

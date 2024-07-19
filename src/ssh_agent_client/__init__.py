@@ -157,7 +157,8 @@ class SSHAgentClient:
         Examples:
             >>> bytes(SSHAgentClient.unstring(b'\x00\x00\x00\x07ssh-rsa'))
             b'ssh-rsa'
-            >>> bytes(SSHAgentClient.unstring(SSHAgentClient.string(b'ssh-ed25519')))
+            >>> bytes(SSHAgentClient.unstring(
+            ...     SSHAgentClient.string(b'ssh-ed25519')))
             b'ssh-ed25519'
 
         """

@@ -88,7 +88,8 @@ class TestSequin:
 
     def test_211_shifting(self):
         seq = sequin.Sequin([1, 0, 1, 0, 0, 1, 0, 0, 0, 1], is_bitstring=True)
-        assert seq.bases == {2: collections.deque([1, 0, 1, 0, 0, 1, 0, 0, 0, 1])}
+        assert seq.bases == {2: collections.deque([
+            1, 0, 1, 0, 0, 1, 0, 0, 0, 1])}
         #
         assert seq._all_or_nothing_shift(3) == (1, 0, 1)
         assert seq._all_or_nothing_shift(3) == (0, 0, 1)

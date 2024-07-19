@@ -763,7 +763,7 @@ Our menu:
 Your selection? (1-10, leave empty to abort): 9
 A fine choice: Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam and spam
 (Note: Vikings strictly optional.)
-''', 'driver program produced unexpected output'
+''', 'driver program produced unexpected output'  # noqa: E501
         result = runner.invoke(driver, ['--heading='], input='',
                                catch_exceptions=True)
         assert result.exit_code > 0, 'driver program succeeded?!'
@@ -778,7 +778,7 @@ A fine choice: Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam
 [8] Spam, spam, spam, egg and spam
 [9] Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam and spam
 [10] Lobster thermidor aux crevettes with a mornay sauce garnished with truffle paté, brandy and a fried egg on top and spam
-Your selection? (1-10, leave empty to abort): \n''', (
+Your selection? (1-10, leave empty to abort): \n''', (  # noqa: E501
             'driver program produced unexpected output'
         )
         assert isinstance(result.exception, IndexError), (
@@ -800,7 +800,8 @@ Your selection? (1-10, leave empty to abort): \n''', (
             else:
                 click.echo('Great!')
         runner = click.testing.CliRunner(mix_stderr=True)
-        result = runner.invoke(driver, ['Will replace with spam. Confirm, y/n?'],
+        result = runner.invoke(driver,
+                               ['Will replace with spam. Confirm, y/n?'],
                                input='y')
         assert result.exit_code == 0, 'driver program failed'
         assert result.stdout == '''\
@@ -825,7 +826,8 @@ Boo.
 
     def test_103_prompt_for_passphrase(self, monkeypatch: Any) -> None:
         monkeypatch.setattr(click, 'prompt',
-                            lambda *a, **kw: json.dumps({'args': a, 'kwargs': kw}))
+                            lambda *a, **kw:
+                                json.dumps({'args': a, 'kwargs': kw}))
         res = json.loads(cli._prompt_for_passphrase())
         assert 'args' in res and 'kwargs' in res, (
             'missing arguments to passphrase prompt'
@@ -919,4 +921,4 @@ Boo.
         except Exception as e:  # pragma: no cover
             exception = e
         finally:
-            assert exception == None, 'exception querying suitable SSH keys'
+            assert exception is None, 'exception querying suitable SSH keys'
