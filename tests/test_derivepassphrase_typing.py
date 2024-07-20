@@ -4,10 +4,11 @@
 
 from __future__ import annotations
 
+import pytest
 from typing_extensions import Any
 
 import derivepassphrase.types
-import pytest
+
 
 @pytest.mark.parametrize(['obj', 'comment'], [
     (None, 'not a dict'),

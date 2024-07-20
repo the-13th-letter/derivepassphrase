@@ -11,15 +11,17 @@ import io
 import os
 import socket
 import subprocess
-from typing_extensions import Any
 
 import click
 import click.testing
+import pytest
+from typing_extensions import Any
+
 import derivepassphrase
 import derivepassphrase.cli
-import pytest
 import ssh_agent_client
 import tests
+
 
 class TestStaticFunctionality:
 
@@ -122,6 +124,7 @@ class TestAgentInteraction:
     @pytest.mark.parametrize(['keytype', 'data_dict'],
                              list(tests.SUPPORTED_KEYS.items()))
     def test_200_sign_data_via_agent(self, keytype, data_dict):
+        del keytype  # Unused.
         private_key = data_dict['private_key']
         try:
             _ = subprocess.run(['ssh-add', '-t', '30', '-q', '-'],
@@ -159,6 +162,7 @@ class TestAgentInteraction:
     @pytest.mark.parametrize(['keytype', 'data_dict'],
                              list(tests.UNSUITABLE_KEYS.items()))
     def test_201_sign_data_via_agent_unsupported(self, keytype, data_dict):
+        del keytype  # Unused.
         private_key = data_dict['private_key']
         try:
             _ = subprocess.run(['ssh-add', '-t', '30', '-q', '-'],
@@ -246,18 +250,18 @@ class TestAgentInteraction:
         monkeypatch.setenv('SSH_AUTH_SOCK',
                            os.environ['SSH_AUTH_SOCK'] + '~')
         sock = socket.socket(family=socket.AF_UNIX)
-        with pytest.raises(OSError):
+        with pytest.raises(OSError):  # noqa: PT011
             ssh_agent_client.SSHAgentClient(socket=sock)
 
-    @pytest.mark.parametrize(['response'], [
-        (b'\x00\x00',),
-        (b'\x00\x00\x00\x1f some bytes missing',),
+    @pytest.mark.parametrize('response', [
+        b'\x00\x00',
+        b'\x00\x00\x00\x1f some bytes missing',
     ])
     def test_310_truncated_server_response(self, monkeypatch, response):
         client = ssh_agent_client.SSHAgentClient()
         response_stream = io.BytesIO(response)
-        class PseudoSocket(object):
-            def sendall(self, *args: Any, **kwargs: Any) -> Any:
+        class PseudoSocket:
+            def sendall(self, *args: Any, **kwargs: Any) -> Any:  # noqa: ARG002
                 return None
             def recv(self, *args: Any, **kwargs: Any) -> Any:
                 return response_stream.read(*args, **kwargs)
@@ -276,7 +280,7 @@ class TestAgentInteraction:
                 12,
                 b'\x00\x00\x00\x00abc',
                 ssh_agent_client.TrailingDataError,
-                'overlong response',
+                'Overlong response',
             ),
         ]
     )
@@ -284,7 +288,7 @@ class TestAgentInteraction:
                                            response, exc_type, exc_pattern):
         client = ssh_agent_client.SSHAgentClient()
         monkeypatch.setattr(client, 'request',
-                            lambda *a, **kw: (response_code, response))
+                            lambda *a, **kw: (response_code, response))  # noqa: ARG005
         with pytest.raises(exc_type, match=exc_pattern):
             client.list_keys()
 
@@ -311,8 +315,8 @@ class TestAgentInteraction:
     def test_330_sign_error_responses(self, monkeypatch, key, check,
                                       response, exc_type, exc_pattern):
         client = ssh_agent_client.SSHAgentClient()
-        monkeypatch.setattr(client, 'request', lambda a, b: response)
-        KeyCommentPair = ssh_agent_client.types.KeyCommentPair
+        monkeypatch.setattr(client, 'request', lambda a, b: response)  # noqa: ARG005
+        KeyCommentPair = ssh_agent_client.types.KeyCommentPair  # noqa: N806
         loaded_keys = [KeyCommentPair(v['public_key_data'], b'no comment')
                        for v in tests.SUPPORTED_KEYS.values()]
         monkeypatch.setattr(client, 'list_keys', lambda: loaded_keys)

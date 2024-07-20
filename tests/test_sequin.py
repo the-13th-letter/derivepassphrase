@@ -7,7 +7,9 @@
 import collections
 
 import pytest
+
 import sequin
+
 
 class TestStaticFunctionality:
 
@@ -24,7 +26,7 @@ class TestStaticFunctionality:
         ) == expected
 
     @pytest.mark.parametrize(
-        ['exc_type', 'exc_pattern', 'sequence' , 'base'], [
+        ['exc_type', 'exc_pattern', 'sequence', 'base'], [
             (ValueError, 'invalid base 3 digit:', [-1], 3),
             (ValueError, 'invalid base:', [0], 1),
             (TypeError, 'not an integer:', [0.0, 1.0, 0.0, 1.0], 2),
@@ -90,14 +92,14 @@ class TestSequin:
         seq = sequin.Sequin([1, 0, 1, 0, 0, 1, 0, 0, 0, 1], is_bitstring=True)
         assert seq.bases == {2: collections.deque([
             1, 0, 1, 0, 0, 1, 0, 0, 0, 1])}
-        #
+
         assert seq._all_or_nothing_shift(3) == (1, 0, 1)
         assert seq._all_or_nothing_shift(3) == (0, 0, 1)
         assert seq.bases[2] == collections.deque([0, 0, 0, 1])
-        #
+
         assert seq._all_or_nothing_shift(5) == ()
         assert seq.bases[2] == collections.deque([0, 0, 0, 1])
-        #
+
         assert seq._all_or_nothing_shift(4), (0, 0, 0, 1)
         assert 2 not in seq.bases
 
@@ -106,7 +108,7 @@ class TestSequin:
         [
             ([0, 1, 2, 3, 4, 5, 6, 7], True,
              ValueError, 'sequence item out of range'),
-            (u'こんにちは。', False,
+            ('こんにちは。', False,
              ValueError, 'sequence item out of range'),
         ]
     )

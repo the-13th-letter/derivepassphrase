@@ -5,24 +5,27 @@
 from __future__ import annotations
 
 import base64
-from collections.abc import Iterator, Mapping
 import contextlib
 import json
 import os
 from typing import TYPE_CHECKING
-from typing_extensions import Any, TypedDict
 
-import click.testing
+import pytest
+
 import derivepassphrase
 import derivepassphrase.cli
 import derivepassphrase.types
-import pytest
 import ssh_agent_client
 import ssh_agent_client.types
 
 __all__ = ()
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator, Mapping
+
+    import click.testing
+    from typing_extensions import Any, TypedDict
+
     class SSHTestKey(TypedDict):
         private_key: bytes
         public_key: bytes | str
@@ -343,7 +346,8 @@ skip_if_no_agent = pytest.mark.skipif(
 def list_keys(
     self: Any = None,
 ) -> list[ssh_agent_client.types.KeyCommentPair]:
-    Pair = ssh_agent_client.types.KeyCommentPair
+    del self  # Unused.
+    Pair = ssh_agent_client.types.KeyCommentPair  # noqa: N806
     list1 = [Pair(value['public_key_data'], f'{key} test key'.encode('ASCII'))
              for key, value in SUPPORTED_KEYS.items()]
     list2 = [Pair(value['public_key_data'], f'{key} test key'.encode('ASCII'))
@@ -353,7 +357,8 @@ def list_keys(
 def list_keys_singleton(
     self: Any = None,
 ) -> list[ssh_agent_client.types.KeyCommentPair]:
-    Pair = ssh_agent_client.types.KeyCommentPair
+    del self  # Unused.
+    Pair = ssh_agent_client.types.KeyCommentPair  # noqa: N806
     list1 = [Pair(value['public_key_data'], f'{key} test key'.encode('ASCII'))
              for key, value in SUPPORTED_KEYS.items()]
     return list1[:1]
@@ -361,6 +366,7 @@ def list_keys_singleton(
 def suitable_ssh_keys(
     conn: Any
 ) -> Iterator[ssh_agent_client.types.KeyCommentPair]:
+    del conn  # Unused.
     yield from [
         ssh_agent_client.types.KeyCommentPair(DUMMY_KEY1, b'no comment'),
         ssh_agent_client.types.KeyCommentPair(DUMMY_KEY2, b'a comment'),
@@ -375,17 +381,23 @@ def phrase_from_key(key: bytes) -> bytes:
 def isolated_config(
     monkeypatch: Any, runner: click.testing.CliRunner, config: Any,
 ):
-    prog_name = derivepassphrase.cli.prog_name
+    prog_name = derivepassphrase.cli.PROG_NAME
     env_name = prog_name.replace(' ', '_').upper() + '_PATH'
     with runner.isolated_filesystem():
         monkeypatch.setenv('HOME', os.getcwd())
         monkeypatch.setenv('USERPROFILE', os.getcwd())
         monkeypatch.delenv(env_name, raising=False)
-        os.makedirs(os.path.dirname(derivepassphrase.cli._config_filename()),
-                    exist_ok=True)
-        with open(derivepassphrase.cli._config_filename(), 'wt') as outfile:
+        os.makedirs(
+            os.path.dirname(derivepassphrase.cli._config_filename()),
+            exist_ok=True,
+        )
+        with open(
+            derivepassphrase.cli._config_filename(),
+            'w', encoding='UTF-8',
+        ) as outfile:
             json.dump(config, outfile)
         yield
 
 def auto_prompt(*args: Any, **kwargs: Any) -> str:
+    del args, kwargs  # Unused.
     return DUMMY_PASSPHRASE.decode('UTF-8')

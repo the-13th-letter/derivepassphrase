@@ -19,12 +19,17 @@ thoroughly documented.
 
 """
 
+# ruff: noqa: RUF002,RUF003
+
 from __future__ import annotations
 
 import collections
+from typing import TYPE_CHECKING
 
-from collections.abc import Iterator, Sequence
 from typing_extensions import assert_type
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator, Sequence
 
 __all__ = ('Sequin', 'SequinExhaustedError')
 __author__ = "Marco Ricci <m@the13thletter.info>"
@@ -78,6 +83,7 @@ class Sequin:
                 range.
 
         """
+        msg = 'sequence item out of range'
         def uint8_to_bits(value):
             """Yield individual bits of an 8-bit number, MSB first."""
             for i in (0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01):
@@ -86,7 +92,7 @@ class Sequin:
             try:
                 sequence = tuple(sequence.encode('iso-8859-1'))
             except UnicodeError as e:
-                raise ValueError('sequence item out of range') from e
+                raise ValueError(msg) from e
         else:
             sequence = tuple(sequence)
         assert_type(sequence, tuple[int, ...])
@@ -94,7 +100,7 @@ class Sequin:
         def gen() -> Iterator[int]:
             for num in sequence:
                 if num not in range(2 if is_bitstring else 256):
-                    raise ValueError('sequence item out of range')
+                    raise ValueError(msg)
                 if is_bitstring:
                     yield num
                 else:
@@ -146,7 +152,7 @@ class Sequin:
             return ()
         stash: collections.deque[int] = collections.deque()
         try:
-            for i in range(count):
+            for _ in range(count):
                 stash.append(seq.popleft())
         except IndexError:
             seq.extendleft(reversed(stash))
@@ -183,8 +189,9 @@ class Sequin:
             True
 
         """
-        if base < 2:
-            raise ValueError(f'invalid base: {base!r}')
+        if base < 2:  # noqa: PLR2004
+            msg = f'invalid base: {base!r}'
+            raise ValueError(msg)
         ret = 0
         allowed_range = range(base)
         n = len(digits)
@@ -192,9 +199,11 @@ class Sequin:
             i2 = (n - 1) - i
             x = digits[i]
             if not isinstance(x, int):
-                raise TypeError(f'not an integer: {x!r}')
+                msg = f'not an integer: {x!r}'
+                raise TypeError(msg)
             if x not in allowed_range:
-                raise ValueError(f'invalid base {base!r} digit: {x!r}')
+                msg = f'invalid base {base!r} digit: {x!r}'
+                raise ValueError(msg)
             ret += (base ** i2) * x
         return ret
 
@@ -250,11 +259,11 @@ class Sequin:
             SequinExhaustedError: Sequin is exhausted
 
         """
-        if 2 not in self.bases:
-            raise SequinExhaustedError('Sequin is exhausted')
+        if 2 not in self.bases:  # noqa: PLR2004
+            raise SequinExhaustedError
         value = self._generate_inner(n, base=2)
         if value == n:
-            raise SequinExhaustedError('Sequin is exhausted')
+            raise SequinExhaustedError
         return value
 
     def _generate_inner(
@@ -319,9 +328,11 @@ class Sequin:
 
         """
         if n < 1:
-            raise ValueError('invalid target range')
-        if base < 2:
-            raise ValueError(f'invalid base: {base!r}')
+            msg = 'invalid target range'
+            raise ValueError(msg)
+        if base < 2:  # noqa: PLR2004
+            msg = f'invalid base: {base!r}'
+            raise ValueError(msg)
         # p = base ** k, where k is the smallest integer such that
         # p >= n.  We determine p and k inductively.
         p = 1
@@ -340,8 +351,7 @@ class Sequin:
             if not list_slice:
                 if n != 1:
                     return n
-                else:
-                    v = 0
+                v = 0
             v = self._big_endian_number(list_slice, base=base)
             if v > n - 1:
                 # If r is 0, then p == n, so v < n, or rather
@@ -365,3 +375,5 @@ class SequinExhaustedError(Exception):
     No more values can be generated from this sequin.
 
     """
+    def __init__(self):
+        super().__init__('Sequin is exhausted')

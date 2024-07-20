@@ -11,26 +11,47 @@ from __future__ import annotations
 import base64
 import collections
 import contextlib
+import copy
 import inspect
 import json
 import os
-import pathlib
 import socket
-from typing_extensions import (
-    Any, assert_never, cast, Iterator, Sequence, TextIO,
+from typing import (
+    TYPE_CHECKING,
+    TextIO,
+    cast,
 )
 
 import click
+from typing_extensions import (
+    Any,
+    assert_never,
+)
+
 import derivepassphrase as dpp
-from derivepassphrase import types as dpp_types
 import ssh_agent_client
+from derivepassphrase import types as dpp_types
+
+if TYPE_CHECKING:
+    import pathlib
+    from collections.abc import (
+        Iterator,
+        Sequence,
+    )
 
 __author__ = dpp.__author__
 __version__ = dpp.__version__
 
 __all__ = ('derivepassphrase',)
 
-prog_name = 'derivepassphrase'
+PROG_NAME = 'derivepassphrase'
+KEY_DISPLAY_LENGTH = 30
+
+# Error messages
+_INVALID_VAULT_CONFIG = 'Invalid vault config'
+_AGENT_COMMUNICATION_ERROR = 'Error communicating with the SSH agent'
+_NO_USABLE_KEYS = 'No usable SSH keys were found'
+_EMPTY_SELECTION = 'Empty selection'
 
 
 def _config_filename() -> str | bytes | pathlib.Path:
@@ -43,8 +64,8 @@ def _config_filename() -> str | bytes | pathlib.Path:
 
     """
     path: str | bytes | pathlib.Path
-    path = (os.getenv(prog_name.upper() + '_PATH')
-            or click.get_app_dir(prog_name, force_posix=True))
+    path = (os.getenv(PROG_NAME.upper() + '_PATH')
+            or click.get_app_dir(PROG_NAME, force_posix=True))
     return os.path.join(path, 'settings.json')
 
 
@@ -71,7 +92,7 @@ def _load_config() -> dpp_types.VaultConfig:
     with open(filename, 'rb') as fileobj:
         data = json.load(fileobj)
     if not dpp_types.is_vault_config(data):
-        raise ValueError('Invalid vault config')
+        raise ValueError(_INVALID_VAULT_CONFIG)
     return data
 
 
@@ -94,9 +115,9 @@ def _save_config(config: dpp_types.VaultConfig, /) -> None:
 
     """
     if not dpp_types.is_vault_config(config):
-        raise ValueError('Invalid vault config')
+        raise ValueError(_INVALID_VAULT_CONFIG)
     filename = _config_filename()
-    with open(filename, 'wt', encoding='UTF-8') as fileobj:
+    with open(filename, 'w', encoding='UTF-8') as fileobj:
         json.dump(config, fileobj)
 
 
@@ -150,21 +171,20 @@ def _get_suitable_ssh_keys(
             client_context = client
         case _:  # pragma: no cover
             assert_never(conn)
-            raise TypeError(f'invalid connection hint: {conn!r}')
+            msg = f'invalid connection hint: {conn!r}'
+            raise TypeError(msg)
     with client_context:
         try:
             all_key_comment_pairs = list(client.list_keys())
         except EOFError as e:  # pragma: no cover
-            raise RuntimeError(
-                'error communicating with the SSH agent'
-            ) from e
-    suitable_keys = all_key_comment_pairs[:]
+            raise RuntimeError(_AGENT_COMMUNICATION_ERROR) from e
+    suitable_keys = copy.copy(all_key_comment_pairs)
     for pair in all_key_comment_pairs:
-        key, comment = pair
-        if dpp.Vault._is_suitable_ssh_key(key):
+        key, _comment = pair
+        if dpp.Vault._is_suitable_ssh_key(key):  # noqa: SLF001
             yield pair
     if not suitable_keys:  # pragma: no cover
-        raise IndexError('No usable SSH keys were found')
+        raise IndexError(_NO_USABLE_KEYS)
 
 
 def _prompt_for_selection(
@@ -212,19 +232,18 @@ def _prompt_for_selection(
             err=True, type=choices, show_choices=False,
             show_default=False, default='')
         if not choice:
-            raise IndexError('empty selection')
+            raise IndexError(_EMPTY_SELECTION)
         return int(choice) - 1
-    else:
-        prompt_suffix = (' '
-                         if single_choice_prompt.endswith(tuple('?.!'))
-                         else ': ')
-        try:
-            click.confirm(single_choice_prompt,
-                          prompt_suffix=prompt_suffix, err=True,
-                          abort=True, default=False, show_default=False)
-        except click.Abort:
-            raise IndexError('empty selection') from None
-        return 0
+    prompt_suffix = (' '
+                     if single_choice_prompt.endswith(tuple('?.!'))
+                     else ': ')
+    try:
+        click.confirm(single_choice_prompt,
+                      prompt_suffix=prompt_suffix, err=True,
+                      abort=True, default=False, show_default=False)
+    except click.Abort:
+        raise IndexError(_EMPTY_SELECTION) from None
+    return 0
 
 
 def _select_ssh_key(
@@ -273,7 +292,9 @@ def _select_ssh_key(
     for key, comment in suitable_keys:
         keytype = unstring_prefix(key)[0].decode('ASCII')
         key_str = base64.standard_b64encode(key).decode('ASCII')
-        key_prefix = key_str if len(key_str) < 30 else key_str[:27] + '...'
+        key_prefix = (key_str
+                      if len(key_str) < KEY_DISPLAY_LENGTH + len('...')
+                      else key_str[:KEY_DISPLAY_LENGTH] + '...')
         comment_str = comment.decode('UTF-8', errors='replace')
         key_listing.append(f'{keytype} {key_prefix} {comment_str}')
     choice = _prompt_for_selection(
@@ -317,8 +338,8 @@ class OptionGroupOption(click.Option):
 
     def __init__(self, *args, **kwargs):  # type: ignore
         if self.__class__ == __class__:
-            raise NotImplementedError()
-        return super().__init__(*args, **kwargs)
+            raise NotImplementedError
+        super().__init__(*args, **kwargs)
 
 
 class CommandWithHelpGroups(click.Command):
@@ -420,6 +441,8 @@ def _validate_occurrence_constraint(
     ctx: click.Context, param: click.Parameter, value: Any,
 ) -> int | None:
     """Check that the occurrence constraint is valid (int, 0 or larger)."""
+    del ctx    # Unused.
+    del param  # Unused.
     if value is None:
         return value
     if isinstance(value, int):
@@ -428,9 +451,11 @@ def _validate_occurrence_constraint(
         try:
             int_value = int(value, 10)
         except ValueError as e:
-            raise click.BadParameter('not an integer') from e
+            msg = 'not an integer'
+            raise click.BadParameter(msg) from e
     if int_value < 0:
-        raise click.BadParameter('not a non-negative integer')
+        msg = 'not a non-negative integer'
+        raise click.BadParameter(msg)
     return int_value
 
 
@@ -438,6 +463,8 @@ def _validate_length(
     ctx: click.Context, param: click.Parameter, value: Any,
 ) -> int | None:
     """Check that the length is valid (int, 1 or larger)."""
+    del ctx    # Unused.
+    del param  # Unused.
     if value is None:
         return value
     if isinstance(value, int):
@@ -446,9 +473,11 @@ def _validate_length(
         try:
             int_value = int(value, 10)
         except ValueError as e:
-            raise click.BadParameter('not an integer') from e
+            msg = 'not an integer'
+            raise click.BadParameter(msg) from e
     if int_value < 1:
-        raise click.BadParameter('not a positive integer')
+        msg = 'not a positive integer'
+        raise click.BadParameter(msg)
     return int_value
 
 DEFAULT_NOTES_TEMPLATE = '''\
@@ -544,7 +573,7 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
               type=click.Path(file_okay=True, allow_dash=True, exists=False),
               help='import saved settings from file PATH',
               cls=StorageManagementOption)
-@click.version_option(version=dpp.__version__, prog_name=prog_name)
+@click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
 @click.argument('service', required=False)
 @click.pass_context
 def derivepassphrase(
@@ -674,8 +703,8 @@ def derivepassphrase(
                 case StorageManagementOption():
                     group = StorageManagementOption
                 case OptionGroupOption():
-                    raise AssertionError(
-                        f'Unknown option group for {param!r}')
+                    raise AssertionError(  # noqa: TRY003
+                        f'Unknown option group for {param!r}')  # noqa: EM102
                 case _:
                     group = click.Option
             options_in_group.setdefault(group, []).append(param)
@@ -696,7 +725,7 @@ def derivepassphrase(
             return
         for other in incompatible:
             if isinstance(other, str):
-                other = params_by_str[other]
+                other = params_by_str[other]  # noqa: PLW2901
             assert isinstance(other, click.Parameter)
             if other != param and is_param_set(other):
                 opt_str = param.opts[0]
@@ -709,7 +738,7 @@ def derivepassphrase(
             return _load_config()
         except FileNotFoundError:
             return {'services': {}}
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             ctx.fail(f'cannot load config: {e}')
 
     configuration: dpp_types.VaultConfig
@@ -733,22 +762,24 @@ def derivepassphrase(
     for param in sv_options:
         if is_param_set(param) and not service:
             opt_str = param.opts[0]
-            raise click.UsageError(f'{opt_str} requires a SERVICE')
+            msg = f'{opt_str} requires a SERVICE'
+            raise click.UsageError(msg)
     for param in [params_by_str['--key'], params_by_str['--phrase']]:
         if (
             is_param_set(param)
             and not (service or is_param_set(params_by_str['--config']))
         ):
             opt_str = param.opts[0]
-            raise click.UsageError(f'{opt_str} requires a SERVICE or --config')
+            msg = f'{opt_str} requires a SERVICE or --config'
+            raise click.UsageError(msg)
     no_sv_options = [params_by_str['--delete-globals'],
                      params_by_str['--clear'],
                      *options_in_group[StorageManagementOption]]
     for param in no_sv_options:
         if is_param_set(param) and service:
             opt_str = param.opts[0]
-            raise click.UsageError(
-                f'{opt_str} does not take a SERVICE argument')
+            msg = f'{opt_str} does not take a SERVICE argument'
+            raise click.UsageError(msg)
 
     if edit_notes:
         assert service is not None
@@ -854,27 +885,25 @@ def derivepassphrase(
                 view['phrase'] = phrase
                 for m in view.maps:
                     m.pop('key', '')
+            if not view.maps[0]:
+                settings_type = 'service' if service else 'global'
+                msg = (f'cannot update {settings_type} settings without '
+                       f'actual settings')
+                raise click.UsageError(msg)
             if service:
-                if not view.maps[0]:
-                    raise click.UsageError('cannot update service settings '
-                                           'without actual settings')
-                else:
-                    configuration['services'].setdefault(
-                        service, {}).update(view)  # type: ignore[typeddict-item]
+                configuration['services'].setdefault(
+                    service, {}).update(view)  # type: ignore[typeddict-item]
             else:
-                if not view.maps[0]:
-                    raise click.UsageError('cannot update global settings '
-                                           'without actual settings')
-                else:
-                    configuration.setdefault(
-                        'global', {}).update(view)  # type: ignore[typeddict-item]
+                configuration.setdefault(
+                    'global', {}).update(view)  # type: ignore[typeddict-item]
             assert dpp_types.is_vault_config(configuration), (
                 f'invalid vault configuration: {configuration!r}'
             )
             _save_config(configuration)
         else:
             if not service:
-                raise click.UsageError('SERVICE is required')
+                msg = 'SERVICE is required'
+                raise click.UsageError(msg)
             kwargs: dict[str, Any] = {k: v for k, v in settings.items()
                                       if k in service_keys and v is not None}
             # If either --key or --phrase are given, use that setting.
@@ -906,9 +935,9 @@ def derivepassphrase(
             elif kwargs.get('phrase'):
                 pass
             else:
-                raise click.UsageError(
-                    'no passphrase or key given on command-line '
-                    'or in configuration')
+                msg = ('no passphrase or key given on command-line '
+                       'or in configuration')
+                raise click.UsageError(msg)
             vault = dpp.Vault(**kwargs)
             result = vault.generate(service)
             click.echo(result.decode('ASCII'))

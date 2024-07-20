@@ -9,8 +9,9 @@ from __future__ import annotations
 import math
 from typing import Any
 
-import derivepassphrase
 import pytest
+
+import derivepassphrase
 
 Vault = derivepassphrase.Vault
 
@@ -106,7 +107,7 @@ class TestVault:
     def test_219_very_limited_character_set(self):
         generated = Vault(phrase=b'', length=24, lower=0, upper=0,
                           space=0, symbol=0).generate('testing')
-        assert b'763252593304946694588866' == generated
+        assert generated == b'763252593304946694588866'
 
     def test_220_character_set_subtraction(self):
         assert Vault._subtract(b'be', b'abcdef') == bytearray(b'acdf')
@@ -152,21 +153,21 @@ class TestVault:
         v = Vault(phrase=self.phrase)
         monkeypatch.setattr(v,
                             '_estimate_sufficient_hash_length',
-                            lambda *args, **kwargs: 1)
+                            lambda *args, **kwargs: 1)  # noqa: ARG005
         assert v._estimate_sufficient_hash_length() < len(self.phrase)
         assert v.generate(service) == expected
 
     @pytest.mark.parametrize(['s', 'raises'], [
         ('ñ', True), ('Düsseldorf', True),
         ('liberté, egalité, fraternité', True), ('ASCII', False),
-        ('Düsseldorf'.encode('UTF-8'), False),
+        (b'D\xc3\xbcsseldorf', False),
         (bytearray([2, 3, 5, 7, 11, 13]), False),
     ])
     def test_224_binary_strings(
         self, s: str | bytes | bytearray, raises: bool
     ) -> None:
         binstr = derivepassphrase.Vault._get_binary_string
-        AmbiguousByteRepresentationError = (
+        AmbiguousByteRepresentationError = (  # noqa: N806
             derivepassphrase.AmbiguousByteRepresentationError
         )
         if raises:

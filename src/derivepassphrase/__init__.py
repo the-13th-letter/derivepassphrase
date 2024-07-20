@@ -4,7 +4,7 @@
 
 """Work-alike of vault(1) – a deterministic, stateless password manager
 
-"""
+"""  # noqa: RUF002
 
 from __future__ import annotations
 
@@ -24,6 +24,24 @@ __version__ = "0.1.1"
 
 class AmbiguousByteRepresentationError(ValueError):
     """The object has an ambiguous byte representation."""
+    def __init__(self):
+        super().__init__('text string has ambiguous byte representation')
+
+_CHARSETS = collections.OrderedDict([
+    ('lower', b'abcdefghijklmnopqrstuvwxyz'),
+    ('upper', b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
+    ('alpha', b''),  # Placeholder.
+    ('number', b'0123456789'),
+    ('alphanum', b''),  # Placeholder.
+    ('space', b' '),
+    ('dash', b'-_'),
+    ('symbol', b'!"#$%&\'()*+,./:;<=>?@[\\]^{|}~-_'),
+    ('all', b''),  # Placeholder.
+])
+_CHARSETS['alpha'] = _CHARSETS['lower'] + _CHARSETS['upper']
+_CHARSETS['alphanum'] = _CHARSETS['alpha'] + _CHARSETS['number']
+_CHARSETS['all'] = (_CHARSETS['alphanum'] + _CHARSETS['space']
+                    + _CHARSETS['symbol'])
 
 class Vault:
     """A work-alike of James Coglan's vault.
@@ -48,28 +66,13 @@ class Vault:
     """
     _UUID = b'e87eb0f4-34cb-46b9-93ad-766c5ab063e7'
     """A tag used by vault in the bit stream generation."""
-    _CHARSETS: collections.OrderedDict[str, bytes]
+    _CHARSETS = _CHARSETS
     """
         Known character sets from which to draw passphrase characters.
         Relies on a certain, fixed order for their definition and their
         contents.
 
     """
-    _CHARSETS = collections.OrderedDict([
-        ('lower', b'abcdefghijklmnopqrstuvwxyz'),
-        ('upper', b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
-        ('alpha', b''),  # Placeholder.
-        ('number', b'0123456789'),
-        ('alphanum', b''),  # Placeholder.
-        ('space', b' '),
-        ('dash', b'-_'),
-        ('symbol', b'!"#$%&\'()*+,./:;<=>?@[\\]^{|}~-_'),
-        ('all', b''),  # Placeholder.
-    ])
-    _CHARSETS['alpha'] = _CHARSETS['lower'] + _CHARSETS['upper']
-    _CHARSETS['alphanum'] = _CHARSETS['alpha'] + _CHARSETS['number']
-    _CHARSETS['all'] = (_CHARSETS['alphanum'] + _CHARSETS['space']
-                        + _CHARSETS['symbol'])
 
     def __init__(
         self, *, phrase: bytes | bytearray | str = b'',
@@ -124,7 +127,7 @@ class Vault:
         ) -> None:
             if not isinstance(count, int):
                 return
-            elif count <= 0:
+            if count <= 0:
                 self._allowed = self._subtract(characters, self._allowed)
             else:
                 for _ in range(count):
@@ -136,9 +139,11 @@ class Vault:
         subtract_or_require(dash, self._CHARSETS['dash'])
         subtract_or_require(symbol, self._CHARSETS['symbol'])
         if len(self._required) > self._length:
-            raise ValueError('requested passphrase length too short')
+            msg = 'requested passphrase length too short'
+            raise ValueError(msg)
         if not self._allowed:
-            raise ValueError('no allowed characters left')
+            msg = 'no allowed characters left'
+            raise ValueError(msg)
         for _ in range(len(self._required), self._length):
             self._required.append(bytes(self._allowed))
 
@@ -167,8 +172,7 @@ class Vault:
         if not self._required or any(not x for x in self._required):
             return float('-inf')
         for i, charset in enumerate(self._required):
-            factors.append(i + 1)
-            factors.append(len(charset))
+            factors.extend([i + 1, len(charset)])
         factors.sort()
         return math.fsum(math.log2(f) for f in factors)
 
@@ -199,10 +203,11 @@ class Vault:
         try:
             safety_factor = float(safety_factor)
         except TypeError as e:
-            raise TypeError(f'invalid safety factor: not a float: '
-                            f'{safety_factor!r}') from e
+            msg = f'invalid safety factor: not a float: {safety_factor!r}'
+            raise TypeError(msg) from e
         if not math.isfinite(safety_factor) or safety_factor < 1.0:
-            raise ValueError(f'invalid safety factor {safety_factor!r}')
+            msg = f'invalid safety factor {safety_factor!r}'
+            raise ValueError(msg)
         # Ensure the bound is strictly positive.
         entropy_bound = max(1, self._entropy())
         return int(math.ceil(safety_factor * entropy_bound / 8))
@@ -230,8 +235,7 @@ class Vault:
         if isinstance(s, str):
             norm = unicodedata.normalize
             if norm('NFC', s) != norm('NFD', s):
-                raise AmbiguousByteRepresentationError(
-                    'text string has ambiguous byte representation')
+                raise AmbiguousByteRepresentationError
             return s.encode('UTF-8')
         return bytes(s)
 
@@ -373,7 +377,7 @@ class Vault:
                             charset = self._subtract(bytes(result[-1:]),
                                                      charset)
                     pos = seq.generate(len(charset))
-                    result.extend(charset[pos:pos+1])
+                    result.extend(charset[pos:pos + 1])
             except sequin.SequinExhaustedError:
                 hash_length *= 2
             else:
@@ -452,11 +456,12 @@ class Vault:
 
         """
         if not cls._is_suitable_ssh_key(key):
-            raise ValueError(
-                'unsuitable SSH key: bad key, or signature not deterministic')
+            msg = ('unsuitable SSH key: bad key, or '
+                   'signature not deterministic')
+            raise ValueError(msg)
         with ssh_agent_client.SSHAgentClient() as client:
             raw_sig = client.sign(key, cls._UUID)
-        keytype, trailer = client.unstring_prefix(raw_sig)
+        _keytype, trailer = client.unstring_prefix(raw_sig)
         signature_blob = client.unstring(trailer)
         return bytes(base64.standard_b64encode(signature_blob))
 
@@ -487,15 +492,16 @@ class Vault:
         allowed = (allowed if isinstance(allowed, bytearray)
                    else bytearray(allowed))
         assert_type(allowed, bytearray)
+        msg_dup_characters = 'duplicate characters in set'
         if len(frozenset(allowed)) != len(allowed):
-            raise ValueError('duplicate characters in set')
+            raise ValueError(msg_dup_characters)
         if len(frozenset(charset)) != len(charset):
-            raise ValueError('duplicate characters in set')
+            raise ValueError(msg_dup_characters)
         for c in charset:
             try:
                 pos = allowed.index(c)
             except ValueError:
                 pass
             else:
-                allowed[pos:pos+1] = []
+                allowed[pos:pos + 1] = []
         return allowed

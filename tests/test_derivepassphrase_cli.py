@@ -4,18 +4,25 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+import contextlib
 import json
 import os
 import socket
-from typing_extensions import Any, cast, NamedTuple
+from typing import TYPE_CHECKING, cast
 
 import click.testing
-import derivepassphrase as dpp
-import derivepassphrase.cli as cli
-import ssh_agent_client.types
 import pytest
+from typing_extensions import NamedTuple
+
+import derivepassphrase as dpp
+import ssh_agent_client
 import tests
+from derivepassphrase import cli
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from typing_extensions import Any
 
 DUMMY_SERVICE = tests.DUMMY_SERVICE
 DUMMY_PASSPHRASE = tests.DUMMY_PASSPHRASE
@@ -47,6 +54,7 @@ class OptionCombination(NamedTuple):
     input: bytes | None
     check_success: bool
 
+
 PASSWORD_GENERATION_OPTIONS: list[tuple[str, ...]] = [
     ('--phrase',), ('--key',), ('--length', '20'), ('--repeat', '20'),
     ('--lower', '1'), ('--upper', '1'), ('--number', '1'),
@@ -64,7 +72,7 @@ STORAGE_OPTIONS: list[tuple[str, ...]] = [
 ]
 INCOMPATIBLE: dict[tuple[str, ...], IncompatibleConfiguration] = {
     ('--phrase',): IncompatibleConfiguration(
-        [('--key',)] + CONFIGURATION_COMMANDS + STORAGE_OPTIONS,
+        [('--key',), *CONFIGURATION_COMMANDS, *STORAGE_OPTIONS],
         True, DUMMY_PASSPHRASE),
     ('--key',): IncompatibleConfiguration(
         CONFIGURATION_COMMANDS + STORAGE_OPTIONS,
@@ -95,16 +103,16 @@ INCOMPATIBLE: dict[tuple[str, ...], IncompatibleConfiguration] = {
         True, DUMMY_PASSPHRASE),
     ('--notes',): IncompatibleConfiguration(
         [('--config',), ('--delete',), ('--delete-globals',),
-         ('--clear',)] + STORAGE_OPTIONS,
+         ('--clear',), *STORAGE_OPTIONS],
         True, None),
     ('--config', '-p'): IncompatibleConfiguration(
         [('--delete',), ('--delete-globals',),
-         ('--clear',)] + STORAGE_OPTIONS,
+         ('--clear',), *STORAGE_OPTIONS],
         None, DUMMY_PASSPHRASE),
     ('--delete',): IncompatibleConfiguration(
-        [('--delete-globals',), ('--clear',)] + STORAGE_OPTIONS, True, None),
+        [('--delete-globals',), ('--clear',), *STORAGE_OPTIONS], True, None),
     ('--delete-globals',): IncompatibleConfiguration(
-        [('--clear',)] + STORAGE_OPTIONS, False, None),
+        [('--clear',), *STORAGE_OPTIONS], False, None),
     ('--clear',): IncompatibleConfiguration(STORAGE_OPTIONS, False, None),
     ('--export', '-'): IncompatibleConfiguration(
         [('--import', '-')], False, None),
@@ -163,9 +171,9 @@ class TestCLI:
             'Option group epilog not printed.'
         )
 
-    @pytest.mark.parametrize(['charset_name'],
-                             [('lower',), ('upper',), ('number',), ('space',),
-                              ('dash',), ('symbol',)])
+    @pytest.mark.parametrize('charset_name',
+                             ['lower', 'upper', 'number', 'space',
+                              'dash', 'symbol'])
     def test_201_disable_character_set(
         self, monkeypatch: Any, charset_name: str
     ) -> None:
@@ -202,12 +210,12 @@ class TestCLI:
         )
         passphrase = result.stdout.rstrip('\r\n')
         for i in range(len(passphrase) - 1):
-            assert passphrase[i:i+1] != passphrase[i+1:i+2], (
+            assert passphrase[i:i + 1] != passphrase[i + 1:i + 2], (
                 f'derived password contains repeated character '
                 f'at position {i}: {result.stdout!r}'
             )
 
-    @pytest.mark.parametrize(['config'], [
+    @pytest.mark.parametrize('config', [
         pytest.param({'global': {'key': DUMMY_KEY1_B64},
                       'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
                      id='global'),
@@ -287,10 +295,10 @@ class TestCLI:
                 'program generated unexpected result (wrong settings?)'
             )
 
-    @pytest.mark.parametrize(['option'],
-                             [('--lower',), ('--upper',), ('--number',),
-                              ('--space',), ('--dash',), ('--symbol',),
-                              ('--repeat',), ('--length',)])
+    @pytest.mark.parametrize('option',
+                             ['--lower', '--upper', '--number',
+                              '--space', '--dash', '--symbol',
+                              '--repeat', '--length'])
     def test_210_invalid_argument_range(self, option: str) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         value: str | int
@@ -326,7 +334,7 @@ class TestCLI:
                                            'services': {}}):
             result = runner.invoke(cli.derivepassphrase,
                                    options if service
-                                   else options + [DUMMY_SERVICE],
+                                   else [*options, DUMMY_SERVICE],
                                    input=input, catch_exceptions=False)
             if service is not None:
                 assert result.exit_code > 0, (
@@ -351,7 +359,7 @@ class TestCLI:
                 monkeypatch.setattr(cli, '_prompt_for_passphrase',
                                     tests.auto_prompt)
                 result = runner.invoke(cli.derivepassphrase,
-                                       options + [DUMMY_SERVICE]
+                                       [*options, DUMMY_SERVICE]
                                        if service else options,
                                        input=input, catch_exceptions=False)
                 assert (result.exit_code, result.stderr_bytes) == (0, b''), (
@@ -359,16 +367,16 @@ class TestCLI:
                 )
 
     @pytest.mark.parametrize(
-        ['options', 'service', 'input'],
-        [(o.options, o.needs_service, o.input)
+        ['options', 'service'],
+        [(o.options, o.needs_service)
          for o in INTERESTING_OPTION_COMBINATIONS if o.incompatible],
     )
     def test_212_incompatible_options(
-        self, options: list[str], service: bool | None, input: bytes | None,
+        self, options: list[str], service: bool | None,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         result = runner.invoke(cli.derivepassphrase,
-                               options + [DUMMY_SERVICE] if service
+                               [*options, DUMMY_SERVICE] if service
                                else options,
                                input=DUMMY_PASSPHRASE, catch_exceptions=False)
         assert result.exit_code > 0, (
@@ -427,7 +435,8 @@ class TestCLI:
         # ourselves afterwards, inside the context.
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner,
                                    config={'services': {}}):
-            with open(cli._config_filename(), 'wt') as outfile:
+            with open(cli._config_filename(), 'w',
+                      encoding='UTF-8') as outfile:
                 print('This string is not valid JSON.', file=outfile)
             dname = os.path.dirname(cli._config_filename())
             result = runner.invoke(
@@ -449,10 +458,8 @@ class TestCLI:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner,
                                    config={'services': {}}):
-            try:
+            with contextlib.suppress(FileNotFoundError):
                 os.remove(cli._config_filename())
-            except FileNotFoundError:  # pragma: no cover
-                pass
             result = runner.invoke(cli.derivepassphrase, ['--export', '-'],
                                    catch_exceptions=False)
             assert (result.exit_code, result.stderr_bytes) == (0, b''), (
@@ -483,10 +490,8 @@ class TestCLI:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner,
                                    config={'services': {}}):
-            try:
+            with contextlib.suppress(FileNotFoundError):
                 os.remove(cli._config_filename())
-            except FileNotFoundError:  # pragma: no cover
-                pass
             os.makedirs(cli._config_filename())
             result = runner.invoke(cli.derivepassphrase, ['--export', '-'],
                                    input=b'null', catch_exceptions=False)
@@ -531,13 +536,13 @@ contents go here
                                    config={'global': {'phrase': 'abc'},
                                            'services': {}}):
             monkeypatch.setattr(click, 'edit',
-                                lambda *a, **kw: edit_result)
+                                lambda *a, **kw: edit_result)  # noqa: ARG005
             result = runner.invoke(cli.derivepassphrase, ['--notes', 'sv'],
                                    catch_exceptions=False)
             assert (result.exit_code, result.stderr_bytes) == (0, b''), (
                 'program exited with failure'
             )
-            with open(cli._config_filename(), 'rt') as infile:
+            with open(cli._config_filename(), encoding='UTF-8') as infile:
                 config = json.load(infile)
             assert config == {'global': {'phrase': 'abc'},
                               'services': {'sv': {'notes':
@@ -548,13 +553,14 @@ contents go here
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner,
                                    config={'global': {'phrase': 'abc'},
                                            'services': {}}):
-            monkeypatch.setattr(click, 'edit', lambda *a, **kw: None)
+            monkeypatch.setattr(click, 'edit',
+                                lambda *a, **kw: None)  # noqa: ARG005
             result = runner.invoke(cli.derivepassphrase, ['--notes', 'sv'],
                                    catch_exceptions=False)
             assert (result.exit_code, result.stderr_bytes) == (0, b''), (
                 'program exited with failure'
             )
-            with open(cli._config_filename(), 'rt') as infile:
+            with open(cli._config_filename(), encoding='UTF-8') as infile:
                 config = json.load(infile)
             assert config == {'global': {'phrase': 'abc'}, 'services': {}}
 
@@ -563,13 +569,14 @@ contents go here
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner,
                                    config={'global': {'phrase': 'abc'},
                                            'services': {}}):
-            monkeypatch.setattr(click, 'edit', lambda *a, **kw: 'long\ntext')
+            monkeypatch.setattr(click, 'edit',
+                                lambda *a, **kw: 'long\ntext')  # noqa: ARG005
             result = runner.invoke(cli.derivepassphrase, ['--notes', 'sv'],
                                    catch_exceptions=False)
             assert (result.exit_code, result.stderr_bytes) == (0, b''), (
                 'program exited with failure'
             )
-            with open(cli._config_filename(), 'rt') as infile:
+            with open(cli._config_filename(), encoding='UTF-8') as infile:
                 config = json.load(infile)
             assert config == {'global': {'phrase': 'abc'},
                               'services': {'sv': {'notes': 'long\ntext'}}}
@@ -579,7 +586,8 @@ contents go here
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner,
                                    config={'global': {'phrase': 'abc'},
                                            'services': {}}):
-            monkeypatch.setattr(click, 'edit', lambda *a, **kw: '\n\n')
+            monkeypatch.setattr(click, 'edit',
+                                lambda *a, **kw: '\n\n')  # noqa: ARG005
             result = runner.invoke(cli.derivepassphrase, ['--notes', 'sv'],
                                    catch_exceptions=False)
             assert result.exit_code != 0, 'program unexpectedly succeeded'
@@ -587,7 +595,7 @@ contents go here
             assert b'user aborted request' in result.stderr_bytes, (
                 'expected error message missing'
             )
-            with open(cli._config_filename(), 'rt') as infile:
+            with open(cli._config_filename(), encoding='UTF-8') as infile:
                 config = json.load(infile)
             assert config == {'global': {'phrase': 'abc'}, 'services': {}}
 
@@ -632,10 +640,10 @@ contents go here
             monkeypatch.setattr(cli, '_get_suitable_ssh_keys',
                                 tests.suitable_ssh_keys)
             result = runner.invoke(cli.derivepassphrase,
-                                   ['--config'] + command_line,
+                                   ['--config', *command_line],
                                    catch_exceptions=False, input=input)
             assert result.exit_code == 0, 'program exited with failure'
-            with open(cli._config_filename(), 'rt') as infile:
+            with open(cli._config_filename(), encoding='UTF-8') as infile:
                 config = json.load(infile)
             assert config == result_config, (
                 'stored config does not match expectation'
@@ -662,7 +670,7 @@ contents go here
             monkeypatch.setattr(cli, '_get_suitable_ssh_keys',
                                 tests.suitable_ssh_keys)
             result = runner.invoke(cli.derivepassphrase,
-                                   ['--config'] + command_line,
+                                   ['--config', *command_line],
                                    catch_exceptions=False, input=input)
             assert result.exit_code != 0, 'program unexpectedly succeeded?!'
             assert result.stderr_bytes is not None
@@ -677,15 +685,16 @@ contents go here
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner,
                                    config={'global': {'phrase': 'abc'},
                                            'services': {}}):
+            custom_error = 'custom error message'
             def raiser():
-                raise RuntimeError('custom error message')
+                raise RuntimeError(custom_error)
             monkeypatch.setattr(cli, '_select_ssh_key', raiser)
             result = runner.invoke(cli.derivepassphrase,
                                    ['--key', '--config'],
                                    catch_exceptions=False)
             assert result.exit_code != 0, 'program unexpectedly succeeded'
             assert result.stderr_bytes is not None
-            assert b'custom error message' in result.stderr_bytes, (
+            assert custom_error.encode() in result.stderr_bytes, (
                 'expected error message missing'
             )
 
@@ -714,13 +723,15 @@ class TestCLIUtils:
 
     def test_100_save_bad_config(self, monkeypatch: Any) -> None:
         runner = click.testing.CliRunner()
-        with tests.isolated_config(monkeypatch=monkeypatch, runner=runner,
-                                   config={}):
-            with pytest.raises(ValueError, match='Invalid vault config'):
-                cli._save_config(None)  # type: ignore
+        with (
+            tests.isolated_config(monkeypatch=monkeypatch, runner=runner,
+                                  config={}),
+            pytest.raises(ValueError, match='Invalid vault config')
+        ):
+            cli._save_config(None)  # type: ignore
 
 
-    def test_101_prompt_for_selection_multiple(self, monkeypatch: Any) -> None:
+    def test_101_prompt_for_selection_multiple(self) -> None:
         @click.command()
         @click.option('--heading', default='Our menu:')
         @click.argument('items', nargs=-1)
@@ -786,7 +797,7 @@ Your selection? (1-10, leave empty to abort): \n''', (  # noqa: E501
         )
 
 
-    def test_102_prompt_for_selection_single(self, monkeypatch: Any) -> None:
+    def test_102_prompt_for_selection_single(self) -> None:
         @click.command()
         @click.option('--item', default='baked beans')
         @click.argument('prompt')
@@ -794,9 +805,9 @@ Your selection? (1-10, leave empty to abort): \n''', (  # noqa: E501
             try:
                 cli._prompt_for_selection([item], heading='',
                                           single_choice_prompt=prompt)
-            except IndexError as e:
+            except IndexError:
                 click.echo('Boo.')
-                raise e
+                raise
             else:
                 click.echo('Great!')
         runner = click.testing.CliRunner(mix_stderr=True)
@@ -810,13 +821,13 @@ Will replace with spam. Confirm, y/n? y
 Great!
 ''', 'driver program produced unexpected output'
         result = runner.invoke(driver,
-                               ['Will replace with spam, okay? ' +
+                               ['Will replace with spam, okay? '
                                 '(Please say "y" or "n".)'],
                                input='')
         assert result.exit_code > 0, 'driver program succeeded?!'
         assert result.stdout == '''\
 [1] baked beans
-Will replace with spam, okay? (Please say "y" or "n".): 
+Will replace with spam, okay? (Please say "y" or "n".):\x20
 Boo.
 ''', 'driver program produced unexpected output'
         assert isinstance(result.exception, IndexError), (
@@ -829,19 +840,14 @@ Boo.
                             lambda *a, **kw:
                                 json.dumps({'args': a, 'kwargs': kw}))
         res = json.loads(cli._prompt_for_passphrase())
-        assert 'args' in res and 'kwargs' in res, (
-            'missing arguments to passphrase prompt'
-        )
-        assert res['args'][:1] == ['Passphrase'], (
-            'missing arguments to passphrase prompt'
-        )
-        assert (res['kwargs'].get('default') == ''
-                and not res['kwargs'].get('show_default', True)), (
-            'missing arguments to passphrase prompt'
-        )
-        assert res['kwargs'].get('err') and res['kwargs'].get('hide_input'), (
-            'missing arguments to passphrase prompt'
-        )
+        err_msg = 'missing arguments to passphrase prompt'
+        assert 'args' in res, err_msg
+        assert 'kwargs' in res, err_msg
+        assert res['args'][:1] == ['Passphrase'], err_msg
+        assert res['kwargs'].get('default') == '', err_msg
+        assert not res['kwargs'].get('show_default', True), err_msg
+        assert res['kwargs'].get('err'), err_msg
+        assert res['kwargs'].get('hide_input'), err_msg
 
 
     @pytest.mark.parametrize(['command_line', 'config', 'result_config'], [
@@ -869,7 +875,7 @@ Boo.
                 assert (result.exit_code, result.stderr_bytes) == (0, b''), (
                     'program exited with failure'
                 )
-                with open(cli._config_filename(), 'rt') as infile:
+                with open(cli._config_filename(), encoding='UTF-8') as infile:
                     config_readback = json.load(infile)
                 assert config_readback == result_config
 
@@ -890,14 +896,13 @@ Boo.
         vfunc: Callable[[click.Context, click.Parameter, Any], int | None],
         input: int,
     ) -> None:
-        ctx = cli.derivepassphrase.make_context(cli.prog_name, [])
+        ctx = cli.derivepassphrase.make_context(cli.PROG_NAME, [])
         param = cli.derivepassphrase.params[0]
         assert vfunc(ctx, param, input) == input
 
 
     @tests.skip_if_no_agent
-    @pytest.mark.parametrize(['conn_hint'],
-                             [('none',), ('socket',), ('client',)])
+    @pytest.mark.parametrize('conn_hint', ['none', 'socket', 'client'])
     def test_227_get_suitable_ssh_keys(
         self, monkeypatch: Any, conn_hint: str,
     ) -> None:
@@ -918,7 +923,7 @@ Boo.
             list(cli._get_suitable_ssh_keys(hint))
         except RuntimeError:  # pragma: no cover
             pass
-        except Exception as e:  # pragma: no cover
+        except Exception as e:  # noqa: BLE001 # pragma: no cover
             exception = e
         finally:
             assert exception is None, 'exception querying suitable SSH keys'

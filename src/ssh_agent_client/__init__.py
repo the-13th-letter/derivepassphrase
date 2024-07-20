@@ -10,20 +10,30 @@ import collections
 import errno
 import os
 import socket
+from typing import TYPE_CHECKING
 
-from collections.abc import Sequence
-from typing_extensions import Any, Self
+from typing_extensions import Self
 
-from ssh_agent_client import types
+from ssh_agent_client import types as ssh_types
+
+if TYPE_CHECKING:
+    import types
+    from collections.abc import Sequence
 
 __all__ = ('SSHAgentClient',)
 __author__ = "Marco Ricci <m@the13thletter.info>"
 __version__ = "0.1.1"
 
+# In SSH bytestrings, the "length" of the byte string is stored as
+# a 4-byte/32-bit unsigned integer at the beginning.
+HEAD_LEN = 4
+
 _socket = socket
 
 class TrailingDataError(RuntimeError):
     """The result contained trailing data."""
+    def __init__(self):
+        super().__init__('Overlong response from SSH agent')
 
 class SSHAgentClient:
     """A bare-bones SSH agent client supporting signing and key listing.
@@ -76,7 +86,8 @@ class SSHAgentClient:
             if e.errno != errno.ENOTCONN:  # pragma: no cover
                 raise
             if 'SSH_AUTH_SOCK' not in os.environ:
-                raise KeyError('SSH_AUTH_SOCK environment variable')
+                msg = 'SSH_AUTH_SOCK environment variable'
+                raise KeyError(msg) from None
             ssh_auth_sock = os.environ['SSH_AUTH_SOCK']
             self._connection.settimeout(timeout)
             self._connection.connect(ssh_auth_sock)
@@ -87,7 +98,10 @@ class SSHAgentClient:
         return self
 
     def __exit__(
-        self, exc_type: Any, exc_val: Any, exc_tb: Any
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
     ) -> bool:
         """Close socket connection upon context manager completion."""
         return bool(
@@ -136,9 +150,10 @@ class SSHAgentClient:
             ret = bytearray()
             ret.extend(cls.uint32(len(payload)))
             ret.extend(payload)
-            return ret
         except Exception as e:
-            raise TypeError('invalid payload type') from e
+            msg = 'invalid payload type'
+            raise TypeError(msg) from e
+        return ret
 
     @classmethod
     def unstring(cls, bytestring: bytes | bytearray, /) -> bytes | bytearray:
@@ -163,11 +178,14 @@ class SSHAgentClient:
 
         """
         n = len(bytestring)
-        if n < 4:
-            raise ValueError('malformed SSH byte string')
-        elif n != 4 + int.from_bytes(bytestring[:4], 'big', signed=False):
-            raise ValueError('malformed SSH byte string')
-        return bytestring[4:]
+        msg = 'malformed SSH byte string'
+        if (
+            n < HEAD_LEN
+            or n != HEAD_LEN + int.from_bytes(bytestring[:HEAD_LEN], 'big',
+                                              signed=False)
+        ):
+            raise ValueError(msg)
+        return bytestring[HEAD_LEN:]
 
     @classmethod
     def unstring_prefix(
@@ -201,12 +219,13 @@ class SSHAgentClient:
 
         """
         n = len(bytestring)
-        if n < 4:
-            raise ValueError('malformed SSH byte string')
-        m = int.from_bytes(bytestring[:4], 'big', signed=False)
-        if m + 4 > n:
-            raise ValueError('malformed SSH byte string')
-        return (bytestring[4:m + 4], bytestring[m + 4:])
+        msg = 'malformed SSH byte string'
+        if n < HEAD_LEN:
+            raise ValueError(msg)
+        m = int.from_bytes(bytestring[:HEAD_LEN], 'big', signed=False)
+        if m + HEAD_LEN > n:
+            raise ValueError(msg)
+        return (bytestring[HEAD_LEN:m + HEAD_LEN], bytestring[m + HEAD_LEN:])
 
     def request(
         self, code: int, payload: bytes | bytearray, /
@@ -236,16 +255,18 @@ class SSHAgentClient:
         request_message = bytearray([code])
         request_message.extend(payload)
         self._connection.sendall(self.string(request_message))
-        chunk = self._connection.recv(4)
-        if len(chunk) < 4:
-            raise EOFError('cannot read response length')
+        chunk = self._connection.recv(HEAD_LEN)
+        if len(chunk) < HEAD_LEN:
+            msg = 'cannot read response length'
+            raise EOFError(msg)
         response_length = int.from_bytes(chunk, 'big', signed=False)
         response = self._connection.recv(response_length)
         if len(response) < response_length:
-            raise EOFError('truncated response from SSH agent')
+            msg = 'truncated response from SSH agent'
+            raise EOFError(msg)
         return response[0], response[1:]
 
-    def list_keys(self) -> Sequence[types.KeyCommentPair]:
+    def list_keys(self) -> Sequence[ssh_types.KeyCommentPair]:
         """Request a list of keys known to the SSH agent.
 
         Returns:
@@ -261,37 +282,35 @@ class SSHAgentClient:
 
         """
         response_code, response = self.request(
-            types.SSH_AGENTC.REQUEST_IDENTITIES.value, b'')
-        if response_code != types.SSH_AGENT.IDENTITIES_ANSWER.value:
-            raise RuntimeError(
-                f'error return from SSH agent: '
-                f'{response_code = }, {response = }'
-            )
+            ssh_types.SSH_AGENTC.REQUEST_IDENTITIES.value, b'')
+        if response_code != ssh_types.SSH_AGENT.IDENTITIES_ANSWER.value:
+            msg = (f'error return from SSH agent: '
+                   f'{response_code = }, {response = }')
+            raise RuntimeError(msg)
         response_stream = collections.deque(response)
         def shift(num: int) -> bytes:
-            buf = collections.deque(bytes())
-            for i in range(num):
+            buf = collections.deque(b'')
+            for _ in range(num):
                 try:
                     val = response_stream.popleft()
                 except IndexError:
                     response_stream.extendleft(reversed(buf))
-                    raise EOFError(
-                        'truncated response from SSH agent'
-                    ) from None
+                    msg = 'truncated response from SSH agent'
+                    raise EOFError(msg) from None
                 buf.append(val)
             return bytes(buf)
         key_count = int.from_bytes(shift(4), 'big')
-        keys: collections.deque[types.KeyCommentPair]
+        keys: collections.deque[ssh_types.KeyCommentPair]
         keys = collections.deque()
-        for i in range(key_count):
+        for _ in range(key_count):
             key_size = int.from_bytes(shift(4), 'big')
             key = shift(key_size)
             comment_size = int.from_bytes(shift(4), 'big')
             comment = shift(comment_size)
             # Both `key` and `comment` are not wrapped as SSH strings.
-            keys.append(types.KeyCommentPair(key, comment))
+            keys.append(ssh_types.KeyCommentPair(key, comment))
         if response_stream:
-            raise TrailingDataError('overlong response from SSH agent')
+            raise TrailingDataError
         return keys
 
     def sign(
@@ -336,14 +355,14 @@ class SSHAgentClient:
         if check_if_key_loaded:
             loaded_keys = frozenset({pair.key for pair in self.list_keys()})
             if bytes(key) not in loaded_keys:
-                raise KeyError('target SSH key not loaded into agent')
+                msg = 'target SSH key not loaded into agent'
+                raise KeyError(msg)
         request_data = bytearray(self.string(key))
         request_data.extend(self.string(payload))
         request_data.extend(self.uint32(flags))
         response_code, response = self.request(
-            types.SSH_AGENTC.SIGN_REQUEST.value, request_data)
-        if response_code != types.SSH_AGENT.SIGN_RESPONSE.value:
-            raise RuntimeError(
-                f'signing data failed: {response_code = }, {response = }'
-            )
+            ssh_types.SSH_AGENTC.SIGN_REQUEST.value, request_data)
+        if response_code != ssh_types.SSH_AGENT.SIGN_RESPONSE.value:
+            msg = f'signing data failed: {response_code = }, {response = }'
+            raise RuntimeError(msg)
         return self.unstring(response)

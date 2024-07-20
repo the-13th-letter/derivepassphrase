@@ -118,9 +118,34 @@ exclude_also = [
 [tool.ruff]
 line-length = 79
 src = ["src"]
+extend = "ruff_defaults_v0.5.0.toml"
 
 [tool.ruff.format]
 quote-style = 'single'
+preview = true
+
+[tool.ruff.lint]
+preview = true
+extend-ignore = [
+    'S101',
+]
+extend-select = [
+    'E501',
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = 'google'
+
+[tool.ruff.lint.flake8-pytest-style]
+parametrize-names-type = 'list'
+
+[tool.ruff.lint.extend-per-file-ignores]
+"**/tests/**/*" = [
+  'SLF001',
+  'A002',
+  'FBT001',
+]
+
+[tool.hatch.envs.hatch-static-analysis]
+config-path = "ruff_defaults_v0.5.0.toml"
+dependencies = ["ruff==0.5.0"]
