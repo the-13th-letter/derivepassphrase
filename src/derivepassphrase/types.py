@@ -2,9 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""Common typing declarations for the parent module.
-
-"""
+"""Common typing declarations for the parent module."""
 
 from __future__ import annotations
 
@@ -22,6 +20,7 @@ import derivepassphrase
 __author__ = derivepassphrase.__author__
 __version__ = derivepassphrase.__version__
 
+
 class VaultConfigGlobalSettings(TypedDict, total=False):
     r"""Configuration for vault: global settings.
 
@@ -33,6 +32,7 @@ class VaultConfigGlobalSettings(TypedDict, total=False):
             The master passphrase. Optional.
 
     """
+
     key: NotRequired[str]
     phrase: NotRequired[str]
 
@@ -68,6 +68,7 @@ class VaultConfigServicesSettings(VaultConfigGlobalSettings, total=False):
             ASCII printable characters (except backquote).
 
     """
+
     notes: NotRequired[str]
     length: NotRequired[int]
     repeat: NotRequired[int]
@@ -79,9 +80,13 @@ class VaultConfigServicesSettings(VaultConfigGlobalSettings, total=False):
     symbol: NotRequired[int]
 
 
-_VaultConfig = TypedDict('_VaultConfig',
-                         {'global': NotRequired[VaultConfigGlobalSettings]},
-                         total=False)
+_VaultConfig = TypedDict(
+    '_VaultConfig',
+    {'global': NotRequired[VaultConfigGlobalSettings]},
+    total=False,
+)
+
+
 class VaultConfig(TypedDict, _VaultConfig, total=False):
     r"""Configuration for vault.
 
@@ -94,7 +99,9 @@ class VaultConfig(TypedDict, _VaultConfig, total=False):
             Service-specific settings.
 
     """
+
     services: Required[dict[str, VaultConfigServicesSettings]]
+
 
 def is_vault_config(obj: Any) -> TypeGuard[VaultConfig]:
     """Check if `obj` is a valid vault config, according to typing.

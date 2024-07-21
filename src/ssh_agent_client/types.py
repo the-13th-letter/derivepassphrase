@@ -11,6 +11,7 @@ from typing import NamedTuple
 
 __all__ = ('SSH_AGENT', 'SSH_AGENTC', 'KeyCommentPair')
 
+
 class KeyCommentPair(NamedTuple):
     """SSH key plus comment pair.  For typing purposes.
 
@@ -19,8 +20,10 @@ class KeyCommentPair(NamedTuple):
         comment: SSH key comment.
 
     """
+
     key: bytes | bytearray
     comment: bytes | bytearray
+
 
 class SSH_AGENTC(enum.Enum):  # noqa: N801
     """SSH agent protocol numbers: client requests.
@@ -32,8 +35,10 @@ class SSH_AGENTC(enum.Enum):  # noqa: N801
             Sign data.  Expecting `SSH_AGENT.SIGN_RESPONSE`.
 
     """
+
     REQUEST_IDENTITIES: int = 11
     SIGN_REQUEST: int = 13
+
 
 class SSH_AGENT(enum.Enum):  # noqa: N801
     """SSH agent protocol numbers: server replies.
@@ -45,5 +50,6 @@ class SSH_AGENT(enum.Enum):  # noqa: N801
             Successful answer to `SSH_AGENTC.SIGN_REQUEST`.
 
     """
+
     IDENTITIES_ANSWER: int = 12
     SIGN_RESPONSE: int = 14

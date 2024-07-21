@@ -32,8 +32,9 @@ if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
 
 __all__ = ('Sequin', 'SequinExhaustedError')
-__author__ = "Marco Ricci <m@the13thletter.info>"
-__version__ = "0.1.1"
+__author__ = 'Marco Ricci <m@the13thletter.info>'
+__version__ = '0.1.1'
+
 
 class Sequin:
     """Generate pseudorandom non-negative numbers in different ranges.
@@ -57,10 +58,13 @@ class Sequin:
     [SEQUIN_TECHNIQUE]: https://checkmyworking.com/2012/06/converting-a-stream-of-binary-digits-to-a-stream-of-base-n-digits/
 
     """
+
     def __init__(
         self,
         sequence: str | bytes | bytearray | Sequence[int],
-        /, *, is_bitstring: bool = False
+        /,
+        *,
+        is_bitstring: bool = False,
     ):
         """Initialize the Sequin.
 
@@ -84,10 +88,12 @@ class Sequin:
 
         """
         msg = 'sequence item out of range'
+
         def uint8_to_bits(value):
             """Yield individual bits of an 8-bit number, MSB first."""
             for i in (0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01):
                 yield 1 if value | i == value else 0
+
         if isinstance(sequence, str):
             try:
                 sequence = tuple(sequence.encode('iso-8859-1'))
@@ -97,6 +103,7 @@ class Sequin:
             sequence = tuple(sequence)
         assert_type(sequence, tuple[int, ...])
         self.bases: dict[int, collections.deque[int]] = {}
+
         def gen() -> Iterator[int]:
             for num in sequence:
                 if num not in range(2 if is_bitstring else 256):
@@ -105,6 +112,7 @@ class Sequin:
                     yield num
                 else:
                     yield from uint8_to_bits(num)
+
         self.bases[2] = collections.deque(gen())
 
     def _all_or_nothing_shift(
@@ -126,8 +134,7 @@ class Sequin:
             sequences.
 
         Examples:
-            >>> seq = Sequin([1, 0, 1, 0, 0, 1, 0, 0, 0, 1],
-            ...              is_bitstring=True)
+            >>> seq = Sequin([1, 0, 1, 0, 0, 1, 0, 0, 0, 1], is_bitstring=True)
             >>> seq.bases
             {2: deque([1, 0, 1, 0, 0, 1, 0, 0, 0, 1])}
             >>> seq._all_or_nothing_shift(3)
@@ -163,9 +170,7 @@ class Sequin:
         return tuple(stash)
 
     @staticmethod
-    def _big_endian_number(
-        digits: Sequence[int], /, *, base: int = 2
-    ) -> int:
+    def _big_endian_number(digits: Sequence[int], /, *, base: int = 2) -> int:
         """Evaluate the given integer sequence as a big endian number.
 
         Args:
@@ -204,7 +209,7 @@ class Sequin:
             if x not in allowed_range:
                 msg = f'invalid base {base!r} digit: {x!r}'
                 raise ValueError(msg)
-            ret += (base ** i2) * x
+            ret += (base**i2) * x
         return ret
 
     def generate(self, n: int, /) -> int:
@@ -231,17 +236,21 @@ class Sequin:
                 The sequin is exhausted.
 
         Examples:
-            >>> seq = Sequin([1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1],
-            ...              is_bitstring=True)
-            >>> seq2 = Sequin([1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1],
-            ...               is_bitstring=True)
+            >>> seq = Sequin(
+            ...     [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1],
+            ...     is_bitstring=True,
+            ... )
+            >>> seq2 = Sequin(
+            ...     [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1],
+            ...     is_bitstring=True,
+            ... )
             >>> seq.generate(5)
             3
             >>> seq.generate(5)
             3
             >>> seq.generate(5)
             1
-            >>> seq.generate(5)    # doctest: +IGNORE_EXCEPTION_DETAIL
+            >>> seq.generate(5)  # doctest: +IGNORE_EXCEPTION_DETAIL
             Traceback (most recent call last):
                 ...
             SequinExhaustedError: Sequin is exhausted
@@ -253,7 +262,7 @@ class Sequin:
 
             But it still won't work on exhausted sequins:
 
-            >>> seq.generate(1)    # doctest: +IGNORE_EXCEPTION_DETAIL
+            >>> seq.generate(1)  # doctest: +IGNORE_EXCEPTION_DETAIL
             Traceback (most recent call last):
                 ...
             SequinExhaustedError: Sequin is exhausted
@@ -266,9 +275,7 @@ class Sequin:
             raise SequinExhaustedError
         return value
 
-    def _generate_inner(
-        self, n: int, /, *, base: int = 2
-    ) -> int:
+    def _generate_inner(self, n: int, /, *, base: int = 2) -> int:
         """Recursive call to generate a base `n` non-negative integer.
 
         We first determine the correct exponent `k` to generate base `n`
@@ -298,10 +305,14 @@ class Sequin:
                 The range is empty.
 
         Examples:
-            >>> seq = Sequin([1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1],
-            ...              is_bitstring=True)
-            >>> seq2 = Sequin([1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1],
-            ...               is_bitstring=True)
+            >>> seq = Sequin(
+            ...     [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1],
+            ...     is_bitstring=True,
+            ... )
+            >>> seq2 = Sequin(
+            ...     [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1],
+            ...     is_bitstring=True,
+            ... )
             >>> seq._generate_inner(5)
             3
             >>> seq._generate_inner(5)
@@ -321,7 +332,7 @@ class Sequin:
 
             Using an unsuitable range will raise:
 
-            >>> seq2._generate_inner(0)    # doctest: +IGNORE_EXCEPTION_DETAIL
+            >>> seq2._generate_inner(0)  # doctest: +IGNORE_EXCEPTION_DETAIL
             Traceback (most recent call last):
                 ...
             ValueError: invalid target range
@@ -369,11 +380,13 @@ class Sequin:
             self.bases[base] = collections.deque()
         self.bases[base].append(value)
 
+
 class SequinExhaustedError(Exception):
     """The sequin is exhausted.
 
     No more values can be generated from this sequin.
 
     """
+
     def __init__(self):
         super().__init__('Sequin is exhausted')

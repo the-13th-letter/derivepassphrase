@@ -122,6 +122,7 @@ extend = "ruff_defaults_v0.5.0.toml"
 
 [tool.ruff.format]
 quote-style = 'single'
+docstring-code-line-length = "dynamic"
 preview = true
 
 [tool.ruff.lint]

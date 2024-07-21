@@ -2,9 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""Command-line interface for derivepassphrase.
-
-"""
+"""Command-line interface for derivepassphrase."""
 
 from __future__ import annotations
 
@@ -64,8 +62,9 @@ def _config_filename() -> str | bytes | pathlib.Path:
 
     """
     path: str | bytes | pathlib.Path
-    path = (os.getenv(PROG_NAME.upper() + '_PATH')
-            or click.get_app_dir(PROG_NAME, force_posix=True))
+    path = os.getenv(PROG_NAME.upper() + '_PATH') or click.get_app_dir(
+        PROG_NAME, force_posix=True
+    )
     return os.path.join(path, 'settings.json')
 
 
@@ -122,8 +121,7 @@ def _save_config(config: dpp_types.VaultConfig, /) -> None:
 
 
 def _get_suitable_ssh_keys(
-    conn: ssh_agent_client.SSHAgentClient | socket.socket | None = None,
-    /
+    conn: ssh_agent_client.SSHAgentClient | socket.socket | None = None, /
 ) -> Iterator[ssh_agent_client.types.KeyCommentPair]:
     """Yield all SSH keys suitable for passphrase derivation.
 
@@ -188,7 +186,8 @@ def _get_suitable_ssh_keys(
 
 
 def _prompt_for_selection(
-    items: Sequence[str | bytes], heading: str = 'Possible choices:',
+    items: Sequence[str | bytes],
+    heading: str = 'Possible choices:',
     single_choice_prompt: str = 'Confirm this choice?',
 ) -> int:
     """Prompt user for a choice among the given items.
@@ -229,26 +228,34 @@ def _prompt_for_selection(
         choices = click.Choice([''] + [str(i) for i in range(1, n + 1)])
         choice = click.prompt(
             f'Your selection? (1-{n}, leave empty to abort)',
-            err=True, type=choices, show_choices=False,
-            show_default=False, default='')
+            err=True,
+            type=choices,
+            show_choices=False,
+            show_default=False,
+            default='',
+        )
         if not choice:
             raise IndexError(_EMPTY_SELECTION)
         return int(choice) - 1
-    prompt_suffix = (' '
-                     if single_choice_prompt.endswith(tuple('?.!'))
-                     else ': ')
+    prompt_suffix = (
+        ' ' if single_choice_prompt.endswith(tuple('?.!')) else ': '
+    )
     try:
-        click.confirm(single_choice_prompt,
-                      prompt_suffix=prompt_suffix, err=True,
-                      abort=True, default=False, show_default=False)
+        click.confirm(
+            single_choice_prompt,
+            prompt_suffix=prompt_suffix,
+            err=True,
+            abort=True,
+            default=False,
+            show_default=False,
+        )
     except click.Abort:
         raise IndexError(_EMPTY_SELECTION) from None
     return 0
 
 
 def _select_ssh_key(
-    conn: ssh_agent_client.SSHAgentClient | socket.socket | None = None,
-    /
+    conn: ssh_agent_client.SSHAgentClient | socket.socket | None = None, /
 ) -> bytes | bytearray:
     """Interactively select an SSH key for passphrase derivation.
 
@@ -292,14 +299,18 @@ def _select_ssh_key(
     for key, comment in suitable_keys:
         keytype = unstring_prefix(key)[0].decode('ASCII')
         key_str = base64.standard_b64encode(key).decode('ASCII')
-        key_prefix = (key_str
-                      if len(key_str) < KEY_DISPLAY_LENGTH + len('...')
-                      else key_str[:KEY_DISPLAY_LENGTH] + '...')
+        key_prefix = (
+            key_str
+            if len(key_str) < KEY_DISPLAY_LENGTH + len('...')
+            else key_str[:KEY_DISPLAY_LENGTH] + '...'
+        )
         comment_str = comment.decode('UTF-8', errors='replace')
         key_listing.append(f'{keytype} {key_prefix} {comment_str}')
     choice = _prompt_for_selection(
-        key_listing, heading='Suitable SSH keys:',
-        single_choice_prompt='Use this key?')
+        key_listing,
+        heading='Suitable SSH keys:',
+        single_choice_prompt='Use this key?',
+    )
     return suitable_keys[choice].key
 
 
@@ -313,8 +324,9 @@ def _prompt_for_passphrase() -> str:
         The user input.
 
     """
-    return click.prompt('Passphrase', default='', hide_input=True,
-                        show_default=False, err=True)
+    return click.prompt(
+        'Passphrase', default='', hide_input=True, show_default=False, err=True
+    )
 
 
 class OptionGroupOption(click.Option):
@@ -333,6 +345,7 @@ class OptionGroupOption(click.Option):
             section.
 
     """
+
     option_group_name: str = ''
     epilog: str = ''
 
@@ -353,7 +366,9 @@ class CommandWithHelpGroups(click.Command):
     """
 
     def format_options(
-        self, ctx: click.Context, formatter: click.HelpFormatter,
+        self,
+        ctx: click.Context,
+        formatter: click.HelpFormatter,
     ) -> None:
         r"""Format options on the help listing, grouped into sections.
 
@@ -398,8 +413,9 @@ class CommandWithHelpGroups(click.Command):
                     group_name = ''
                 help_records.setdefault(group_name, []).append(rec)
         default_group = help_records.pop('')
-        default_group_name = ('Other Options' if len(default_group) > 1
-                              else 'Options')
+        default_group_name = (
+            'Other Options' if len(default_group) > 1 else 'Options'
+        )
         help_records[default_group_name] = default_group
         for group_name, records in help_records.items():
             with formatter.section(group_name):
@@ -414,34 +430,40 @@ class CommandWithHelpGroups(click.Command):
 # Concrete option groups used by this command-line interface.
 class PasswordGenerationOption(OptionGroupOption):
     """Password generation options for the CLI."""
+
     option_group_name = 'Password generation'
-    epilog = '''
+    epilog = """
         Use NUMBER=0, e.g. "--symbol 0", to exclude a character type
         from the output.
-    '''
+    """
 
 
 class ConfigurationOption(OptionGroupOption):
     """Configuration options for the CLI."""
+
     option_group_name = 'Configuration'
-    epilog = '''
+    epilog = """
         Use $VISUAL or $EDITOR to configure the spawned editor.
-    '''
+    """
 
 
 class StorageManagementOption(OptionGroupOption):
     """Storage management options for the CLI."""
+
     option_group_name = 'Storage management'
-    epilog = '''
+    epilog = """
         Using "-" as PATH for standard input/standard output is
         supported.
-    '''
+    """
+
 
 def _validate_occurrence_constraint(
-    ctx: click.Context, param: click.Parameter, value: Any,
+    ctx: click.Context,
+    param: click.Parameter,
+    value: Any,
 ) -> int | None:
     """Check that the occurrence constraint is valid (int, 0 or larger)."""
-    del ctx    # Unused.
+    del ctx  # Unused.
     del param  # Unused.
     if value is None:
         return value
@@ -460,10 +482,12 @@ def _validate_occurrence_constraint(
 
 
 def _validate_length(
-    ctx: click.Context, param: click.Parameter, value: Any,
+    ctx: click.Context,
+    param: click.Parameter,
+    value: Any,
 ) -> int | None:
     """Check that the length is valid (int, 1 or larger)."""
-    del ctx    # Unused.
+    del ctx  # Unused.
     del param  # Unused.
     if value is None:
         return value
@@ -480,7 +504,8 @@ def _validate_length(
         raise click.BadParameter(msg)
     return int_value
 
-DEFAULT_NOTES_TEMPLATE = '''\
+
+DEFAULT_NOTES_TEMPLATE = """\
 # Enter notes below the line with the cut mark (ASCII scissors and
 # dashes).  Lines above the cut mark (such as this one) will be ignored.
 #
@@ -490,14 +515,14 @@ DEFAULT_NOTES_TEMPLATE = '''\
 # retained.
 #
 # - - - - - >8 - - - - - >8 - - - - - >8 - - - - - >8 - - - - -
-'''
+"""
 DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
 
 
 @click.command(
-    context_settings={"help_option_names": ["-h", "--help"]},
+    context_settings={'help_option_names': ['-h', '--help']},
     cls=CommandWithHelpGroups,
-    epilog=r'''
+    epilog=r"""
         WARNING: There is NO WAY to retrieve the generated passphrases
         if the master passphrase, the SSH key, or the exact passphrase
         settings are lost, short of trying out all possible
@@ -510,74 +535,145 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
         `C:\Users\<user>\AppData\Roaming\Derivepassphrase` on Windows.
         The configuration is NOT encrypted, and you are STRONGLY
         discouraged from using a stored passphrase.
-    ''',
+    """,
 )
-@click.option('-p', '--phrase', 'use_phrase', is_flag=True,
-              help='prompts you for your passphrase',
-              cls=PasswordGenerationOption)
-@click.option('-k', '--key', 'use_key', is_flag=True,
-              help='uses your SSH private key to generate passwords',
-              cls=PasswordGenerationOption)
-@click.option('-l', '--length', metavar='NUMBER',
-              callback=_validate_length,
-              help='emits password of length NUMBER',
-              cls=PasswordGenerationOption)
-@click.option('-r', '--repeat', metavar='NUMBER',
-              callback=_validate_occurrence_constraint,
-              help='allows maximum of NUMBER repeated adjacent chars',
-              cls=PasswordGenerationOption)
-@click.option('--lower', metavar='NUMBER',
-              callback=_validate_occurrence_constraint,
-              help='includes at least NUMBER lowercase letters',
-              cls=PasswordGenerationOption)
-@click.option('--upper', metavar='NUMBER',
-              callback=_validate_occurrence_constraint,
-              help='includes at least NUMBER uppercase letters',
-              cls=PasswordGenerationOption)
-@click.option('--number', metavar='NUMBER',
-              callback=_validate_occurrence_constraint,
-              help='includes at least NUMBER digits',
-              cls=PasswordGenerationOption)
-@click.option('--space', metavar='NUMBER',
-              callback=_validate_occurrence_constraint,
-              help='includes at least NUMBER spaces',
-              cls=PasswordGenerationOption)
-@click.option('--dash', metavar='NUMBER',
-              callback=_validate_occurrence_constraint,
-              help='includes at least NUMBER "-" or "_"',
-              cls=PasswordGenerationOption)
-@click.option('--symbol', metavar='NUMBER',
-              callback=_validate_occurrence_constraint,
-              help='includes at least NUMBER symbol chars',
-              cls=PasswordGenerationOption)
-@click.option('-n', '--notes', 'edit_notes', is_flag=True,
-              help='spawn an editor to edit notes for SERVICE',
-              cls=ConfigurationOption)
-@click.option('-c', '--config', 'store_config_only', is_flag=True,
-              help='saves the given settings for SERVICE or global',
-              cls=ConfigurationOption)
-@click.option('-x', '--delete', 'delete_service_settings', is_flag=True,
-              help='deletes settings for SERVICE',
-              cls=ConfigurationOption)
-@click.option('--delete-globals', is_flag=True,
-              help='deletes the global shared settings',
-              cls=ConfigurationOption)
-@click.option('-X', '--clear', 'clear_all_settings', is_flag=True,
-              help='deletes all settings',
-              cls=ConfigurationOption)
-@click.option('-e', '--export', 'export_settings', metavar='PATH',
-              type=click.Path(file_okay=True, allow_dash=True, exists=False),
-              help='export all saved settings into file PATH',
-              cls=StorageManagementOption)
-@click.option('-i', '--import', 'import_settings', metavar='PATH',
-              type=click.Path(file_okay=True, allow_dash=True, exists=False),
-              help='import saved settings from file PATH',
-              cls=StorageManagementOption)
+@click.option(
+    '-p',
+    '--phrase',
+    'use_phrase',
+    is_flag=True,
+    help='prompts you for your passphrase',
+    cls=PasswordGenerationOption,
+)
+@click.option(
+    '-k',
+    '--key',
+    'use_key',
+    is_flag=True,
+    help='uses your SSH private key to generate passwords',
+    cls=PasswordGenerationOption,
+)
+@click.option(
+    '-l',
+    '--length',
+    metavar='NUMBER',
+    callback=_validate_length,
+    help='emits password of length NUMBER',
+    cls=PasswordGenerationOption,
+)
+@click.option(
+    '-r',
+    '--repeat',
+    metavar='NUMBER',
+    callback=_validate_occurrence_constraint,
+    help='allows maximum of NUMBER repeated adjacent chars',
+    cls=PasswordGenerationOption,
+)
+@click.option(
+    '--lower',
+    metavar='NUMBER',
+    callback=_validate_occurrence_constraint,
+    help='includes at least NUMBER lowercase letters',
+    cls=PasswordGenerationOption,
+)
+@click.option(
+    '--upper',
+    metavar='NUMBER',
+    callback=_validate_occurrence_constraint,
+    help='includes at least NUMBER uppercase letters',
+    cls=PasswordGenerationOption,
+)
+@click.option(
+    '--number',
+    metavar='NUMBER',
+    callback=_validate_occurrence_constraint,
+    help='includes at least NUMBER digits',
+    cls=PasswordGenerationOption,
+)
+@click.option(
+    '--space',
+    metavar='NUMBER',
+    callback=_validate_occurrence_constraint,
+    help='includes at least NUMBER spaces',
+    cls=PasswordGenerationOption,
+)
+@click.option(
+    '--dash',
+    metavar='NUMBER',
+    callback=_validate_occurrence_constraint,
+    help='includes at least NUMBER "-" or "_"',
+    cls=PasswordGenerationOption,
+)
+@click.option(
+    '--symbol',
+    metavar='NUMBER',
+    callback=_validate_occurrence_constraint,
+    help='includes at least NUMBER symbol chars',
+    cls=PasswordGenerationOption,
+)
+@click.option(
+    '-n',
+    '--notes',
+    'edit_notes',
+    is_flag=True,
+    help='spawn an editor to edit notes for SERVICE',
+    cls=ConfigurationOption,
+)
+@click.option(
+    '-c',
+    '--config',
+    'store_config_only',
+    is_flag=True,
+    help='saves the given settings for SERVICE or global',
+    cls=ConfigurationOption,
+)
+@click.option(
+    '-x',
+    '--delete',
+    'delete_service_settings',
+    is_flag=True,
+    help='deletes settings for SERVICE',
+    cls=ConfigurationOption,
+)
+@click.option(
+    '--delete-globals',
+    is_flag=True,
+    help='deletes the global shared settings',
+    cls=ConfigurationOption,
+)
+@click.option(
+    '-X',
+    '--clear',
+    'clear_all_settings',
+    is_flag=True,
+    help='deletes all settings',
+    cls=ConfigurationOption,
+)
+@click.option(
+    '-e',
+    '--export',
+    'export_settings',
+    metavar='PATH',
+    type=click.Path(file_okay=True, allow_dash=True, exists=False),
+    help='export all saved settings into file PATH',
+    cls=StorageManagementOption,
+)
+@click.option(
+    '-i',
+    '--import',
+    'import_settings',
+    metavar='PATH',
+    type=click.Path(file_okay=True, allow_dash=True, exists=False),
+    help='import saved settings from file PATH',
+    cls=StorageManagementOption,
+)
 @click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
 @click.argument('service', required=False)
 @click.pass_context
 def derivepassphrase(
-    ctx: click.Context, /, *,
+    ctx: click.Context,
+    /,
+    *,
     service: str | None = None,
     use_phrase: bool = False,
     use_key: bool = False,
@@ -704,7 +800,8 @@ def derivepassphrase(
                     group = StorageManagementOption
                 case OptionGroupOption():
                     raise AssertionError(  # noqa: TRY003
-                        f'Unknown option group for {param!r}')  # noqa: EM102
+                        f'Unknown option group for {param!r}'  # noqa: EM102
+                    )
                 case _:
                     group = click.Option
             options_in_group.setdefault(group, []).append(param)
@@ -716,7 +813,8 @@ def derivepassphrase(
         return bool(ctx.params.get(param.human_readable_name))
 
     def check_incompatible_options(
-        param: click.Parameter | str, *incompatible: click.Parameter | str,
+        param: click.Parameter | str,
+        *incompatible: click.Parameter | str,
     ) -> None:
         if isinstance(param, str):
             param = params_by_str[param]
@@ -731,7 +829,8 @@ def derivepassphrase(
                 opt_str = param.opts[0]
                 other_str = other.opts[0]
                 raise click.BadOptionUsage(
-                    opt_str, f'mutually exclusive with {other_str}', ctx=ctx)
+                    opt_str, f'mutually exclusive with {other_str}', ctx=ctx
+                )
 
     def get_config() -> dpp_types.VaultConfig:
         try:
@@ -748,15 +847,20 @@ def derivepassphrase(
         for opt in options_in_group[group]:
             if opt != params_by_str['--config']:
                 check_incompatible_options(
-                    opt, *options_in_group[PasswordGenerationOption])
+                    opt, *options_in_group[PasswordGenerationOption]
+                )
 
     for group in (ConfigurationOption, StorageManagementOption):
         for opt in options_in_group[group]:
             check_incompatible_options(
-                opt, *options_in_group[ConfigurationOption],
-                *options_in_group[StorageManagementOption])
-    sv_options = (options_in_group[PasswordGenerationOption] +
-                  [params_by_str['--notes'], params_by_str['--delete']])
+                opt,
+                *options_in_group[ConfigurationOption],
+                *options_in_group[StorageManagementOption],
+            )
+    sv_options = options_in_group[PasswordGenerationOption] + [
+        params_by_str['--notes'],
+        params_by_str['--delete'],
+    ]
     sv_options.remove(params_by_str['--key'])
     sv_options.remove(params_by_str['--phrase'])
     for param in sv_options:
@@ -765,16 +869,17 @@ def derivepassphrase(
             msg = f'{opt_str} requires a SERVICE'
             raise click.UsageError(msg)
     for param in [params_by_str['--key'], params_by_str['--phrase']]:
-        if (
-            is_param_set(param)
-            and not (service or is_param_set(params_by_str['--config']))
+        if is_param_set(param) and not (
+            service or is_param_set(params_by_str['--config'])
         ):
             opt_str = param.opts[0]
             msg = f'{opt_str} requires a SERVICE or --config'
             raise click.UsageError(msg)
-    no_sv_options = [params_by_str['--delete-globals'],
-                     params_by_str['--clear'],
-                     *options_in_group[StorageManagementOption]]
+    no_sv_options = [
+        params_by_str['--delete-globals'],
+        params_by_str['--clear'],
+        *options_in_group[StorageManagementOption],
+    ]
     for param in no_sv_options:
         if is_param_set(param) and service:
             opt_str = param.opts[0]
@@ -784,10 +889,9 @@ def derivepassphrase(
     if edit_notes:
         assert service is not None
         configuration = get_config()
-        text = (DEFAULT_NOTES_TEMPLATE +
-                configuration['services']
-                .get(service, cast(dpp_types.VaultConfigServicesSettings, {}))
-                .get('notes', ''))
+        text = DEFAULT_NOTES_TEMPLATE + configuration['services'].get(
+            service, cast(dpp_types.VaultConfigServicesSettings, {})
+        ).get('notes', '')
         notes_value = click.edit(text=text)
         if notes_value is not None:
             notes_lines = collections.deque(notes_value.splitlines(True))
@@ -800,7 +904,8 @@ def derivepassphrase(
                 if not notes_value.strip():
                     ctx.fail('not saving new notes: user aborted request')
             configuration['services'].setdefault(service, {})['notes'] = (
-                notes_value.strip('\n'))
+                notes_value.strip('\n')
+            )
             _save_config(configuration)
     elif delete_service_settings:
         assert service is not None
@@ -818,9 +923,11 @@ def derivepassphrase(
     elif import_settings:
         try:
             # TODO: keep track of auto-close; try os.dup if feasible
-            infile = (cast(TextIO, import_settings)
-                      if hasattr(import_settings, 'close')
-                      else click.open_file(os.fspath(import_settings), 'rt'))
+            infile = (
+                cast(TextIO, import_settings)
+                if hasattr(import_settings, 'close')
+                else click.open_file(os.fspath(import_settings), 'rt')
+            )
             with infile:
                 maybe_config = json.load(infile)
         except json.JSONDecodeError as e:
@@ -835,9 +942,11 @@ def derivepassphrase(
         configuration = get_config()
         try:
             # TODO: keep track of auto-close; try os.dup if feasible
-            outfile = (cast(TextIO, export_settings)
-                       if hasattr(export_settings, 'close')
-                       else click.open_file(os.fspath(export_settings), 'wt'))
+            outfile = (
+                cast(TextIO, export_settings)
+                if hasattr(export_settings, 'close')
+                else click.open_file(os.fspath(export_settings), 'wt')
+            )
             with outfile:
                 json.dump(configuration, outfile)
         except OSError as e:
@@ -849,20 +958,36 @@ def derivepassphrase(
         # have a type guarding function anyway, assert that we didn't
         # make any mistakes at the end instead.
         global_keys = {'key', 'phrase'}
-        service_keys = {'key', 'phrase', 'length', 'repeat', 'lower',
-                        'upper', 'number', 'space', 'dash', 'symbol'}
+        service_keys = {
+            'key',
+            'phrase',
+            'length',
+            'repeat',
+            'lower',
+            'upper',
+            'number',
+            'space',
+            'dash',
+            'symbol',
+        }
         settings: collections.ChainMap[str, Any] = collections.ChainMap(
-            {k: v for k, v in locals().items()
-             if k in service_keys and v is not None},
-            cast(dict[str, Any],
-                 configuration['services'].get(service or '', {})),
+            {
+                k: v
+                for k, v in locals().items()
+                if k in service_keys and v is not None
+            },
+            cast(
+                dict[str, Any],
+                configuration['services'].get(service or '', {}),
+            ),
             {},
-            cast(dict[str, Any], configuration.get('global', {}))
+            cast(dict[str, Any], configuration.get('global', {})),
         )
         if use_key:
             try:
-                key = base64.standard_b64encode(
-                    _select_ssh_key()).decode('ASCII')
+                key = base64.standard_b64encode(_select_ssh_key()).decode(
+                    'ASCII'
+                )
             except IndexError:
                 ctx.fail('no valid SSH key selected')
             except (LookupError, RuntimeError) as e:
@@ -875,8 +1000,11 @@ def derivepassphrase(
                 phrase = maybe_phrase
         if store_config_only:
             view: collections.ChainMap[str, Any]
-            view = (collections.ChainMap(*settings.maps[:2]) if service
-                    else settings.parents.parents)
+            view = (
+                collections.ChainMap(*settings.maps[:2])
+                if service
+                else settings.parents.parents
+            )
             if use_key:
                 view['key'] = key
                 for m in view.maps:
@@ -887,25 +1015,29 @@ def derivepassphrase(
                     m.pop('key', '')
             if not view.maps[0]:
                 settings_type = 'service' if service else 'global'
-                msg = (f'cannot update {settings_type} settings without '
-                       f'actual settings')
+                msg = (
+                    f'cannot update {settings_type} settings without '
+                    f'actual settings'
+                )
                 raise click.UsageError(msg)
             if service:
-                configuration['services'].setdefault(
-                    service, {}).update(view)  # type: ignore[typeddict-item]
+                configuration['services'].setdefault(service, {}).update(view)  # type: ignore[typeddict-item]
             else:
-                configuration.setdefault(
-                    'global', {}).update(view)  # type: ignore[typeddict-item]
-            assert dpp_types.is_vault_config(configuration), (
-                f'invalid vault configuration: {configuration!r}'
-            )
+                configuration.setdefault('global', {}).update(view)  # type: ignore[typeddict-item]
+            assert dpp_types.is_vault_config(
+                configuration
+            ), f'invalid vault configuration: {configuration!r}'
             _save_config(configuration)
         else:
             if not service:
                 msg = 'SERVICE is required'
                 raise click.UsageError(msg)
-            kwargs: dict[str, Any] = {k: v for k, v in settings.items()
-                                      if k in service_keys and v is not None}
+            kwargs: dict[str, Any] = {
+                k: v
+                for k, v in settings.items()
+                if k in service_keys and v is not None
+            }
+
             # If either --key or --phrase are given, use that setting.
             # Otherwise, if both key and phrase are set in the config,
             # one must be global (ignore it) and one must be
@@ -915,10 +1047,12 @@ def derivepassphrase(
             # derivepassphrase.Vault.phrase_from_key if a key is
             # given. Finally, if nothing is set, error out.
             def key_to_phrase(
-                key: str | bytes | bytearray
+                key: str | bytes | bytearray,
             ) -> bytes | bytearray:
                 return dpp.Vault.phrase_from_key(
-                    base64.standard_b64decode(key))
+                    base64.standard_b64decode(key)
+                )
+
             if use_key or use_phrase:
                 if use_key:
                     kwargs['phrase'] = key_to_phrase(key)
@@ -935,8 +1069,10 @@ def derivepassphrase(
             elif kwargs.get('phrase'):
                 pass
             else:
-                msg = ('no passphrase or key given on command-line '
-                       'or in configuration')
+                msg = (
+                    'no passphrase or key given on command-line '
+                    'or in configuration'
+                )
                 raise click.UsageError(msg)
             vault = dpp.Vault(**kwargs)
             result = vault.generate(service)

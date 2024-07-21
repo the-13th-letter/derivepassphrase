@@ -2,9 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""Work-alike of vault(1) – a deterministic, stateless password manager
-
-"""  # noqa: RUF002
+"""Work-alike of vault(1) – a deterministic, stateless password manager"""  # noqa: RUF002
 
 from __future__ import annotations
 
@@ -19,13 +17,15 @@ from typing_extensions import assert_type
 import sequin
 import ssh_agent_client
 
-__author__ = "Marco Ricci <m@the13thletter.info>"
-__version__ = "0.1.1"
+__author__ = 'Marco Ricci <m@the13thletter.info>'
+__version__ = '0.1.1'
+
 
 class AmbiguousByteRepresentationError(ValueError):
     """The object has an ambiguous byte representation."""
     def __init__(self):
         super().__init__('text string has ambiguous byte representation')
+
 
 _CHARSETS = collections.OrderedDict([
     ('lower', b'abcdefghijklmnopqrstuvwxyz'),
@@ -40,8 +40,10 @@ _CHARSETS = collections.OrderedDict([
 ])
 _CHARSETS['alpha'] = _CHARSETS['lower'] + _CHARSETS['upper']
 _CHARSETS['alphanum'] = _CHARSETS['alpha'] + _CHARSETS['number']
-_CHARSETS['all'] = (_CHARSETS['alphanum'] + _CHARSETS['space']
-                    + _CHARSETS['symbol'])
+_CHARSETS['all'] = (
+    _CHARSETS['alphanum'] + _CHARSETS['space'] + _CHARSETS['symbol']
+)
+
 
 class Vault:
     """A work-alike of James Coglan's vault.
@@ -64,6 +66,7 @@ class Vault:
     [ALGORITHM]: https://blog.jcoglan.com/2012/07/16/designing-vaults-generator-algorithm/
 
     """
+
     _UUID = b'e87eb0f4-34cb-46b9-93ad-766c5ab063e7'
     """A tag used by vault in the bit stream generation."""
     _CHARSETS = _CHARSETS
@@ -75,10 +78,16 @@ class Vault:
     """
 
     def __init__(
-        self, *, phrase: bytes | bytearray | str = b'',
-        length: int = 20, repeat: int = 0, lower: int | None = None,
-        upper: int | None = None, number: int | None = None,
-        space: int | None = None, dash: int | None = None,
+        self,
+        *,
+        phrase: bytes | bytearray | str = b'',
+        length: int = 20,
+        repeat: int = 0,
+        lower: int | None = None,
+        upper: int | None = None,
+        number: int | None = None,
+        space: int | None = None,
+        dash: int | None = None,
         symbol: int | None = None,
     ) -> None:
         """Initialize the Vault object.
@@ -122,6 +131,7 @@ class Vault:
         self._repeat = repeat
         self._allowed = bytearray(self._CHARSETS['all'])
         self._required: list[bytes] = []
+
         def subtract_or_require(
             count: int | None, characters: bytes | bytearray
         ) -> None:
@@ -132,6 +142,7 @@ class Vault:
             else:
                 for _ in range(count):
                     self._required.append(characters)
+
         subtract_or_require(lower, self._CHARSETS['lower'])
         subtract_or_require(upper, self._CHARSETS['upper'])
         subtract_or_require(number, self._CHARSETS['number'])
@@ -177,7 +188,8 @@ class Vault:
         return math.fsum(math.log2(f) for f in factors)
 
     def _estimate_sufficient_hash_length(
-        self, safety_factor: float = 2.0,
+        self,
+        safety_factor: float = 2.0,
     ) -> int:
         """Estimate the sufficient hash length, given the current settings.
 
@@ -241,8 +253,11 @@ class Vault:
 
     @classmethod
     def create_hash(
-        cls, phrase: bytes | bytearray | str,
-        service: bytes | bytearray, *, length: int = 32,
+        cls,
+        phrase: bytes | bytearray | str,
+        service: bytes | bytearray,
+        *,
+        length: int = 32,
     ) -> bytes:
         r"""Create a pseudorandom byte stream from phrase and service.
 
@@ -302,11 +317,19 @@ class Vault:
         phrase = cls._get_binary_string(phrase)
         assert not isinstance(phrase, str)
         salt = bytes(service) + cls._UUID
-        return hashlib.pbkdf2_hmac(hash_name='sha1', password=phrase,
-                                   salt=salt, iterations=8, dklen=length)
+        return hashlib.pbkdf2_hmac(
+            hash_name='sha1',
+            password=phrase,
+            salt=salt,
+            iterations=8,
+            dklen=length,
+        )
 
     def generate(
-        self, service_name: str | bytes | bytearray, /, *,
+        self,
+        service_name: str | bytes | bytearray,
+        /,
+        *,
         phrase: bytes | bytearray | str = b'',
     ) -> bytes:
         r"""Generate a service passphrase.
@@ -358,8 +381,11 @@ class Vault:
         while True:
             try:
                 required = self._required[:]
-                seq = sequin.Sequin(self.create_hash(
-                    phrase=phrase, service=service_name, length=hash_length))
+                seq = sequin.Sequin(
+                    self.create_hash(
+                        phrase=phrase, service=service_name, length=hash_length
+                    )
+                )
                 result = bytearray()
                 while len(result) < self._length:
                     pos = seq.generate(len(required))
@@ -374,10 +400,11 @@ class Vault:
                     if self._repeat and result:
                         bad_suffix = bytes(result[-1:]) * (self._repeat - 1)
                         if result.endswith(bad_suffix):
-                            charset = self._subtract(bytes(result[-1:]),
-                                                     charset)
+                            charset = self._subtract(
+                                bytes(result[-1:]), charset
+                            )
                     pos = seq.generate(len(charset))
-                    result.extend(charset[pos:pos + 1])
+                    result.extend(charset[pos : pos + 1])
             except sequin.SequinExhaustedError:
                 hash_length *= 2
             else:
@@ -399,19 +426,16 @@ class Vault:
 
         """
         deterministic_signature_types = {
-            'ssh-ed25519':
-                lambda k: k.startswith(b'\x00\x00\x00\x0bssh-ed25519'),
-            'ssh-ed448':
-                lambda k: k.startswith(b'\x00\x00\x00\x09ssh-ed448'),
-            'ssh-rsa':
-                lambda k: k.startswith(b'\x00\x00\x00\x07ssh-rsa'),
+            'ssh-ed25519': lambda k: k.startswith(
+                b'\x00\x00\x00\x0bssh-ed25519'
+            ),
+            'ssh-ed448': lambda k: k.startswith(b'\x00\x00\x00\x09ssh-ed448'),
+            'ssh-rsa': lambda k: k.startswith(b'\x00\x00\x00\x07ssh-rsa'),
         }
         return any(v(key) for v in deterministic_signature_types.values())
 
     @classmethod
-    def phrase_from_key(
-        cls, key: bytes | bytearray, /
-    ) -> bytes:
+    def phrase_from_key(cls, key: bytes | bytearray, /) -> bytes:
         """Obtain the master passphrase from a configured SSH key.
 
         vault allows the usage of certain SSH keys to derive a master
@@ -456,8 +480,10 @@ class Vault:
 
         """
         if not cls._is_suitable_ssh_key(key):
-            msg = ('unsuitable SSH key: bad key, or '
-                   'signature not deterministic')
+            msg = (
+                'unsuitable SSH key: bad key, or '
+                'signature not deterministic'
+            )
             raise ValueError(msg)
         with ssh_agent_client.SSHAgentClient() as client:
             raw_sig = client.sign(key, cls._UUID)
@@ -467,7 +493,8 @@ class Vault:
 
     @staticmethod
     def _subtract(
-        charset: bytes | bytearray, allowed: bytes | bytearray,
+        charset: bytes | bytearray,
+        allowed: bytes | bytearray,
     ) -> bytearray:
         """Remove the characters in charset from allowed.
 
@@ -489,8 +516,9 @@ class Vault:
                 `allowed` or `charset` contained duplicate characters.
 
         """
-        allowed = (allowed if isinstance(allowed, bytearray)
-                   else bytearray(allowed))
+        allowed = (
+            allowed if isinstance(allowed, bytearray) else bytearray(allowed)
+        )
         assert_type(allowed, bytearray)
         msg_dup_characters = 'duplicate characters in set'
         if len(frozenset(allowed)) != len(allowed):
@@ -503,5 +531,5 @@ class Vault:
             except ValueError:
                 pass
             else:
-                allowed[pos:pos + 1] = []
+                allowed[pos : pos + 1] = []
         return allowed
