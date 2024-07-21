@@ -43,6 +43,7 @@ theme:
     - navigation.prune
     - navigation.footer
     - toc.follow
+  custom_dir: docs-overrides
 
 plugins:
   - offline:
