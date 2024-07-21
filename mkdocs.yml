@@ -87,12 +87,14 @@ nav:
     - Module sequin: reference/sequin.md
     - Module ssh_agent_client: reference/ssh_agent_client.md
   #- Design & Background: explanation.md
+  - Changelog: changelog.md
 
 markdown_extensions:
   - abbr
   - attr_list
   - def_list
   - footnotes
+  - md_in_html
   - admonition
   - smarty
   - toc:

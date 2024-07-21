@@ -31,7 +31,7 @@ version = "0.1.1"
 
 [project.optional-dependencies]
 dev = ["black", "coverage", "hatch>=1.10", "mkdocs", "mkdocs-material",
-       "mkdocstrings[python]", "pytest>=8.1"]
+       "mkdocstrings[python]", "pytest>=8.1", "towncrier>=23.11"]
 
 [project.urls]
 Documentation = "https://the13thletter.info/derivepassphrase/"
@@ -150,3 +150,49 @@ parametrize-names-type = 'list'
 [tool.hatch.envs.hatch-static-analysis]
 config-path = "ruff_defaults_v0.5.0.toml"
 dependencies = ["ruff==0.5.0"]
+
+[tool.hatch.envs.release]
+dependencies = ['towncrier>=23.11']
+
+[tool.hatch.envs.release.scripts]
+
+[tool.towncrier]
+package = 'derivepassphrase'
+package_dir = 'src'
+directory = 'towncrier.d'
+filename = 'docs/changelog.md'
+template = 'towncrier-template.md'
+#title_format = '[{version}](https://github.com/the-13th-letter/derivepassphrase/tree/{version}) – {project_date}'
+underlines = ['', '', '']
+issue_format = '[#{issue}]: https://github.com/the-13th-letter/derivepassphrase/{issue}'
+wrap = true
+
+[[tool.towncrier.type]]
+directory = "security"
+name = "Security"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "added"
+name = "Added"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "fixed"
+name = "Fixed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "removed"
+name = "Removed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "changed"
+name = "Changed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "deprecated"
+name = "Deprecated"
+showcontent = true
