@@ -42,7 +42,7 @@ Source = "https://github.com/the-13th-letter/derivepassphrase"
 derivepassphrase = "derivepassphrase.cli:derivepassphrase"
 
 [tool.mypy]
-files = ['src/**/*.py']
+files = ['src/**/*.py', 'tests/**/*.py']
 mypy_path = '$MYPY_CONFIG_FILE_DIR/src'
 explicit_package_bases = true
 implicit_reexport = false
