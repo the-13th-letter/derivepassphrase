@@ -89,7 +89,7 @@ class Sequin:
         """
         msg = 'sequence item out of range'
 
-        def uint8_to_bits(value):
+        def uint8_to_bits(value: int) -> Iterator[int]:
             """Yield individual bits of an 8-bit number, MSB first."""
             for i in (0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01):
                 yield 1 if value | i == value else 0
@@ -388,5 +388,5 @@ class SequinExhaustedError(Exception):
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__('Sequin is exhausted')

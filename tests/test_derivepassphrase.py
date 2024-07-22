@@ -28,31 +28,33 @@ class TestVault:
             ('twitter', twitter_phrase),
         ],
     )
-    def test_200_basic_configuration(self, service, expected):
+    def test_200_basic_configuration(
+        self, service: bytes | str, expected: bytes
+    ) -> None:
         assert Vault(phrase=self.phrase).generate(service) == expected
 
-    def test_201_phrase_dependence(self):
+    def test_201_phrase_dependence(self) -> None:
         assert (
             Vault(phrase=(self.phrase + b'X')).generate('google')
             == b'n+oIz6sL>K*lTEWYRO%7'
         )
 
-    def test_202_reproducibility_and_bytes_service_name(self):
+    def test_202_reproducibility_and_bytes_service_name(self) -> None:
         assert Vault(phrase=self.phrase).generate(b'google') == Vault(
             phrase=self.phrase
         ).generate('google')
 
-    def test_203_reproducibility_and_bytearray_service_name(self):
+    def test_203_reproducibility_and_bytearray_service_name(self) -> None:
         assert Vault(phrase=self.phrase).generate(b'google') == Vault(
             phrase=self.phrase
         ).generate(bytearray(b'google'))
 
-    def test_210_nonstandard_length(self):
+    def test_210_nonstandard_length(self) -> None:
         assert (
             Vault(phrase=self.phrase, length=4).generate('google') == b'xDFu'
         )
 
-    def test_211_repetition_limit(self):
+    def test_211_repetition_limit(self) -> None:
         assert (
             Vault(
                 phrase=b'', length=24, symbol=0, number=0, repeat=1
@@ -60,37 +62,37 @@ class TestVault:
             == b'IVTDzACftqopUXqDHPkuCIhV'
         )
 
-    def test_212_without_symbols(self):
+    def test_212_without_symbols(self) -> None:
         assert (
             Vault(phrase=self.phrase, symbol=0).generate('google')
             == b'XZ4wRe0bZCazbljCaMqR'
         )
 
-    def test_213_no_numbers(self):
+    def test_213_no_numbers(self) -> None:
         assert (
             Vault(phrase=self.phrase, number=0).generate('google')
             == b'_*$TVH.%^aZl(LUeOT?>'
         )
 
-    def test_214_no_lowercase_letters(self):
+    def test_214_no_lowercase_letters(self) -> None:
         assert (
             Vault(phrase=self.phrase, lower=0).generate('google')
             == b':{?)+7~@OA:L]!0E$)(+'
         )
 
-    def test_215_at_least_5_digits(self):
+    def test_215_at_least_5_digits(self) -> None:
         assert (
             Vault(phrase=self.phrase, length=8, number=5).generate('songkick')
             == b'i0908.7['
         )
 
-    def test_216_lots_of_spaces(self):
+    def test_216_lots_of_spaces(self) -> None:
         assert (
             Vault(phrase=self.phrase, space=12).generate('songkick')
             == b' c   6 Bq  % 5fR    '
         )
 
-    def test_217_all_character_classes(self):
+    def test_217_all_character_classes(self) -> None:
         assert (
             Vault(
                 phrase=self.phrase,
@@ -104,7 +106,7 @@ class TestVault:
             == b': : fv_wqt>a-4w1S  R'
         )
 
-    def test_218_only_numbers_and_very_high_repetition_limit(self):
+    def test_218_only_numbers_and_very_high_repetition_limit(self) -> None:
         generated = Vault(
             phrase=b'',
             length=40,
@@ -130,13 +132,13 @@ class TestVault:
         for substring in forbidden_substrings:
             assert substring not in generated
 
-    def test_219_very_limited_character_set(self):
+    def test_219_very_limited_character_set(self) -> None:
         generated = Vault(
             phrase=b'', length=24, lower=0, upper=0, space=0, symbol=0
         ).generate('testing')
         assert generated == b'763252593304946694588866'
 
-    def test_220_character_set_subtraction(self):
+    def test_220_character_set_subtraction(self) -> None:
         assert Vault._subtract(b'be', b'abcdef') == bytearray(b'acdf')
 
     @pytest.mark.parametrize(
@@ -230,13 +232,13 @@ class TestVault:
             assert binstr(s) == bytes(s)
             assert binstr(binstr(s)) == bytes(s)
 
-    def test_310_too_many_symbols(self):
+    def test_310_too_many_symbols(self) -> None:
         with pytest.raises(
             ValueError, match='requested passphrase length too short'
         ):
             Vault(phrase=self.phrase, symbol=100)
 
-    def test_311_no_viable_characters(self):
+    def test_311_no_viable_characters(self) -> None:
         with pytest.raises(ValueError, match='no allowed characters left'):
             Vault(
                 phrase=self.phrase,
@@ -248,7 +250,7 @@ class TestVault:
                 symbol=0,
             )
 
-    def test_320_character_set_subtraction_duplicate(self):
+    def test_320_character_set_subtraction_duplicate(self) -> None:
         with pytest.raises(ValueError, match='duplicate characters'):
             Vault._subtract(b'abcdef', b'aabbccddeeff')
         with pytest.raises(ValueError, match='duplicate characters'):

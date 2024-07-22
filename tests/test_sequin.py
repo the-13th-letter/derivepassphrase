@@ -11,6 +11,11 @@ import pytest
 import sequin
 
 
+def bitseq(string: str) -> list[int]:
+    """Convert a 0/1-string into a list of bits."""
+    return [int(char, 2) for char in string]
+
+
 class TestStaticFunctionality:
     @pytest.mark.parametrize(
         ['sequence', 'base', 'expected'],
@@ -22,7 +27,9 @@ class TestStaticFunctionality:
             ([1, 7, 5, 5], 8, 0o1755),
         ],
     )
-    def test_200_big_endian_number(self, sequence, base, expected):
+    def test_200_big_endian_number(
+        self, sequence: list[int], base: int, expected: int
+    ) -> None:
         assert (
             sequin.Sequin._big_endian_number(sequence, base=base)
         ) == expected
@@ -36,8 +43,12 @@ class TestStaticFunctionality:
         ],
     )
     def test_300_big_endian_number_exceptions(
-        self, exc_type, exc_pattern, sequence, base
-    ):
+        self,
+        exc_type: type[Exception],
+        exc_pattern: str,
+        sequence: list[int],
+        base: int,
+    ) -> None:
         with pytest.raises(exc_type, match=exc_pattern):
             sequin.Sequin._big_endian_number(sequence, base=base)
 
@@ -49,67 +60,23 @@ class TestSequin:
             (
                 [1, 0, 0, 1, 0, 1],
                 False,
-                [
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    1,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    1,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    1,
-                ],
+                bitseq('000000010000000000000000000000010000000000000001'),
             ),
             ([1, 0, 0, 1, 0, 1], True, [1, 0, 0, 1, 0, 1]),
-            (b'OK', False, [0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1]),
-            ('OK', False, [0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1]),
+            (b'OK', False, bitseq('0100111101001011')),
+            ('OK', False, bitseq('0100111101001011')),
         ],
     )
-    def test_200_constructor(self, sequence, is_bitstring, expected):
+    def test_200_constructor(
+        self,
+        sequence: str | bytes | bytearray | list[int],
+        is_bitstring: bool,
+        expected: list[int],
+    ) -> None:
         seq = sequin.Sequin(sequence, is_bitstring=is_bitstring)
         assert seq.bases == {2: collections.deque(expected)}
 
-    def test_201_generating(self):
+    def test_201_generating(self) -> None:
         seq = sequin.Sequin(
             [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1], is_bitstring=True
         )
@@ -127,7 +94,7 @@ class TestSequin:
         with pytest.raises(ValueError, match='invalid target range'):
             seq.generate(0)
 
-    def test_210_internal_generating(self):
+    def test_210_internal_generating(self) -> None:
         seq = sequin.Sequin(
             [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1], is_bitstring=True
         )
@@ -145,7 +112,7 @@ class TestSequin:
         with pytest.raises(ValueError, match='invalid base:'):
             seq._generate_inner(16, base=1)
 
-    def test_211_shifting(self):
+    def test_211_shifting(self) -> None:
         seq = sequin.Sequin([1, 0, 1, 0, 0, 1, 0, 0, 0, 1], is_bitstring=True)
         assert seq.bases == {
             2: collections.deque([1, 0, 1, 0, 0, 1, 0, 0, 0, 1])
@@ -174,7 +141,11 @@ class TestSequin:
         ],
     )
     def test_300_constructor_exceptions(
-        self, sequence, is_bitstring, exc_type, exc_pattern
-    ):
+        self,
+        sequence: list[int] | str,
+        is_bitstring: bool,
+        exc_type: type[Exception],
+        exc_pattern: str,
+    ) -> None:
         with pytest.raises(exc_type, match=exc_pattern):
             sequin.Sequin(sequence, is_bitstring=is_bitstring)

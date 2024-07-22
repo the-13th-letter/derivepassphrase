@@ -402,7 +402,7 @@ def isolated_config(
     monkeypatch: Any,
     runner: click.testing.CliRunner,
     config: Any,
-):
+) -> Iterator[None]:
     prog_name = derivepassphrase.cli.PROG_NAME
     env_name = prog_name.replace(' ', '_').upper() + '_PATH'
     with runner.isolated_filesystem():
