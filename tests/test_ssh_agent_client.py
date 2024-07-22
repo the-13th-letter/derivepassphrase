@@ -11,6 +11,7 @@ import io
 import os
 import socket
 import subprocess
+from typing import TYPE_CHECKING
 
 import click
 import click.testing
@@ -22,6 +23,9 @@ import derivepassphrase.cli
 import ssh_agent_client
 import tests
 
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
 
 class TestStaticFunctionality:
     @pytest.mark.parametrize(
@@ -31,13 +35,15 @@ class TestStaticFunctionality:
             for val in tests.SUPPORTED_KEYS.values()
         ],
     )
-    def test_100_key_decoding(self, public_key, public_key_data):
+    def test_100_key_decoding(
+        self, public_key: bytes, public_key_data: bytes
+    ) -> None:
         keydata = base64.b64decode(public_key.split(None, 2)[1])
         assert (
             keydata == public_key_data
         ), "recorded public key data doesn't match"
 
-    def test_200_constructor_no_running_agent(self, monkeypatch):
+    def test_200_constructor_no_running_agent(self, monkeypatch: Any) -> None:
         monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
         sock = socket.socket(family=socket.AF_UNIX)
         with pytest.raises(
@@ -51,7 +57,7 @@ class TestStaticFunctionality:
             (16777216, b'\x01\x00\x00\x00'),
         ],
     )
-    def test_210_uint32(self, input, expected):
+    def test_210_uint32(self, input: int, expected: bytes | bytearray) -> None:
         uint32 = ssh_agent_client.SSHAgentClient.uint32
         assert uint32(input) == expected
 
@@ -66,7 +72,9 @@ class TestStaticFunctionality:
             ),
         ],
     )
-    def test_211_string(self, input, expected):
+    def test_211_string(
+        self, input: bytes | bytearray, expected: bytes | bytearray
+    ) -> None:
         string = ssh_agent_client.SSHAgentClient.string
         assert bytes(string(input)) == expected
 
@@ -80,7 +88,9 @@ class TestStaticFunctionality:
             ),
         ],
     )
-    def test_212_unstring(self, input, expected):
+    def test_212_unstring(
+        self, input: bytes | bytearray, expected: bytes | bytearray
+    ) -> None:
         unstring = ssh_agent_client.SSHAgentClient.unstring
         unstring_prefix = ssh_agent_client.SSHAgentClient.unstring_prefix
         assert bytes(unstring(input)) == expected
@@ -96,7 +106,9 @@ class TestStaticFunctionality:
             (-1, OverflowError, "can't convert negative int to unsigned"),
         ],
     )
-    def test_310_uint32_exceptions(self, value, exc_type, exc_pattern):
+    def test_310_uint32_exceptions(
+        self, value: int, exc_type: type[Exception], exc_pattern: str
+    ) -> None:
         uint32 = ssh_agent_client.SSHAgentClient.uint32
         with pytest.raises(exc_type, match=exc_pattern):
             uint32(value)
@@ -107,7 +119,9 @@ class TestStaticFunctionality:
             ('some string', TypeError, 'invalid payload type'),
         ],
     )
-    def test_311_string_exceptions(self, input, exc_type, exc_pattern):
+    def test_311_string_exceptions(
+        self, input: Any, exc_type: type[Exception], exc_pattern: str
+    ) -> None:
         string = ssh_agent_client.SSHAgentClient.string
         with pytest.raises(exc_type, match=exc_pattern):
             string(input)
@@ -133,8 +147,13 @@ class TestStaticFunctionality:
         ],
     )
     def test_312_unstring_exceptions(
-        self, input, exc_type, exc_pattern, has_trailer, parts
-    ):
+        self,
+        input: bytes | bytearray,
+        exc_type: type[Exception],
+        exc_pattern: str,
+        has_trailer: bool,
+        parts: tuple[bytes | bytearray, bytes | bytearray] | None,
+    ) -> None:
         unstring = ssh_agent_client.SSHAgentClient.unstring
         unstring_prefix = ssh_agent_client.SSHAgentClient.unstring_prefix
         with pytest.raises(exc_type, match=exc_pattern):
@@ -151,7 +170,9 @@ class TestAgentInteraction:
     @pytest.mark.parametrize(
         ['keytype', 'data_dict'], list(tests.SUPPORTED_KEYS.items())
     )
-    def test_200_sign_data_via_agent(self, keytype, data_dict):
+    def test_200_sign_data_via_agent(
+        self, keytype: str, data_dict: tests.SSHTestKey
+    ) -> None:
         del keytype  # Unused.
         private_key = data_dict['private_key']
         try:
@@ -200,7 +221,9 @@ class TestAgentInteraction:
     @pytest.mark.parametrize(
         ['keytype', 'data_dict'], list(tests.UNSUITABLE_KEYS.items())
     )
-    def test_201_sign_data_via_agent_unsupported(self, keytype, data_dict):
+    def test_201_sign_data_via_agent_unsupported(
+        self, keytype: str, data_dict: tests.SSHTestKey
+    ) -> None:
         del keytype  # Unused.
         private_key = data_dict['private_key']
         try:
@@ -243,7 +266,7 @@ class TestAgentInteraction:
                 derivepassphrase.Vault.phrase_from_key(public_key_data)
 
     @staticmethod
-    def _params():
+    def _params() -> Iterator[tuple[bytes, bool]]:
         for value in tests.SUPPORTED_KEYS.values():
             key = value['public_key_data']
             yield (key, False)
@@ -254,8 +277,10 @@ class TestAgentInteraction:
                 yield (key, True)
 
     @pytest.mark.parametrize(['key', 'single'], list(_params()))
-    def test_210_ssh_key_selector(self, monkeypatch, key, single):
-        def key_is_suitable(key: bytes):
+    def test_210_ssh_key_selector(
+        self, monkeypatch: Any, key: bytes, single: bool
+    ) -> None:
+        def key_is_suitable(key: bytes) -> bool:
             return key in {
                 v['public_key_data'] for v in tests.SUPPORTED_KEYS.values()
             }
@@ -288,7 +313,7 @@ class TestAgentInteraction:
         b64_key = base64.standard_b64encode(key).decode('ASCII')
 
         @click.command()
-        def driver():
+        def driver() -> None:
             key = derivepassphrase.cli._select_ssh_key()
             click.echo(base64.standard_b64encode(key).decode('ASCII'))
 
@@ -310,7 +335,7 @@ class TestAgentInteraction:
 
     del _params
 
-    def test_300_constructor_bad_running_agent(self, monkeypatch):
+    def test_300_constructor_bad_running_agent(self, monkeypatch: Any) -> None:
         monkeypatch.setenv('SSH_AUTH_SOCK', os.environ['SSH_AUTH_SOCK'] + '~')
         sock = socket.socket(family=socket.AF_UNIX)
         with pytest.raises(OSError):  # noqa: PT011
@@ -323,7 +348,9 @@ class TestAgentInteraction:
             b'\x00\x00\x00\x1f some bytes missing',
         ],
     )
-    def test_310_truncated_server_response(self, monkeypatch, response):
+    def test_310_truncated_server_response(
+        self, monkeypatch: Any, response: bytes
+    ) -> None:
         client = ssh_agent_client.SSHAgentClient()
         response_stream = io.BytesIO(response)
 
@@ -354,8 +381,13 @@ class TestAgentInteraction:
         ],
     )
     def test_320_list_keys_error_responses(
-        self, monkeypatch, response_code, response, exc_type, exc_pattern
-    ):
+        self,
+        monkeypatch: Any,
+        response_code: int,
+        response: bytes | bytearray,
+        exc_type: type[Exception],
+        exc_pattern: str,
+    ) -> None:
         client = ssh_agent_client.SSHAgentClient()
         monkeypatch.setattr(
             client,
@@ -386,8 +418,14 @@ class TestAgentInteraction:
         ],
     )
     def test_330_sign_error_responses(
-        self, monkeypatch, key, check, response, exc_type, exc_pattern
-    ):
+        self,
+        monkeypatch: Any,
+        key: bytes | bytearray,
+        check: bool,
+        response: tuple[int, bytes | bytearray],
+        exc_type: type[Exception],
+        exc_pattern: str,
+    ) -> None:
         client = ssh_agent_client.SSHAgentClient()
         monkeypatch.setattr(client, 'request', lambda a, b: response)  # noqa: ARG005
         KeyCommentPair = ssh_agent_client.types.KeyCommentPair  # noqa: N806

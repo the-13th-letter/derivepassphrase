@@ -28,6 +28,7 @@ from typing_extensions import (
 
 import derivepassphrase as dpp
 import ssh_agent_client
+import ssh_agent_client.types
 from derivepassphrase import types as dpp_types
 
 if TYPE_CHECKING:
@@ -159,7 +160,7 @@ def _get_suitable_ssh_keys(
 
     """
     client: ssh_agent_client.SSHAgentClient
-    client_context: contextlib.AbstractContextManager
+    client_context: contextlib.AbstractContextManager[Any]
     match conn:
         case ssh_agent_client.SSHAgentClient():
             client = conn
@@ -324,8 +325,15 @@ def _prompt_for_passphrase() -> str:
         The user input.
 
     """
-    return click.prompt(
-        'Passphrase', default='', hide_input=True, show_default=False, err=True
+    return cast(
+        str,
+        click.prompt(
+            'Passphrase',
+            default='',
+            hide_input=True,
+            show_default=False,
+            err=True,
+        ),
     )
 
 
@@ -349,8 +357,8 @@ class OptionGroupOption(click.Option):
     option_group_name: str = ''
     epilog: str = ''
 
-    def __init__(self, *args, **kwargs):  # type: ignore
-        if self.__class__ == __class__:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        if self.__class__ == __class__:  # type: ignore[name-defined]
             raise NotImplementedError
         super().__init__(*args, **kwargs)
 
@@ -809,7 +817,7 @@ def derivepassphrase(
         for name in param.opts + param.secondary_opts:
             params_by_str[name] = param
 
-    def is_param_set(param: click.Parameter):
+    def is_param_set(param: click.Parameter) -> bool:
         return bool(ctx.params.get(param.human_readable_name))
 
     def check_incompatible_options(

@@ -11,6 +11,8 @@ import collections
 import hashlib
 import math
 import unicodedata
+from collections.abc import Callable
+from typing import TypeAlias
 
 from typing_extensions import assert_type
 
@@ -23,7 +25,8 @@ __version__ = '0.1.2'
 
 class AmbiguousByteRepresentationError(ValueError):
     """The object has an ambiguous byte representation."""
-    def __init__(self):
+
+    def __init__(self) -> None:
         super().__init__('text string has ambiguous byte representation')
 
 
@@ -425,6 +428,8 @@ class Vault:
             a passphrase deterministically.
 
         """
+        TestFunc: TypeAlias = Callable[[bytes | bytearray], bool]
+        deterministic_signature_types: dict[str, TestFunc]
         deterministic_signature_types = {
             'ssh-ed25519': lambda k: k.startswith(
                 b'\x00\x00\x00\x0bssh-ed25519'

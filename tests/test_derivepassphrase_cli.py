@@ -8,7 +8,7 @@ import contextlib
 import json
 import os
 import socket
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import click.testing
 import pytest
@@ -196,7 +196,7 @@ for opt, config in SINGLES.items():
 
 
 class TestCLI:
-    def test_200_help_output(self):
+    def test_200_help_output(self) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         result = runner.invoke(
             cli.derivepassphrase, ['--help'], catch_exceptions=False
@@ -390,11 +390,10 @@ class TestCLI:
     )
     def test_210_invalid_argument_range(self, option: str) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        value: str | int
         for value in '-42', 'invalid':
             result = runner.invoke(
                 cli.derivepassphrase,
-                [option, cast(str, value), '-p', DUMMY_SERVICE],
+                [option, value, '-p', DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
@@ -872,7 +871,7 @@ contents go here
         ):
             custom_error = 'custom error message'
 
-            def raiser():
+            def raiser() -> None:
                 raise RuntimeError(custom_error)
 
             monkeypatch.setattr(cli, '_select_ssh_key', raiser)
@@ -925,7 +924,7 @@ class TestCLIUtils:
         @click.command()
         @click.option('--heading', default='Our menu:')
         @click.argument('items', nargs=-1)
-        def driver(heading, items):
+        def driver(heading: str, items: list[str]) -> None:
             # from https://montypython.fandom.com/wiki/Spam#The_menu
             items = items or [
                 'Egg and bacon',
@@ -1001,7 +1000,7 @@ Your selection? (1-10, leave empty to abort):\x20
         @click.command()
         @click.option('--item', default='baked beans')
         @click.argument('prompt')
-        def driver(item, prompt):
+        def driver(item: str, prompt: str) -> None:
             try:
                 cli._prompt_for_selection(
                     [item], heading='', single_choice_prompt=prompt
