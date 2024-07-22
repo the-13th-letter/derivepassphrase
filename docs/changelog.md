@@ -30,6 +30,21 @@ effectively constitute a new <q>major</q> release.)
 
 <!-- towncrier release notes start -->
 
+## 0.1.2 (2024-07-22)
+
+#### Fixed
+
+- Include and exclude the correct files in the `sdist` and `wheel`
+  distributions.  (Previously, `sdist` contained VCS artifacts, and `wheel` was
+  missing some paths.)
+- Lint and reformat all code using [ruff](https://astral.sh/ruff/).
+- Mention [`mkdocstrings-python`](https://mkdocstrings.github.io/python/) in
+  the documentation's page footer.
+- Remove JavaScript and external font loading from documentation website, so
+  that the site works even in restricted browser settings.
+- Set up a changelog, using [towncrier](https://pypi.org/package/towncrier).
+
+
 ## 0.1.1 (2024-07-14)
 
 #### Fixed

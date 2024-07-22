@@ -27,7 +27,7 @@ dependencies = [
   "click>=8.1",
   "typing_extensions",
 ]
-version = "0.1.1"
+version = "0.1.2"
 
 [project.optional-dependencies]
 dev = ["black", "coverage", "hatch>=1.10", "mkdocs", "mkdocs-material",
