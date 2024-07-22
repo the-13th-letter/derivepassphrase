@@ -11,6 +11,11 @@ import pytest
 import sequin
 
 
+def bitseq(string: str) -> list[int]:
+    """Convert a 0/1-string into a list of bits."""
+    return [int(char, 2) for char in string]
+
+
 class TestStaticFunctionality:
     @pytest.mark.parametrize(
         ['sequence', 'base', 'expected'],
@@ -49,60 +54,11 @@ class TestSequin:
             (
                 [1, 0, 0, 1, 0, 1],
                 False,
-                [
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    1,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    1,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    1,
-                ],
+                bitseq('000000010000000000000000000000010000000000000001'),
             ),
             ([1, 0, 0, 1, 0, 1], True, [1, 0, 0, 1, 0, 1]),
-            (b'OK', False, [0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1]),
-            ('OK', False, [0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1]),
+            (b'OK', False, bitseq('0100111101001011')),
+            ('OK', False, bitseq('0100111101001011')),
         ],
     )
     def test_200_constructor(self, sequence, is_bitstring, expected):
