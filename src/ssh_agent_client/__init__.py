@@ -14,11 +14,11 @@ from typing import TYPE_CHECKING
 
 from typing_extensions import Self
 
-from ssh_agent_client import types as ssh_types
+from ssh_agent_client import types
 
 if TYPE_CHECKING:
-    import types
     from collections.abc import Sequence
+    from types import TracebackType
 
 __all__ = ('SSHAgentClient',)
 __author__ = 'Marco Ricci <m@the13thletter.info>'
@@ -106,7 +106,7 @@ class SSHAgentClient:
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: types.TracebackType | None,
+        exc_tb: TracebackType | None,
     ) -> bool:
         """Close socket connection upon context manager completion."""
         return bool(
