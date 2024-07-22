@@ -57,6 +57,14 @@ xfail_strict = true
 [tool.hatch.version]
 path = "src/derivepassphrase/__init__.py"
 
+[tool.hatch.build.targets.sdist]
+exclude = [
+    'towncrier.d/[0123456789+]*.md',
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ['src/derivepassphrase', 'src/sequin', 'src/ssh_agent_client']
+
 [tool.hatch.envs.hatch-test]
 default-args = ['src', 'tests']
 
