@@ -46,36 +46,36 @@ theme:
   custom_dir: docs-overrides
 
 plugins:
-  - offline:
-      enabled: false  # set to true for offline versions
-  #- privacy:
-  #    enabled: true
-  - mkdocstrings:
-      handlers:
-        python:
-          import:
-            - https://docs.python.org/3/objects.inv
-            - https://click.palletsprojects.com/en/8.1.x/objects.inv
-          options:
-            docstring_options:
-              ignore_init_summary: true
-              returns_multiple_items: false
-            merge_init_into_class: true
-            show_source: false
-            heading_level: 2
-            show_object_full_path: false
-            show_root_members_full_path: false
-            show_root_heading: true
-            show_symbol_type_heading: true
-            show_symbol_type_toc: true
-            parameters_heading: true
-            members_order: 'source'
-            show_signature_annotations: true
-            separate_signature: true
-            signature_crossrefs: false
-            unwrap_annotated: true
-          paths:
-            - src
+  offline:
+    enabled: false  # Use mkdocs_offline.yml for offline versions instead!
+  #privacy:
+  #  enabled: true
+  mkdocstrings:
+    handlers:
+      python:
+        import:
+          - https://docs.python.org/3/objects.inv
+          - https://click.palletsprojects.com/en/8.1.x/objects.inv
+        options:
+          docstring_options:
+            ignore_init_summary: true
+            returns_multiple_items: false
+          merge_init_into_class: true
+          show_source: false
+          heading_level: 2
+          show_object_full_path: false
+          show_root_members_full_path: false
+          show_root_heading: true
+          show_symbol_type_heading: true
+          show_symbol_type_toc: true
+          parameters_heading: true
+          members_order: 'source'
+          show_signature_annotations: true
+          separate_signature: true
+          signature_crossrefs: false
+          unwrap_annotated: true
+        paths:
+          - src
 
 nav:
   - Overview: index.md
