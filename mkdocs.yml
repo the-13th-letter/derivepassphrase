@@ -6,6 +6,9 @@ site_description: An almost faithful Python reimplementation of James Coglan's v
 site_author: Marco Ricci
 copyright: Copyright &copy; 2024 Marco Ricci (the-13th-letter)
 
+remote_branch: documentation-tree
+remote_name: '.'
+
 docs_dir: docs
 site_dir: html
 extra_css:
@@ -76,6 +79,10 @@ plugins:
           unwrap_annotated: true
         paths:
           - src
+  mike:
+    alias_type: symlink
+    canonical_version: '0.x'
+    version_selector: false
 
 nav:
   - Overview: index.md

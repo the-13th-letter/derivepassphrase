@@ -82,6 +82,7 @@ path = "mkdocs.yml"
 [tool.hatch.envs.docs]
 extra-dependencies = [
   "black",
+  "mike",
   "mkdocs-material",
 ]
 detached = false
