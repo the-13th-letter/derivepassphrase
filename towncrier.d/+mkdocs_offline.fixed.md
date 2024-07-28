@@ -1,1 +1,1 @@
-Add alternate MkDocs configuration for building the documentation in offline mode.
+Add an alternate MkDocs configuration for building the documentation in offline mode.
