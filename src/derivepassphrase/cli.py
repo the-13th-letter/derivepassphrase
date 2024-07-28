@@ -97,7 +97,7 @@ def _load_config() -> dpp_types.VaultConfig:
 
 
 def _save_config(config: dpp_types.VaultConfig, /) -> None:
-    """Save a vault(1)-compatbile config to the application directory.
+    """Save a vault(1)-compatible config to the application directory.
 
     The filename is obtained via
     [`derivepassphrase.cli._config_filename`][].  The config will be
@@ -117,6 +117,12 @@ def _save_config(config: dpp_types.VaultConfig, /) -> None:
     if not dpp_types.is_vault_config(config):
         raise ValueError(_INVALID_VAULT_CONFIG)
     filename = _config_filename()
+    filedir = os.path.dirname(os.path.abspath(filename))
+    try:
+        os.makedirs(filedir, exist_ok=False)
+    except FileExistsError:
+        if not os.path.isdir(filedir):
+            raise
     with open(filename, 'w', encoding='UTF-8') as fileobj:
         json.dump(config, fileobj)
 
