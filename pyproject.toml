@@ -89,6 +89,7 @@ detached = false
 [tool.hatch.envs.types]
 extra-dependencies = [
   "mypy>=1.0.0",
+  "pytest~=8.1",
 ]
 [tool.hatch.envs.types.scripts]
 check = "mypy --install-types --non-interactive {args:src/derivepassphrase tests}"

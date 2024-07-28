@@ -7,6 +7,7 @@ from __future__ import annotations
 import contextlib
 import json
 import os
+import shutil
 import socket
 from typing import TYPE_CHECKING
 
@@ -686,6 +687,32 @@ class TestCLI:
                 b'cannot write config' in result.stderr_bytes
             ), 'program did not print the expected error message'
 
+    def test_214d_export_settings_settings_directory_not_a_directory(
+        self,
+        monkeypatch: Any,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_config(
+            monkeypatch=monkeypatch, runner=runner, config={'services': {}}
+        ):
+            with contextlib.suppress(FileNotFoundError):
+                shutil.rmtree('.derivepassphrase')
+            with open('.derivepassphrase', 'w', encoding='UTF-8') as outfile:
+                print('Obstruction!!', file=outfile)
+            result = runner.invoke(
+                cli.derivepassphrase,
+                ['--export', '-'],
+                input=b'null',
+                catch_exceptions=False,
+            )
+            assert result.exit_code > 0, 'program unexpectedly succeeded'
+            assert (
+                result.stderr_bytes
+            ), 'program did not print any error message'
+            assert (
+                b'cannot load config' in result.stderr_bytes
+            ), 'program did not print the expected error message'
+
     def test_220_edit_notes_successfully(self, monkeypatch: Any) -> None:
         edit_result = """
 
@@ -945,6 +972,72 @@ contents go here
         assert (
             b'no passphrase or key given' in result.stderr_bytes
         ), 'expected error message missing'
+
+    def test_230_config_directory_nonexistant(self, monkeypatch: Any) -> None:
+        """the-13th-letter/derivepassphrase#6"""
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'services': {}},
+        ):
+            os.remove('.derivepassphrase/settings.json')
+            os.rmdir('.derivepassphrase')
+            os_makedirs_called = False
+            real_os_makedirs = os.makedirs
+
+            def makedirs(*args: Any, **kwargs: Any) -> Any:
+                nonlocal os_makedirs_called
+                os_makedirs_called = True
+                return real_os_makedirs(*args, **kwargs)
+
+            monkeypatch.setattr(os, 'makedirs', makedirs)
+            result = runner.invoke(
+                cli.derivepassphrase,
+                ['--config', '-p'],
+                catch_exceptions=False,
+                input='abc\n',
+            )
+            assert (
+                result.stderr_bytes == b'Passphrase:'
+            ), 'program unexpectedly failed?!'
+            assert result.exit_code == 0, 'program unexpectedly failed?!'
+            assert os_makedirs_called, 'os.makedirs has not been called?!'
+            with open(cli._config_filename(), encoding='UTF-8') as infile:
+                config_readback = json.load(infile)
+            assert config_readback == {
+                'global': {'phrase': 'abc'},
+                'services': {},
+            }, 'config mismatch'
+
+    def test_230a_config_directory_not_a_file(self, monkeypatch: Any) -> None:
+        """the-13th-letter/derivepassphrase#6"""
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'services': {}},
+        ):
+            _save_config = cli._save_config
+
+            def obstruct_config_saving(*args: Any, **kwargs: Any) -> Any:
+                with contextlib.suppress(FileNotFoundError):
+                    shutil.rmtree('.derivepassphrase')
+                with open(
+                    '.derivepassphrase', 'w', encoding='UTF-8'
+                ) as outfile:
+                    print('Obstruction!!', file=outfile)
+                monkeypatch.setattr(cli, '_save_config', _save_config)
+                return _save_config(*args, **kwargs)
+
+            monkeypatch.setattr(cli, '_save_config', obstruct_config_saving)
+            with pytest.raises(FileExistsError):
+                runner.invoke(
+                    cli.derivepassphrase,
+                    ['--config', '-p'],
+                    catch_exceptions=False,
+                    input='abc\n',
+                )
 
 
 class TestCLIUtils:
