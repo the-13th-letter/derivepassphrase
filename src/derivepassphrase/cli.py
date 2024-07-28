@@ -1068,18 +1068,12 @@ def derivepassphrase(
             # derivepassphrase.Vault.phrase_from_key if a key is
             # given. Finally, if nothing is set, error out.
             if use_key or use_phrase:
-                if use_key:
-                    kwargs['phrase'] = key_to_phrase(key)
-                else:
-                    kwargs['phrase'] = phrase
-                    kwargs.pop('key', '')
+                kwargs['phrase'] = key_to_phrase(key) if use_key else phrase
             elif kwargs.get('phrase') and kwargs.get('key'):
                 if any('key' in m for m in settings.maps[:2]):
-                    kwargs['phrase'] = key_to_phrase(kwargs.pop('key'))
-                else:
-                    kwargs.pop('key')
+                    kwargs['phrase'] = key_to_phrase(kwargs['key'])
             elif kwargs.get('key'):
-                kwargs['phrase'] = key_to_phrase(kwargs.pop('key'))
+                kwargs['phrase'] = key_to_phrase(kwargs['key'])
             elif kwargs.get('phrase'):
                 pass
             else:
@@ -1088,6 +1082,7 @@ def derivepassphrase(
                     'or in configuration'
                 )
                 raise click.UsageError(msg)
+            kwargs.pop('key', '')
             vault = dpp.Vault(**kwargs)
             result = vault.generate(service)
             click.echo(result.decode('ASCII'))
