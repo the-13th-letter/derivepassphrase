@@ -1052,6 +1052,13 @@ def derivepassphrase(
                 if k in service_keys and v is not None
             }
 
+            def key_to_phrase(
+                key: str | bytes | bytearray,
+            ) -> bytes | bytearray:
+                return dpp.Vault.phrase_from_key(
+                    base64.standard_b64decode(key)
+                )
+
             # If either --key or --phrase are given, use that setting.
             # Otherwise, if both key and phrase are set in the config,
             # one must be global (ignore it) and one must be
@@ -1060,13 +1067,6 @@ def derivepassphrase(
             # these above cases, set the phrase via
             # derivepassphrase.Vault.phrase_from_key if a key is
             # given. Finally, if nothing is set, error out.
-            def key_to_phrase(
-                key: str | bytes | bytearray,
-            ) -> bytes | bytearray:
-                return dpp.Vault.phrase_from_key(
-                    base64.standard_b64decode(key)
-                )
-
             if use_key or use_phrase:
                 if use_key:
                     kwargs['phrase'] = key_to_phrase(key)
