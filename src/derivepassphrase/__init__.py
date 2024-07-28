@@ -20,7 +20,7 @@ import sequin
 import ssh_agent_client
 
 __author__ = 'Marco Ricci <m@the13thletter.info>'
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 
 
 class AmbiguousByteRepresentationError(ValueError):

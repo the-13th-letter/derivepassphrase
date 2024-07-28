@@ -30,6 +30,25 @@ effectively constitute a new <q>major</q> release.)
 
 <!-- towncrier release notes start -->
 
+## 0.1.3 (2024-07-28)
+
+#### Fixed
+
+- Do not crash upon selecting a key on the command-line if there already is a
+  key stored in the configuration. ([#5])
+- Create the configuration directory upon saving, if it does not yet exist.
+  ([#6])
+- Isolate the tests properly and consistently from the user's configuration, so
+  that user configuration problems do not cause unrelated test failures. ([#8])
+- Add an alternate MkDocs configuration for building the documentation in
+  offline mode.
+- Fix typing issues according to `mypy`'s strict mode.
+
+[#5]: https://github.com/the-13th-letter/derivepassphrase/5
+[#6]: https://github.com/the-13th-letter/derivepassphrase/6
+[#8]: https://github.com/the-13th-letter/derivepassphrase/8
+
+
 ## 0.1.2 (2024-07-22)
 
 #### Fixed

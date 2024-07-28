@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 __all__ = ('SSHAgentClient',)
 __author__ = 'Marco Ricci <m@the13thletter.info>'
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 
 # In SSH bytestrings, the "length" of the byte string is stored as
 # a 4-byte/32-bit unsigned integer at the beginning.

@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
 __all__ = ('Sequin', 'SequinExhaustedError')
 __author__ = 'Marco Ricci <m@the13thletter.info>'
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 
 
 class Sequin:
