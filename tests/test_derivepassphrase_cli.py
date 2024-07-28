@@ -196,11 +196,16 @@ for opt, config in SINGLES.items():
 
 
 class TestCLI:
-    def test_200_help_output(self) -> None:
+    def test_200_help_output(self, monkeypatch: Any) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        result = runner.invoke(
-            cli.derivepassphrase, ['--help'], catch_exceptions=False
-        )
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'services': {}},
+        ):
+            result = runner.invoke(
+                cli.derivepassphrase, ['--help'], catch_exceptions=False
+            )
         assert result.exit_code == 0
         assert (
             'Password generation:\n' in result.output
@@ -219,12 +224,17 @@ class TestCLI:
         option = f'--{charset_name}'
         charset = dpp.Vault._CHARSETS[charset_name].decode('ascii')
         runner = click.testing.CliRunner(mix_stderr=False)
-        result = runner.invoke(
-            cli.derivepassphrase,
-            [option, '0', '-p', DUMMY_SERVICE],
-            input=DUMMY_PASSPHRASE,
-            catch_exceptions=False,
-        )
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'services': {}},
+        ):
+            result = runner.invoke(
+                cli.derivepassphrase,
+                [option, '0', '-p', DUMMY_SERVICE],
+                input=DUMMY_PASSPHRASE,
+                catch_exceptions=False,
+            )
         assert (
             result.exit_code == 0
         ), f'program died unexpectedly with exit code {result.exit_code}'
@@ -240,12 +250,17 @@ class TestCLI:
     def test_202_disable_repetition(self, monkeypatch: Any) -> None:
         monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
         runner = click.testing.CliRunner(mix_stderr=False)
-        result = runner.invoke(
-            cli.derivepassphrase,
-            ['--repeat', '0', '-p', DUMMY_SERVICE],
-            input=DUMMY_PASSPHRASE,
-            catch_exceptions=False,
-        )
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'services': {}},
+        ):
+            result = runner.invoke(
+                cli.derivepassphrase,
+                ['--repeat', '0', '-p', DUMMY_SERVICE],
+                input=DUMMY_PASSPHRASE,
+                catch_exceptions=False,
+            )
         assert (
             result.exit_code == 0
         ), f'program died unexpectedly with exit code {result.exit_code}'
@@ -388,22 +403,29 @@ class TestCLI:
             '--length',
         ],
     )
-    def test_210_invalid_argument_range(self, option: str) -> None:
+    def test_210_invalid_argument_range(
+        self, monkeypatch: Any, option: str
+    ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        for value in '-42', 'invalid':
-            result = runner.invoke(
-                cli.derivepassphrase,
-                [option, value, '-p', DUMMY_SERVICE],
-                input=DUMMY_PASSPHRASE,
-                catch_exceptions=False,
-            )
-            assert result.exit_code > 0, 'program unexpectedly succeeded'
-            assert (
-                result.stderr_bytes
-            ), 'program did not print any error message'
-            assert (
-                b'Error: Invalid value' in result.stderr_bytes
-            ), 'program did not print the expected error message'
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'services': {}},
+        ):
+            for value in '-42', 'invalid':
+                result = runner.invoke(
+                    cli.derivepassphrase,
+                    [option, value, '-p', DUMMY_SERVICE],
+                    input=DUMMY_PASSPHRASE,
+                    catch_exceptions=False,
+                )
+                assert result.exit_code > 0, 'program unexpectedly succeeded'
+                assert (
+                    result.stderr_bytes
+                ), 'program did not print any error message'
+                assert (
+                    b'Error: Invalid value' in result.stderr_bytes
+                ), 'program did not print the expected error message'
 
     @pytest.mark.parametrize(
         ['options', 'service', 'input', 'check_success'],
@@ -482,16 +504,22 @@ class TestCLI:
     )
     def test_212_incompatible_options(
         self,
+        monkeypatch: Any,
         options: list[str],
         service: bool | None,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        result = runner.invoke(
-            cli.derivepassphrase,
-            [*options, DUMMY_SERVICE] if service else options,
-            input=DUMMY_PASSPHRASE,
-            catch_exceptions=False,
-        )
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'services': {}},
+        ):
+            result = runner.invoke(
+                cli.derivepassphrase,
+                [*options, DUMMY_SERVICE] if service else options,
+                input=DUMMY_PASSPHRASE,
+                catch_exceptions=False,
+            )
         assert result.exit_code > 0, 'program unexpectedly succeeded'
         assert result.stderr_bytes, 'program did not print any error message'
         assert (
@@ -886,22 +914,32 @@ contents go here
                 custom_error.encode() in result.stderr_bytes
             ), 'expected error message missing'
 
-    def test_226_no_arguments(self) -> None:
+    def test_226_no_arguments(self, monkeypatch: Any) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        result = runner.invoke(
-            cli.derivepassphrase, [], catch_exceptions=False
-        )
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'services': {}},
+        ):
+            result = runner.invoke(
+                cli.derivepassphrase, [], catch_exceptions=False
+            )
         assert result.exit_code != 0, 'program unexpectedly succeeded'
         assert result.stderr_bytes is not None
         assert (
             b'SERVICE is required' in result.stderr_bytes
         ), 'expected error message missing'
 
-    def test_226a_no_passphrase_or_key(self) -> None:
+    def test_226a_no_passphrase_or_key(self, monkeypatch: Any) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        result = runner.invoke(
-            cli.derivepassphrase, [DUMMY_SERVICE], catch_exceptions=False
-        )
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'services': {}},
+        ):
+            result = runner.invoke(
+                cli.derivepassphrase, [DUMMY_SERVICE], catch_exceptions=False
+            )
         assert result.exit_code != 0, 'program unexpectedly succeeded'
         assert result.stderr_bytes is not None
         assert (
