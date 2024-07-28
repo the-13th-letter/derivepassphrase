@@ -36,6 +36,9 @@ DUMMY_PHRASE_FROM_KEY1 = tests.DUMMY_PHRASE_FROM_KEY1
 DUMMY_KEY1 = tests.DUMMY_KEY1
 DUMMY_KEY1_B64 = tests.DUMMY_KEY1_B64
 DUMMY_KEY2 = tests.DUMMY_KEY2
+DUMMY_KEY2_B64 = tests.DUMMY_KEY2_B64
+DUMMY_KEY3 = tests.DUMMY_KEY3
+DUMMY_KEY3_B64 = tests.DUMMY_KEY3_B64
 
 
 class IncompatibleConfiguration(NamedTuple):
@@ -357,6 +360,67 @@ class TestCLI:
             assert (
                 last_line.rstrip(b'\n') == DUMMY_RESULT_KEY1
             ), 'program generated unexpected result (wrong settings?)'
+
+    @tests.skip_if_no_agent
+    @pytest.mark.parametrize(
+        'config',
+        [
+            pytest.param(
+                {
+                    'global': {'key': DUMMY_KEY1_B64},
+                    'services': {DUMMY_SERVICE: {}},
+                },
+                id='global_config',
+            ),
+            pytest.param(
+                {'services': {DUMMY_SERVICE: {'key': DUMMY_KEY2_B64}}},
+                id='service_config',
+            ),
+            pytest.param(
+                {
+                    'global': {'key': DUMMY_KEY1_B64},
+                    'services': {DUMMY_SERVICE: {'key': DUMMY_KEY2_B64}},
+                },
+                id='full_config',
+            ),
+        ],
+    )
+    @pytest.mark.parametrize('key_index', [1, 2, 3], ids=lambda i: f'index{i}')
+    def test_204c_key_override_on_command_line(
+        self,
+        monkeypatch: Any,
+        config: dict[str, Any],
+        key_index: int,
+    ) -> None:
+        def sign(
+            _, key: bytes | bytearray, message: bytes | bytearray
+        ) -> bytes:
+            del message  # Unused.
+            for value in tests.SUPPORTED_KEYS.values():
+                if value['public_key_data'] == key:
+                    assert value['expected_signature'] is not None
+                    return value['expected_signature']
+            raise AssertionError
+
+        monkeypatch.setattr(
+            ssh_agent_client.SSHAgentClient, 'list_keys', tests.list_keys
+        )
+        monkeypatch.setattr(ssh_agent_client.SSHAgentClient, 'sign', sign)
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_config(
+            monkeypatch=monkeypatch, runner=runner, config=config
+        ):
+            result = runner.invoke(
+                cli.derivepassphrase,
+                ['-k', DUMMY_SERVICE],
+                input=f'{key_index}\n'.encode('ASCII'),
+            )
+            assert result.stderr_bytes is not None
+            assert (
+                b'Error:' not in result.stderr_bytes
+            ), 'program exited with failure'
+            assert result.stdout_bytes, 'program output expected'
+            assert result.exit_code == 0, 'program exited with failure'
 
     def test_205_service_phrase_if_key_in_global_config(
         self,

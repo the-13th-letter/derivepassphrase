@@ -1052,6 +1052,13 @@ def derivepassphrase(
                 if k in service_keys and v is not None
             }
 
+            def key_to_phrase(
+                key: str | bytes | bytearray,
+            ) -> bytes | bytearray:
+                return dpp.Vault.phrase_from_key(
+                    base64.standard_b64decode(key)
+                )
+
             # If either --key or --phrase are given, use that setting.
             # Otherwise, if both key and phrase are set in the config,
             # one must be global (ignore it) and one must be
@@ -1060,26 +1067,13 @@ def derivepassphrase(
             # these above cases, set the phrase via
             # derivepassphrase.Vault.phrase_from_key if a key is
             # given. Finally, if nothing is set, error out.
-            def key_to_phrase(
-                key: str | bytes | bytearray,
-            ) -> bytes | bytearray:
-                return dpp.Vault.phrase_from_key(
-                    base64.standard_b64decode(key)
-                )
-
             if use_key or use_phrase:
-                if use_key:
-                    kwargs['phrase'] = key_to_phrase(key)
-                else:
-                    kwargs['phrase'] = phrase
-                    kwargs.pop('key', '')
+                kwargs['phrase'] = key_to_phrase(key) if use_key else phrase
             elif kwargs.get('phrase') and kwargs.get('key'):
                 if any('key' in m for m in settings.maps[:2]):
-                    kwargs['phrase'] = key_to_phrase(kwargs.pop('key'))
-                else:
-                    kwargs.pop('key')
+                    kwargs['phrase'] = key_to_phrase(kwargs['key'])
             elif kwargs.get('key'):
-                kwargs['phrase'] = key_to_phrase(kwargs.pop('key'))
+                kwargs['phrase'] = key_to_phrase(kwargs['key'])
             elif kwargs.get('phrase'):
                 pass
             else:
@@ -1088,6 +1082,7 @@ def derivepassphrase(
                     'or in configuration'
                 )
                 raise click.UsageError(msg)
+            kwargs.pop('key', '')
             vault = dpp.Vault(**kwargs)
             result = vault.generate(service)
             click.echo(result.decode('ASCII'))

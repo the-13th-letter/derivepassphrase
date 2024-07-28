@@ -327,6 +327,8 @@ DUMMY_KEY1 = SUPPORTED_KEYS['ed25519']['public_key_data']
 DUMMY_KEY1_B64 = base64.standard_b64encode(DUMMY_KEY1).decode('ASCII')
 DUMMY_KEY2 = SUPPORTED_KEYS['rsa']['public_key_data']
 DUMMY_KEY2_B64 = base64.standard_b64encode(DUMMY_KEY2).decode('ASCII')
+DUMMY_KEY3 = SUPPORTED_KEYS['ed448']['public_key_data']
+DUMMY_KEY3_B64 = base64.standard_b64encode(DUMMY_KEY3).decode('ASCII')
 DUMMY_CONFIG_SETTINGS = {
     'length': 10,
     'upper': 1,
