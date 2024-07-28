@@ -17,7 +17,7 @@ from typing_extensions import NamedTuple
 
 import derivepassphrase as dpp
 import tests
-from derivepassphrase import cli, ssh_agent
+from derivepassphrase import _types, cli, ssh_agent
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -308,7 +308,7 @@ class TestCLI:
     def test_204a_key_from_config(
         self,
         monkeypatch: Any,
-        config: dpp.types.VaultConfig,
+        config: _types.VaultConfig,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -1282,8 +1282,8 @@ Boo.
         self,
         monkeypatch: Any,
         command_line: list[str],
-        config: dpp.types.VaultConfig,
-        result_config: dpp.types.VaultConfig,
+        config: _types.VaultConfig,
+        result_config: _types.VaultConfig,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         for start_config in [config, result_config]:

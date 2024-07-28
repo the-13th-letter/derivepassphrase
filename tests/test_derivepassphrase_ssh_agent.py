@@ -19,7 +19,7 @@ import pytest
 from typing_extensions import Any
 
 import tests
-from derivepassphrase import cli, ssh_agent, vault
+from derivepassphrase import _types, cli, ssh_agent, vault
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -418,7 +418,7 @@ class TestAgentInteraction:
     ) -> None:
         client = ssh_agent.SSHAgentClient()
         monkeypatch.setattr(client, 'request', lambda a, b: response)  # noqa: ARG005
-        KeyCommentPair = ssh_agent.types.KeyCommentPair  # noqa: N806
+        KeyCommentPair = _types.KeyCommentPair  # noqa: N806
         loaded_keys = [
             KeyCommentPair(v['public_key_data'], b'no comment')
             for v in tests.SUPPORTED_KEYS.values()

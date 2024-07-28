@@ -27,8 +27,7 @@ from typing_extensions import (
 )
 
 import derivepassphrase as dpp
-from derivepassphrase import ssh_agent, vault
-from derivepassphrase import types as dpp_types
+from derivepassphrase import _types, ssh_agent, vault
 
 if TYPE_CHECKING:
     import pathlib
@@ -68,7 +67,7 @@ def _config_filename() -> str | bytes | pathlib.Path:
     return os.path.join(path, 'settings.json')
 
 
-def _load_config() -> dpp_types.VaultConfig:
+def _load_config() -> _types.VaultConfig:
     """Load a vault(1)-compatible config from the application directory.
 
     The filename is obtained via
@@ -90,12 +89,12 @@ def _load_config() -> dpp_types.VaultConfig:
     filename = _config_filename()
     with open(filename, 'rb') as fileobj:
         data = json.load(fileobj)
-    if not dpp_types.is_vault_config(data):
+    if not _types.is_vault_config(data):
         raise ValueError(_INVALID_VAULT_CONFIG)
     return data
 
 
-def _save_config(config: dpp_types.VaultConfig, /) -> None:
+def _save_config(config: _types.VaultConfig, /) -> None:
     """Save a vault(1)-compatible config to the application directory.
 
     The filename is obtained via
@@ -113,7 +112,7 @@ def _save_config(config: dpp_types.VaultConfig, /) -> None:
             The data cannot be stored as a vault(1)-compatible config.
 
     """
-    if not dpp_types.is_vault_config(config):
+    if not _types.is_vault_config(config):
         raise ValueError(_INVALID_VAULT_CONFIG)
     filename = _config_filename()
     filedir = os.path.dirname(os.path.abspath(filename))
@@ -128,7 +127,7 @@ def _save_config(config: dpp_types.VaultConfig, /) -> None:
 
 def _get_suitable_ssh_keys(
     conn: ssh_agent.SSHAgentClient | socket.socket | None = None, /
-) -> Iterator[ssh_agent.types.KeyCommentPair]:
+) -> Iterator[_types.KeyCommentPair]:
     """Yield all SSH keys suitable for passphrase derivation.
 
     Suitable SSH keys are queried from the running SSH agent (see
@@ -845,7 +844,7 @@ def derivepassphrase(
                     opt_str, f'mutually exclusive with {other_str}', ctx=ctx
                 )
 
-    def get_config() -> dpp_types.VaultConfig:
+    def get_config() -> _types.VaultConfig:
         try:
             return _load_config()
         except FileNotFoundError:
@@ -853,7 +852,7 @@ def derivepassphrase(
         except Exception as e:  # noqa: BLE001
             ctx.fail(f'cannot load config: {e}')
 
-    configuration: dpp_types.VaultConfig
+    configuration: _types.VaultConfig
 
     check_incompatible_options('--phrase', '--key')
     for group in (ConfigurationOption, StorageManagementOption):
@@ -903,7 +902,7 @@ def derivepassphrase(
         assert service is not None
         configuration = get_config()
         text = DEFAULT_NOTES_TEMPLATE + configuration['services'].get(
-            service, cast(dpp_types.VaultConfigServicesSettings, {})
+            service, cast(_types.VaultConfigServicesSettings, {})
         ).get('notes', '')
         notes_value = click.edit(text=text)
         if notes_value is not None:
@@ -947,7 +946,7 @@ def derivepassphrase(
             ctx.fail(f'Cannot load config: cannot decode JSON: {e}')
         except OSError as e:
             ctx.fail(f'Cannot load config: {e.strerror}')
-        if dpp_types.is_vault_config(maybe_config):
+        if _types.is_vault_config(maybe_config):
             _save_config(maybe_config)
         else:
             ctx.fail('not a valid config')
@@ -1037,7 +1036,7 @@ def derivepassphrase(
                 configuration['services'].setdefault(service, {}).update(view)  # type: ignore[typeddict-item]
             else:
                 configuration.setdefault('global', {}).update(view)  # type: ignore[typeddict-item]
-            assert dpp_types.is_vault_config(
+            assert _types.is_vault_config(
                 configuration
             ), f'invalid vault configuration: {configuration!r}'
             _save_config(configuration)

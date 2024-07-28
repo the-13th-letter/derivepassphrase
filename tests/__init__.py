@@ -12,11 +12,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-import derivepassphrase
-import derivepassphrase.cli
-import derivepassphrase.ssh_agent
-import derivepassphrase.ssh_agent.types
-import derivepassphrase.types
+from derivepassphrase import _types, cli
 
 __all__ = ()
 
@@ -355,11 +351,9 @@ skip_if_no_agent = pytest.mark.skipif(
 )
 
 
-def list_keys(
-    self: Any = None,
-) -> list[derivepassphrase.ssh_agent.types.KeyCommentPair]:
+def list_keys(self: Any = None) -> list[_types.KeyCommentPair]:
     del self  # Unused.
-    Pair = derivepassphrase.ssh_agent.types.KeyCommentPair  # noqa: N806
+    Pair = _types.KeyCommentPair  # noqa: N806
     list1 = [
         Pair(value['public_key_data'], f'{key} test key'.encode('ASCII'))
         for key, value in SUPPORTED_KEYS.items()
@@ -371,11 +365,9 @@ def list_keys(
     return list1 + list2
 
 
-def list_keys_singleton(
-    self: Any = None,
-) -> list[derivepassphrase.ssh_agent.types.KeyCommentPair]:
+def list_keys_singleton(self: Any = None) -> list[_types.KeyCommentPair]:
     del self  # Unused.
-    Pair = derivepassphrase.ssh_agent.types.KeyCommentPair  # noqa: N806
+    Pair = _types.KeyCommentPair  # noqa: N806
     list1 = [
         Pair(value['public_key_data'], f'{key} test key'.encode('ASCII'))
         for key, value in SUPPORTED_KEYS.items()
@@ -383,11 +375,9 @@ def list_keys_singleton(
     return list1[:1]
 
 
-def suitable_ssh_keys(
-    conn: Any,
-) -> Iterator[derivepassphrase.ssh_agent.types.KeyCommentPair]:
+def suitable_ssh_keys(conn: Any) -> Iterator[_types.KeyCommentPair]:
     del conn  # Unused.
-    Pair = derivepassphrase.ssh_agent.types.KeyCommentPair  # noqa: N806
+    Pair = _types.KeyCommentPair  # noqa: N806
     yield from [
         Pair(DUMMY_KEY1, b'no comment'),
         Pair(DUMMY_KEY2, b'a comment'),
@@ -406,21 +396,14 @@ def isolated_config(
     runner: click.testing.CliRunner,
     config: Any,
 ) -> Iterator[None]:
-    prog_name = derivepassphrase.cli.PROG_NAME
+    prog_name = cli.PROG_NAME
     env_name = prog_name.replace(' ', '_').upper() + '_PATH'
     with runner.isolated_filesystem():
         monkeypatch.setenv('HOME', os.getcwd())
         monkeypatch.setenv('USERPROFILE', os.getcwd())
         monkeypatch.delenv(env_name, raising=False)
-        os.makedirs(
-            os.path.dirname(derivepassphrase.cli._config_filename()),
-            exist_ok=True,
-        )
-        with open(
-            derivepassphrase.cli._config_filename(),
-            'w',
-            encoding='UTF-8',
-        ) as outfile:
+        os.makedirs(os.path.dirname(cli._config_filename()), exist_ok=True)
+        with open(cli._config_filename(), 'w', encoding='UTF-8') as outfile:
             json.dump(config, outfile)
         yield
 

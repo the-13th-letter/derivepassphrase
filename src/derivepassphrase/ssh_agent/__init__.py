@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 from typing_extensions import Self
 
-from derivepassphrase.ssh_agent import types
+from derivepassphrase import _types
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -273,7 +273,7 @@ class SSHAgentClient:
             raise EOFError(msg)
         return response[0], response[1:]
 
-    def list_keys(self) -> Sequence[types.KeyCommentPair]:
+    def list_keys(self) -> Sequence[_types.KeyCommentPair]:
         """Request a list of keys known to the SSH agent.
 
         Returns:
@@ -289,9 +289,9 @@ class SSHAgentClient:
 
         """
         response_code, response = self.request(
-            types.SSH_AGENTC.REQUEST_IDENTITIES.value, b''
+            _types.SSH_AGENTC.REQUEST_IDENTITIES.value, b''
         )
-        if response_code != types.SSH_AGENT.IDENTITIES_ANSWER.value:
+        if response_code != _types.SSH_AGENT.IDENTITIES_ANSWER.value:
             msg = (
                 f'error return from SSH agent: '
                 f'{response_code = }, {response = }'
@@ -312,7 +312,7 @@ class SSHAgentClient:
             return bytes(buf)
 
         key_count = int.from_bytes(shift(4), 'big')
-        keys: collections.deque[types.KeyCommentPair]
+        keys: collections.deque[_types.KeyCommentPair]
         keys = collections.deque()
         for _ in range(key_count):
             key_size = int.from_bytes(shift(4), 'big')
@@ -320,7 +320,7 @@ class SSHAgentClient:
             comment_size = int.from_bytes(shift(4), 'big')
             comment = shift(comment_size)
             # Both `key` and `comment` are not wrapped as SSH strings.
-            keys.append(types.KeyCommentPair(key, comment))
+            keys.append(_types.KeyCommentPair(key, comment))
         if response_stream:
             raise TrailingDataError
         return keys
@@ -378,9 +378,9 @@ class SSHAgentClient:
         request_data.extend(self.string(payload))
         request_data.extend(self.uint32(flags))
         response_code, response = self.request(
-            types.SSH_AGENTC.SIGN_REQUEST.value, request_data
+            _types.SSH_AGENTC.SIGN_REQUEST.value, request_data
         )
-        if response_code != types.SSH_AGENT.SIGN_RESPONSE.value:
+        if response_code != _types.SSH_AGENT.SIGN_RESPONSE.value:
             msg = f'signing data failed: {response_code = }, {response = }'
             raise RuntimeError(msg)
         return self.unstring(response)

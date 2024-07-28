@@ -152,9 +152,10 @@ parametrize-names-type = 'list'
 
 [tool.ruff.lint.extend-per-file-ignores]
 "**/tests/**/*" = [
-  'SLF001',
   'A002',
   'FBT001',
+  'PLC2701',
+  'SLF001',
 ]
 
 [tool.hatch.envs.hatch-static-analysis]
