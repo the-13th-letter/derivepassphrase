@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""Test passphrase generation via derivepassphrase.Vault."""
+"""Test passphrase generation via derivepassphrase.vault.Vault."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ import pytest
 
 import derivepassphrase
 
-Vault = derivepassphrase.Vault
+Vault = derivepassphrase.vault.Vault
 
 
 class TestVault:
@@ -218,9 +218,9 @@ class TestVault:
     def test_224_binary_strings(
         self, s: str | bytes | bytearray, raises: bool
     ) -> None:
-        binstr = derivepassphrase.Vault._get_binary_string
+        binstr = Vault._get_binary_string
         AmbiguousByteRepresentationError = (  # noqa: N806
-            derivepassphrase.AmbiguousByteRepresentationError
+            derivepassphrase.vault.AmbiguousByteRepresentationError
         )
         if raises:
             with pytest.raises(AmbiguousByteRepresentationError):

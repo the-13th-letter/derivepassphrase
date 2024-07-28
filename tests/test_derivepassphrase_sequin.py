@@ -8,7 +8,7 @@ import collections
 
 import pytest
 
-import sequin
+from derivepassphrase import sequin
 
 
 def bitseq(string: str) -> list[int]:

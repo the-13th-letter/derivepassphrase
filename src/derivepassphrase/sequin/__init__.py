@@ -14,8 +14,8 @@ deterministic, stateless password manager that recomputes passwords
 instead of storing them), and this reimplementation is used for
 a similar purpose.
 
-The main API is the [`Sequin`] [sequin.Sequin] class, which is
-thoroughly documented.
+The main API is the [`Sequin`] [derivepassphrase.sequin.Sequin] class,
+which is thoroughly documented.
 
 """
 
@@ -33,7 +33,6 @@ if TYPE_CHECKING:
 
 __all__ = ('Sequin', 'SequinExhaustedError')
 __author__ = 'Marco Ricci <m@the13thletter.info>'
-__version__ = '0.1.3'
 
 
 class Sequin:

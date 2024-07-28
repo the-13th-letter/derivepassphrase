@@ -16,9 +16,8 @@ import pytest
 from typing_extensions import NamedTuple
 
 import derivepassphrase as dpp
-import ssh_agent_client
 import tests
-from derivepassphrase import cli
+from derivepassphrase import cli, ssh_agent
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -226,7 +225,7 @@ class TestCLI:
     ) -> None:
         monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
         option = f'--{charset_name}'
-        charset = dpp.Vault._CHARSETS[charset_name].decode('ascii')
+        charset = dpp.vault.Vault._CHARSETS[charset_name].decode('ascii')
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -316,7 +315,7 @@ class TestCLI:
             monkeypatch=monkeypatch, runner=runner, config=config
         ):
             monkeypatch.setattr(
-                dpp.Vault, 'phrase_from_key', tests.phrase_from_key
+                dpp.vault.Vault, 'phrase_from_key', tests.phrase_from_key
             )
             result = runner.invoke(
                 cli.derivepassphrase, [DUMMY_SERVICE], catch_exceptions=False
@@ -343,7 +342,7 @@ class TestCLI:
                 cli, '_get_suitable_ssh_keys', tests.suitable_ssh_keys
             )
             monkeypatch.setattr(
-                dpp.Vault, 'phrase_from_key', tests.phrase_from_key
+                dpp.vault.Vault, 'phrase_from_key', tests.phrase_from_key
             )
             result = runner.invoke(
                 cli.derivepassphrase,
@@ -403,9 +402,9 @@ class TestCLI:
             raise AssertionError
 
         monkeypatch.setattr(
-            ssh_agent_client.SSHAgentClient, 'list_keys', tests.list_keys
+            ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
         )
-        monkeypatch.setattr(ssh_agent_client.SSHAgentClient, 'sign', sign)
+        monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', sign)
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch, runner=runner, config=config
@@ -1304,7 +1303,7 @@ Boo.
 
     def test_204_phrase_from_key_manually(self) -> None:
         assert (
-            dpp.Vault(
+            dpp.vault.Vault(
                 phrase=DUMMY_PHRASE_FROM_KEY1, **DUMMY_CONFIG_SETTINGS
             ).generate(DUMMY_SERVICE)
             == DUMMY_RESULT_KEY1
@@ -1334,12 +1333,12 @@ Boo.
         conn_hint: str,
     ) -> None:
         monkeypatch.setattr(
-            ssh_agent_client.SSHAgentClient, 'list_keys', tests.list_keys
+            ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
         )
-        hint: ssh_agent_client.SSHAgentClient | socket.socket | None
+        hint: ssh_agent.SSHAgentClient | socket.socket | None
         match conn_hint:
             case 'client':
-                hint = ssh_agent_client.SSHAgentClient()
+                hint = ssh_agent.SSHAgentClient()
             case 'socket':
                 hint = socket.socket(family=socket.AF_UNIX)
                 hint.connect(os.environ['SSH_AUTH_SOCK'])

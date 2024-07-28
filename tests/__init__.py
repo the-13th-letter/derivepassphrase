@@ -14,9 +14,9 @@ import pytest
 
 import derivepassphrase
 import derivepassphrase.cli
+import derivepassphrase.ssh_agent
+import derivepassphrase.ssh_agent.types
 import derivepassphrase.types
-import ssh_agent_client
-import ssh_agent_client.types
 
 __all__ = ()
 
@@ -357,9 +357,9 @@ skip_if_no_agent = pytest.mark.skipif(
 
 def list_keys(
     self: Any = None,
-) -> list[ssh_agent_client.types.KeyCommentPair]:
+) -> list[derivepassphrase.ssh_agent.types.KeyCommentPair]:
     del self  # Unused.
-    Pair = ssh_agent_client.types.KeyCommentPair  # noqa: N806
+    Pair = derivepassphrase.ssh_agent.types.KeyCommentPair  # noqa: N806
     list1 = [
         Pair(value['public_key_data'], f'{key} test key'.encode('ASCII'))
         for key, value in SUPPORTED_KEYS.items()
@@ -373,9 +373,9 @@ def list_keys(
 
 def list_keys_singleton(
     self: Any = None,
-) -> list[ssh_agent_client.types.KeyCommentPair]:
+) -> list[derivepassphrase.ssh_agent.types.KeyCommentPair]:
     del self  # Unused.
-    Pair = ssh_agent_client.types.KeyCommentPair  # noqa: N806
+    Pair = derivepassphrase.ssh_agent.types.KeyCommentPair  # noqa: N806
     list1 = [
         Pair(value['public_key_data'], f'{key} test key'.encode('ASCII'))
         for key, value in SUPPORTED_KEYS.items()
@@ -385,11 +385,12 @@ def list_keys_singleton(
 
 def suitable_ssh_keys(
     conn: Any,
-) -> Iterator[ssh_agent_client.types.KeyCommentPair]:
+) -> Iterator[derivepassphrase.ssh_agent.types.KeyCommentPair]:
     del conn  # Unused.
+    Pair = derivepassphrase.ssh_agent.types.KeyCommentPair  # noqa: N806
     yield from [
-        ssh_agent_client.types.KeyCommentPair(DUMMY_KEY1, b'no comment'),
-        ssh_agent_client.types.KeyCommentPair(DUMMY_KEY2, b'a comment'),
+        Pair(DUMMY_KEY1, b'no comment'),
+        Pair(DUMMY_KEY2, b'a comment'),
     ]
 
 

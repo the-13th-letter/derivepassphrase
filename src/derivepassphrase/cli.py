@@ -27,8 +27,7 @@ from typing_extensions import (
 )
 
 import derivepassphrase as dpp
-import ssh_agent_client
-import ssh_agent_client.types
+from derivepassphrase import ssh_agent, vault
 from derivepassphrase import types as dpp_types
 
 if TYPE_CHECKING:
@@ -128,12 +127,12 @@ def _save_config(config: dpp_types.VaultConfig, /) -> None:
 
 
 def _get_suitable_ssh_keys(
-    conn: ssh_agent_client.SSHAgentClient | socket.socket | None = None, /
-) -> Iterator[ssh_agent_client.types.KeyCommentPair]:
+    conn: ssh_agent.SSHAgentClient | socket.socket | None = None, /
+) -> Iterator[ssh_agent.types.KeyCommentPair]:
     """Yield all SSH keys suitable for passphrase derivation.
 
     Suitable SSH keys are queried from the running SSH agent (see
-    [`ssh_agent_client.SSHAgentClient.list_keys`][]).
+    [`ssh_agent.SSHAgentClient.list_keys`][]).
 
     Args:
         conn:
@@ -165,14 +164,14 @@ def _get_suitable_ssh_keys(
             There was an error communicating with the SSH agent.
 
     """
-    client: ssh_agent_client.SSHAgentClient
+    client: ssh_agent.SSHAgentClient
     client_context: contextlib.AbstractContextManager[Any]
     match conn:
-        case ssh_agent_client.SSHAgentClient():
+        case ssh_agent.SSHAgentClient():
             client = conn
             client_context = contextlib.nullcontext()
         case socket.socket() | None:
-            client = ssh_agent_client.SSHAgentClient(socket=conn)
+            client = ssh_agent.SSHAgentClient(socket=conn)
             client_context = client
         case _:  # pragma: no cover
             assert_never(conn)
@@ -186,7 +185,7 @@ def _get_suitable_ssh_keys(
     suitable_keys = copy.copy(all_key_comment_pairs)
     for pair in all_key_comment_pairs:
         key, _comment = pair
-        if dpp.Vault._is_suitable_ssh_key(key):  # noqa: SLF001
+        if vault.Vault._is_suitable_ssh_key(key):  # noqa: SLF001
             yield pair
     if not suitable_keys:  # pragma: no cover
         raise IndexError(_NO_USABLE_KEYS)
@@ -262,12 +261,12 @@ def _prompt_for_selection(
 
 
 def _select_ssh_key(
-    conn: ssh_agent_client.SSHAgentClient | socket.socket | None = None, /
+    conn: ssh_agent.SSHAgentClient | socket.socket | None = None, /
 ) -> bytes | bytearray:
     """Interactively select an SSH key for passphrase derivation.
 
     Suitable SSH keys are queried from the running SSH agent (see
-    [`ssh_agent_client.SSHAgentClient.list_keys`][]), then the user is
+    [`ssh_agent.SSHAgentClient.list_keys`][]), then the user is
     prompted interactively (see [`click.prompt`][]) for a selection.
 
     Args:
@@ -302,7 +301,7 @@ def _select_ssh_key(
     """
     suitable_keys = list(_get_suitable_ssh_keys(conn))
     key_listing: list[str] = []
-    unstring_prefix = ssh_agent_client.SSHAgentClient.unstring_prefix
+    unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
     for key, comment in suitable_keys:
         keytype = unstring_prefix(key)[0].decode('ASCII')
         key_str = base64.standard_b64encode(key).decode('ASCII')
@@ -1055,7 +1054,7 @@ def derivepassphrase(
             def key_to_phrase(
                 key: str | bytes | bytearray,
             ) -> bytes | bytearray:
-                return dpp.Vault.phrase_from_key(
+                return vault.Vault.phrase_from_key(
                     base64.standard_b64decode(key)
                 )
 
@@ -1065,7 +1064,7 @@ def derivepassphrase(
             # service-specific (use that one). Otherwise, if only one of
             # key and phrase is set in the config, use that one.  In all
             # these above cases, set the phrase via
-            # derivepassphrase.Vault.phrase_from_key if a key is
+            # derivepassphrase.vault.Vault.phrase_from_key if a key is
             # given. Finally, if nothing is set, error out.
             if use_key or use_phrase:
                 kwargs['phrase'] = key_to_phrase(key) if use_key else phrase
@@ -1083,8 +1082,7 @@ def derivepassphrase(
                 )
                 raise click.UsageError(msg)
             kwargs.pop('key', '')
-            vault = dpp.Vault(**kwargs)
-            result = vault.generate(service)
+            result = vault.Vault(**kwargs).generate(service)
             click.echo(result.decode('ASCII'))
 
 

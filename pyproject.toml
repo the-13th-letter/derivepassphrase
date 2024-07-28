@@ -63,7 +63,7 @@ exclude = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ['src/derivepassphrase', 'src/sequin', 'src/ssh_agent_client']
+packages = ['src/derivepassphrase']
 
 [tool.hatch.envs.hatch-test]
 default-args = ['src', 'tests']
@@ -99,7 +99,7 @@ check = "mypy --install-types --non-interactive {args:src/derivepassphrase tests
 directory = "html/coverage"
 
 [tool.coverage.run]
-source_pkgs = ["derivepassphrase", "sequin", "ssh_agent_client", "tests"]
+source_pkgs = ["derivepassphrase", "tests"]
 branch = true
 parallel = true
 omit = [
