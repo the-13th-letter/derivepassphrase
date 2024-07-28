@@ -81,9 +81,17 @@ path = "mkdocs.yml"
 
 [tool.hatch.envs.docs]
 extra-dependencies = [
-  "black",
-  "mike",
+  # Our documentation uses the Material theme.  It also uses
+  # `mkdocstrings[python]`, but `hatch-mkdocs` is apparently smart
+  # enough to pick *that* one up from the MkDocs configuration, but not
+  # the selected theme...
   "mkdocs-material",
+  # Our documentation uses formatted function signatures (i.e. with
+  # formatted type annotations), which requires `black`.
+  "black",
+  # Our documentation is generated in multiple versions, orchestrated by
+  # `mike`.
+  "mike",
 ]
 detached = false
 
@@ -138,9 +146,12 @@ preview = true
 [tool.ruff.lint]
 preview = true
 extend-ignore = [
+    # We use `assert` regularly to appease the type checker, and because
+    # it is the right language tool for this job.
     'S101',
 ]
 extend-select = [
+    # Unlike hatch's standard configuration, we care about line length.
     'E501',
 ]
 
@@ -152,9 +163,18 @@ parametrize-names-type = 'list'
 
 [tool.ruff.lint.extend-per-file-ignores]
 "**/tests/**/*" = [
+  # Our tests are pytest-style tests, which use `assert` liberally.
   'A002',
+  # Our tests are regularly parametrized with booleans, for benign
+  # purposes.
   'FBT001',
+  # One of our standard modules is called `derivepassphrase._types`.
+  # Importing this from the tests directory would then automatically
+  # trigger `PLC2701`.
   'PLC2701',
+  # To fully test the `derivepassphrase.cli` module (and a couple other
+  # things), we need to call and to mock several internal functions,
+  # which would automatically trigger `SLF001`.
   'SLF001',
 ]
 
