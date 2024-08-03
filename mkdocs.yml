@@ -91,9 +91,12 @@ nav:
   - Reference:
     - Reference overview: reference.md
     - 'Man page: derivepassphrase': reference/derivepassphrase.1.md
-    - Module derivepassphrase: reference/derivepassphrase.md
-    - Module sequin: reference/sequin.md
-    - Module ssh_agent_client: reference/ssh_agent_client.md
+    - Module derivepassphrase:
+      - Submodule cli: reference/derivepassphrase.md
+      - Submodule sequin: reference/sequin.md
+      - Submodule ssh_agent: reference/ssh_agent.md
+      - Submodule _types: reference/types.md
+      - Submodule vault: reference/vault.md
   #- Design & Background: explanation.md
   - Changelog: changelog.md
 

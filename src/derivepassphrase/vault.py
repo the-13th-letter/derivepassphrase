@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""Work-alike of vault(1) – a deterministic, stateless password manager"""  # noqa: RUF002
+"""Python port of the vault(1) password generation scheme"""
 
 from __future__ import annotations
 
@@ -59,9 +59,10 @@ class Vault:
     detail][ALGORITHM] in his blog post on said topic: A principally
     infinite bit stream is obtained by running a key-derivation function
     on the master passphrase and the service name, then this bit stream
-    is fed into a [Sequin][sequin.Sequin] to generate random numbers in
-    the correct range, and finally these random numbers select
-    passphrase characters until the desired length is reached.
+    is fed into a [Sequin][derivepassphrase.sequin.Sequin] to generate
+    random numbers in the correct range, and finally these random
+    numbers select passphrase characters until the desired length is
+    reached.
 
     [vault]: https://getvau.lt
     [ALGORITHM]: https://blog.jcoglan.com/2012/07/16/designing-vaults-generator-algorithm/

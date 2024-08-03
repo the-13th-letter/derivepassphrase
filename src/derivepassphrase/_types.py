@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""Common typing declarations for the parent module."""
+"""Types used by derivepassphrase."""
 
 from __future__ import annotations
 
