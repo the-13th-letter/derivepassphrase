@@ -1,18 +1,19 @@
-Man pages:
+## Man pages
 
-Item                             | Description
--------------------------------- | ---------------------------------------------------------------
-[`derivepassphrase(1)`][dpp_man] | A deterministic, stateless password manager: command-line tool.
+* [`derivepassphrase(1)`][cli_man]: A deterministic, stateless password manager: command-line tool.
 
-Top-level modules:
+## Modules and packages
 
-Module                           | Description
--------------------------------- | --------------------------------------------------------------------
-[`derivepassphrase`][dpp_module] | Work-alike for vault(1) - deterministic, stateless password manager.
-[`sequin`][]                     | Python port of Sequin, a pseudorandom number generator.
-[`ssh_agent_client`][]           | A bare-bones SSH agent client supporting signing and key listing.
+* `derivepassphrase`: Work-alike for vault(1) – deterministic, stateless password manager.
+    * [`derivepassphrase.cli`][cli_module]: Command-line interface for `derivepassphrase`.
+    * [`derivepassphrase.sequin`][sequin]: Python port of Sequin, a pseudorandom number generator.
+    * [`derivepassphrase.ssh_agent`][ssh_agent]: A bare-bones SSH agent client supporting signing and key listing.
+    * [`derivepassphrase._types`][types_module]: Types used by `derivepassphrase`.
+    * [`derivepassphrase.vault`][vault_module]: Python port of the vault(1) password generation scheme.
 
-  [dpp_man]: reference/derivepassphrase.1.md
-  [dpp_module]: reference/derivepassphrase.md
+  [cli_man]: reference/derivepassphrase.1.md
+  [cli_module]: reference/derivepassphrase.md
   [sequin]: reference/sequin.md
-  [ssh_agent_client]: reference/ssh_agent_client.md
+  [ssh_agent]: reference/ssh_agent.md
+  [types_module]: reference/types.md
+  [vault_module]: reference/vault.md

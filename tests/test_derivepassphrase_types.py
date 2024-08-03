@@ -7,7 +7,7 @@ from __future__ import annotations
 import pytest
 from typing_extensions import Any
 
-import derivepassphrase.types
+from derivepassphrase import _types
 
 
 @pytest.mark.parametrize(
@@ -89,7 +89,7 @@ import derivepassphrase.types
     ],
 )
 def test_200_is_vault_config(obj: Any, comment: str) -> None:
-    is_vault_config = derivepassphrase.types.is_vault_config
+    is_vault_config = _types.is_vault_config
     assert is_vault_config(obj) == (not comment), (
         'failed to complain about: ' + comment
         if comment

@@ -18,10 +18,8 @@ import click.testing
 import pytest
 from typing_extensions import Any
 
-import derivepassphrase
-import derivepassphrase.cli
-import ssh_agent_client
 import tests
+from derivepassphrase import _types, cli, ssh_agent, vault
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -49,7 +47,7 @@ class TestStaticFunctionality:
         with pytest.raises(
             KeyError, match='SSH_AUTH_SOCK environment variable'
         ):
-            ssh_agent_client.SSHAgentClient(socket=sock)
+            ssh_agent.SSHAgentClient(socket=sock)
 
     @pytest.mark.parametrize(
         ['input', 'expected'],
@@ -58,7 +56,7 @@ class TestStaticFunctionality:
         ],
     )
     def test_210_uint32(self, input: int, expected: bytes | bytearray) -> None:
-        uint32 = ssh_agent_client.SSHAgentClient.uint32
+        uint32 = ssh_agent.SSHAgentClient.uint32
         assert uint32(input) == expected
 
     @pytest.mark.parametrize(
@@ -67,7 +65,7 @@ class TestStaticFunctionality:
             (b'ssh-rsa', b'\x00\x00\x00\x07ssh-rsa'),
             (b'ssh-ed25519', b'\x00\x00\x00\x0bssh-ed25519'),
             (
-                ssh_agent_client.SSHAgentClient.string(b'ssh-ed25519'),
+                ssh_agent.SSHAgentClient.string(b'ssh-ed25519'),
                 b'\x00\x00\x00\x0f\x00\x00\x00\x0bssh-ed25519',
             ),
         ],
@@ -75,7 +73,7 @@ class TestStaticFunctionality:
     def test_211_string(
         self, input: bytes | bytearray, expected: bytes | bytearray
     ) -> None:
-        string = ssh_agent_client.SSHAgentClient.string
+        string = ssh_agent.SSHAgentClient.string
         assert bytes(string(input)) == expected
 
     @pytest.mark.parametrize(
@@ -83,7 +81,7 @@ class TestStaticFunctionality:
         [
             (b'\x00\x00\x00\x07ssh-rsa', b'ssh-rsa'),
             (
-                ssh_agent_client.SSHAgentClient.string(b'ssh-ed25519'),
+                ssh_agent.SSHAgentClient.string(b'ssh-ed25519'),
                 b'ssh-ed25519',
             ),
         ],
@@ -91,8 +89,8 @@ class TestStaticFunctionality:
     def test_212_unstring(
         self, input: bytes | bytearray, expected: bytes | bytearray
     ) -> None:
-        unstring = ssh_agent_client.SSHAgentClient.unstring
-        unstring_prefix = ssh_agent_client.SSHAgentClient.unstring_prefix
+        unstring = ssh_agent.SSHAgentClient.unstring
+        unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
         assert bytes(unstring(input)) == expected
         assert tuple(bytes(x) for x in unstring_prefix(input)) == (
             expected,
@@ -109,7 +107,7 @@ class TestStaticFunctionality:
     def test_310_uint32_exceptions(
         self, value: int, exc_type: type[Exception], exc_pattern: str
     ) -> None:
-        uint32 = ssh_agent_client.SSHAgentClient.uint32
+        uint32 = ssh_agent.SSHAgentClient.uint32
         with pytest.raises(exc_type, match=exc_pattern):
             uint32(value)
 
@@ -122,7 +120,7 @@ class TestStaticFunctionality:
     def test_311_string_exceptions(
         self, input: Any, exc_type: type[Exception], exc_pattern: str
     ) -> None:
-        string = ssh_agent_client.SSHAgentClient.string
+        string = ssh_agent.SSHAgentClient.string
         with pytest.raises(exc_type, match=exc_pattern):
             string(input)
 
@@ -154,8 +152,8 @@ class TestStaticFunctionality:
         has_trailer: bool,
         parts: tuple[bytes | bytearray, bytes | bytearray] | None,
     ) -> None:
-        unstring = ssh_agent_client.SSHAgentClient.unstring
-        unstring_prefix = ssh_agent_client.SSHAgentClient.unstring_prefix
+        unstring = ssh_agent.SSHAgentClient.unstring
+        unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
         with pytest.raises(exc_type, match=exc_pattern):
             unstring(input)
         if has_trailer:
@@ -189,7 +187,7 @@ class TestAgentInteraction:
             )
         else:
             try:
-                client = ssh_agent_client.SSHAgentClient()
+                client = ssh_agent.SSHAgentClient()
             except OSError:  # pragma: no cover
                 pytest.skip('communication error with the SSH agent')
         with client:
@@ -202,19 +200,15 @@ class TestAgentInteraction:
             if public_key_data not in key_comment_pairs:  # pragma: no cover
                 pytest.skip('prerequisite SSH key not loaded')
             signature = bytes(
-                client.sign(
-                    payload=derivepassphrase.Vault._UUID, key=public_key_data
-                )
+                client.sign(payload=vault.Vault._UUID, key=public_key_data)
             )
             assert signature == expected_signature, 'SSH signature mismatch'
             signature2 = bytes(
-                client.sign(
-                    payload=derivepassphrase.Vault._UUID, key=public_key_data
-                )
+                client.sign(payload=vault.Vault._UUID, key=public_key_data)
             )
             assert signature2 == expected_signature, 'SSH signature mismatch'
             assert (
-                derivepassphrase.Vault.phrase_from_key(public_key_data)
+                vault.Vault.phrase_from_key(public_key_data)
                 == derived_passphrase
             ), 'SSH signature mismatch'
 
@@ -240,7 +234,7 @@ class TestAgentInteraction:
             )
         else:
             try:
-                client = ssh_agent_client.SSHAgentClient()
+                client = ssh_agent.SSHAgentClient()
             except OSError:  # pragma: no cover
                 pytest.skip('communication error with the SSH agent')
         with client:
@@ -252,18 +246,14 @@ class TestAgentInteraction:
             if public_key_data not in key_comment_pairs:  # pragma: no cover
                 pytest.skip('prerequisite SSH key not loaded')
             signature = bytes(
-                client.sign(
-                    payload=derivepassphrase.Vault._UUID, key=public_key_data
-                )
+                client.sign(payload=vault.Vault._UUID, key=public_key_data)
             )
             signature2 = bytes(
-                client.sign(
-                    payload=derivepassphrase.Vault._UUID, key=public_key_data
-                )
+                client.sign(payload=vault.Vault._UUID, key=public_key_data)
             )
             assert signature != signature2, 'SSH signature repeatable?!'
             with pytest.raises(ValueError, match='unsuitable SSH key'):
-                derivepassphrase.Vault.phrase_from_key(public_key_data)
+                vault.Vault.phrase_from_key(public_key_data)
 
     @staticmethod
     def _params() -> Iterator[tuple[bytes, bool]]:
@@ -287,7 +277,7 @@ class TestAgentInteraction:
 
         if single:
             monkeypatch.setattr(
-                ssh_agent_client.SSHAgentClient,
+                ssh_agent.SSHAgentClient,
                 'list_keys',
                 tests.list_keys_singleton,
             )
@@ -300,7 +290,7 @@ class TestAgentInteraction:
             text = 'Use this key? yes\n'
         else:
             monkeypatch.setattr(
-                ssh_agent_client.SSHAgentClient, 'list_keys', tests.list_keys
+                ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
             keys = [
                 pair.key
@@ -314,7 +304,7 @@ class TestAgentInteraction:
 
         @click.command()
         def driver() -> None:
-            key = derivepassphrase.cli._select_ssh_key()
+            key = cli._select_ssh_key()
             click.echo(base64.standard_b64encode(key).decode('ASCII'))
 
         runner = click.testing.CliRunner(mix_stderr=True)
@@ -339,7 +329,7 @@ class TestAgentInteraction:
         monkeypatch.setenv('SSH_AUTH_SOCK', os.environ['SSH_AUTH_SOCK'] + '~')
         sock = socket.socket(family=socket.AF_UNIX)
         with pytest.raises(OSError):  # noqa: PT011
-            ssh_agent_client.SSHAgentClient(socket=sock)
+            ssh_agent.SSHAgentClient(socket=sock)
 
     @pytest.mark.parametrize(
         'response',
@@ -351,7 +341,7 @@ class TestAgentInteraction:
     def test_310_truncated_server_response(
         self, monkeypatch: Any, response: bytes
     ) -> None:
-        client = ssh_agent_client.SSHAgentClient()
+        client = ssh_agent.SSHAgentClient()
         response_stream = io.BytesIO(response)
 
         class PseudoSocket:
@@ -375,7 +365,7 @@ class TestAgentInteraction:
             (
                 12,
                 b'\x00\x00\x00\x00abc',
-                ssh_agent_client.TrailingDataError,
+                ssh_agent.TrailingDataError,
                 'Overlong response',
             ),
         ],
@@ -388,7 +378,7 @@ class TestAgentInteraction:
         exc_type: type[Exception],
         exc_pattern: str,
     ) -> None:
-        client = ssh_agent_client.SSHAgentClient()
+        client = ssh_agent.SSHAgentClient()
         monkeypatch.setattr(
             client,
             'request',
@@ -426,9 +416,9 @@ class TestAgentInteraction:
         exc_type: type[Exception],
         exc_pattern: str,
     ) -> None:
-        client = ssh_agent_client.SSHAgentClient()
+        client = ssh_agent.SSHAgentClient()
         monkeypatch.setattr(client, 'request', lambda a, b: response)  # noqa: ARG005
-        KeyCommentPair = ssh_agent_client.types.KeyCommentPair  # noqa: N806
+        KeyCommentPair = _types.KeyCommentPair  # noqa: N806
         loaded_keys = [
             KeyCommentPair(v['public_key_data'], b'no comment')
             for v in tests.SUPPORTED_KEYS.values()
