@@ -8,6 +8,7 @@ import base64
 import contextlib
 import json
 import os
+import stat
 from typing import TYPE_CHECKING
 
 import pytest
@@ -411,3 +412,55 @@ def isolated_config(
 def auto_prompt(*args: Any, **kwargs: Any) -> str:
     del args, kwargs  # Unused.
     return DUMMY_PASSPHRASE.decode('UTF-8')
+
+
+def make_file_readonly(
+    pathname: str | bytes | os.PathLike[str],
+    /,
+    *,
+    try_race_free_implementation: bool = True,
+) -> None:
+    """Mark a file as read-only.
+
+    On POSIX, this entails removing the write permission bits for user,
+    group and other, and ensuring the read permission bit for user is
+    set.
+
+    Unfortunately, Windows has its own rules: Set exactly(?) the read
+    permission bit for user to make the file read-only, and set
+    exactly(?) the write permission bit for user to make the file
+    read/write; all other permission bit settings are ignored.
+
+    The cross-platform procedure therefore is:
+
+    1. Call `os.stat` on the file, noting the permission bits.
+    2. Calculate the new permission bits POSIX-style.
+    3. Call `os.chmod` with permission bit `stat.S_IREAD`.
+    4. Call `os.chmod` with the correct POSIX-style permissions.
+
+    If the platform supports it, we use a file descriptor instead of
+    a path name.  Otherwise, we use the same path name multiple times,
+    and are susceptible to race conditions.
+
+    """
+    fname: int | str | bytes | os.PathLike[str]
+    if try_race_free_implementation and {os.stat, os.chmod} <= os.supports_fd:
+        fname = os.open(
+            pathname,
+            os.O_RDONLY
+            | getattr(os, 'O_CLOEXEC', 0)
+            | getattr(os, 'O_NOCTTY', 0),
+        )
+    else:
+        fname = pathname
+    try:
+        orig_mode = os.stat(fname).st_mode
+        new_mode = (
+            orig_mode & ~stat.S_IWUSR & ~stat.S_IWGRP & ~stat.S_IWOTH
+            | stat.S_IREAD
+        )
+        os.chmod(fname, stat.S_IREAD)
+        os.chmod(fname, new_mode)
+    finally:
+        if isinstance(fname, int):
+            os.close(fname)

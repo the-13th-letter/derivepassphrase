@@ -1004,6 +1004,105 @@ contents go here
                 custom_error.encode() in result.stderr_bytes
             ), 'expected error message missing'
 
+    def test_225b_store_config_fail_manual_no_ssh_agent(
+        self,
+        monkeypatch: Any,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'global': {'phrase': 'abc'}, 'services': {}},
+        ):
+            monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
+            result = runner.invoke(
+                cli.derivepassphrase,
+                ['--key', '--config'],
+                catch_exceptions=False,
+            )
+            assert result.exit_code != 0, 'program unexpectedly succeeded'
+            assert result.stderr_bytes is not None
+            assert (
+                b'Cannot find running SSH agent' in result.stderr_bytes
+            ), 'expected error message missing'
+
+    def test_225c_store_config_fail_manual_bad_ssh_agent_connection(
+        self,
+        monkeypatch: Any,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'global': {'phrase': 'abc'}, 'services': {}},
+        ):
+            monkeypatch.setenv('SSH_AUTH_SOCK', os.getcwd())
+            result = runner.invoke(
+                cli.derivepassphrase,
+                ['--key', '--config'],
+                catch_exceptions=False,
+            )
+            assert result.exit_code != 0, 'program unexpectedly succeeded'
+            assert result.stderr_bytes is not None
+            assert (
+                b'Cannot connect to SSH agent' in result.stderr_bytes
+            ), 'expected error message missing'
+
+    @pytest.mark.parametrize('try_race_free_implementation', [True, False])
+    def test_225d_store_config_fail_manual_read_only_file(
+        self,
+        monkeypatch: Any,
+        try_race_free_implementation: bool,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'global': {'phrase': 'abc'}, 'services': {}},
+        ):
+            tests.make_file_readonly(
+                cli._config_filename(),
+                try_race_free_implementation=try_race_free_implementation,
+            )
+            result = runner.invoke(
+                cli.derivepassphrase,
+                ['--config', '--length=15', DUMMY_SERVICE],
+                catch_exceptions=False,
+            )
+            assert result.exit_code != 0, 'program unexpectedly succeeded'
+            assert result.stderr_bytes is not None
+            assert (
+                b'Cannot store config' in result.stderr_bytes
+            ), 'expected error message missing'
+
+    def test_225e_store_config_fail_manual_custom_error(
+        self,
+        monkeypatch: Any,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'global': {'phrase': 'abc'}, 'services': {}},
+        ):
+            custom_error = 'custom error message'
+
+            def raiser(config: Any) -> None:
+                del config
+                raise RuntimeError(custom_error)
+
+            monkeypatch.setattr(cli, '_save_config', raiser)
+            result = runner.invoke(
+                cli.derivepassphrase,
+                ['--config', '--length=15', DUMMY_SERVICE],
+                catch_exceptions=False,
+            )
+            assert result.exit_code != 0, 'program unexpectedly succeeded'
+            assert result.stderr_bytes is not None
+            assert (
+                custom_error.encode() in result.stderr_bytes
+            ), 'expected error message missing'
+
     def test_226_no_arguments(self, monkeypatch: Any) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -1101,6 +1200,39 @@ contents go here
                 input='abc\n',
             )
             assert result.exit_code != 0, 'program unexpectedly succeeded?!'
+            assert result.stderr_bytes is not None
+            assert (
+                b'Cannot store config' in result.stderr_bytes
+            ), 'program unexpectedly failed?!'
+
+    def test_230b_store_config_custom_error(self, monkeypatch: Any) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'services': {}},
+        ):
+            _save_config = cli._save_config
+
+            def obstruct_config_saving(*args: Any, **kwargs: Any) -> Any:
+                with contextlib.suppress(FileNotFoundError):
+                    shutil.rmtree('.derivepassphrase')
+                with open(
+                    '.derivepassphrase', 'w', encoding='UTF-8'
+                ) as outfile:
+                    print('Obstruction!!', file=outfile)
+                monkeypatch.setattr(cli, '_save_config', _save_config)
+                return _save_config(*args, **kwargs)
+
+            monkeypatch.setattr(cli, '_save_config', obstruct_config_saving)
+            result = runner.invoke(
+                cli.derivepassphrase,
+                ['--config', '-p'],
+                catch_exceptions=False,
+                input='abc\n',
+            )
+            assert result.exit_code != 0, 'program unexpectedly succeeded?!'
+            assert result.stderr_bytes is not None
             assert (
                 b'Cannot store config' in result.stderr_bytes
             ), 'program unexpectedly failed?!'
