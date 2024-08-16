@@ -609,7 +609,7 @@ class TestCLI:
                 result.stderr_bytes
             ), 'program did not print any error message'
             assert (
-                b'not a valid config' in result.stderr_bytes
+                b'Invalid vault config' in result.stderr_bytes
             ), 'program did not print the expected error message'
 
     def test_213a_import_bad_config_not_json_data(
@@ -699,7 +699,7 @@ class TestCLI:
                 result.stderr_bytes
             ), 'program did not print any error message'
             assert (
-                b'cannot load config' in result.stderr_bytes
+                b'Cannot load config' in result.stderr_bytes
             ), 'program did not print the expected error message'
 
     def test_214b_export_settings_not_a_file(
@@ -724,7 +724,7 @@ class TestCLI:
                 result.stderr_bytes
             ), 'program did not print any error message'
             assert (
-                b'cannot load config' in result.stderr_bytes
+                b'Cannot load config' in result.stderr_bytes
             ), 'program did not print the expected error message'
 
     def test_214c_export_settings_target_not_a_file(
@@ -747,7 +747,7 @@ class TestCLI:
                 result.stderr_bytes
             ), 'program did not print any error message'
             assert (
-                b'cannot write config' in result.stderr_bytes
+                b'Cannot store config' in result.stderr_bytes
             ), 'program did not print the expected error message'
 
     def test_214d_export_settings_settings_directory_not_a_directory(
@@ -773,7 +773,7 @@ class TestCLI:
                 result.stderr_bytes
             ), 'program did not print any error message'
             assert (
-                b'cannot load config' in result.stderr_bytes
+                b'Cannot load config' in result.stderr_bytes
             ), 'program did not print the expected error message'
 
     def test_220_edit_notes_successfully(self, monkeypatch: Any) -> None:
