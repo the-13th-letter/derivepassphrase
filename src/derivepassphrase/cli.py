@@ -168,6 +168,8 @@ def _get_suitable_ssh_keys(
             SSH agent.
         RuntimeError:
             There was an error communicating with the SSH agent.
+        SSHAgentFailedError:
+            The agent failed to supply a list of loaded keys.
 
     """
     client: ssh_agent.SSHAgentClient
@@ -310,6 +312,8 @@ def _select_ssh_key(
             SSH agent.
         RuntimeError:
             There was an error communicating with the SSH agent.
+        SSHAgentFailedError:
+            The agent failed to supply a list of loaded keys.
     """
     suitable_keys = list(_get_suitable_ssh_keys(conn))
     key_listing: list[str] = []
@@ -1036,7 +1040,11 @@ def derivepassphrase(
                     f'Cannot connect to SSH agent: {e.strerror}: '
                     f'{e.filename!r}'
                 )
-            except (LookupError, RuntimeError) as e:
+            except (
+                LookupError,
+                RuntimeError,
+                ssh_agent.SSHAgentFailedError,
+            ) as e:
                 err(str(e))
         elif use_phrase:
             maybe_phrase = _prompt_for_passphrase()

@@ -183,6 +183,10 @@ class SSH_AGENT(enum.Enum):  # noqa: N801
     """SSH agent protocol numbers: server replies.
 
     Attributes:
+        FAILURE:
+            Generic failure code.
+        SUCCESS:
+            Generic success code.
         IDENTITIES_ANSWER:
             Successful answer to `SSH_AGENTC.REQUEST_IDENTITIES`.
         SIGN_RESPONSE:
@@ -190,5 +194,7 @@ class SSH_AGENT(enum.Enum):  # noqa: N801
 
     """
 
+    FAILURE: int = 5
+    SUCCESS: int = 6
     IDENTITIES_ANSWER: int = 12
     SIGN_RESPONSE: int = 14

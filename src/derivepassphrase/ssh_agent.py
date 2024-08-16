@@ -37,6 +37,24 @@ class TrailingDataError(RuntimeError):
         super().__init__('Overlong response from SSH agent')
 
 
+class SSHAgentFailedError(RuntimeError):
+    """The SSH agent failed to complete the requested operation."""
+
+    def __str__(self) -> str:
+        match self.args:
+            case (_types.SSH_AGENT.FAILURE.value, b''):  # pragma: no branch
+                return 'The SSH agent failed to complete the request'
+            case (_, _msg) if _msg:  # pragma: no cover
+                code = self.args[0]
+                msg = self.args[1].decode('utf-8', 'surrogateescape')
+                return f'[Code {code:d}] {msg:s}'
+            case _:  # pragma: no cover
+                return repr(self)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f'{self.__class__.__name__}{self.args!r}'
+
+
 class SSHAgentClient:
     """A bare-bones SSH agent client supporting signing and key listing.
 
@@ -284,7 +302,7 @@ class SSHAgentClient:
                 The response from the SSH agent is truncated or missing.
             TrailingDataError:
                 The response from the SSH agent is too long.
-            RuntimeError:
+            SSHAgentFailedError:
                 The agent failed to complete the request.
 
         """
@@ -292,11 +310,7 @@ class SSHAgentClient:
             _types.SSH_AGENTC.REQUEST_IDENTITIES.value, b''
         )
         if response_code != _types.SSH_AGENT.IDENTITIES_ANSWER.value:
-            msg = (
-                f'error return from SSH agent: '
-                f'{response_code = }, {response = }'
-            )
-            raise RuntimeError(msg)
+            raise SSHAgentFailedError(response_code, response)
         response_stream = collections.deque(response)
 
         def shift(num: int) -> bytes:
@@ -362,7 +376,7 @@ class SSHAgentClient:
                 The response from the SSH agent is truncated or missing.
             TrailingDataError:
                 The response from the SSH agent is too long.
-            RuntimeError:
+            SSHAgentFailedError:
                 The agent failed to complete the request.
             KeyError:
                 `check_if_key_loaded` is true, and the `key` was not
@@ -381,6 +395,5 @@ class SSHAgentClient:
             _types.SSH_AGENTC.SIGN_REQUEST.value, request_data
         )
         if response_code != _types.SSH_AGENT.SIGN_RESPONSE.value:
-            msg = f'signing data failed: {response_code = }, {response = }'
-            raise RuntimeError(msg)
+            raise SSHAgentFailedError(response_code, response)
         return self.unstring(response)
