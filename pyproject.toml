@@ -33,29 +33,43 @@ version = "0.1.3"
 dev = ["black", "coverage", "hatch>=1.10", "mkdocs", "mkdocs-material",
        "mkdocstrings[python]", "pytest>=8.1", "towncrier>=23.11"]
 
+[project.scripts]
+derivepassphrase = "derivepassphrase.cli:derivepassphrase"
+
 [project.urls]
 Documentation = "https://the13thletter.info/derivepassphrase/"
 Issues = "https://github.com/the-13th-letter/derivepassphrase/issues"
 Source = "https://github.com/the-13th-letter/derivepassphrase"
 
-[project.scripts]
-derivepassphrase = "derivepassphrase.cli:derivepassphrase"
+[tool.coverage.html]
+directory = "html/coverage"
 
-[tool.mypy]
-files = ['src/**/*.py', 'tests/**/*.py']
-mypy_path = '$MYPY_CONFIG_FILE_DIR/src'
-explicit_package_bases = true
-implicit_reexport = false
-sqlite_cache = true
+[tool.coverage.paths]
+src = ["src"]
+tests = ["tests"]
 
-[tool.pytest.ini_options]
-addopts = '--doctest-modules'
-pythonpath = ['src']
-testpaths = ['src', 'tests']
-xfail_strict = true
+[tool.coverage.report]
+skip_covered = false
+skip_empty = true
+precision = 3
+partial_branches = [
+    'pragma: no branch',
+]
+exclude_also = [
+  "if __name__ == .__main__.:",
+  'if (?:typing\.)?TYPE_CHECKING:',
+  "raise AssertionError",
+  "raise NotImplementedError",
+  'assert False',
+]
 
-[tool.hatch.version]
-path = "src/derivepassphrase/__init__.py"
+[tool.coverage.run]
+source_pkgs = ["derivepassphrase", "tests"]
+branch = true
+parallel = true
+omit = [
+  "__main__.py",
+]
 
 [tool.hatch.build.targets.sdist]
 exclude = [
@@ -64,12 +78,6 @@ exclude = [
 
 [tool.hatch.build.targets.wheel]
 packages = ['src/derivepassphrase']
-
-[tool.hatch.envs.hatch-test]
-default-args = ['src', 'tests']
-
-[[tool.hatch.envs.hatch-test.matrix]]
-python = ["3.10", "3.11", "3.12", "pypy3.10"]
 
 [tool.hatch.env]
 requires = [
@@ -95,6 +103,21 @@ extra-dependencies = [
 ]
 detached = false
 
+[tool.hatch.envs.hatch-static-analysis]
+config-path = "ruff_defaults_v0.5.0.toml"
+dependencies = ["ruff==0.5.0"]
+
+[tool.hatch.envs.hatch-test]
+default-args = ['src', 'tests']
+
+[[tool.hatch.envs.hatch-test.matrix]]
+python = ["3.10", "3.11", "3.12", "pypy3.10"]
+
+[tool.hatch.envs.release]
+dependencies = ['towncrier>=23.11']
+
+[tool.hatch.envs.release.scripts]
+
 [tool.hatch.envs.types]
 extra-dependencies = [
   "mypy>=1.0.0",
@@ -103,35 +126,21 @@ extra-dependencies = [
 [tool.hatch.envs.types.scripts]
 check = "mypy --install-types --non-interactive {args:src/derivepassphrase tests}"
 
-[tool.coverage.html]
-directory = "html/coverage"
+[tool.hatch.version]
+path = "src/derivepassphrase/__init__.py"
 
-[tool.coverage.run]
-source_pkgs = ["derivepassphrase", "tests"]
-branch = true
-parallel = true
-omit = [
-  "__main__.py",
-]
+[tool.mypy]
+files = ['src/**/*.py', 'tests/**/*.py']
+mypy_path = '$MYPY_CONFIG_FILE_DIR/src'
+explicit_package_bases = true
+implicit_reexport = false
+sqlite_cache = true
 
-[tool.coverage.paths]
-src = ["src"]
-tests = ["tests"]
-
-[tool.coverage.report]
-skip_covered = false
-skip_empty = true
-precision = 3
-partial_branches = [
-    'pragma: no branch',
-]
-exclude_also = [
-  "if __name__ == .__main__.:",
-  'if (?:typing\.)?TYPE_CHECKING:',
-  "raise AssertionError",
-  "raise NotImplementedError",
-  'assert False',
-]
+[tool.pytest.ini_options]
+addopts = '--doctest-modules'
+pythonpath = ['src']
+testpaths = ['src', 'tests']
+xfail_strict = true
 
 [tool.ruff]
 line-length = 79
@@ -155,12 +164,6 @@ extend-select = [
     'E501',
 ]
 
-[tool.ruff.lint.pydocstyle]
-convention = 'google'
-
-[tool.ruff.lint.flake8-pytest-style]
-parametrize-names-type = 'list'
-
 [tool.ruff.lint.extend-per-file-ignores]
 "**/tests/**/*" = [
   # Our tests are pytest-style tests, which use `assert` liberally.
@@ -178,14 +181,11 @@ parametrize-names-type = 'list'
   'SLF001',
 ]
 
-[tool.hatch.envs.hatch-static-analysis]
-config-path = "ruff_defaults_v0.5.0.toml"
-dependencies = ["ruff==0.5.0"]
+[tool.ruff.lint.flake8-pytest-style]
+parametrize-names-type = 'list'
 
-[tool.hatch.envs.release]
-dependencies = ['towncrier>=23.11']
-
-[tool.hatch.envs.release.scripts]
+[tool.ruff.lint.pydocstyle]
+convention = 'google'
 
 [tool.towncrier]
 package = 'derivepassphrase'
