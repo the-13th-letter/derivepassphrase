@@ -945,7 +945,7 @@ def derivepassphrase(
                     break
             else:
                 if not notes_value.strip():
-                    err('not saving new notes: user aborted request')
+                    err('Not saving new notes: user aborted request')
             configuration['services'].setdefault(service, {})['notes'] = (
                 notes_value.strip('\n')
             )
@@ -1032,9 +1032,9 @@ def derivepassphrase(
                     'ASCII'
                 )
             except IndexError:
-                err('no valid SSH key selected')
+                err('No valid SSH key selected')
             except KeyError:
-                err('cannot find running SSH agent; check SSH_AUTH_SOCK')
+                err('Cannot find running SSH agent; check SSH_AUTH_SOCK')
             except OSError as e:
                 err(
                     f'Cannot connect to SSH agent: {e.strerror}: '
@@ -1049,7 +1049,7 @@ def derivepassphrase(
         elif use_phrase:
             maybe_phrase = _prompt_for_passphrase()
             if not maybe_phrase:
-                err('no passphrase given')
+                err('No passphrase given')
             else:
                 phrase = maybe_phrase
         if store_config_only:
@@ -1070,7 +1070,7 @@ def derivepassphrase(
             if not view.maps[0]:
                 settings_type = 'service' if service else 'global'
                 msg = (
-                    f'cannot update {settings_type} settings without '
+                    f'Cannot update {settings_type} settings without '
                     f'actual settings'
                 )
                 raise click.UsageError(msg)
@@ -1080,7 +1080,7 @@ def derivepassphrase(
                 configuration.setdefault('global', {}).update(view)  # type: ignore[typeddict-item]
             assert _types.is_vault_config(
                 configuration
-            ), f'invalid vault configuration: {configuration!r}'
+            ), f'Invalid vault configuration: {configuration!r}'
             put_config(configuration)
         else:
             if not service:
@@ -1118,7 +1118,7 @@ def derivepassphrase(
                 pass
             else:
                 msg = (
-                    'no passphrase or key given on command-line '
+                    'No passphrase or key given on command-line '
                     'or in configuration'
                 )
                 raise click.UsageError(msg)

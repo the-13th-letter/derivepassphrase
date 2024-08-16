@@ -938,15 +938,15 @@ contents go here
             (
                 [],
                 b'',
-                b'cannot update global settings without actual settings',
+                b'Cannot update global settings without actual settings',
             ),
             (
                 ['sv'],
                 b'',
-                b'cannot update service settings without actual settings',
+                b'Cannot update service settings without actual settings',
             ),
-            (['--phrase', 'sv'], b'', b'no passphrase given'),
-            (['--key'], b'', b'no valid SSH key selected'),
+            (['--phrase', 'sv'], b'', b'No passphrase given'),
+            (['--key'], b'', b'No valid SSH key selected'),
         ],
     )
     def test_225_store_config_fail(
@@ -1033,7 +1033,7 @@ contents go here
         assert result.exit_code != 0, 'program unexpectedly succeeded'
         assert result.stderr_bytes is not None
         assert (
-            b'no passphrase or key given' in result.stderr_bytes
+            b'No passphrase or key given' in result.stderr_bytes
         ), 'expected error message missing'
 
     def test_230_config_directory_nonexistant(self, monkeypatch: Any) -> None:
