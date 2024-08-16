@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+from __future__ import annotations
+
 import base64
 import glob
 import json
@@ -42,11 +44,33 @@ class MasterKeys(TypedDict):
 
 
 def derive_master_keys_keys(password: str | bytes, iterations: int) -> KeyPair:
+    """Derive encryption and signing keys for the master keys data.
+
+    The master password is run through a key derivation function to
+    obtain a 64-byte string, which is then split to yield two 32-byte
+    keys.  The key derivation function is PBKDF2, using HMAC-SHA1 and
+    salted with the storeroom master keys UUID.
+
+    Args:
+        password:
+            A master password for the storeroom instance.  Usually read
+            from the `VAULT_KEY` environment variable, otherwise
+            defaults to the username.
+        iterations:
+            A count of rounds for the underlying key derivation
+            function.  Usually stored as a setting next to the encrypted
+            master keys data.
+
+    Returns:
+        A 2-tuple of keys, the encryption key and the signing key, to
+        decrypt and verify the master keys data with.
+
+    """
     if isinstance(password, str):
         password = password.encode('ASCII')
     master_keys_keys_blob = pbkdf2.PBKDF2HMAC(
         algorithm=hashes.SHA1(),  # noqa: S303
-        length=64,
+        length=2 * KEY_SIZE,
         salt=STOREROOM_MASTER_KEYS_UUID,
         iterations=iterations,
     ).derive(password)
@@ -76,6 +100,39 @@ def derive_master_keys_keys(password: str | bytes, iterations: int) -> KeyPair:
 
 
 def decrypt_master_keys_data(data: bytes, keys: KeyPair) -> MasterKeys:
+    """Decrypt the master keys data.
+
+    The master keys data contains:
+
+    - a 16-byte IV,
+    - a 96-byte AES256-CBC-encrypted payload (using PKCS7 padding on the
+      inside), and
+    - a 32-byte MAC of the preceding 112 bytes.
+
+    The decrypted payload itself consists of three 32-byte keys: the
+    hashing, encryption and signing keys, in that order.
+
+    The encrypted payload is encrypted with the encryption key, and the
+    MAC is created based on the signing key.  As per standard
+    cryptographic procedure, the MAC can be verified before attempting
+    to decrypt the payload.
+
+    Because the payload size is both fixed and a multiple of the
+    cipher blocksize, in this case, the PKCS7 padding is a no-op.
+
+    Args:
+        data:
+            The encrypted master keys data.
+        keys:
+            The encryption and signing keys for the master keys data.
+            These should have previously been derived via the
+            [`derivepassphrase.exporter.storeroom.derive_master_keys_keys`][]
+            function.
+
+    Returns:
+        The master encryption, signing and hashing keys.
+
+    """
     ciphertext, claimed_mac = struct.unpack(
         f'{len(data) - MAC_SIZE}s {MAC_SIZE}s', data
     )
@@ -124,21 +181,54 @@ def decrypt_master_keys_data(data: bytes, keys: KeyPair) -> MasterKeys:
     }
 
 
-def decrypt_session_keys(data: bytes, keys: MasterKeys) -> KeyPair:
+def decrypt_session_keys(data: bytes, master_keys: MasterKeys) -> KeyPair:
+    """Decrypt the bucket item's session keys.
+
+    The bucket item's session keys are single-use keys for encrypting
+    and signing a single item in the storage bucket.  The encrypted
+    session key data consists of:
+
+    - a 16-byte IV,
+    - a 64-byte AES256-CBC-encrypted payload (using PKCS7 padding on the
+      inside), and
+    - a 32-byte MAC of the preceding 80 bytes.
+
+    The encrypted payload is encrypted with the master encryption key,
+    and the MAC is created with the master signing key.  As per standard
+    cryptographic procedure, the MAC can be verified before attempting
+    to decrypt the payload.
+
+    Because the payload size is both fixed and a multiple of the
+    cipher blocksize, in this case, the PKCS7 padding is a no-op.
+
+    Args:
+        data:
+            The encrypted bucket item session key data.
+        master_keys:
+            The master keys.  Presumably these have previously been
+            obtained via the
+            [`derivepassphrase.exporter.storeroom.decrypt_master_keys_data`][]
+            function.
+
+    Returns:
+        The bucket item's encryption and signing keys.
+
+    """
+
     ciphertext, claimed_mac = struct.unpack(
         f'{len(data) - MAC_SIZE}s {MAC_SIZE}s', data
     )
-    actual_mac = hmac.HMAC(keys['signing_key'], hashes.SHA256())
+    actual_mac = hmac.HMAC(master_keys['signing_key'], hashes.SHA256())
     actual_mac.update(ciphertext)
     logger.debug(
         (
-            'decrypt_bucket_line (session_keys): '
+            'decrypt_bucket_item (session_keys): '
             'mac_key = bytes.fromhex(%s) (master), '
             'hashed_content = bytes.fromhex(%s), '
             'claimed_mac = bytes.fromhex(%s), '
             'actual_mac = bytes.fromhex(%s)'
         ),
-        repr(keys['signing_key'].hex(' ')),
+        repr(master_keys['signing_key'].hex(' ')),
         repr(ciphertext.hex(' ')),
         repr(claimed_mac.hex(' ')),
         repr(actual_mac.copy().finalize().hex(' ')),
@@ -149,7 +239,7 @@ def decrypt_session_keys(data: bytes, keys: MasterKeys) -> KeyPair:
         f'{IV_SIZE}s {len(ciphertext) - IV_SIZE}s', ciphertext
     )
     decryptor = ciphers.Cipher(
-        algorithms.AES256(keys['encryption_key']), modes.CBC(iv)
+        algorithms.AES256(master_keys['encryption_key']), modes.CBC(iv)
     ).decryptor()
     padded_plaintext = bytearray()
     padded_plaintext.extend(decryptor.update(payload))
@@ -170,14 +260,14 @@ def decrypt_session_keys(data: bytes, keys: MasterKeys) -> KeyPair:
 
     logger.debug(
         (
-            'decrypt_bucket_line (session_keys): '
+            'decrypt_bucket_item (session_keys): '
             'decrypt_aes256_cbc_and_unpad(key=bytes.fromhex(%s), '
             'iv=bytes.fromhex(%s))(bytes.fromhex(%s)) '
             '= bytes.fromhex(%s) '
             '= {"encryption_key": bytes.fromhex(%s), '
             '"signing_key": bytes.fromhex(%s)}'
         ),
-        repr(keys['encryption_key'].hex(' ')),
+        repr(master_keys['encryption_key'].hex(' ')),
         repr(iv.hex(' ')),
         repr(payload.hex(' ')),
         repr(plaintext.hex(' ')),
@@ -194,21 +284,49 @@ def decrypt_session_keys(data: bytes, keys: MasterKeys) -> KeyPair:
     return session_keys
 
 
-def decrypt_contents(data: bytes, keys: KeyPair) -> bytes:
+def decrypt_contents(data: bytes, session_keys: KeyPair) -> bytes:
+    """Decrypt the bucket item's contents.
+
+    The data consists of:
+
+    - a 16-byte IV,
+    - a variable-sized AES256-CBC-encrypted payload (using PKCS7 padding
+      on the inside), and
+    - a 32-byte MAC of the preceding 80 bytes.
+
+    The encrypted payload is encrypted with the bucket item's session
+    encryption key, and the MAC is created with the bucket item's
+    session signing key.  As per standard cryptographic procedure, the
+    MAC can be verified before attempting to decrypt the payload.
+
+    Args:
+        data:
+            The encrypted bucket item payload data.
+        session_keys:
+            The bucket item's session keys.  Presumably these have
+            previously been obtained via the
+            [`derivepassphrase.exporter.storeroom.decrypt_session_keys`][]
+            function.
+
+    Returns:
+        The bucket item's payload.
+
+    """
+
     ciphertext, claimed_mac = struct.unpack(
         f'{len(data) - MAC_SIZE}s {MAC_SIZE}s', data
     )
-    actual_mac = hmac.HMAC(keys['signing_key'], hashes.SHA256())
+    actual_mac = hmac.HMAC(session_keys['signing_key'], hashes.SHA256())
     actual_mac.update(ciphertext)
     logger.debug(
         (
-            'decrypt_bucket_line (contents): '
+            'decrypt_bucket_item (contents): '
             'mac_key = bytes.fromhex(%s), '
             'hashed_content = bytes.fromhex(%s), '
             'claimed_mac = bytes.fromhex(%s), '
             'actual_mac = bytes.fromhex(%s)'
         ),
-        repr(keys['signing_key'].hex(' ')),
+        repr(session_keys['signing_key'].hex(' ')),
         repr(ciphertext.hex(' ')),
         repr(claimed_mac.hex(' ')),
         repr(actual_mac.copy().finalize().hex(' ')),
@@ -219,7 +337,7 @@ def decrypt_contents(data: bytes, keys: KeyPair) -> bytes:
         f'{IV_SIZE}s {len(ciphertext) - IV_SIZE}s', ciphertext
     )
     decryptor = ciphers.Cipher(
-        algorithms.AES256(keys['encryption_key']), modes.CBC(iv)
+        algorithms.AES256(session_keys['encryption_key']), modes.CBC(iv)
     ).decryptor()
     padded_plaintext = bytearray()
     padded_plaintext.extend(decryptor.update(payload))
@@ -231,12 +349,12 @@ def decrypt_contents(data: bytes, keys: KeyPair) -> bytes:
 
     logger.debug(
         (
-            'decrypt_bucket_line (contents): '
+            'decrypt_bucket_item (contents): '
             'decrypt_aes256_cbc_and_unpad(key=bytes.fromhex(%s), '
             'iv=bytes.fromhex(%s))(bytes.fromhex(%s)) '
             '= bytes.fromhex(%s)'
         ),
-        repr(keys['encryption_key'].hex(' ')),
+        repr(session_keys['encryption_key'].hex(' ')),
         repr(iv.hex(' ')),
         repr(payload.hex(' ')),
         repr(plaintext.hex(' ')),
@@ -245,23 +363,23 @@ def decrypt_contents(data: bytes, keys: KeyPair) -> bytes:
     return plaintext
 
 
-def decrypt_bucket_line(bucket_line: bytes, master_keys: MasterKeys) -> bytes:
+def decrypt_bucket_item(bucket_item: bytes, master_keys: MasterKeys) -> bytes:
     logger.debug(
         (
-            'decrypt_bucket_line: data = bytes.fromhex(%s), '
+            'decrypt_bucket_item: data = bytes.fromhex(%s), '
             'encryption_key = bytes.fromhex(%s), '
             'signing_key = bytes.fromhex(%s)'
         ),
-        repr(bucket_line.hex(' ')),
+        repr(bucket_item.hex(' ')),
         repr(master_keys['encryption_key'].hex(' ')),
         repr(master_keys['signing_key'].hex(' ')),
     )
     data_version, encrypted_session_keys, data_contents = struct.unpack(
         (
             f'B {ENCRYPTED_KEYPAIR_SIZE}s '
-            f'{len(bucket_line) - 1 - ENCRYPTED_KEYPAIR_SIZE}s'
+            f'{len(bucket_item) - 1 - ENCRYPTED_KEYPAIR_SIZE}s'
         ),
-        bucket_line,
+        bucket_item,
     )
     if data_version != 1:
         msg = f'Cannot handle version {data_version} encrypted data'
@@ -287,7 +405,7 @@ def decrypt_bucket_file(filename: str, master_keys: MasterKeys) -> None:
         decrypted_file.write(header_line)
         for line in bucket_file:
             decrypted_contents = (
-                decrypt_bucket_line(
+                decrypt_bucket_item(
                     base64.standard_b64decode(line), master_keys
                 ).removesuffix(b'\n')
                 + b'\n'
