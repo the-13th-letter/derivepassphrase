@@ -9,11 +9,14 @@ import logging
 import os
 import os.path
 import struct
-from typing import TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from cryptography.hazmat.primitives import ciphers, hashes, hmac, padding
 from cryptography.hazmat.primitives.ciphers import algorithms, modes
 from cryptography.hazmat.primitives.kdf import pbkdf2
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 STOREROOM_MASTER_KEYS_UUID = b'35b7c7ed-f71e-4adf-9051-02fb0f1e0e17'
 VAULT_CIPHER_UUID = b'73e69e8a-cb05-4b50-9f42-59d76a511299'
@@ -27,9 +30,11 @@ MASTER_KEYS_KEY = (
     or os.getenv('USER')
     or os.getenv('USERNAME')
 )
+VAULT_PATH = os.path.join(
+    os.path.expanduser('~'), os.getenv('VAULT_PATH', '.vault')
+)
 
-logging.basicConfig(level=('DEBUG' if os.getenv('DEBUG') else 'WARNING'))
-logger = logging.getLogger('derivepassphrase.exporter.vault_storeroom')
+logger = logging.getLogger(__name__)
 
 
 class KeyPair(TypedDict):
@@ -388,11 +393,10 @@ def decrypt_bucket_item(bucket_item: bytes, master_keys: MasterKeys) -> bytes:
     return decrypt_contents(data_contents, session_keys)
 
 
-def decrypt_bucket_file(filename: str, master_keys: MasterKeys) -> None:
-    with (
-        open(filename, 'rb') as bucket_file,
-        open(filename + '.decrypted', 'wb') as decrypted_file,
-    ):
+def decrypt_bucket_file(
+    filename: str, master_keys: MasterKeys
+) -> Iterator[bytes]:
+    with open(filename, 'rb') as bucket_file:
         header_line = bucket_file.readline()
         try:
             header = json.loads(header_line)
@@ -402,19 +406,78 @@ def decrypt_bucket_file(filename: str, master_keys: MasterKeys) -> None:
         if header != {'version': 1}:
             msg = f'Invalid bucket file: {filename}'
             raise RuntimeError(msg) from None
-        decrypted_file.write(header_line)
         for line in bucket_file:
-            decrypted_contents = (
-                decrypt_bucket_item(
-                    base64.standard_b64decode(line), master_keys
-                ).removesuffix(b'\n')
-                + b'\n'
+            yield decrypt_bucket_item(
+                base64.standard_b64decode(line), master_keys
             )
-            decrypted_file.write(decrypted_contents)
 
 
-def main() -> None:
-    with open('.keys', encoding='utf-8') as master_keys_file:
+def store(config: dict[str, Any], path: str, json_contents: bytes) -> None:
+    """Store the JSON contents at path in the config structure.
+
+    Traverse the config structure according to path, and set the value
+    of the leaf to the decoded JSON contents.
+
+    A path `/foo/bar/xyz` translates to the JSON structure
+    `{"foo": {"bar": {"xyz": ...}}}`.
+
+    Args:
+        config:
+            The (top-level) configuration structure to update.
+        path:
+            The path within the configuration structure to traverse.
+        json_contents:
+            The contents to set the item to, after JSON-decoding.
+
+    Raises:
+        json.JSONDecodeError:
+            There was an error parsing the JSON contents.
+
+    """
+    contents = json.loads(json_contents)
+    path_parts = [part for part in path.split('/') if part]
+    for part in path_parts[:-1]:
+        config = config.setdefault(part, {})
+    if path_parts:
+        config[path_parts[-1]] = contents
+
+
+def export_storeroom_data(
+    storeroom_path: str | bytes | os.PathLike = VAULT_PATH,
+    master_keys_key: str | bytes | None = MASTER_KEYS_KEY,
+) -> dict[str, Any]:
+    """Export the full configuration stored in the storeroom.
+
+    Args:
+        storeroom_path:
+            Path to the storeroom; usually `~/.vault`.
+        master_keys_key:
+            Encryption key/password for the master keys.  If not set via
+            the `VAULT_KEY` environment variable, this usually is the
+            user's username.
+
+    Returns:
+        The full configuration, as stored in the storeroom.
+
+        This may or may not be a valid configuration according to vault
+        or derivepassphrase.
+
+    Raises:
+        RuntimeError:
+            Something went wrong during data collection, e.g. we
+            encountered unsupported or corrupted data in the storeroom.
+        json.JSONDecodeError:
+            An internal JSON data structure failed to parse from disk.
+            The storeroom is probably corrupted.
+
+    """
+
+    if master_keys_key is None:
+        msg = 'Cannot determine master key; please set VAULT_KEY'
+        raise RuntimeError(msg)
+    with open(
+        os.path.join(os.fsdecode(storeroom_path), '.keys'), encoding='utf-8'
+    ) as master_keys_file:
         header = json.loads(master_keys_file.readline())
         if header != {'version': 1}:
             msg = 'bad or unsupported keys version header'
@@ -432,13 +495,67 @@ def main() -> None:
         raise RuntimeError(msg)
     encrypted_keys_iterations = 2 ** (10 + (encrypted_keys_params & 0x0F))
     master_keys_keys = derive_master_keys_keys(
-        MASTER_KEYS_KEY, encrypted_keys_iterations
+        master_keys_key, encrypted_keys_iterations
     )
     master_keys = decrypt_master_keys_data(encrypted_keys, master_keys_keys)
 
+    config_structure: dict[str, Any] = {}
+    json_contents: dict[str, bytes] = {}
     for file in glob.glob('[01][0-9a-f]'):
-        decrypt_bucket_file(file, master_keys)
+        bucket_contents = list(decrypt_bucket_file(file, master_keys))
+        bucket_index = json.loads(bucket_contents.pop(0))
+        for pos, item in enumerate(bucket_index):
+            json_contents[item] = bucket_contents[pos]
+            logger.debug(
+                'Found bucket item: %s -> %s', item, bucket_contents[pos]
+            )
+    dirs_to_check: dict[str, list[str]] = {}
+    json_payload: Any
+    for path, json_content in sorted(json_contents.items()):
+        if path.endswith('/'):
+            logger.debug(
+                'Postponing dir check: %s -> %s',
+                path,
+                json_content.decode('utf-8'),
+            )
+            json_payload = json.loads(json_content)
+            if not isinstance(json_payload, list) or any(
+                not isinstance(x, str) for x in json_payload
+            ):
+                msg = (
+                    f'Directory index is not actually an index: '
+                    f'{json_content!r}'
+                )
+                raise RuntimeError(msg)
+            dirs_to_check[path] = json_payload
+            logger.debug(
+                'Setting contents (empty directory): %s -> %s', path, '{}'
+            )
+            store(config_structure, path, b'{}')
+        else:
+            logger.debug(
+                'Setting contents: %s -> %s',
+                path,
+                json_content.decode('utf-8'),
+            )
+            store(config_structure, path, json_content)
+    for _dir, namelist in dirs_to_check.items():
+        namelist = [x.rstrip('/') for x in namelist]  # noqa: PLW2901
+        try:
+            obj = config_structure
+            for part in _dir.split('/'):
+                if part:
+                    obj = obj[part]
+        except KeyError as exc:
+            msg = f'Cannot traverse storage path: {_dir!r}'
+            raise RuntimeError(msg) from exc
+        if set(obj.keys()) != set(namelist):
+            msg = f'Object key mismatch for path {_dir!r}'
+            raise RuntimeError(msg)
+    return config_structure
 
 
 if __name__ == '__main__':
-    main()
+    logging.basicConfig(level=('DEBUG' if os.getenv('DEBUG') else 'WARNING'))
+    config_structure = export_storeroom_data()
+    print(json.dumps(config_structure, indent=2, sort_keys=True))  # noqa: T201
