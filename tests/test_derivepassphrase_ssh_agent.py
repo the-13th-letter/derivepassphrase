@@ -360,10 +360,20 @@ class TestAgentInteraction:
     @pytest.mark.parametrize(
         ['response_code', 'response', 'exc_type', 'exc_pattern'],
         [
-            (255, b'', RuntimeError, 'error return from SSH agent:'),
-            (12, b'\x00\x00\x00\x01', EOFError, 'truncated response'),
             (
-                12,
+                _types.SSH_AGENT.FAILURE,
+                b'',
+                ssh_agent.SSHAgentFailedError,
+                'failed to complete the request',
+            ),
+            (
+                _types.SSH_AGENT.IDENTITIES_ANSWER,
+                b'\x00\x00\x00\x01',
+                EOFError,
+                'truncated response',
+            ),
+            (
+                _types.SSH_AGENT.IDENTITIES_ANSWER,
                 b'\x00\x00\x00\x00abc',
                 ssh_agent.TrailingDataError,
                 'Overlong response',
@@ -373,7 +383,7 @@ class TestAgentInteraction:
     def test_320_list_keys_error_responses(
         self,
         monkeypatch: Any,
-        response_code: int,
+        response_code: _types.SSH_AGENT,
         response: bytes | bytearray,
         exc_type: type[Exception],
         exc_pattern: str,
@@ -382,7 +392,7 @@ class TestAgentInteraction:
         monkeypatch.setattr(
             client,
             'request',
-            lambda *a, **kw: (response_code, response),  # noqa: ARG005
+            lambda *a, **kw: (response_code.value, response),  # noqa: ARG005
         )
         with pytest.raises(exc_type, match=exc_pattern):
             client.list_keys()
@@ -394,16 +404,16 @@ class TestAgentInteraction:
             (
                 b'invalid-key',
                 True,
-                (255, b''),
+                (_types.SSH_AGENT.FAILURE, b''),
                 KeyError,
                 'target SSH key not loaded into agent',
             ),
             (
                 tests.SUPPORTED_KEYS['ed25519']['public_key_data'],
                 True,
-                (255, b''),
-                RuntimeError,
-                'signing data failed:',
+                (_types.SSH_AGENT.FAILURE, b''),
+                ssh_agent.SSHAgentFailedError,
+                'failed to complete the request',
             ),
         ],
     )
@@ -412,12 +422,16 @@ class TestAgentInteraction:
         monkeypatch: Any,
         key: bytes | bytearray,
         check: bool,
-        response: tuple[int, bytes | bytearray],
+        response: tuple[_types.SSH_AGENT, bytes | bytearray],
         exc_type: type[Exception],
         exc_pattern: str,
     ) -> None:
         client = ssh_agent.SSHAgentClient()
-        monkeypatch.setattr(client, 'request', lambda a, b: response)  # noqa: ARG005
+        monkeypatch.setattr(
+            client,
+            'request',
+            lambda a, b: (response[0].value, response[1]),  # noqa: ARG005
+        )
         KeyCommentPair = _types.KeyCommentPair  # noqa: N806
         loaded_keys = [
             KeyCommentPair(v['public_key_data'], b'no comment')

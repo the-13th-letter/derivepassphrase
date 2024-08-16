@@ -16,6 +16,7 @@ import os
 import socket
 from typing import (
     TYPE_CHECKING,
+    NoReturn,
     TextIO,
     cast,
 )
@@ -156,11 +157,19 @@ def _get_suitable_ssh_keys(
             passphrase derivation.
 
     Raises:
+        KeyError:
+            `conn` was `None`, and the `SSH_AUTH_SOCK` environment
+            variable was not found.
+        OSError:
+            `conn` was a socket or `None`, and there was an error
+            setting up a socket connection to the agent.
         LookupError:
             No keys usable for passphrase derivation are loaded into the
             SSH agent.
         RuntimeError:
             There was an error communicating with the SSH agent.
+        SSHAgentFailedError:
+            The agent failed to supply a list of loaded keys.
 
     """
     client: ssh_agent.SSHAgentClient
@@ -187,7 +196,7 @@ def _get_suitable_ssh_keys(
         if vault.Vault._is_suitable_ssh_key(key):  # noqa: SLF001
             yield pair
     if not suitable_keys:  # pragma: no cover
-        raise IndexError(_NO_USABLE_KEYS)
+        raise LookupError(_NO_USABLE_KEYS)
 
 
 def _prompt_for_selection(
@@ -289,6 +298,12 @@ def _select_ssh_key(
         The selected SSH key.
 
     Raises:
+        KeyError:
+            `conn` was `None`, and the `SSH_AUTH_SOCK` environment
+            variable was not found.
+        OSError:
+            `conn` was a socket or `None`, and there was an error
+            setting up a socket connection to the agent.
         IndexError:
             The user made an invalid or empty selection, or requested an
             abort.
@@ -297,6 +312,8 @@ def _select_ssh_key(
             SSH agent.
         RuntimeError:
             There was an error communicating with the SSH agent.
+        SSHAgentFailedError:
+            The agent failed to supply a list of loaded keys.
     """
     suitable_keys = list(_get_suitable_ssh_keys(conn))
     key_listing: list[str] = []
@@ -844,13 +861,27 @@ def derivepassphrase(
                     opt_str, f'mutually exclusive with {other_str}', ctx=ctx
                 )
 
+    def err(msg: str) -> NoReturn:
+        click.echo(f'{PROG_NAME}: {msg}', err=True)
+        ctx.exit(1)
+
     def get_config() -> _types.VaultConfig:
         try:
             return _load_config()
         except FileNotFoundError:
             return {'services': {}}
+        except OSError as e:
+            err(f'Cannot load config: {e.strerror}: {e.filename!r}')
         except Exception as e:  # noqa: BLE001
-            ctx.fail(f'cannot load config: {e}')
+            err(f'Cannot load config: {e}')
+
+    def put_config(config: _types.VaultConfig, /) -> None:
+        try:
+            _save_config(config)
+        except OSError as exc:
+            err(f'Cannot store config: {exc.strerror}: {exc.filename!r}')
+        except Exception as exc:  # noqa: BLE001
+            err(f'Cannot store config: {exc}')
 
     configuration: _types.VaultConfig
 
@@ -914,24 +945,24 @@ def derivepassphrase(
                     break
             else:
                 if not notes_value.strip():
-                    ctx.fail('not saving new notes: user aborted request')
+                    err('Not saving new notes: user aborted request')
             configuration['services'].setdefault(service, {})['notes'] = (
                 notes_value.strip('\n')
             )
-            _save_config(configuration)
+            put_config(configuration)
     elif delete_service_settings:
         assert service is not None
         configuration = get_config()
         if service in configuration['services']:
             del configuration['services'][service]
-            _save_config(configuration)
+            put_config(configuration)
     elif delete_globals:
         configuration = get_config()
         if 'global' in configuration:
             del configuration['global']
-            _save_config(configuration)
+            put_config(configuration)
     elif clear_all_settings:
-        _save_config({'services': {}})
+        put_config({'services': {}})
     elif import_settings:
         try:
             # TODO: keep track of auto-close; try os.dup if feasible
@@ -943,13 +974,13 @@ def derivepassphrase(
             with infile:
                 maybe_config = json.load(infile)
         except json.JSONDecodeError as e:
-            ctx.fail(f'Cannot load config: cannot decode JSON: {e}')
+            err(f'Cannot load config: cannot decode JSON: {e}')
         except OSError as e:
-            ctx.fail(f'Cannot load config: {e.strerror}')
+            err(f'Cannot load config: {e.strerror}: {e.filename!r}')
         if _types.is_vault_config(maybe_config):
-            _save_config(maybe_config)
+            put_config(maybe_config)
         else:
-            ctx.fail('not a valid config')
+            err(f'Cannot load config: {_INVALID_VAULT_CONFIG}')
     elif export_settings:
         configuration = get_config()
         try:
@@ -962,7 +993,7 @@ def derivepassphrase(
             with outfile:
                 json.dump(configuration, outfile)
         except OSError as e:
-            ctx.fail(f'cannot write config: {e.strerror}')
+            err(f'Cannot store config: {e.strerror}: {e.filename!r}')
     else:
         configuration = get_config()
         # This block could be type checked more stringently, but this
@@ -1001,13 +1032,24 @@ def derivepassphrase(
                     'ASCII'
                 )
             except IndexError:
-                ctx.fail('no valid SSH key selected')
-            except (LookupError, RuntimeError) as e:
-                ctx.fail(str(e))
+                err('No valid SSH key selected')
+            except KeyError:
+                err('Cannot find running SSH agent; check SSH_AUTH_SOCK')
+            except OSError as e:
+                err(
+                    f'Cannot connect to SSH agent: {e.strerror}: '
+                    f'{e.filename!r}'
+                )
+            except (
+                LookupError,
+                RuntimeError,
+                ssh_agent.SSHAgentFailedError,
+            ) as e:
+                err(str(e))
         elif use_phrase:
             maybe_phrase = _prompt_for_passphrase()
             if not maybe_phrase:
-                ctx.fail('no passphrase given')
+                err('No passphrase given')
             else:
                 phrase = maybe_phrase
         if store_config_only:
@@ -1028,7 +1070,7 @@ def derivepassphrase(
             if not view.maps[0]:
                 settings_type = 'service' if service else 'global'
                 msg = (
-                    f'cannot update {settings_type} settings without '
+                    f'Cannot update {settings_type} settings without '
                     f'actual settings'
                 )
                 raise click.UsageError(msg)
@@ -1038,8 +1080,8 @@ def derivepassphrase(
                 configuration.setdefault('global', {}).update(view)  # type: ignore[typeddict-item]
             assert _types.is_vault_config(
                 configuration
-            ), f'invalid vault configuration: {configuration!r}'
-            _save_config(configuration)
+            ), f'Invalid vault configuration: {configuration!r}'
+            put_config(configuration)
         else:
             if not service:
                 msg = 'SERVICE is required'
@@ -1076,7 +1118,7 @@ def derivepassphrase(
                 pass
             else:
                 msg = (
-                    'no passphrase or key given on command-line '
+                    'No passphrase or key given on command-line '
                     'or in configuration'
                 )
                 raise click.UsageError(msg)
