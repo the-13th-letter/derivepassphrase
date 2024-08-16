@@ -32,6 +32,12 @@ version = "0.1.3"
 [project.optional-dependencies]
 dev = ["black", "coverage", "hatch>=1.10", "mkdocs", "mkdocs-material",
        "mkdocstrings[python]", "pytest>=8.1", "towncrier>=23.11"]
+export = [
+  # The vault configuration exporter relies on cryptography.  Version 38 was
+  # the first to include the `algorithms.AES256` interface, instead of only
+  # the `algorithms.AES` interface.
+  "cryptography >= 38.0.0",
+]
 
 [project.urls]
 Documentation = "https://the13thletter.info/derivepassphrase/"
