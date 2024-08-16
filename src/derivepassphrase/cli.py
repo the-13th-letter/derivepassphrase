@@ -1081,7 +1081,7 @@ def derivepassphrase(
             assert _types.is_vault_config(
                 configuration
             ), f'invalid vault configuration: {configuration!r}'
-            _save_config(configuration)
+            put_config(configuration)
         else:
             if not service:
                 msg = 'SERVICE is required'

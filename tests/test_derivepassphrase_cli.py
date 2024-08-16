@@ -1094,13 +1094,16 @@ contents go here
                 return _save_config(*args, **kwargs)
 
             monkeypatch.setattr(cli, '_save_config', obstruct_config_saving)
-            with pytest.raises(FileExistsError):
-                runner.invoke(
-                    cli.derivepassphrase,
-                    ['--config', '-p'],
-                    catch_exceptions=False,
-                    input='abc\n',
-                )
+            result = runner.invoke(
+                cli.derivepassphrase,
+                ['--config', '-p'],
+                catch_exceptions=False,
+                input='abc\n',
+            )
+            assert result.exit_code != 0, 'program unexpectedly succeeded?!'
+            assert (
+                b'Cannot store config' in result.stderr_bytes
+            ), 'program unexpectedly failed?!'
 
 
 class TestCLIUtils:
