@@ -157,6 +157,12 @@ def _get_suitable_ssh_keys(
             passphrase derivation.
 
     Raises:
+        KeyError:
+            `conn` was `None`, and the `SSH_AUTH_SOCK` environment
+            variable was not found.
+        OSError:
+            `conn` was a socket or `None`, and there was an error
+            setting up a socket connection to the agent.
         LookupError:
             No keys usable for passphrase derivation are loaded into the
             SSH agent.
@@ -188,7 +194,7 @@ def _get_suitable_ssh_keys(
         if vault.Vault._is_suitable_ssh_key(key):  # noqa: SLF001
             yield pair
     if not suitable_keys:  # pragma: no cover
-        raise IndexError(_NO_USABLE_KEYS)
+        raise LookupError(_NO_USABLE_KEYS)
 
 
 def _prompt_for_selection(
@@ -290,6 +296,12 @@ def _select_ssh_key(
         The selected SSH key.
 
     Raises:
+        KeyError:
+            `conn` was `None`, and the `SSH_AUTH_SOCK` environment
+            variable was not found.
+        OSError:
+            `conn` was a socket or `None`, and there was an error
+            setting up a socket connection to the agent.
         IndexError:
             The user made an invalid or empty selection, or requested an
             abort.
@@ -854,12 +866,16 @@ def derivepassphrase(
             return _load_config()
         except FileNotFoundError:
             return {'services': {}}
+        except OSError as e:
+            err(f'Cannot load config: {e.strerror}: {e.filename!r}')
         except Exception as e:  # noqa: BLE001
             err(f'Cannot load config: {e}')
 
     def put_config(config: _types.VaultConfig, /) -> None:
         try:
             _save_config(config)
+        except OSError as exc:
+            err(f'Cannot store config: {exc.strerror}: {exc.filename!r}')
         except Exception as exc:  # noqa: BLE001
             err(f'Cannot store config: {exc}')
 
@@ -1013,6 +1029,13 @@ def derivepassphrase(
                 )
             except IndexError:
                 err('no valid SSH key selected')
+            except KeyError:
+                err('cannot find running SSH agent; check SSH_AUTH_SOCK')
+            except OSError as e:
+                err(
+                    f'Cannot connect to SSH agent: {e.strerror}: '
+                    f'{e.filename!r}'
+                )
             except (LookupError, RuntimeError) as e:
                 err(str(e))
         elif use_phrase:
