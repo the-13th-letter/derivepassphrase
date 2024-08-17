@@ -394,9 +394,14 @@ def decrypt_bucket_item(bucket_item: bytes, master_keys: MasterKeys) -> bytes:
 
 
 def decrypt_bucket_file(
-    filename: str, master_keys: MasterKeys
+    filename: str,
+    master_keys: MasterKeys,
+    *,
+    root_dir: str | bytes | os.PathLike = '.',
 ) -> Iterator[bytes]:
-    with open(filename, 'rb') as bucket_file:
+    with open(
+        os.path.join(os.fsdecode(root_dir), filename), 'rb'
+    ) as bucket_file:
         header_line = bucket_file.readline()
         try:
             header = json.loads(header_line)
@@ -501,8 +506,12 @@ def export_storeroom_data(
 
     config_structure: dict[str, Any] = {}
     json_contents: dict[str, bytes] = {}
-    for file in glob.glob('[01][0-9a-f]'):
-        bucket_contents = list(decrypt_bucket_file(file, master_keys))
+    for file in glob.glob(
+        '[01][0-9a-f]', root_dir=os.fsdecode(storeroom_path)
+    ):
+        bucket_contents = list(
+            decrypt_bucket_file(file, master_keys, root_dir=storeroom_path)
+        )
         bucket_index = json.loads(bucket_contents.pop(0))
         for pos, item in enumerate(bucket_index):
             json_contents[item] = bucket_contents[pos]
