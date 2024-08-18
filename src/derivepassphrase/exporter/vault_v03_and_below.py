@@ -15,7 +15,7 @@ from cryptography.hazmat.primitives import ciphers, hashes, hmac, padding
 from cryptography.hazmat.primitives.ciphers import algorithms, modes
 from cryptography.hazmat.primitives.kdf import pbkdf2
 
-from derivepassphrase import vault
+from derivepassphrase import exporter, vault
 
 logger = logging.getLogger(__name__)
 
@@ -252,20 +252,9 @@ if __name__ == '__main__':
     import os
 
     logging.basicConfig(level=('DEBUG' if os.getenv('DEBUG') else 'WARNING'))
-    with open(
-        os.path.join(
-            os.path.expanduser('~'), os.getenv('VAULT_PATH', '.vault')
-        ),
-        'rb',
-    ) as infile:
+    with open(exporter.get_vault_path(), 'rb') as infile:
         contents = base64.standard_b64decode(infile.read())
-    password = (
-        os.getenv('VAULT_KEY')
-        or os.getenv('LOGNAME')
-        or os.getenv('USER')
-        or os.getenv('USERNAME')
-    )
-    assert password
+    password = exporter.get_vault_key()
     try:
         config = V03Reader(contents, password).run()
     except ValueError:

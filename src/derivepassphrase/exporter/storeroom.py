@@ -15,6 +15,8 @@ from cryptography.hazmat.primitives import ciphers, hashes, hmac, padding
 from cryptography.hazmat.primitives.ciphers import algorithms, modes
 from cryptography.hazmat.primitives.kdf import pbkdf2
 
+from derivepassphrase import exporter
+
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
@@ -24,15 +26,6 @@ IV_SIZE = 16
 KEY_SIZE = MAC_SIZE = 32
 ENCRYPTED_KEYPAIR_SIZE = 128
 VERSION_SIZE = 1
-MASTER_KEYS_KEY = (
-    os.getenv('VAULT_KEY')
-    or os.getenv('LOGNAME')
-    or os.getenv('USER')
-    or os.getenv('USERNAME')
-)
-VAULT_PATH = os.path.join(
-    os.path.expanduser('~'), os.getenv('VAULT_PATH', '.vault')
-)
 
 logger = logging.getLogger(__name__)
 
@@ -448,18 +441,21 @@ def store(config: dict[str, Any], path: str, json_contents: bytes) -> None:
 
 
 def export_storeroom_data(
-    storeroom_path: str | bytes | os.PathLike = VAULT_PATH,
-    master_keys_key: str | bytes | None = MASTER_KEYS_KEY,
+    storeroom_path: str | bytes | os.PathLike | None = None,
+    master_keys_key: str | bytes | None = None,
 ) -> dict[str, Any]:
     """Export the full configuration stored in the storeroom.
 
     Args:
         storeroom_path:
-            Path to the storeroom; usually `~/.vault`.
+            Path to the storeroom; usually `~/.vault`.  If not given,
+            then query [`derivepassphrase.exporter.get_vault_path`][]
+            for the value.
         master_keys_key:
-            Encryption key/password for the master keys.  If not set via
-            the `VAULT_KEY` environment variable, this usually is the
-            user's username.
+            Encryption key/password for the master keys, usually the
+            username, or passed via the `VAULT_KEY` environment
+            variable.  If not given, then query
+            [`derivepassphrase.exporter.get_vault_key`][] for the value.
 
     Returns:
         The full configuration, as stored in the storeroom.
@@ -477,9 +473,10 @@ def export_storeroom_data(
 
     """
 
+    if storeroom_path is None:
+        storeroom_path = exporter.get_vault_path()
     if master_keys_key is None:
-        msg = 'Cannot determine master key; please set VAULT_KEY'
-        raise RuntimeError(msg)
+        master_keys_key = exporter.get_vault_key()
     with open(
         os.path.join(os.fsdecode(storeroom_path), '.keys'), encoding='utf-8'
     ) as master_keys_file:
