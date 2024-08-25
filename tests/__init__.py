@@ -9,9 +9,12 @@ import contextlib
 import json
 import os
 import stat
+import tempfile
+import zipfile
 from typing import TYPE_CHECKING
 
 import pytest
+from typing_extensions import assert_never
 
 from derivepassphrase import _types, cli
 
@@ -406,6 +409,60 @@ def isolated_config(
         os.makedirs(os.path.dirname(cli._config_filename()), exist_ok=True)
         with open(cli._config_filename(), 'w', encoding='UTF-8') as outfile:
             json.dump(config, outfile)
+        yield
+
+
+@contextlib.contextmanager
+def isolated_vault_exporter_config(
+    monkeypatch: pytest.MonkeyPatch,
+    runner: click.testing.CliRunner,
+    vault_config: str | bytes | None = None,
+    vault_key: str | None = None,
+) -> Iterator[None]:
+    if TYPE_CHECKING:
+        chdir = contextlib.chdir
+    else:
+        try:
+            chdir = contextlib.chdir
+        except AttributeError:
+
+            @contextlib.contextmanager
+            def chdir(newpath: str) -> Iterator[None]:
+                oldpath = os.getcwd()
+                os.chdir(newpath)
+                yield
+                os.chdir(oldpath)
+
+    with runner.isolated_filesystem():
+        monkeypatch.setenv('HOME', os.getcwd())
+        monkeypatch.setenv('USERPROFILE', os.getcwd())
+        monkeypatch.delenv('VAULT_PATH', raising=False)
+        monkeypatch.delenv('VAULT_KEY', raising=False)
+        monkeypatch.delenv('LOGNAME', raising=False)
+        monkeypatch.delenv('USER', raising=False)
+        monkeypatch.delenv('USERNAME', raising=False)
+        if vault_key is not None:
+            monkeypatch.setenv('VAULT_KEY', vault_key)
+        match vault_config:
+            case str():
+                with open('.vault', 'w', encoding='UTF-8') as outfile:
+                    print(vault_config, file=outfile)
+            case bytes():
+                os.makedirs('.vault', mode=0o700, exist_ok=True)
+                with (
+                    chdir('.vault'),
+                    tempfile.NamedTemporaryFile(suffix='.zip') as tmpzipfile,
+                ):
+                    for line in vault_config.splitlines():
+                        tmpzipfile.write(base64.standard_b64decode(line))
+                    tmpzipfile.flush()
+                    tmpzipfile.seek(0, 0)
+                    with zipfile.ZipFile(tmpzipfile.file) as zipfileobj:
+                        zipfileobj.extractall()
+            case None:
+                pass
+            case _:  # pragma: no cover
+                assert_never(vault_config)
         yield
 
 

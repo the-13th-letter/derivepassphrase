@@ -147,6 +147,8 @@ def derivepassphrase_export(
                 module = importlib.import_module(
                     'derivepassphrase.exporter.vault_v03_and_below'
                 )
+                if module.STUBBED:
+                    raise ModuleNotFoundError
                 with open(path, 'rb') as infile:
                     contents = base64.standard_b64decode(infile.read())
                 return module.V02Reader(contents, key).run()
@@ -154,6 +156,8 @@ def derivepassphrase_export(
                 module = importlib.import_module(
                     'derivepassphrase.exporter.vault_v03_and_below'
                 )
+                if module.STUBBED:
+                    raise ModuleNotFoundError
                 with open(path, 'rb') as infile:
                     contents = base64.standard_b64decode(infile.read())
                 return module.V03Reader(contents, key).run()
@@ -161,6 +165,8 @@ def derivepassphrase_export(
                 module = importlib.import_module(
                     'derivepassphrase.exporter.storeroom'
                 )
+                if module.STUBBED:
+                    raise ModuleNotFoundError
                 return module.export_storeroom_data(path, key)
             case _:  # pragma: no cover
                 assert_never(fmt)

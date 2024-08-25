@@ -74,10 +74,18 @@ packages = ['src/derivepassphrase']
 
 [tool.hatch.envs.hatch-test]
 default-args = ['src', 'tests']
-features = ["export"]
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = ["3.10", "3.11", "3.12", "pypy3.10"]
+
+[[tool.hatch.envs.hatch-test.matrix]]
+python = ["3.10", "3.11", "3.12", "pypy3.10"]
+feature = ["export"]
+
+[tool.hatch.envs.hatch-test.overrides]
+matrix.feature.features = [
+    { value = "export", if = ["export"] },
+]
 
 [tool.hatch.env]
 requires = [

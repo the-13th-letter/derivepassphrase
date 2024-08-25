@@ -11,14 +11,41 @@ import os.path
 import struct
 from typing import TYPE_CHECKING, Any, TypedDict
 
-from cryptography.hazmat.primitives import ciphers, hashes, hmac, padding
-from cryptography.hazmat.primitives.ciphers import algorithms, modes
-from cryptography.hazmat.primitives.kdf import pbkdf2
-
 from derivepassphrase import exporter
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+
+    from cryptography.hazmat.primitives import ciphers, hashes, hmac, padding
+    from cryptography.hazmat.primitives.ciphers import algorithms, modes
+    from cryptography.hazmat.primitives.kdf import pbkdf2
+else:
+    try:
+        from cryptography.hazmat.primitives import (
+            ciphers,
+            hashes,
+            hmac,
+            padding,
+        )
+        from cryptography.hazmat.primitives.ciphers import algorithms, modes
+        from cryptography.hazmat.primitives.kdf import pbkdf2
+    except ModuleNotFoundError as exc:
+
+        class DummyModule:
+            def __init__(self, exc: type[Exception]) -> None:
+                self.exc = exc
+
+            def __getattr__(self, name: str) -> Any:
+                def func(*args: Any, **kwargs: Any) -> Any:  # noqa: ARG001
+                    raise self.exc
+
+                return func
+
+        ciphers = hashes = hmac = padding = DummyModule(exc)
+        algorithms = modes = pbkdf2 = DummyModule(exc)
+        STUBBED = True
+    else:
+        STUBBED = False
 
 STOREROOM_MASTER_KEYS_UUID = b'35b7c7ed-f71e-4adf-9051-02fb0f1e0e17'
 VAULT_CIPHER_UUID = b'73e69e8a-cb05-4b50-9f42-59d76a511299'

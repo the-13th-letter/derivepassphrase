@@ -7,13 +7,44 @@ import base64
 import json
 import logging
 import warnings
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from cryptography import exceptions as crypt_exceptions
-from cryptography import utils as crypt_utils
-from cryptography.hazmat.primitives import ciphers, hashes, hmac, padding
-from cryptography.hazmat.primitives.ciphers import algorithms, modes
-from cryptography.hazmat.primitives.kdf import pbkdf2
+if TYPE_CHECKING:
+    from cryptography import exceptions as crypt_exceptions
+    from cryptography import utils as crypt_utils
+    from cryptography.hazmat.primitives import ciphers, hashes, hmac, padding
+    from cryptography.hazmat.primitives.ciphers import algorithms, modes
+    from cryptography.hazmat.primitives.kdf import pbkdf2
+else:
+    try:
+        from cryptography import exceptions as crypt_exceptions
+        from cryptography import utils as crypt_utils
+        from cryptography.hazmat.primitives import (
+            ciphers,
+            hashes,
+            hmac,
+            padding,
+        )
+        from cryptography.hazmat.primitives.ciphers import algorithms, modes
+        from cryptography.hazmat.primitives.kdf import pbkdf2
+    except ModuleNotFoundError as exc:
+
+        class DummyModule:
+            def __init__(self, exc: type[Exception]) -> None:
+                self.exc = exc
+
+            def __getattr__(self, name: str) -> Any:
+                def func(*args: Any, **kwargs: Any) -> Any:  # noqa: ARG001
+                    raise self.exc
+
+                return func
+
+        crypt_exceptions = crypt_utils = DummyModule(exc)
+        ciphers = hashes = hmac = padding = DummyModule(exc)
+        algorithms = modes = pbkdf2 = DummyModule(exc)
+        STUBBED = True
+    else:
+        STUBBED = False
 
 from derivepassphrase import exporter, vault
 
