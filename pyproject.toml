@@ -46,6 +46,7 @@ Source = "https://github.com/the-13th-letter/derivepassphrase"
 
 [project.scripts]
 derivepassphrase = "derivepassphrase.cli:derivepassphrase"
+derivepassphrase_export = "derivepassphrase.exporter:derivepassphrase_export"
 
 [tool.mypy]
 files = ['src/**/*.py', 'tests/**/*.py']
@@ -73,6 +74,7 @@ packages = ['src/derivepassphrase']
 
 [tool.hatch.envs.hatch-test]
 default-args = ['src', 'tests']
+features = ["export"]
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = ["3.10", "3.11", "3.12", "pypy3.10"]
@@ -106,6 +108,10 @@ extra-dependencies = [
   "mypy>=1.0.0",
   "pytest~=8.1",
 ]
+features = [
+    "export",
+]
+
 [tool.hatch.envs.types.scripts]
 check = "mypy --install-types --non-interactive {args:src/derivepassphrase tests}"
 
@@ -137,6 +143,7 @@ exclude_also = [
   "raise AssertionError",
   "raise NotImplementedError",
   'assert False',
+  '(?:typing\.)?assert_never\(',
 ]
 
 [tool.ruff]
