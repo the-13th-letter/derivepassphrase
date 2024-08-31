@@ -5,17 +5,18 @@
 from __future__ import annotations
 
 import json
-import os
-from typing import Any
+from typing import TYPE_CHECKING
 
 import click.testing
 import pytest
 
 import tests
-from derivepassphrase import exporter
 from derivepassphrase.exporter import cli
 
 cryptography = pytest.importorskip('cryptography', minversion='38.0')
+
+if TYPE_CHECKING:
+    from typing import Any
 
 
 class TestCLI:
@@ -143,4 +144,53 @@ class TestCLI:
         assert (
             b"Cannot parse '.vault' as a valid config." in result.stderr_bytes
         )
+        assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr_bytes
+
+    def test_403_invalid_vault_config_bad_signature(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_exporter_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            vault_config=tests.VAULT_V02_CONFIG,
+            vault_key=tests.VAULT_MASTER_KEY,
+        ):
+            result = runner.invoke(
+                cli.derivepassphrase_export,
+                ['-f', 'v0.3', '.vault'],
+            )
+        assert isinstance(result.exception, SystemExit)
+        assert result.exit_code
+        assert result.stderr_bytes
+        assert (
+            b"Cannot parse '.vault' as a valid config." in result.stderr_bytes
+        )
+        assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr_bytes
+
+    def test_500_vault_config_invalid_internal(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_exporter_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            vault_config=tests.VAULT_V03_CONFIG,
+            vault_key=tests.VAULT_MASTER_KEY,
+        ):
+
+            def _load_data(*_args: Any, **_kwargs: Any) -> None:
+                return None
+
+            monkeypatch.setattr(cli, '_load_data', _load_data)
+            result = runner.invoke(
+                cli.derivepassphrase_export,
+                ['.vault'],
+            )
+        assert isinstance(result.exception, SystemExit)
+        assert result.exit_code
+        assert result.stderr_bytes
+        assert b'Invalid vault config: ' in result.stderr_bytes
         assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr_bytes

@@ -4,9 +4,7 @@
 
 from __future__ import annotations
 
-import json
 import os
-from typing import Any
 
 import click.testing
 import pytest
@@ -129,3 +127,51 @@ class Test002CLI:
         assert b'-f' in result.stderr_bytes
         assert b'--format' in result.stderr_bytes
         assert b'INVALID' in result.stderr_bytes
+
+    @tests.skip_if_cryptography_support
+    @pytest.mark.parametrize(
+        ['format', 'config', 'key'],
+        [
+            pytest.param(
+                'v0.2',
+                tests.VAULT_V02_CONFIG,
+                tests.VAULT_MASTER_KEY,
+                id='v0.2',
+            ),
+            pytest.param(
+                'v0.3',
+                tests.VAULT_V03_CONFIG,
+                tests.VAULT_MASTER_KEY,
+                id='v0.3',
+            ),
+            pytest.param(
+                'storeroom',
+                tests.VAULT_STOREROOM_CONFIG_ZIPPED,
+                tests.VAULT_MASTER_KEY,
+                id='storeroom',
+            ),
+        ],
+    )
+    def test_999_no_cryptography_error_message(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        format: str,
+        config: str | bytes,
+        key: str,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_exporter_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            vault_config=config,
+            vault_key=key,
+        ):
+            result = runner.invoke(
+                cli.derivepassphrase_export,
+                ['-f', format, 'VAULT_PATH'],
+                catch_exceptions=False,
+            )
+        assert isinstance(result.exception, SystemExit)
+        assert result.exit_code
+        assert result.stderr_bytes
+        assert tests.CANNOT_LOAD_CRYPTOGRAPHY in result.stderr_bytes

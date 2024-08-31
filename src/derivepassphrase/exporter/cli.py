@@ -31,6 +31,43 @@ __all__ = ('derivepassphrase_export',)
 PROG_NAME = 'derivepassphrase_export'
 
 
+def _load_data(
+    fmt: Literal['v0.2', 'v0.3', 'storeroom'],
+    path: str | bytes | os.PathLike[str],
+    key: bytes,
+) -> Any:
+    contents: bytes
+    module: types.ModuleType
+    match fmt:
+        case 'v0.2':
+            module = importlib.import_module(
+                'derivepassphrase.exporter.vault_v03_and_below'
+            )
+            if module.STUBBED:
+                raise ModuleNotFoundError
+            with open(path, 'rb') as infile:
+                contents = base64.standard_b64decode(infile.read())
+            return module.V02Reader(contents, key).run()
+        case 'v0.3':
+            module = importlib.import_module(
+                'derivepassphrase.exporter.vault_v03_and_below'
+            )
+            if module.STUBBED:
+                raise ModuleNotFoundError
+            with open(path, 'rb') as infile:
+                contents = base64.standard_b64decode(infile.read())
+            return module.V03Reader(contents, key).run()
+        case 'storeroom':
+            module = importlib.import_module(
+                'derivepassphrase.exporter.storeroom'
+            )
+            if module.STUBBED:
+                raise ModuleNotFoundError
+            return module.export_storeroom_data(path, key)
+        case _:  # pragma: no cover
+            assert_never(fmt)
+
+
 @click.command(
     context_settings={'help_option_names': ['-h', '--help']},
 )
@@ -78,42 +115,6 @@ def derivepassphrase_export(
 
     """
 
-    def load_data(
-        fmt: Literal['v0.2', 'v0.3', 'storeroom'],
-        path: str | bytes | os.PathLike[str],
-        key: bytes,
-    ) -> Any:
-        contents: bytes
-        module: types.ModuleType
-        match fmt:
-            case 'v0.2':
-                module = importlib.import_module(
-                    'derivepassphrase.exporter.vault_v03_and_below'
-                )
-                if module.STUBBED:
-                    raise ModuleNotFoundError
-                with open(path, 'rb') as infile:
-                    contents = base64.standard_b64decode(infile.read())
-                return module.V02Reader(contents, key).run()
-            case 'v0.3':
-                module = importlib.import_module(
-                    'derivepassphrase.exporter.vault_v03_and_below'
-                )
-                if module.STUBBED:
-                    raise ModuleNotFoundError
-                with open(path, 'rb') as infile:
-                    contents = base64.standard_b64decode(infile.read())
-                return module.V03Reader(contents, key).run()
-            case 'storeroom':
-                module = importlib.import_module(
-                    'derivepassphrase.exporter.storeroom'
-                )
-                if module.STUBBED:
-                    raise ModuleNotFoundError
-                return module.export_storeroom_data(path, key)
-            case _:  # pragma: no cover
-                assert_never(fmt)
-
     logging.basicConfig()
     if path in {'VAULT_PATH', b'VAULT_PATH'}:
         path = exporter.get_vault_path()
@@ -123,7 +124,7 @@ def derivepassphrase_export(
         key = key.encode('utf-8')
     for fmt in formats:
         try:
-            config = load_data(fmt, path, key)
+            config = _load_data(fmt, path, key)
         except (
             IsADirectoryError,
             NotADirectoryError,
@@ -165,3 +166,7 @@ def derivepassphrase_export(
             err=True,
         )
         ctx.exit(1)
+
+
+if __name__ == '__main__':
+    derivepassphrase_export()

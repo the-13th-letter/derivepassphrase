@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import base64
 import contextlib
+import importlib.util
 import json
 import os
 import stat
@@ -445,6 +446,14 @@ CANNOT_LOAD_CRYPTOGRAPHY = (
 
 skip_if_no_agent = pytest.mark.skipif(
     not os.environ.get('SSH_AUTH_SOCK'), reason='running SSH agent required'
+)
+skip_if_cryptography_support = pytest.mark.skipif(
+    importlib.util.find_spec('cryptography') is not None,
+    reason='cryptography support available; cannot test "no support" scenario',
+)
+skip_if_no_cryptography_support = pytest.mark.skipif(
+    importlib.util.find_spec('cryptography') is None,
+    reason='no "cryptography" support',
 )
 
 
