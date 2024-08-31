@@ -1237,6 +1237,101 @@ contents go here
                 b'Cannot store config' in result.stderr_bytes
             ), 'program unexpectedly failed?!'
 
+    @pytest.mark.parametrize(
+        ['command_line', 'input', 'error_message'],
+        [
+            pytest.param(
+                ['--import', '-'],
+                json.dumps({
+                    'global': {'phrase': 'Du\u0308sseldorf'},
+                    'services': {},
+                }),
+                'the global passphrase is not NFC-normalized',
+                id='global-NFC',
+            ),
+            pytest.param(
+                ['--import', '-'],
+                json.dumps({
+                    'services': {
+                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
+                        'weird entry name': {'phrase': 'Du\u0308sseldorf'},
+                    }
+                }),
+                (
+                    "the services.'weird entry name' passphrase "
+                    'is not NFC-normalized'
+                ),
+                id='service-weird-name-NFC',
+            ),
+            pytest.param(
+                ['--config', '-p', DUMMY_SERVICE],
+                'Du\u0308sseldorf',
+                (
+                    f'the services.{DUMMY_SERVICE} passphrase '
+                    f'is not NFC-normalized'
+                ),
+                id='config-NFC',
+            ),
+            pytest.param(
+                ['-p', DUMMY_SERVICE],
+                'Du\u0308sseldorf',
+                'the interactive passphrase is not NFC-normalized',
+                id='direct-input-NFC',
+            ),
+            pytest.param(
+                ['--import', '-'],
+                json.dumps({
+                    'global': {
+                        'unicode_normalization_form': 'NFD',
+                        'phrase': 'D\u00fcsseldorf',
+                    },
+                    'services': {},
+                }),
+                'the global passphrase is not NFD-normalized',
+                id='global-NFD',
+            ),
+            pytest.param(
+                ['--import', '-'],
+                json.dumps({
+                    'global': {
+                        'unicode_normalization_form': 'NFD',
+                    },
+                    'services': {
+                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
+                        'weird entry name': {'phrase': 'D\u00fcsseldorf'},
+                    }
+                }),
+                (
+                    "the services.'weird entry name' passphrase "
+                    'is not NFD-normalized'
+                ),
+                id='service-weird-name-NFD',
+            ),
+        ],
+    )
+    def test_300_unicode_normalization_form_warning(
+        self,
+        monkeypatch: Any,
+        command_line: list[str],
+        input: str | None,
+        error_message: str,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}},
+        ):
+            result = runner.invoke(
+                cli.derivepassphrase,
+                command_line,
+                catch_exceptions=False,
+                input=input,
+            )
+            assert (result.exception, result.exit_code) == (None, 0)
+            assert result.stderr_bytes is not None
+            assert error_message in result.stderr
+
 
 class TestCLIUtils:
     def test_100_save_bad_config(self, monkeypatch: Any) -> None:

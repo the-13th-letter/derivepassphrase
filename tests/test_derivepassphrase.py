@@ -205,27 +205,19 @@ class TestVault:
         assert v.generate(service) == expected
 
     @pytest.mark.parametrize(
-        ['s', 'raises'],
+        's',
         [
-            ('ñ', True),
-            ('Düsseldorf', True),
-            ('liberté, egalité, fraternité', True),
-            ('ASCII', False),
-            (b'D\xc3\xbcsseldorf', False),
-            (bytearray([2, 3, 5, 7, 11, 13]), False),
+            'ñ',
+            'Düsseldorf',
+            'liberté, egalité, fraternité',
+            'ASCII',
+            b'D\xc3\xbcsseldorf',
+            bytearray([2, 3, 5, 7, 11, 13]),
         ],
     )
-    def test_224_binary_strings(
-        self, s: str | bytes | bytearray, raises: bool
-    ) -> None:
+    def test_224_binary_strings(self, s: str | bytes | bytearray) -> None:
         binstr = Vault._get_binary_string
-        AmbiguousByteRepresentationError = (  # noqa: N806
-            derivepassphrase.vault.AmbiguousByteRepresentationError
-        )
-        if raises:
-            with pytest.raises(AmbiguousByteRepresentationError):
-                binstr(s)
-        elif isinstance(s, str):
+        if isinstance(s, str):
             assert binstr(s) == s.encode('UTF-8')
             assert binstr(binstr(s)) == s.encode('UTF-8')
         else:
