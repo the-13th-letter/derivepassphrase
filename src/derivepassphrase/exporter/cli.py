@@ -47,7 +47,7 @@ def _load_data(
                 raise ModuleNotFoundError
             with open(path, 'rb') as infile:
                 contents = base64.standard_b64decode(infile.read())
-            return module.V02Reader(contents, key).run()
+            return module.VaultNativeV02ConfigParser(contents, key)()
         case 'v0.3':
             module = importlib.import_module(
                 'derivepassphrase.exporter.vault_v03_and_below'
@@ -56,7 +56,7 @@ def _load_data(
                 raise ModuleNotFoundError
             with open(path, 'rb') as infile:
                 contents = base64.standard_b64decode(infile.read())
-            return module.V03Reader(contents, key).run()
+            return module.VaultNativeV03ConfigParser(contents, key)()
         case 'storeroom':
             module = importlib.import_module(
                 'derivepassphrase.exporter.storeroom'

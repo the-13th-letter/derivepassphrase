@@ -7,7 +7,14 @@ import base64
 import json
 import logging
 import warnings
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
+
+from derivepassphrase import exporter, vault
+
+if TYPE_CHECKING:
+    from typing import Any
+
+    from typing_extensions import Buffer
 
 if TYPE_CHECKING:
     from cryptography import exceptions as crypt_exceptions
@@ -46,8 +53,6 @@ else:
     else:
         STUBBED = False
 
-from derivepassphrase import exporter, vault
-
 logger = logging.getLogger(__name__)
 
 
@@ -55,32 +60,37 @@ def _h(bs: bytes | bytearray) -> str:
     return 'bytes.fromhex({!r})'.format(bs.hex(' '))
 
 
-class Reader(abc.ABC):
-    def __init__(
-        self, contents: bytes | bytearray, password: str | bytes | bytearray
-    ) -> None:
+class VaultNativeConfigParser(abc.ABC):
+    def __init__(self, contents: Buffer, password: str | Buffer) -> None:
         if not password:
-            msg = 'No password given; check VAULT_KEY environment variable'
+            msg = 'Password must not be empty'
             raise ValueError(msg)
-        self.contents = contents
-        self.password = password
+        self._contents = bytes(contents)
         self.iv_size = 0
         self.mac_size = 0
         self.encryption_key = b''
         self.encryption_key_size = 0
         self.signing_key = b''
         self.signing_key_size = 0
+        self.message = b''
+        self.message_tag = b''
+        self.iv = b''
+        self.payload = b''
+        self._password = password
+        self._sentinel: object = object()
+        self._data: Any = self._sentinel
 
-    def run(self) -> Any:
-        self._parse_contents()
-        self._derive_keys()
-        self._check_signature()
-        self._decrypt_payload()
+    def __call__(self) -> Any:
+        if self._data is self._sentinel:
+            self._parse_contents()
+            self._derive_keys()
+            self._check_signature()
+            self._data = self._decrypt_payload()
         return self._data
 
     @staticmethod
     def pbkdf2(
-        password: str | bytes | bytearray, key_size: int, iterations: int
+        password: str | Buffer, key_size: int, iterations: int
     ) -> bytes:
         if isinstance(password, str):
             password = password.encode('utf-8')
@@ -89,7 +99,7 @@ class Reader(abc.ABC):
             length=key_size // 2,
             salt=vault.Vault._UUID,  # noqa: SLF001
             iterations=iterations,
-        ).derive(password)
+        ).derive(bytes(password))
         logger.debug(
             'binary = pbkdf2(%s, %s, %s, %s, %s) = %s -> %s',
             repr(password),
@@ -105,21 +115,22 @@ class Reader(abc.ABC):
     def _parse_contents(self) -> None:
         logger.info('Parsing IV, payload and signature from the file contents')
 
-        if len(self.contents) < self.iv_size + 16 + self.mac_size:
-            msg = 'File contents are too small to parse'
+        if len(self._contents) < self.iv_size + 16 + self.mac_size:
+            msg = 'Invalid vault configuration file: file is truncated'
             raise ValueError(msg)
 
-        cutpos1 = self.iv_size
-        cutpos2 = len(self.contents) - self.mac_size
+        def cut(buffer: bytes, cutpoint: int) -> tuple[bytes, bytes]:
+            return buffer[:cutpoint], buffer[cutpoint:]
 
-        self.message = self.contents[:cutpos2]
-        self.message_tag = self.contents[cutpos2:]
-        self.iv = self.message[:cutpos1]
-        self.payload = self.message[cutpos1:]
+        cutpos1 = len(self._contents) - self.mac_size
+        cutpos2 = self.iv_size
+
+        self.message, self.message_tag = cut(self._contents, cutpos1)
+        self.iv, self.payload = cut(self.message, cutpos2)
 
         logger.debug(
             'buffer %s = [[%s, %s], %s]',
-            _h(self.contents),
+            _h(self._contents),
             _h(self.iv),
             _h(self.payload),
             _h(self.message_tag),
@@ -130,10 +141,10 @@ class Reader(abc.ABC):
         self._generate_keys()
         assert (
             len(self.encryption_key) == self.encryption_key_size
-        ), 'Derived encryption key is not valid'
+        ), 'Derived encryption key is invalid'
         assert (
             len(self.signing_key) == self.signing_key_size
-        ), 'Derived signing key is not valid'
+        ), 'Derived signing key is invalid'
 
     @abc.abstractmethod
     def _generate_keys(self) -> None:
@@ -152,14 +163,14 @@ class Reader(abc.ABC):
         try:
             mac.verify(self.message_tag)
         except crypt_exceptions.InvalidSignature:
-            msg = 'File does not contain a valid HMAC-SHA256 signature'
+            msg = 'File does not contain a valid signature'
             raise ValueError(msg) from None
 
     @abc.abstractmethod
     def _hmac_input(self) -> bytes:
         raise AssertionError
 
-    def _decrypt_payload(self) -> None:
+    def _decrypt_payload(self) -> Any:
         decryptor = self._make_decryptor()
         padded_plaintext = bytearray()
         padded_plaintext.extend(decryptor.update(self.payload))
@@ -170,14 +181,14 @@ class Reader(abc.ABC):
         plaintext.extend(unpadder.update(padded_plaintext))
         plaintext.extend(unpadder.finalize())
         logger.debug('plaintext = %s', _h(plaintext))
-        self._data = json.loads(plaintext)
+        return json.loads(plaintext)
 
     @abc.abstractmethod
     def _make_decryptor(self) -> ciphers.CipherContext:
         raise AssertionError
 
 
-class V03Reader(Reader):
+class VaultNativeV03ConfigParser(VaultNativeConfigParser):
     KEY_SIZE = 32
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -185,13 +196,15 @@ class V03Reader(Reader):
         self.iv_size = 16
         self.mac_size = 32
 
-    def run(self) -> Any:
-        logger.info('Attempting to parse as v0.3 configuration')
-        return super().run()
+    def __call__(self) -> Any:
+        if self._data is self._sentinel:
+            logger.info('Attempting to parse as v0.3 configuration')
+            return super().__call__()
+        return self._data
 
     def _generate_keys(self) -> None:
-        self.encryption_key = self.pbkdf2(self.password, self.KEY_SIZE, 100)
-        self.signing_key = self.pbkdf2(self.password, self.KEY_SIZE, 200)
+        self.encryption_key = self.pbkdf2(self._password, self.KEY_SIZE, 100)
+        self.signing_key = self.pbkdf2(self._password, self.KEY_SIZE, 200)
         self.encryption_key_size = self.signing_key_size = self.KEY_SIZE
 
     def _hmac_input(self) -> bytes:
@@ -203,15 +216,17 @@ class V03Reader(Reader):
         ).decryptor()
 
 
-class V02Reader(Reader):
+class VaultNativeV02ConfigParser(VaultNativeConfigParser):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.iv_size = 16
         self.mac_size = 64
 
-    def run(self) -> Any:
-        logger.info('Attempting to parse as v0.2 configuration')
-        return super().run()
+    def __call__(self) -> Any:
+        if self._data is self._sentinel:
+            logger.info('Attempting to parse as v0.2 configuration')
+            return super().__call__()
+        return self._data
 
     def _parse_contents(self) -> None:
         super()._parse_contents()
@@ -220,8 +235,8 @@ class V02Reader(Reader):
         self.message_tag = bytes.fromhex(self.message_tag.decode('ASCII'))
 
     def _generate_keys(self) -> None:
-        self.encryption_key = self.pbkdf2(self.password, 8, 16)
-        self.signing_key = self.pbkdf2(self.password, 16, 16)
+        self.encryption_key = self.pbkdf2(self._password, 8, 16)
+        self.signing_key = self.pbkdf2(self._password, 16, 16)
         self.encryption_key_size = 8
         self.signing_key_size = 16
 
@@ -229,14 +244,13 @@ class V02Reader(Reader):
         return base64.standard_b64encode(self.message)
 
     def _make_decryptor(self) -> ciphers.CipherContext:
-        def evp_bytestokey_md5_one_iteration(
-            data: bytes, salt: bytes | None, key_size: int, iv_size: int
+        def evp_bytestokey_md5_one_iteration_no_salt(
+            data: bytes, key_size: int, iv_size: int
         ) -> tuple[bytes, bytes]:
             total_size = key_size + iv_size
             buffer = bytearray()
             last_block = b''
-            if salt is None:
-                salt = b''
+            salt = b''
             logging.debug(
                 (
                     'data = %s, salt = %s, key_size = %s, iv_size = %s, '
@@ -271,8 +285,8 @@ class V02Reader(Reader):
             return bytes(buffer[:key_size]), bytes(buffer[key_size:total_size])
 
         data = base64.standard_b64encode(self.iv + self.encryption_key)
-        encryption_key, iv = evp_bytestokey_md5_one_iteration(
-            data, salt=None, key_size=32, iv_size=16
+        encryption_key, iv = evp_bytestokey_md5_one_iteration_no_salt(
+            data, key_size=32, iv_size=16
         )
         return ciphers.Cipher(
             algorithms.AES256(encryption_key), modes.CBC(iv)
@@ -287,7 +301,7 @@ if __name__ == '__main__':
         contents = base64.standard_b64decode(infile.read())
     password = exporter.get_vault_key()
     try:
-        config = V03Reader(contents, password).run()
+        config = VaultNativeV03ConfigParser(contents, password)()
     except ValueError:
-        config = V02Reader(contents, password).run()
+        config = VaultNativeV02ConfigParser(contents, password)()
     print(json.dumps(config, indent=2, sort_keys=True))  # noqa: T201

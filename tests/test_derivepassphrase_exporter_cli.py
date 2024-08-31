@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 from typing import TYPE_CHECKING
 
@@ -11,11 +12,12 @@ import click.testing
 import pytest
 
 import tests
-from derivepassphrase.exporter import cli, storeroom
+from derivepassphrase.exporter import cli, storeroom, vault_v03_and_below
 
 cryptography = pytest.importorskip('cryptography', minversion='38.0')
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from typing import Any
 
 
@@ -303,3 +305,66 @@ class TestStoreroom:
             pytest.raises(RuntimeError, match='Object key mismatch'),
         ):
                 storeroom.export_storeroom_data()
+
+
+class TestVaultNativeConfig:
+    @pytest.mark.parametrize(
+        ['iterations', 'result'],
+        [
+            (100, b'6ede361e81e9c061efcdd68aeb768b80'),
+            (200, b'bcc7d01e075b9ffb69e702bf701187c1'),
+        ],
+    )
+    def test_200_pbkdf2_manually(self, iterations: int, result: bytes) -> None:
+        assert vault_v03_and_below.VaultNativeConfigParser.pbkdf2(tests.VAULT_MASTER_KEY.encode('utf-8'), 32, iterations) == result
+
+    @pytest.mark.parametrize(
+        ['parser_class', 'config', 'result'],
+        [
+            pytest.param(
+                vault_v03_and_below.VaultNativeV02ConfigParser,
+                tests.VAULT_V02_CONFIG,
+                tests.VAULT_V02_CONFIG_DATA,
+                id='0.2',
+            ),
+            pytest.param(
+                vault_v03_and_below.VaultNativeV03ConfigParser,
+                tests.VAULT_V03_CONFIG,
+                tests.VAULT_V03_CONFIG_DATA,
+                id='0.3',
+            ),
+        ],
+    )
+    def test_300_result_caching(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        parser_class: type[vault_v03_and_below.VaultNativeConfigParser],
+        config: str,
+        result: dict[str, Any],
+    ) -> None:
+
+        def null_func(name: str) -> Callable[..., None]:
+            def func(*_args: Any, **_kwargs: Any) -> None:  # pragma: no cover
+                msg = f'disallowed and stubbed out function {name} called'
+                raise AssertionError(msg)
+            return func
+
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_exporter_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            vault_config=config,
+        ):
+            parser = parser_class(base64.b64decode(config), tests.VAULT_MASTER_KEY)
+            assert parser() == result
+            # Now stub out all functions used to calculate the above result.
+            monkeypatch.setattr(parser, '_parse_contents', null_func('_parse_contents'))
+            monkeypatch.setattr(parser, '_derive_keys', null_func('_derive_keys'))
+            monkeypatch.setattr(parser, '_check_signature', null_func('_check_signature'))
+            monkeypatch.setattr(parser, '_decrypt_payload', null_func('_decrypt_payload'))
+            assert parser() == result
+            assert vault_v03_and_below.VaultNativeConfigParser.__call__(parser) == result
+
+    def test_400_no_password(self) -> None:
+        with pytest.raises(ValueError, match='Password must not be empty'):
+            vault_v03_and_below.VaultNativeV03ConfigParser(b'', b'')
