@@ -29,7 +29,7 @@ else:
         from cryptography.hazmat.primitives.kdf import pbkdf2
     except ModuleNotFoundError as exc:
 
-        class DummyModule:
+        class DummyModule:  # pragma: no cover
             def __init__(self, exc: type[Exception]) -> None:
                 self.exc = exc
 
