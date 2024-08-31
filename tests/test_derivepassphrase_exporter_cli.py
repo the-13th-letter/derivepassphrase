@@ -11,7 +11,7 @@ import click.testing
 import pytest
 
 import tests
-from derivepassphrase.exporter import cli
+from derivepassphrase.exporter import cli, storeroom
 
 cryptography = pytest.importorskip('cryptography', minversion='38.0')
 
@@ -194,3 +194,112 @@ class TestCLI:
         assert result.stderr_bytes
         assert b'Invalid vault config: ' in result.stderr_bytes
         assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr_bytes
+
+
+class TestStoreroom:
+    @pytest.mark.parametrize(
+        ['path', 'key'],
+        [
+            ('.vault', tests.VAULT_MASTER_KEY),
+            ('.vault', None),
+            (None, tests.VAULT_MASTER_KEY),
+            (None, None),
+        ],
+    )
+    def test_200_export_data_path_and_keys_type(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        path: str | None,
+        key: str | None,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_exporter_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            vault_config=tests.VAULT_STOREROOM_CONFIG_ZIPPED,
+            vault_key=tests.VAULT_MASTER_KEY,
+        ):
+            assert (
+                storeroom.export_storeroom_data(path, key)
+                == tests.VAULT_STOREROOM_CONFIG_DATA
+            )
+
+    def test_400_decrypt_bucket_item_unknown_version(self) -> None:
+        bucket_item = (
+            b'\xff' + bytes(storeroom.ENCRYPTED_KEYPAIR_SIZE) + bytes(3)
+        )
+        master_keys: storeroom.MasterKeys = {
+            'encryption_key': bytes(storeroom.KEY_SIZE),
+            'signing_key': bytes(storeroom.KEY_SIZE),
+            'hashing_key': bytes(storeroom.KEY_SIZE),
+        }
+        with pytest.raises(RuntimeError, match='Cannot handle version 255'):
+            storeroom.decrypt_bucket_item(bucket_item, master_keys)
+
+    @pytest.mark.parametrize('config', ['xxx', 'null', '{"version": 255}'])
+    def test_401_decrypt_bucket_file_bad_json_or_version(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        config: str,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        master_keys: storeroom.MasterKeys = {
+            'encryption_key': bytes(storeroom.KEY_SIZE),
+            'signing_key': bytes(storeroom.KEY_SIZE),
+            'hashing_key': bytes(storeroom.KEY_SIZE),
+        }
+        with (
+            tests.isolated_vault_exporter_config(
+                monkeypatch=monkeypatch,
+                runner=runner,
+                vault_config=tests.VAULT_STOREROOM_CONFIG_ZIPPED,
+            ),
+        ):
+            with open('.vault/20', 'w', encoding='UTF-8') as outfile:
+                print(config, file=outfile)
+            with pytest.raises(RuntimeError, match='Invalid bucket file: '):
+                list(storeroom.decrypt_bucket_file('.vault/20', master_keys))
+
+    @pytest.mark.parametrize(
+        ['data', 'err_msg'],
+        [
+            ('{"version": 255}', 'bad or unsupported keys version header'),
+            ('{"version": 1}\nAAAA\nAAAA', 'trailing data; cannot make sense'),
+            ('{"version": 1}\nAAAA', 'cannot handle version 0 encrypted keys'),
+        ],
+    )
+    def test_402_export_storeroom_data_bad_master_keys_file(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        data: str,
+        err_msg: str,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with (
+            tests.isolated_vault_exporter_config(
+                monkeypatch=monkeypatch,
+                runner=runner,
+                vault_config=tests.VAULT_STOREROOM_CONFIG_ZIPPED,
+                vault_key=tests.VAULT_MASTER_KEY,
+            ),
+        ):
+            with open('.vault/.keys', 'w', encoding='UTF-8') as outfile:
+                print(data, file=outfile)
+            with pytest.raises(RuntimeError, match=err_msg):
+                storeroom.export_storeroom_data()
+
+    def test_403_export_storeroom_data_bad_directory_listing(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with (
+            tests.isolated_vault_exporter_config(
+                monkeypatch=monkeypatch,
+                runner=runner,
+                vault_config=tests.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED,
+                vault_key=tests.VAULT_MASTER_KEY,
+            ),
+            pytest.raises(RuntimeError, match='Object key mismatch'),
+        ):
+                storeroom.export_storeroom_data()
