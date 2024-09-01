@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "derivepassphrase"
 description = "An almost faithful Python reimplementation of James Coglan's vault."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">= 3.10"
 license = "MIT"
 keywords = []
 authors = [
@@ -24,14 +24,22 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "click>=8.1",
+  # We use click for the command-line interface.  We require version 8.1.0
+  # or higher due to click issue #1985.
+  "click >= 8.1",
+  # We include type annotations, and use facilities that are not readily
+  # available in older Pythons (such as typing.Self).  These are loaded from
+  # typing_extensions, instead of using explicit version guards.
   "typing_extensions",
 ]
 version = "0.1.3"
 
 [project.optional-dependencies]
-dev = ["black", "coverage", "hatch>=1.10", "mkdocs", "mkdocs-material",
-       "mkdocstrings[python]", "pytest>=8.1", "towncrier>=23.11"]
+dev = [
+  # Development uses the hatch build system, to isolate all tools in their
+  # own virtual environment.
+  "hatch ~= 1.10",
+]
 export = [
   # The vault configuration exporter relies on cryptography.  Version 38 was
   # the first to include the `algorithms.AES256` interface, instead of only
@@ -39,30 +47,45 @@ export = [
   "cryptography >= 38.0.0",
 ]
 
+[project.scripts]
+derivepassphrase = "derivepassphrase.cli:derivepassphrase"
+derivepassphrase_export = "derivepassphrase.exporter:derivepassphrase_export"
+
 [project.urls]
 Documentation = "https://the13thletter.info/derivepassphrase/"
 Issues = "https://github.com/the-13th-letter/derivepassphrase/issues"
 Source = "https://github.com/the-13th-letter/derivepassphrase"
 
-[project.scripts]
-derivepassphrase = "derivepassphrase.cli:derivepassphrase"
-derivepassphrase_export = "derivepassphrase.exporter:derivepassphrase_export"
+[tool.coverage.html]
+directory = "html/coverage"
 
-[tool.mypy]
-files = ['src/**/*.py', 'tests/**/*.py']
-mypy_path = '$MYPY_CONFIG_FILE_DIR/src'
-explicit_package_bases = true
-implicit_reexport = false
-sqlite_cache = true
+[tool.coverage.paths]
+src = ["src"]
+tests = ["tests"]
 
-[tool.pytest.ini_options]
-addopts = '--doctest-modules'
-pythonpath = ['src']
-testpaths = ['src', 'tests']
-xfail_strict = true
+[tool.coverage.report]
+skip_covered = false
+skip_empty = true
+precision = 3
+partial_branches = [
+    'pragma: no branch',
+]
+exclude_also = [
+  "if __name__ == .__main__.:",
+  'if (?:typing\.)?TYPE_CHECKING:',
+  "raise AssertionError",
+  "raise NotImplementedError",
+  'assert False',
+  '(?:typing\.)?assert_never\(',
+]
 
-[tool.hatch.version]
-path = "src/derivepassphrase/__init__.py"
+[tool.coverage.run]
+source_pkgs = ["derivepassphrase", "tests"]
+branch = true
+parallel = true
+omit = [
+  "__main__.py",
+]
 
 [tool.hatch.build.targets.sdist]
 exclude = [
@@ -71,21 +94,6 @@ exclude = [
 
 [tool.hatch.build.targets.wheel]
 packages = ['src/derivepassphrase']
-
-[tool.hatch.envs.hatch-test]
-default-args = ['src', 'tests']
-
-[[tool.hatch.envs.hatch-test.matrix]]
-python = ["3.10", "3.11", "3.12", "pypy3.10"]
-
-[[tool.hatch.envs.hatch-test.matrix]]
-python = ["3.10", "3.11", "3.12", "pypy3.10"]
-feature = ["export"]
-
-[tool.hatch.envs.hatch-test.overrides]
-matrix.feature.features = [
-    { value = "export", if = ["export"] },
-]
 
 [tool.hatch.env]
 requires = [
@@ -111,10 +119,38 @@ extra-dependencies = [
 ]
 detached = false
 
+[tool.hatch.envs.hatch-static-analysis]
+config-path = "/dev/null"
+dependencies = [
+  "ruff ~= 0.6.0",
+]
+
+[tool.hatch.envs.hatch-test]
+default-args = ['src', 'tests']
+
+[[tool.hatch.envs.hatch-test.matrix]]
+python = ["3.10", "3.11", "3.12", "pypy3.10"]
+
+[[tool.hatch.envs.hatch-test.matrix]]
+python = ["3.10", "3.11", "3.12", "pypy3.10"]
+feature = ["export"]
+
+[tool.hatch.envs.hatch-test.overrides]
+matrix.feature.features = [
+    { value = "export", if = ["export"] },
+]
+
+[tool.hatch.envs.release]
+extra-dependencies = [
+  "towncrier >= 23.11"
+]
+
+[tool.hatch.envs.release.scripts]
+
 [tool.hatch.envs.types]
 extra-dependencies = [
-  "mypy>=1.0.0",
-  "pytest~=8.1",
+  "mypy ~= 1.0",
+  "pytest ~= 8.1",
 ]
 features = [
     "export",
@@ -123,90 +159,152 @@ features = [
 [tool.hatch.envs.types.scripts]
 check = "mypy --install-types --non-interactive {args:src/derivepassphrase tests}"
 
-[tool.coverage.html]
-directory = "html/coverage"
+[tool.hatch.version]
+path = "src/derivepassphrase/__init__.py"
 
-[tool.coverage.run]
-source_pkgs = ["derivepassphrase", "tests"]
-branch = true
-parallel = true
-omit = [
-  "__main__.py",
-]
+[tool.mypy]
+files = ['src/**/*.py', 'tests/**/*.py']
+mypy_path = '$MYPY_CONFIG_FILE_DIR/src'
+explicit_package_bases = true
+implicit_reexport = false
+sqlite_cache = true
+enable_error_code = ['ignore-without-code']
 
-[tool.coverage.paths]
-src = ["src"]
-tests = ["tests"]
-
-[tool.coverage.report]
-skip_covered = false
-skip_empty = true
-precision = 3
-partial_branches = [
-    'pragma: no branch',
-]
-exclude_also = [
-  "if __name__ == .__main__.:",
-  'if (?:typing\.)?TYPE_CHECKING:',
-  "raise AssertionError",
-  "raise NotImplementedError",
-  'assert False',
-  '(?:typing\.)?assert_never\(',
-]
+[tool.pytest.ini_options]
+addopts = '--doctest-modules'
+pythonpath = ['src']
+testpaths = ['src', 'tests']
+xfail_strict = true
 
 [tool.ruff]
 line-length = 79
 src = ["src"]
-extend = "ruff_defaults_v0.5.0.toml"
 
 [tool.ruff.format]
-quote-style = 'single'
+docstring-code-format = true
 docstring-code-line-length = "dynamic"
 preview = true
+quote-style = 'single'
 
 [tool.ruff.lint]
-preview = true
-extend-ignore = [
+ignore = [
+    # Suggested ignore by ruff when also using ruff to format.  We *do*
+    # check for E501, because this usually only happens when there is a text
+    # string that should be manually broken.
+    'W191', 'E111', 'E114', 'E117', 'D206', 'D300', 'Q000', 'Q001', 'Q002',
+    'Q003', 'COM812', 'COM819', 'ISC001', 'ISC002',
     # We use `assert` regularly to appease the type checker, and because
     # it is the right language tool for this job.
     'S101',
+    # The formatter takes care of trailing commas and docstring code
+    # automatically.
+    'COM812', 'W505',
+    # We document transitive exceptions as well (if we feel they would be
+    # surprising to the user otherwise).
+    'DOC502',
+    # We currently don't have issues for every TODO.  Forcing an issue also
+    # goes against the philosophy of TODOs as low-overhead markers for
+    # future work; see
+    # https://gist.github.com/dmnd/ed5d8ef8de2e4cfea174bd5dafcda382 .
+    'TD003',
+    # We somewhat regularly use loops where each iteration needs a separate
+    # try-except block.
+    'PERF203',
+    # We catch type-ignore comments without specific code via the mypy
+    # configuration, not via ruff.
+    'PGH003',
 ]
-extend-select = [
-    # Unlike hatch's standard configuration, we care about line length.
-    'E501',
+preview = true
+# We select here in the order of presentation on the ruff documentation
+# website.  ruff default selection (v0.6.2) is merely E4, E7, E9 and F.
+select = [
+    'F', 'E', 'W', 'C90', 'I', 'N', 'D', 'UP', 'YTT',
+    'ANN', 'ASYNC', 'S', 'BLE', 'FBT', 'B', 'A', 'COM',
+    'CPY', 'C4', 'DTZ', 'T10', 'DJ', 'EM', 'EXE', 'FA',
+    'ISC', 'ICN', 'LOG', 'G', 'INP', 'PIE', 'T20', 'PYI',
+    'PT', 'Q', 'RET', 'SLF', 'SLOT', 'SIM', 'TID', 'TCH',
+    'INT', 'ARG',
+    # We currently do not use pathlib. Disable 'PTH'.
+    'TD',
+    # We use TODOs and FIXMEs as notes for later, and don't want the linter
+    # to nag about every occurrence.  Disable 'FIX'.
+    #
+    # The "eradicate" rule is prone to a lot of false positives, and it is
+    # unclear to me, and probably confusing to read, where to apply a noqa
+    # marker.  Instead, disable 'ERA', and if necessary, specify it on the
+    # command-line.
+    'PD', 'PGH', 'PL', 'TRY', 'FLY', 'NPY', 'FAST',
+    'AIR', 'PERF', 'FURB', 'DOC', 'RUF',
 ]
 
-[tool.ruff.lint.pydocstyle]
-convention = 'google'
-
-[tool.ruff.lint.flake8-pytest-style]
-parametrize-names-type = 'list'
-
-[tool.ruff.lint.extend-per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
+"**/scripts/*" = [
+  # Suggested by hatch.
+  'INP',
+  # Suggested by hatch.
+  'T20',
+]
 "**/tests/**/*" = [
-  # Our tests are pytest-style tests, which use `assert` liberally.
+  # Suggested by hatch, assumingly because it may be important to verify
+  # that the value is exactly the empty string, and not just any falsy
+  # value.
+  'PLC1901',
+  # Suggested by hatch, assumingly because tests may use "magic values".
+  'PLR2004',
+  # Suggested by hatch, because tests are typically organized as classes and
+  # instance methods but may not really be using the `self` argument.
+  'PLR6301',
+  # Suggested by hatch, because these warnings may be precisely what the
+  # tests are supposed to test.
+  'S',
+  # Suggested by hatch, because pytest-style tests conventionally import
+  # code from each other via relative imports.
+  'TID252',
+  # Our tests regularly use arguments named `input` to store an input
+  # (text-/byte-)string.
   'A002',
+  # We regularly annotate pytest fixtures like monkeypatch as `Any`.
+  'ANN401',
+  # Our tests generally don't contain docstrings.
+  'D', 'DOC',
   # Our tests are regularly parametrized with booleans, for benign
   # purposes.
-  'FBT001',
+  'FBT',
   # One of our standard modules is called `derivepassphrase._types`.
   # Importing this from the tests directory would then automatically
   # trigger `PLC2701`.
   'PLC2701',
+  # Too many public methods/arguments/returns/branches/locals doesn't really
+  # apply here.
+  'PLR0904', 'PLR0911', 'PLR0912', 'PLR0913', 'PLR0914', 'PLR0915',
+  'PLR0916', 'PLR0917',
   # To fully test the `derivepassphrase.cli` module (and a couple other
   # things), we need to call and to mock several internal functions,
   # which would automatically trigger `SLF001`.
   'SLF001',
 ]
 
-[tool.hatch.envs.hatch-static-analysis]
-config-path = "ruff_defaults_v0.5.0.toml"
-dependencies = ["ruff==0.5.0"]
+[tool.ruff.lint.flake8-copyright]
+# Include hatch-enforced SPDX-FileCopyrightText in check.
+notice-rgx = '(?i)(?:Copyright\s+((?:\(C\)|©)\s+)?|SPDX-FileCopyrightText:\s+)\d{4}((-|,\s)\d{4})*'
 
-[tool.hatch.envs.release]
-dependencies = ['towncrier>=23.11']
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
+parametrize-names-type = 'list'
 
-[tool.hatch.envs.release.scripts]
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.isort]
+known-first-party = ["derivepassphrase"]
+
+[tool.ruff.lint.pycodestyle]
+ignore-overlong-task-comments = true  # for E501
+max-doc-length = 72  # for W505
+
+[tool.ruff.lint.pydocstyle]
+convention = 'google'
 
 [tool.towncrier]
 package = 'derivepassphrase'
