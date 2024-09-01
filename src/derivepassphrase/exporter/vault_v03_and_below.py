@@ -267,9 +267,15 @@ class VaultNativeV03ConfigParser(VaultNativeConfigParser):
 
 
 class VaultNativeV02ConfigParser(VaultNativeConfigParser):
-    """A parser for vault's native configuration format (v0.3).
+    """A parser for vault's native configuration format (v0.2).
 
-    This is the modern, pre-storeroom configuration format.
+    This is the classic configuration format.  Compared to v0.3, it
+    contains an (accidental) API misuse for the generation of the master
+    keys, a low-entropy method of generating initialization vectors for
+    the AES-CBC encryption step, and extra layers of base64 encoding.
+    Because of these significantly weakened confidentiality guarantees,
+    v0.2 configurations should be upgraded to at least v0.3 as soon as
+    possible.
 
     """
 
