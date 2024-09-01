@@ -392,7 +392,7 @@ class TestCLI:
         key_index: int,
     ) -> None:
         def sign(
-            _, key: bytes | bytearray, message: bytes | bytearray
+            _: Any, key: bytes | bytearray, message: bytes | bytearray
         ) -> bytes:
             del message  # Unused.
             for value in tests.SUPPORTED_KEYS.values():
@@ -1299,7 +1299,7 @@ contents go here
                     'services': {
                         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
                         'weird entry name': {'phrase': 'D\u00fcsseldorf'},
-                    }
+                    },
                 }),
                 (
                     "the services.'weird entry name' passphrase "
@@ -1342,7 +1342,7 @@ class TestCLIUtils:
             ),
             pytest.raises(ValueError, match='Invalid vault config'),
         ):
-            cli._save_config(None)  # type: ignore
+            cli._save_config(None)  # type: ignore[arg-type]
 
     def test_101_prompt_for_selection_multiple(self) -> None:
         @click.command()

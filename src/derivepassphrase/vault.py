@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""Python port of the vault(1) password generation scheme"""
+"""Python port of the vault(1) password generation scheme."""
 
 from __future__ import annotations
 
@@ -71,7 +71,7 @@ class Vault:
 
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         *,
         phrase: bytes | bytearray | str = b'',
@@ -112,6 +112,11 @@ class Vault:
             symbol:
                 Same as `lower`, but for all other hitherto unlisted
                 ASCII printable characters (except backquote).
+
+        Raises:
+            ValueError:
+                Conflicting passphrase constraints.  Permit more
+                characters, or increase the desired passphrase length.
 
         """
         self._phrase = self._get_binary_string(phrase)
@@ -204,10 +209,10 @@ class Vault:
             safety_factor = float(safety_factor)
         except TypeError as e:
             msg = f'invalid safety factor: not a float: {safety_factor!r}'
-            raise TypeError(msg) from e
+            raise TypeError(msg) from e  # noqa: DOC501
         if not math.isfinite(safety_factor) or safety_factor < 1.0:
             msg = f'invalid safety factor {safety_factor!r}'
-            raise ValueError(msg)
+            raise ValueError(msg)  # noqa: DOC501
         # Ensure the bound is strictly positive.
         entropy_bound = max(1, self._entropy())
         return int(math.ceil(safety_factor * entropy_bound / 8))

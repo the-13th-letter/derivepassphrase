@@ -35,7 +35,7 @@ def _load_data(
     fmt: Literal['v0.2', 'v0.3', 'storeroom'],
     path: str | bytes | os.PathLike[str],
     key: bytes,
-) -> Any:
+) -> Any:  # noqa: ANN401
     contents: bytes
     module: types.ModuleType
     match fmt:
@@ -114,7 +114,6 @@ def derivepassphrase_export(
     named `VAULT_PATH`.)
 
     """
-
     logging.basicConfig()
     if path in {'VAULT_PATH', b'VAULT_PATH'}:
         path = exporter.get_vault_path()

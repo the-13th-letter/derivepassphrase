@@ -235,7 +235,7 @@ class TestStoreroom:
             'signing_key': bytes(storeroom.KEY_SIZE),
             'hashing_key': bytes(storeroom.KEY_SIZE),
         }
-        with pytest.raises(RuntimeError, match='Cannot handle version 255'):
+        with pytest.raises(ValueError, match='Cannot handle version 255'):
             storeroom.decrypt_bucket_item(bucket_item, master_keys)
 
     @pytest.mark.parametrize('config', ['xxx', 'null', '{"version": 255}'])
@@ -259,7 +259,7 @@ class TestStoreroom:
         ):
             with open('.vault/20', 'w', encoding='UTF-8') as outfile:
                 print(config, file=outfile)
-            with pytest.raises(RuntimeError, match='Invalid bucket file: '):
+            with pytest.raises(ValueError, match='Invalid bucket file: '):
                 list(storeroom.decrypt_bucket_file('.vault/20', master_keys))
 
     @pytest.mark.parametrize(
@@ -317,7 +317,7 @@ class TestVaultNativeConfig:
     )
     def test_200_pbkdf2_manually(self, iterations: int, result: bytes) -> None:
         assert (
-            vault_v03_and_below.VaultNativeConfigParser.pbkdf2(
+            vault_v03_and_below.VaultNativeConfigParser._pbkdf2(
                 tests.VAULT_MASTER_KEY.encode('utf-8'), 32, iterations
             )
             == result

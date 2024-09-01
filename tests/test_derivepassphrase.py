@@ -255,4 +255,4 @@ class TestVault:
         with pytest.raises(
             TypeError, match='invalid safety factor: not a float'
         ):
-            assert v._estimate_sufficient_hash_length(None)  # type: ignore
+            assert v._estimate_sufficient_hash_length(None)  # type: ignore[arg-type]

@@ -115,7 +115,12 @@ class SSHAgentClient:
             self._connection.connect(ssh_auth_sock)
 
     def __enter__(self) -> Self:
-        """Close socket connection upon context manager completion."""
+        """Close socket connection upon context manager completion.
+
+        Returns:
+            Self.
+
+        """
         self._connection.__enter__()
         return self
 
@@ -125,7 +130,18 @@ class SSHAgentClient:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> bool:
-        """Close socket connection upon context manager completion."""
+        """Close socket connection upon context manager completion.
+
+        Args:
+            exc_type: An optional exception type.
+            exc_val: An optional exception value.
+            exc_tb: An optional exception traceback.
+
+        Returns:
+            True if the exception was handled, false if it should
+            propagate.
+
+        """
         return bool(
             self._connection.__exit__(exc_type, exc_val, exc_tb)  # type: ignore[func-returns-value]
         )
@@ -173,7 +189,7 @@ class SSHAgentClient:
             ret.extend(payload)
         except Exception as e:
             msg = 'invalid payload type'
-            raise TypeError(msg) from e
+            raise TypeError(msg) from e  # noqa: DOC501
         return ret
 
     @classmethod

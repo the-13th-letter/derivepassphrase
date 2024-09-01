@@ -114,7 +114,7 @@ class VaultConfig(TypedDict, _VaultConfig, total=False):
     services: Required[dict[str, VaultConfigServicesSettings]]
 
 
-def is_vault_config(obj: Any) -> TypeGuard[VaultConfig]:
+def is_vault_config(obj: Any) -> TypeGuard[VaultConfig]:  # noqa: ANN401,C901,PLR0911,PLR0912
     """Check if `obj` is a valid vault config, according to typing.
 
     Args:
