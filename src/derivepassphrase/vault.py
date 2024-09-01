@@ -89,7 +89,8 @@ class Vault:
         Args:
             phrase:
                 The master passphrase from which to derive the service
-                passphrases.
+                passphrases.  If a string, then the UTF-8 encoding of
+                the string is used.
             length:
                 Desired passphrase length.
             repeat:
@@ -239,7 +240,7 @@ class Vault:
     def create_hash(
         cls,
         phrase: bytes | bytearray | str,
-        service: bytes | bytearray,
+        service: bytes | bytearray | str,
         *,
         length: int = 32,
     ) -> bytes:
@@ -253,11 +254,13 @@ class Vault:
             phrase:
                 A master passphrase, or sometimes an SSH signature.
                 Used as the key for PBKDF2, the underlying cryptographic
-                primitive.
+                primitive.  If a string, then the UTF-8 encoding of the
+                string is used.
             service:
                 A vault service name.  Will be suffixed with
                 `Vault._UUID`, and then used as the salt value for
-                PBKDF2.
+                PBKDF2.  If a string, then the UTF-8 encoding of the
+                string is used.
             length:
                 The length of the byte stream to generate.
 
@@ -282,7 +285,7 @@ class Vault:
             ... 0d 08 1f ec f8 73 9b 8c 5f 55 39 16 7c 53 54 2c
             ... 1e 52 bb 30 ed 7f 89 e2 2f 69 51 55 d8 9e a6 02
             ... ''')
-            >>> Vault.create_hash(phrase, b'some_service', length=4)
+            >>> Vault.create_hash(phrase, 'some_service', length=4)
             b'M\xb1<S'
             >>> Vault.create_hash(phrase, b'some_service', length=16)
             b'M\xb1<S\x827E\xd1M\xaf\xf8~\xc8n\x10\xcc'
@@ -292,7 +295,7 @@ class Vault:
         """
         phrase = cls._get_binary_string(phrase)
         assert not isinstance(phrase, str)
-        salt = bytes(service) + cls._UUID
+        salt = cls._get_binary_string(service) + cls._UUID
         return hashlib.pbkdf2_hmac(
             hash_name='sha1',
             password=phrase,
@@ -303,7 +306,7 @@ class Vault:
 
     def generate(
         self,
-        service_name: str | bytes | bytearray,
+        service_name: bytes | bytearray | str,
         /,
         *,
         phrase: bytes | bytearray | str = b'',
@@ -312,10 +315,12 @@ class Vault:
 
         Args:
             service_name:
-                The service name.
+                The service name.  If a string, then the UTF-8 encoding
+                of the string is used.
             phrase:
                 If given, override the passphrase given during
-                construction.
+                construction.  If a string, then the UTF-8 encoding of
+                the string is used.
 
         Returns:
             The service passphrase.
@@ -332,16 +337,14 @@ class Vault:
         """
         hash_length = self._estimate_sufficient_hash_length()
         assert hash_length >= 1
-        # Ensure the phrase is a bytes object.  Needed later for safe
-        # concatenation.
-        if isinstance(service_name, str):
-            service_name = service_name.encode('utf-8')
-        elif not isinstance(service_name, bytes):
-            service_name = bytes(service_name)
+        # Ensure the phrase and the service name are bytes objects.
+        # This is needed later for safe concatenation.
+        service_name = self._get_binary_string(service_name)
         assert_type(service_name, bytes)
         if not phrase:
             phrase = self._phrase
         phrase = self._get_binary_string(phrase)
+        assert_type(phrase, bytes)
         # Repeat the passphrase generation with ever-increasing hash
         # lengths, until the passphrase can be formed without exhausting
         # the sequin.  See the guarantee in the create_hash method for
