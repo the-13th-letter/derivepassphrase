@@ -2,7 +2,24 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""Exporter for the vault "storeroom" configuration format."""
+"""Exporter for the vault "storeroom" configuration format.
+
+The "storeroom" format is the experimental format used in alpha and beta
+versions of vault beyond v0.3.0.  The configuration is stored as
+a separate directory, which acts like a hash table (i.e. has named
+slots) and provides an impure quasi-filesystem interface.  Each hash
+table entry is separately encrypted and authenticated.  James Coglan
+designed this format to avoid concurrent write issues when updating or
+synchronizing the vault configuration with e.g. a cloud service.
+
+The public interface is the
+[`derivepassphrase.exporter.storeroom.export_storeroom_data`][]
+function.  Multiple *non-public* functions are additionally documented
+here for didactical and educational reasons, but they are not part of
+the module API, are subject to change without notice (including
+removal), and should *not* be used or relied on.
+
+"""
 
 from __future__ import annotations
 
@@ -57,6 +74,8 @@ IV_SIZE = 16
 KEY_SIZE = MAC_SIZE = 32
 ENCRYPTED_KEYPAIR_SIZE = 128
 VERSION_SIZE = 1
+
+__all__ = ('export_storeroom_data',)
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +137,11 @@ def derive_master_keys_keys(password: str | bytes, iterations: int) -> KeyPair:
     Returns:
         A 2-tuple of keys, the encryption key and the signing key, to
         decrypt and verify the master keys data with.
+
+    Warning:
+        Non-public function, provided for didactical and educational
+        purposes only.  Subject to change without notice, including
+        removal.
 
     """
     if isinstance(password, str):
@@ -194,6 +218,11 @@ def decrypt_master_keys_data(data: bytes, keys: KeyPair) -> MasterKeys:
             The format is invalid, in a non-cryptographic way.  (For
             example, it contains an unsupported version marker, or
             unexpected extra contents, or invalid padding.)
+
+    Warning:
+        Non-public function, provided for didactical and educational
+        purposes only.  Subject to change without notice, including
+        removal.
 
     """
     ciphertext, claimed_mac = struct.unpack(
@@ -284,6 +313,11 @@ def decrypt_session_keys(data: bytes, master_keys: MasterKeys) -> KeyPair:
             The format is invalid, in a non-cryptographic way.  (For
             example, it contains an unsupported version marker, or
             unexpected extra contents, or invalid padding.)
+
+    Warning:
+        Non-public function, provided for didactical and educational
+        purposes only.  Subject to change without notice, including
+        removal.
 
     """
     ciphertext, claimed_mac = struct.unpack(
@@ -391,6 +425,11 @@ def decrypt_contents(data: bytes, session_keys: KeyPair) -> bytes:
             example, it contains an unsupported version marker, or
             unexpected extra contents, or invalid padding.)
 
+    Warning:
+        Non-public function, provided for didactical and educational
+        purposes only.  Subject to change without notice, including
+        removal.
+
     """
     ciphertext, claimed_mac = struct.unpack(
         f'{len(data) - MAC_SIZE}s {MAC_SIZE}s', data
@@ -466,6 +505,11 @@ def decrypt_bucket_item(bucket_item: bytes, master_keys: MasterKeys) -> bytes:
             example, it contains an unsupported version marker, or
             unexpected extra contents, or invalid padding.)
 
+    Warning:
+        Non-public function, provided for didactical and educational
+        purposes only.  Subject to change without notice, including
+        removal.
+
     """
     logger.debug(
         (
@@ -497,7 +541,7 @@ def decrypt_bucket_file(
     *,
     root_dir: str | bytes | os.PathLike = '.',
 ) -> Iterator[bytes]:
-    """Decrypt a bucket item.
+    """Decrypt a complete bucket.
 
     Args:
         filename:
@@ -524,6 +568,11 @@ def decrypt_bucket_file(
             example, it contains an unsupported version marker, or
             unexpected extra contents, or invalid padding.)
 
+    Warning:
+        Non-public function, provided for didactical and educational
+        purposes only.  Subject to change without notice, including
+        removal.
+
     """
     with open(
         os.path.join(os.fsdecode(root_dir), filename), 'rb'
@@ -543,7 +592,7 @@ def decrypt_bucket_file(
             )
 
 
-def store(config: dict[str, Any], path: str, json_contents: bytes) -> None:
+def _store(config: dict[str, Any], path: str, json_contents: bytes) -> None:
     """Store the JSON contents at path in the config structure.
 
     Traverse the config structure according to path, and set the value
@@ -669,14 +718,14 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
             logger.debug(
                 'Setting contents (empty directory): %s -> %s', path, '{}'
             )
-            store(config_structure, path, b'{}')
+            _store(config_structure, path, b'{}')
         else:
             logger.debug(
                 'Setting contents: %s -> %s',
                 path,
                 json_content.decode('utf-8'),
             )
-            store(config_structure, path, json_content)
+            _store(config_structure, path, json_content)
     for _dir, namelist in dirs_to_check.items():
         namelist = [x.rstrip('/') for x in namelist]  # noqa: PLW2901
         try:

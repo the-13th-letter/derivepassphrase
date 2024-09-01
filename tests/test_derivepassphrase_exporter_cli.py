@@ -323,6 +323,19 @@ class TestVaultNativeConfig:
             == result
         )
 
+    def test_201_export_vault_native_data_no_arguments(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_exporter_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            vault_config=tests.VAULT_V03_CONFIG,
+            vault_key=tests.VAULT_MASTER_KEY,
+        ):
+            parsed_config = vault_native.export_vault_native_data(None)
+        assert parsed_config == tests.VAULT_V03_CONFIG_DATA
+
     @pytest.mark.parametrize(
         ['parser_class', 'config', 'result'],
         [

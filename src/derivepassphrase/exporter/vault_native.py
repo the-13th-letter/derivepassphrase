@@ -2,7 +2,25 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""Exporter for the vault native configuration format (v0.2 or v0.3)."""
+"""Exporter for the vault native configuration format (v0.2 or v0.3).
+
+The vault native formats are the configuration formats used by vault
+v0.2 and v0.3.  The configuration is stored as a single encrypted file,
+which is encrypted and authenticated.  v0.2 and v0.3 differ in some
+details concerning key derivation and expected format of internal
+structures, so they are *not* compatible.  v0.2 additionally contains
+cryptographic weaknesses (API misuse of a key derivation function, and
+a low-entropy method of generating initialization vectors for CBC block
+encryption mode) and should thus be avoided if possible.
+
+The public interface is the
+[`derivepassphrase.exporter.vault_native.export_vault_native_data`][]
+function.  Multiple *non-public* classes are additionally documented
+here for didactical and educational reasons, but they are not part of
+the module API, are subject to change without notice (including
+removal), and should *not* be used or relied on.
+
+"""
 
 from __future__ import annotations
 
@@ -16,6 +34,7 @@ from typing import TYPE_CHECKING
 from derivepassphrase import exporter, vault
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from typing import Any
 
     from typing_extensions import Buffer
@@ -57,6 +76,8 @@ else:
     else:
         STUBBED = False
 
+__all__ = ('export_vault_native_data',)
+
 logger = logging.getLogger(__name__)
 
 
@@ -92,6 +113,11 @@ class VaultNativeConfigParser(abc.ABC):
 
                 If this is a text string, then the UTF-8 encoding of the
                 string is used as the binary password.
+
+        Warning:
+            Non-public class, provided for didactical and educational
+            purposes only. Subject to change without notice, including
+            removal.
 
         """
         if not password:
@@ -237,16 +263,21 @@ class VaultNativeV03ConfigParser(VaultNativeConfigParser):
 
     This is the modern, pre-storeroom configuration format.
 
+    Warning:
+        Non-public class, provided for didactical and educational
+        purposes only. Subject to change without notice, including
+        removal.
+
     """
 
     KEY_SIZE = 32
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401,D107
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
         super().__init__(*args, **kwargs)
         self._iv_size = 16
         self._mac_size = 32
 
-    def __call__(self) -> Any:  # noqa: ANN401,D102
+    def __call__(self) -> Any:  # noqa: ANN401
         if self._data is self._sentinel:
             logger.info('Attempting to parse as v0.3 configuration')
             return super().__call__()
@@ -277,14 +308,19 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
     v0.2 configurations should be upgraded to at least v0.3 as soon as
     possible.
 
+    Warning:
+        Non-public class, provided for didactical and educational
+        purposes only. Subject to change without notice, including
+        removal.
+
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401,D107
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
         super().__init__(*args, **kwargs)
         self._iv_size = 16
         self._mac_size = 64
 
-    def __call__(self) -> Any:  # noqa: ANN401,D102
+    def __call__(self) -> Any:  # noqa: ANN401
         if self._data is self._sentinel:
             logger.info('Attempting to parse as v0.2 configuration')
             return super().__call__()
@@ -353,6 +389,84 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
         return ciphers.Cipher(
             algorithms.AES256(encryption_key), modes.CBC(iv)
         ).decryptor()
+
+
+def export_vault_native_data(
+    contents: Buffer | None = None,
+    key: str | Buffer | None = None,
+    *,
+    try_formats: Sequence[str] = ('v0.3', 'v0.2'),
+) -> Any:  # noqa: ANN401
+    """Export the full configuration stored in vault native format.
+
+    Args:
+        contents:
+            The binary encrypted contents of the vault configuration
+            file.  If not given, then query
+            [`derivepassphrase.exporter.get_vault_path`][] for the
+            correct filename and read the contents from there.
+
+            Note: On disk, these are usually stored in base64-encoded
+            form, not in the "raw" form as needed here.
+        key:
+            Encryption key/password for the configuration file, usually
+            the username, or passed via the `VAULT_KEY` environment
+            variable.  If not given, then query
+            [`derivepassphrase.exporter.get_vault_key`][] for the value.
+        try_formats:
+            A sequence of formats to try out, in order.  Each key must
+            be one of `v0.2` or `v0.3`.
+
+    Returns:
+        The vault configuration, as recorded in the configuration file.
+
+        This may or may not be a valid configuration according to vault
+        or derivepassphrase.
+
+    Raises:
+        RuntimeError:
+            Something went wrong during data collection, e.g. we
+            encountered unsupported or corrupted data in the storeroom.
+        json.JSONDecodeError:
+            An internal JSON data structure failed to parse from disk.
+            The storeroom is probably corrupted.
+        ValueError:
+            The requested formats to try out are invalid, or the
+            encrypted contents aren't in any of the attempted
+            configuration formats.
+
+    """
+    if contents is None:
+        with open(exporter.get_vault_path(), 'rb') as infile:
+            contents = base64.standard_b64decode(infile.read())
+    if key is None:
+        key = exporter.get_vault_key()
+    stored_exception: Exception | None = None
+    for config_format in try_formats:
+        match config_format:
+            case 'v0.2':
+                try:
+                    return VaultNativeV02ConfigParser(contents, key)()
+                except ValueError as exc:
+                    exc.__context__ = stored_exception
+                    stored_exception = exc
+            case 'v0.3':
+                try:
+                    return VaultNativeV03ConfigParser(contents, key)()
+                except ValueError as exc:
+                    exc.__context__ = stored_exception
+                    stored_exception = exc
+            case _:  # pragma: no cover
+                msg = (
+                    f'Invalid vault native configuration format: '
+                    f'{config_format!r}'
+                )
+                raise ValueError(msg)
+    msg = (
+        f'Not a valid vault native configuration. '
+        f'(We tried: {try_formats!r}.)'
+    )
+    raise stored_exception or ValueError(msg)
 
 
 if __name__ == '__main__':
