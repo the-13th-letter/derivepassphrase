@@ -12,7 +12,7 @@ import click.testing
 import pytest
 
 import tests
-from derivepassphrase.exporter import cli, storeroom, vault_v03_and_below
+from derivepassphrase.exporter import cli, storeroom, vault_native
 
 cryptography = pytest.importorskip('cryptography', minversion='38.0')
 
@@ -317,7 +317,7 @@ class TestVaultNativeConfig:
     )
     def test_200_pbkdf2_manually(self, iterations: int, result: bytes) -> None:
         assert (
-            vault_v03_and_below.VaultNativeConfigParser._pbkdf2(
+            vault_native.VaultNativeConfigParser._pbkdf2(
                 tests.VAULT_MASTER_KEY.encode('utf-8'), 32, iterations
             )
             == result
@@ -327,13 +327,13 @@ class TestVaultNativeConfig:
         ['parser_class', 'config', 'result'],
         [
             pytest.param(
-                vault_v03_and_below.VaultNativeV02ConfigParser,
+                vault_native.VaultNativeV02ConfigParser,
                 tests.VAULT_V02_CONFIG,
                 tests.VAULT_V02_CONFIG_DATA,
                 id='0.2',
             ),
             pytest.param(
-                vault_v03_and_below.VaultNativeV03ConfigParser,
+                vault_native.VaultNativeV03ConfigParser,
                 tests.VAULT_V03_CONFIG,
                 tests.VAULT_V03_CONFIG_DATA,
                 id='0.3',
@@ -343,7 +343,7 @@ class TestVaultNativeConfig:
     def test_300_result_caching(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        parser_class: type[vault_v03_and_below.VaultNativeConfigParser],
+        parser_class: type[vault_native.VaultNativeConfigParser],
         config: str,
         result: dict[str, Any],
     ) -> None:
@@ -378,9 +378,9 @@ class TestVaultNativeConfig:
                 parser, '_decrypt_payload', null_func('_decrypt_payload')
             )
             assert parser() == result
-            super_call = vault_v03_and_below.VaultNativeConfigParser.__call__
+            super_call = vault_native.VaultNativeConfigParser.__call__
             assert super_call(parser) == result
 
     def test_400_no_password(self) -> None:
         with pytest.raises(ValueError, match='Password must not be empty'):
-            vault_v03_and_below.VaultNativeV03ConfigParser(b'', b'')
+            vault_native.VaultNativeV03ConfigParser(b'', b'')

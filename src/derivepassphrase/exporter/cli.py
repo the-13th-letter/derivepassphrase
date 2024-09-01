@@ -41,7 +41,7 @@ def _load_data(
     match fmt:
         case 'v0.2':
             module = importlib.import_module(
-                'derivepassphrase.exporter.vault_v03_and_below'
+                'derivepassphrase.exporter.vault_native'
             )
             if module.STUBBED:
                 raise ModuleNotFoundError
@@ -50,7 +50,7 @@ def _load_data(
             return module.VaultNativeV02ConfigParser(contents, key)()
         case 'v0.3':
             module = importlib.import_module(
-                'derivepassphrase.exporter.vault_v03_and_below'
+                'derivepassphrase.exporter.vault_native'
             )
             if module.STUBBED:
                 raise ModuleNotFoundError
