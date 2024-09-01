@@ -304,7 +304,7 @@ class TestStoreroom:
             ),
             pytest.raises(RuntimeError, match='Object key mismatch'),
         ):
-                storeroom.export_storeroom_data()
+            storeroom.export_storeroom_data()
 
 
 class TestVaultNativeConfig:
@@ -316,7 +316,12 @@ class TestVaultNativeConfig:
         ],
     )
     def test_200_pbkdf2_manually(self, iterations: int, result: bytes) -> None:
-        assert vault_v03_and_below.VaultNativeConfigParser.pbkdf2(tests.VAULT_MASTER_KEY.encode('utf-8'), 32, iterations) == result
+        assert (
+            vault_v03_and_below.VaultNativeConfigParser.pbkdf2(
+                tests.VAULT_MASTER_KEY.encode('utf-8'), 32, iterations
+            )
+            == result
+        )
 
     @pytest.mark.parametrize(
         ['parser_class', 'config', 'result'],
@@ -342,11 +347,11 @@ class TestVaultNativeConfig:
         config: str,
         result: dict[str, Any],
     ) -> None:
-
         def null_func(name: str) -> Callable[..., None]:
             def func(*_args: Any, **_kwargs: Any) -> None:  # pragma: no cover
                 msg = f'disallowed and stubbed out function {name} called'
                 raise AssertionError(msg)
+
             return func
 
         runner = click.testing.CliRunner(mix_stderr=False)
@@ -355,15 +360,26 @@ class TestVaultNativeConfig:
             runner=runner,
             vault_config=config,
         ):
-            parser = parser_class(base64.b64decode(config), tests.VAULT_MASTER_KEY)
+            parser = parser_class(
+                base64.b64decode(config), tests.VAULT_MASTER_KEY
+            )
             assert parser() == result
             # Now stub out all functions used to calculate the above result.
-            monkeypatch.setattr(parser, '_parse_contents', null_func('_parse_contents'))
-            monkeypatch.setattr(parser, '_derive_keys', null_func('_derive_keys'))
-            monkeypatch.setattr(parser, '_check_signature', null_func('_check_signature'))
-            monkeypatch.setattr(parser, '_decrypt_payload', null_func('_decrypt_payload'))
+            monkeypatch.setattr(
+                parser, '_parse_contents', null_func('_parse_contents')
+            )
+            monkeypatch.setattr(
+                parser, '_derive_keys', null_func('_derive_keys')
+            )
+            monkeypatch.setattr(
+                parser, '_check_signature', null_func('_check_signature')
+            )
+            monkeypatch.setattr(
+                parser, '_decrypt_payload', null_func('_decrypt_payload')
+            )
             assert parser() == result
-            assert vault_v03_and_below.VaultNativeConfigParser.__call__(parser) == result
+            super_call = vault_v03_and_below.VaultNativeConfigParser.__call__
+            assert super_call(parser) == result
 
     def test_400_no_password(self) -> None:
         with pytest.raises(ValueError, match='Password must not be empty'):
