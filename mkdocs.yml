@@ -93,6 +93,7 @@ nav:
   - Reference:
     - reference/index.md
     - 'Man page: derivepassphrase': reference/derivepassphrase.1.md
+    - 'Man page: derivepassphrase_export': reference/derivepassphrase_export.1.md
     - Module derivepassphrase:
       - Submodule cli: reference/derivepassphrase.md
       - Subpackage exporter:

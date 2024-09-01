@@ -110,7 +110,8 @@ def derivepassphrase_export(
     Read the vault-native configuration at PATH, extract all information
     from it, and export the resulting configuration to standard output.
     Depending on the configuration format, this may either be a file or
-    a directory.
+    a directory.  Supports the vault "v0.2", "v0.3" and "storeroom"
+    formats.
 
     If PATH is explicitly given as `VAULT_PATH`, then use the
     `VAULT_PATH` environment variable to determine the correct path.

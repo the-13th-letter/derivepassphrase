@@ -5,6 +5,7 @@ title: Reference overview
 ## Man pages
 
 * [`derivepassphrase(1)`][cli_man]: A deterministic, stateless password manager: command-line tool.
+* [`derivepassphrase_export(1)`][export_man]: Export a vault-native configuration to standard output.
 
 ## Modules and packages
 
@@ -19,3 +20,4 @@ title: Reference overview
     * [`derivepassphrase.vault`][]: Python port of the vault(1) password generation scheme.
 
   [cli_man]: derivepassphrase.1.md
+  [export_man]: derivepassphrase_export.1.md
