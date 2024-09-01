@@ -57,8 +57,10 @@ plugins:
     handlers:
       python:
         import:
-          - https://docs.python.org/3/objects.inv
-          - https://click.palletsprojects.com/en/8.1.x/objects.inv
+          - 'https://docs.python.org/3/objects.inv'
+          - 'https://click.palletsprojects.com/en/8.1.x/objects.inv'
+          - 'https://typing-extensions.readthedocs.io/en/latest/objects.inv'
+          - 'https://cryptography.readthedocs.io/en/latest/objects.inv'
         options:
           docstring_options:
             ignore_init_summary: true
@@ -93,6 +95,9 @@ nav:
     - 'Man page: derivepassphrase': reference/derivepassphrase.1.md
     - Module derivepassphrase:
       - Submodule cli: reference/derivepassphrase.md
+      - Subpackage exporter:
+        - Subpackage exporter: reference/exporter.md
+        - Exporters for vault: reference/exporter_vault.md
       - Submodule sequin: reference/sequin.md
       - Submodule ssh_agent: reference/ssh_agent.md
       - Submodule _types: reference/types.md
