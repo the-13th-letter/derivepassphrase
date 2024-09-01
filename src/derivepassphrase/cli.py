@@ -737,7 +737,6 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
     '--export',
     'export_settings',
     metavar='PATH',
-    type=click.Path(file_okay=True, allow_dash=True, exists=False),
     help='export all saved settings into file PATH',
     cls=StorageManagementOption,
 )
@@ -746,7 +745,6 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
     '--import',
     'import_settings',
     metavar='PATH',
-    type=click.Path(file_okay=True, allow_dash=True, exists=False),
     help='import saved settings from file PATH',
     cls=StorageManagementOption,
 )

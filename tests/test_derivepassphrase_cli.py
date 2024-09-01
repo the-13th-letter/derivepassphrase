@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import contextlib
+import errno
 import json
 import os
 import shutil
@@ -659,8 +660,10 @@ class TestCLI:
             assert (
                 result.stderr_bytes
             ), 'program did not print any error message'
-            # Don't test the actual error message, because it is subject to
-            # locale settings.  TODO: find a way anyway.
+            assert (
+                os.strerror(errno.EISDIR).encode('utf-8')
+                in result.stderr_bytes
+            ), 'program did not print the expected error message'
 
     def test_214_export_settings_no_stored_settings(
         self,
