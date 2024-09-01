@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 import enum
-from typing import NamedTuple, TypeGuard
+from typing import Literal, NamedTuple, TypeGuard
 
 from typing_extensions import (
     Any,
@@ -34,11 +34,18 @@ class VaultConfigGlobalSettings(TypedDict, total=False):
             master passphrase. Optional.
         phrase:
             The master passphrase. Optional.
+        unicode_normalization_form:
+            The preferred Unicode normalization form; we warn the user
+            if textual passphrases do not match their normalized forms.
+            Optional, and a `derivepassphrase` extension.
 
     """
 
     key: NotRequired[str]
     phrase: NotRequired[str]
+    unicode_normalization_form: NotRequired[
+        Literal['NFC', 'NFD', 'NFKC', 'NFKD']
+    ]
 
 
 class VaultConfigServicesSettings(VaultConfigGlobalSettings, total=False):
@@ -123,7 +130,7 @@ def is_vault_config(obj: Any) -> TypeGuard[VaultConfig]:
         o_global = obj['global']
         if not isinstance(o_global, dict):
             return False
-        for key in ('key', 'phrase'):
+        for key in ('key', 'phrase', 'unicode_normalization_form'):
             if key in o_global and not isinstance(o_global[key], str):
                 return False
         if 'key' in o_global and 'phrase' in o_global:

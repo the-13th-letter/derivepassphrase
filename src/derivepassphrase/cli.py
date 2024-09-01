@@ -14,8 +14,10 @@ import inspect
 import json
 import os
 import socket
+import unicodedata
 from typing import (
     TYPE_CHECKING,
+    Literal,
     NoReturn,
     TextIO,
     cast,
@@ -356,6 +358,34 @@ def _prompt_for_passphrase() -> str:
             err=True,
         ),
     )
+
+
+def _check_for_misleading_passphrase(
+    key: tuple[str, ...],
+    value: dict[str, Any],
+    *,
+    form: Literal['NFC', 'NFD', 'NFKC', 'NFKD'] = 'NFC',
+) -> None:
+    def is_json_identifier(x: str) -> bool:
+        return not x.startswith(tuple('0123456789')) and not any(
+            c.lower() not in set('0123456789abcdefghijklmnopqrstuvwxyz_')
+            for c in x
+        )
+
+    if 'phrase' in value:
+        phrase = value['phrase']
+        if not unicodedata.is_normalized(form, phrase):
+            key_path = '.'.join(
+                x if is_json_identifier(x) else repr(x) for x in key
+            )
+            click.echo(
+                (
+                    f'{PROG_NAME}: Warning: the {key_path} passphrase '
+                    f'is not {form}-normalized. Make sure to double-check '
+                    f'this is really the passphrase you want.'
+                ),
+                err=True,
+            )
 
 
 class OptionGroupOption(click.Option):
@@ -978,6 +1008,24 @@ def derivepassphrase(
         except OSError as e:
             err(f'Cannot load config: {e.strerror}: {e.filename!r}')
         if _types.is_vault_config(maybe_config):
+            form = cast(
+                Literal['NFC', 'NFD', 'NFKC', 'NFKD'],
+                maybe_config.get('global', {}).get(
+                    'unicode_normalization_form', 'NFC'
+                ),
+            )
+            assert form in {'NFC', 'NFD', 'NFKC', 'NFKD'}
+            _check_for_misleading_passphrase(
+                ('global',),
+                cast(dict[str, Any], maybe_config.get('global', {})),
+                form=form,
+            )
+            for key, value in maybe_config['services'].items():
+                _check_for_misleading_passphrase(
+                    ('services', key),
+                    cast(dict[str, Any], value),
+                    form=form,
+                )
             put_config(maybe_config)
         else:
             err(f'Cannot load config: {_INVALID_VAULT_CONFIG}')
@@ -1064,6 +1112,10 @@ def derivepassphrase(
                 for m in view.maps:
                     m.pop('phrase', '')
             elif use_phrase:
+                _check_for_misleading_passphrase(
+                    ('services', service) if service else ('global',),
+                    {'phrase': phrase},
+                )
                 view['phrase'] = phrase
                 for m in view.maps:
                     m.pop('key', '')
@@ -1097,6 +1149,18 @@ def derivepassphrase(
             ) -> bytes | bytearray:
                 return vault.Vault.phrase_from_key(
                     base64.standard_b64decode(key)
+                )
+
+            if use_phrase:
+                form = cast(
+                    Literal['NFC', 'NFD', 'NFKC', 'NFKD'],
+                    configuration.get('global', {}).get(
+                        'unicode_normalization_form', 'NFC'
+                    ),
+                )
+                assert form in {'NFC', 'NFD', 'NFKC', 'NFKD'}
+                _check_for_misleading_passphrase(
+                    ('interactive',), {'phrase': phrase}, form=form
                 )
 
             # If either --key or --phrase are given, use that setting.
