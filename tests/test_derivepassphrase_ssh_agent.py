@@ -41,7 +41,9 @@ class TestStaticFunctionality:
             keydata == public_key_data
         ), "recorded public key data doesn't match"
 
-    def test_200_constructor_no_running_agent(self, monkeypatch: Any) -> None:
+    def test_200_constructor_no_running_agent(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
         sock = socket.socket(family=socket.AF_UNIX)
         with pytest.raises(
@@ -268,7 +270,7 @@ class TestAgentInteraction:
 
     @pytest.mark.parametrize(['key', 'single'], list(_params()))
     def test_210_ssh_key_selector(
-        self, monkeypatch: Any, key: bytes, single: bool
+        self, monkeypatch: pytest.MonkeyPatch, key: bytes, single: bool
     ) -> None:
         def key_is_suitable(key: bytes) -> bool:
             return key in {
@@ -308,24 +310,21 @@ class TestAgentInteraction:
             click.echo(base64.standard_b64encode(key).decode('ASCII'))
 
         runner = click.testing.CliRunner(mix_stderr=True)
-        result = runner.invoke(
+        _result = runner.invoke(
             driver,
             [],
             input=('yes\n' if single else f'{index}\n'),
             catch_exceptions=True,
         )
-        assert result.stdout.startswith(
-            'Suitable SSH keys:\n'
-        ), 'missing expected output'
-        assert text in result.stdout, 'missing expected output'
-        assert result.stdout.endswith(
-            f'\n{b64_key}\n'
-        ), 'missing expected output'
-        assert result.exit_code == 0, 'driver program failed?!'
+        result = tests.ReadableResult.parse(_result)
+        for snippet in ('Suitable SSH keys:\n', text, f'\n{b64_key}\n'):
+            assert result.clean_exit(output=snippet), 'expected clean exit'
 
     del _params
 
-    def test_300_constructor_bad_running_agent(self, monkeypatch: Any) -> None:
+    def test_300_constructor_bad_running_agent(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setenv('SSH_AUTH_SOCK', os.environ['SSH_AUTH_SOCK'] + '~')
         sock = socket.socket(family=socket.AF_UNIX)
         with pytest.raises(OSError):  # noqa: PT011
@@ -339,7 +338,7 @@ class TestAgentInteraction:
         ],
     )
     def test_310_truncated_server_response(
-        self, monkeypatch: Any, response: bytes
+        self, monkeypatch: pytest.MonkeyPatch, response: bytes
     ) -> None:
         client = ssh_agent.SSHAgentClient()
         response_stream = io.BytesIO(response)
@@ -382,7 +381,7 @@ class TestAgentInteraction:
     )
     def test_320_list_keys_error_responses(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
         response_code: _types.SSH_AGENT,
         response: bytes | bytearray,
         exc_type: type[Exception],
@@ -419,7 +418,7 @@ class TestAgentInteraction:
     )
     def test_330_sign_error_responses(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
         key: bytes | bytearray,
         check: bool,
         response: tuple[_types.SSH_AGENT, bytes | bytearray],

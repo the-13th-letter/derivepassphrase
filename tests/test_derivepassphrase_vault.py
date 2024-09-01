@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import math
-from typing import Any
 
 import pytest
 
@@ -193,7 +192,10 @@ class TestVault:
         ],
     )
     def test_223_hash_length_expansion(
-        self, monkeypatch: Any, service: str | bytes, expected: bytes
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        service: str | bytes,
+        expected: bytes,
     ) -> None:
         v = Vault(phrase=self.phrase)
         monkeypatch.setattr(

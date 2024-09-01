@@ -31,13 +31,13 @@ class TestCLI:
             vault_key=tests.VAULT_MASTER_KEY,
         ):
             monkeypatch.setenv('VAULT_KEY', tests.VAULT_MASTER_KEY)
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase_export,
                 ['VAULT_PATH'],
             )
-        assert not result.exception
-        assert (result.exit_code, result.stderr_bytes) == (0, b'')
-        assert json.loads(result.stdout) == tests.VAULT_V03_CONFIG_DATA
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+        assert json.loads(result.output) == tests.VAULT_V03_CONFIG_DATA
 
     def test_201_key_parameter(self, monkeypatch: pytest.MonkeyPatch) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
@@ -46,13 +46,13 @@ class TestCLI:
             runner=runner,
             vault_config=tests.VAULT_V03_CONFIG,
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase_export,
                 ['-k', tests.VAULT_MASTER_KEY, '.vault'],
             )
-        assert not result.exception
-        assert (result.exit_code, result.stderr_bytes) == (0, b'')
-        assert json.loads(result.stdout) == tests.VAULT_V03_CONFIG_DATA
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+        assert json.loads(result.output) == tests.VAULT_V03_CONFIG_DATA
 
     @pytest.mark.parametrize(
         ['format', 'config', 'config_data'],
@@ -90,13 +90,13 @@ class TestCLI:
             runner=runner,
             vault_config=config,
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase_export,
                 ['-f', format, '-k', tests.VAULT_MASTER_KEY, 'VAULT_PATH'],
             )
-        assert not result.exception
-        assert (result.exit_code, result.stderr_bytes) == (0, b'')
-        assert json.loads(result.stdout) == config_data
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+        assert json.loads(result.output) == config_data
 
     # test_300_invalid_format is found in
     # tests.test_derivepassphrase_export::Test002CLI
@@ -112,18 +112,15 @@ class TestCLI:
             vault_config=tests.VAULT_V03_CONFIG,
             vault_key=tests.VAULT_MASTER_KEY,
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase_export,
                 ['does-not-exist.txt'],
             )
-        assert isinstance(result.exception, SystemExit)
-        assert result.exit_code
-        assert result.stderr_bytes
-        assert (
-            b"Cannot parse 'does-not-exist.txt' as a valid config"
-            in result.stderr_bytes
-        )
-        assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr_bytes
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error="Cannot parse 'does-not-exist.txt' as a valid config"
+        ), 'expected error exit and known error message'
+        assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
     def test_302_vault_config_invalid(
         self,
@@ -136,17 +133,15 @@ class TestCLI:
             vault_config='',
             vault_key=tests.VAULT_MASTER_KEY,
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase_export,
                 ['.vault'],
             )
-        assert isinstance(result.exception, SystemExit)
-        assert result.exit_code
-        assert result.stderr_bytes
-        assert (
-            b"Cannot parse '.vault' as a valid config." in result.stderr_bytes
-        )
-        assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr_bytes
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error="Cannot parse '.vault' as a valid config"
+        ), 'expected error exit and known error message'
+        assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
     def test_403_invalid_vault_config_bad_signature(
         self,
@@ -159,17 +154,15 @@ class TestCLI:
             vault_config=tests.VAULT_V02_CONFIG,
             vault_key=tests.VAULT_MASTER_KEY,
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase_export,
                 ['-f', 'v0.3', '.vault'],
             )
-        assert isinstance(result.exception, SystemExit)
-        assert result.exit_code
-        assert result.stderr_bytes
-        assert (
-            b"Cannot parse '.vault' as a valid config." in result.stderr_bytes
-        )
-        assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr_bytes
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error="Cannot parse '.vault' as a valid config"
+        ), 'expected error exit and known error message'
+        assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
     def test_500_vault_config_invalid_internal(
         self,
@@ -187,15 +180,15 @@ class TestCLI:
                 return None
 
             monkeypatch.setattr(cli, '_load_data', _load_data)
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase_export,
                 ['.vault'],
             )
-        assert isinstance(result.exception, SystemExit)
-        assert result.exit_code
-        assert result.stderr_bytes
-        assert b'Invalid vault config: ' in result.stderr_bytes
-        assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr_bytes
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='Invalid vault config: '
+        ), 'expected error exit and known error message'
+        assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
 
 class TestStoreroom:

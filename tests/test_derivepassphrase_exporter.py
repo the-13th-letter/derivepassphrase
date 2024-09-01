@@ -115,18 +115,16 @@ class Test002CLI:
             vault_config=tests.VAULT_V03_CONFIG,
             vault_key=tests.VAULT_MASTER_KEY,
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase_export,
                 ['-f', 'INVALID', 'VAULT_PATH'],
                 catch_exceptions=False,
             )
-        assert isinstance(result.exception, SystemExit)
-        assert result.exit_code
-        assert result.stderr_bytes
-        assert b'Invalid value for' in result.stderr_bytes
-        assert b'-f' in result.stderr_bytes
-        assert b'--format' in result.stderr_bytes
-        assert b'INVALID' in result.stderr_bytes
+        result = tests.ReadableResult.parse(_result)
+        for snippet in ('Invalid value for', '-f', '--format', 'INVALID'):
+            assert result.error_exit(
+                error=snippet
+            ), 'expected error exit and known error message'
 
     @tests.skip_if_cryptography_support
     @pytest.mark.parametrize(
@@ -166,12 +164,12 @@ class Test002CLI:
             vault_config=config,
             vault_key=key,
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase_export,
                 ['-f', format, 'VAULT_PATH'],
                 catch_exceptions=False,
             )
-        assert isinstance(result.exception, SystemExit)
-        assert result.exit_code
-        assert result.stderr_bytes
-        assert tests.CANNOT_LOAD_CRYPTOGRAPHY in result.stderr_bytes
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error=tests.CANNOT_LOAD_CRYPTOGRAPHY
+        ), 'expected error exit and known error message'
