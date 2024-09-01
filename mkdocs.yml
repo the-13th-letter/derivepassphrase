@@ -43,9 +43,9 @@ theme:
     - content.code.annotate
     - navigation.tracking
     - navigation.tabs
-    - navigation.prune
+    - navigation.sections
+    - navigation.indexes
     - navigation.footer
-    - toc.follow
   custom_dir: docs-overrides
 
 plugins:
@@ -91,7 +91,7 @@ nav:
   #- Tutorials & Examples: tutorials.md
   #- How-Tos: how-tos.md
   - Reference:
-    - Reference overview: reference.md
+    - reference/index.md
     - 'Man page: derivepassphrase': reference/derivepassphrase.1.md
     - Module derivepassphrase:
       - Submodule cli: reference/derivepassphrase.md
