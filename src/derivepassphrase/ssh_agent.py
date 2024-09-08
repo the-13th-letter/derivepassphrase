@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2024 Marco Ricci <m@the13thletter.info>
+# SPDX-FileCopyrightText: 2024 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: MIT
 
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
 __all__ = ('SSHAgentClient',)
-__author__ = 'Marco Ricci <m@the13thletter.info>'
+__author__ = 'Marco Ricci <software@the13thletter.info>'
 
 # In SSH bytestrings, the "length" of the byte string is stored as
 # a 4-byte/32-bit unsigned integer at the beginning.

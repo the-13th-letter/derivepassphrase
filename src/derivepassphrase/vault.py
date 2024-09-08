@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2024 Marco Ricci <m@the13thletter.info>
+# SPDX-FileCopyrightText: 2024 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: MIT
 
@@ -17,7 +17,7 @@ from typing_extensions import assert_type
 
 from derivepassphrase import sequin, ssh_agent
 
-__author__ = 'Marco Ricci <m@the13thletter.info>'
+__author__ = 'Marco Ricci <software@the13thletter.info>'
 
 
 _CHARSETS = collections.OrderedDict([

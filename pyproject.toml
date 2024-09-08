@@ -10,7 +10,7 @@ requires-python = ">= 3.10"
 license = "MIT"
 keywords = []
 authors = [
-  { name = "Marco Ricci", email = "m@the13thletter.info" },
+  { name = "Marco Ricci", email = "software@the13thletter.info" },
 ]
 classifiers = [
   "Development Status :: 4 - Beta",

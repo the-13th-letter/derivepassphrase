@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2024 Marco Ricci <m@the13thletter.info>
+# SPDX-FileCopyrightText: 2024 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: MIT
 
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
 
 __all__ = ('Sequin', 'SequinExhaustedError')
-__author__ = 'Marco Ricci <m@the13thletter.info>'
+__author__ = 'Marco Ricci <software@the13thletter.info>'
 
 
 class Sequin:
