@@ -1,4 +1,25 @@
-#!/usr/bin/python3
+# SPDX-FileCopyrightText: 2024 Marco Ricci <software@the13thletter.info>
+#
+# SPDX-License-Identifier: MIT
+
+"""Exporter for the vault "storeroom" configuration format.
+
+The "storeroom" format is the experimental format used in alpha and beta
+versions of vault beyond v0.3.0.  The configuration is stored as
+a separate directory, which acts like a hash table (i.e. has named
+slots) and provides an impure quasi-filesystem interface.  Each hash
+table entry is separately encrypted and authenticated.  James Coglan
+designed this format to avoid concurrent write issues when updating or
+synchronizing the vault configuration with e.g. a cloud service.
+
+The public interface is the
+[`derivepassphrase.exporter.storeroom.export_storeroom_data`][]
+function.  Multiple *non-public* functions are additionally documented
+here for didactical and educational reasons, but they are not part of
+the module API, are subject to change without notice (including
+removal), and should *not* be used or relied on.
+
+"""
 
 from __future__ import annotations
 
@@ -31,18 +52,18 @@ else:
         from cryptography.hazmat.primitives.kdf import pbkdf2
     except ModuleNotFoundError as exc:
 
-        class DummyModule:  # pragma: no cover
+        class _DummyModule:  # pragma: no cover
             def __init__(self, exc: type[Exception]) -> None:
                 self.exc = exc
 
-            def __getattr__(self, name: str) -> Any:
-                def func(*args: Any, **kwargs: Any) -> Any:  # noqa: ARG001
+            def __getattr__(self, name: str) -> Any:  # noqa: ANN401
+                def func(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401,ARG001
                     raise self.exc
 
                 return func
 
-        ciphers = hashes = hmac = padding = DummyModule(exc)
-        algorithms = modes = pbkdf2 = DummyModule(exc)
+        ciphers = hashes = hmac = padding = _DummyModule(exc)
+        algorithms = modes = pbkdf2 = _DummyModule(exc)
         STUBBED = True
     else:
         STUBBED = False
@@ -54,15 +75,42 @@ KEY_SIZE = MAC_SIZE = 32
 ENCRYPTED_KEYPAIR_SIZE = 128
 VERSION_SIZE = 1
 
+__all__ = ('export_storeroom_data',)
+
 logger = logging.getLogger(__name__)
 
 
 class KeyPair(TypedDict):
+    """A pair of AES256 keys, one for encryption and one for signing.
+
+    Attributes:
+        encryption_key:
+            AES256 key, used for encryption with AES256-CBC (with PKCS#7
+            padding).
+        signing_key:
+            AES256 key, used for signing with HMAC-SHA256.
+
+    """
+
     encryption_key: bytes
     signing_key: bytes
 
 
 class MasterKeys(TypedDict):
+    """A triple of AES256 keys, for encryption, signing and hashing.
+
+    Attributes:
+        hashing_key:
+            AES256 key, used for hashing with HMAC-SHA256 to derive
+            a hash table slot for an item.
+        encryption_key:
+            AES256 key, used for encryption with AES256-CBC (with PKCS#7
+            padding).
+        signing_key:
+            AES256 key, used for signing with HMAC-SHA256.
+
+    """
+
     hashing_key: bytes
     encryption_key: bytes
     signing_key: bytes
@@ -90,11 +138,16 @@ def derive_master_keys_keys(password: str | bytes, iterations: int) -> KeyPair:
         A 2-tuple of keys, the encryption key and the signing key, to
         decrypt and verify the master keys data with.
 
+    Warning:
+        Non-public function, provided for didactical and educational
+        purposes only.  Subject to change without notice, including
+        removal.
+
     """
     if isinstance(password, str):
         password = password.encode('ASCII')
     master_keys_keys_blob = pbkdf2.PBKDF2HMAC(
-        algorithm=hashes.SHA1(),  # noqa: S303
+        algorithm=hashes.SHA1(),
         length=2 * KEY_SIZE,
         salt=STOREROOM_MASTER_KEYS_UUID,
         iterations=iterations,
@@ -157,6 +210,20 @@ def decrypt_master_keys_data(data: bytes, keys: KeyPair) -> MasterKeys:
     Returns:
         The master encryption, signing and hashing keys.
 
+    Raises:
+        cryptography.exceptions.InvalidSignature:
+            The data does not contain a valid signature under the given
+            key.
+        ValueError:
+            The format is invalid, in a non-cryptographic way.  (For
+            example, it contains an unsupported version marker, or
+            unexpected extra contents, or invalid padding.)
+
+    Warning:
+        Non-public function, provided for didactical and educational
+        purposes only.  Subject to change without notice, including
+        removal.
+
     """
     ciphertext, claimed_mac = struct.unpack(
         f'{len(data) - MAC_SIZE}s {MAC_SIZE}s', data
@@ -195,7 +262,7 @@ def decrypt_master_keys_data(data: bytes, keys: KeyPair) -> MasterKeys:
             f'Expecting 3 encrypted keys at {3 * KEY_SIZE} bytes total, '
             f'but found {len(plaintext)} instead'
         )
-        raise RuntimeError(msg)
+        raise ValueError(msg)
     hashing_key, encryption_key, signing_key = struct.unpack(
         f'{KEY_SIZE}s {KEY_SIZE}s {KEY_SIZE}s', plaintext
     )
@@ -238,8 +305,21 @@ def decrypt_session_keys(data: bytes, master_keys: MasterKeys) -> KeyPair:
     Returns:
         The bucket item's encryption and signing keys.
 
-    """
+    Raises:
+        cryptography.exceptions.InvalidSignature:
+            The data does not contain a valid signature under the given
+            key.
+        ValueError:
+            The format is invalid, in a non-cryptographic way.  (For
+            example, it contains an unsupported version marker, or
+            unexpected extra contents, or invalid padding.)
 
+    Warning:
+        Non-public function, provided for didactical and educational
+        purposes only.  Subject to change without notice, including
+        removal.
+
+    """
     ciphertext, claimed_mac = struct.unpack(
         f'{len(data) - MAC_SIZE}s {MAC_SIZE}s', data
     )
@@ -336,8 +416,21 @@ def decrypt_contents(data: bytes, session_keys: KeyPair) -> bytes:
     Returns:
         The bucket item's payload.
 
-    """
+    Raises:
+        cryptography.exceptions.InvalidSignature:
+            The data does not contain a valid signature under the given
+            key.
+        ValueError:
+            The format is invalid, in a non-cryptographic way.  (For
+            example, it contains an unsupported version marker, or
+            unexpected extra contents, or invalid padding.)
 
+    Warning:
+        Non-public function, provided for didactical and educational
+        purposes only.  Subject to change without notice, including
+        removal.
+
+    """
     ciphertext, claimed_mac = struct.unpack(
         f'{len(data) - MAC_SIZE}s {MAC_SIZE}s', data
     )
@@ -389,6 +482,35 @@ def decrypt_contents(data: bytes, session_keys: KeyPair) -> bytes:
 
 
 def decrypt_bucket_item(bucket_item: bytes, master_keys: MasterKeys) -> bytes:
+    """Decrypt a bucket item.
+
+    Args:
+        bucket_item:
+            The encrypted bucket item.
+        master_keys:
+            The master keys.  Presumably these have previously been
+            obtained via the
+            [`derivepassphrase.exporter.storeroom.decrypt_master_keys_data`][]
+            function.
+
+    Returns:
+        The decrypted bucket item.
+
+    Raises:
+        cryptography.exceptions.InvalidSignature:
+            The data does not contain a valid signature under the given
+            key.
+        ValueError:
+            The format is invalid, in a non-cryptographic way.  (For
+            example, it contains an unsupported version marker, or
+            unexpected extra contents, or invalid padding.)
+
+    Warning:
+        Non-public function, provided for didactical and educational
+        purposes only.  Subject to change without notice, including
+        removal.
+
+    """
     logger.debug(
         (
             'decrypt_bucket_item: data = bytes.fromhex(%s), '
@@ -408,7 +530,7 @@ def decrypt_bucket_item(bucket_item: bytes, master_keys: MasterKeys) -> bytes:
     )
     if data_version != 1:
         msg = f'Cannot handle version {data_version} encrypted data'
-        raise RuntimeError(msg)
+        raise ValueError(msg)
     session_keys = decrypt_session_keys(encrypted_session_keys, master_keys)
     return decrypt_contents(data_contents, session_keys)
 
@@ -419,6 +541,39 @@ def decrypt_bucket_file(
     *,
     root_dir: str | bytes | os.PathLike = '.',
 ) -> Iterator[bytes]:
+    """Decrypt a complete bucket.
+
+    Args:
+        filename:
+            The bucket file's filename.
+        master_keys:
+            The master keys.  Presumably these have previously been
+            obtained via the
+            [`derivepassphrase.exporter.storeroom.decrypt_master_keys_data`][]
+            function.
+        root_dir:
+            The root directory of the data store.  The filename is
+            interpreted relatively to this directory.
+
+    Yields:
+        :
+            A decrypted bucket item.
+
+    Raises:
+        cryptography.exceptions.InvalidSignature:
+            The data does not contain a valid signature under the given
+            key.
+        ValueError:
+            The format is invalid, in a non-cryptographic way.  (For
+            example, it contains an unsupported version marker, or
+            unexpected extra contents, or invalid padding.)
+
+    Warning:
+        Non-public function, provided for didactical and educational
+        purposes only.  Subject to change without notice, including
+        removal.
+
+    """
     with open(
         os.path.join(os.fsdecode(root_dir), filename), 'rb'
     ) as bucket_file:
@@ -427,17 +582,17 @@ def decrypt_bucket_file(
             header = json.loads(header_line)
         except ValueError as exc:
             msg = f'Invalid bucket file: {filename}'
-            raise RuntimeError(msg) from exc
+            raise ValueError(msg) from exc
         if header != {'version': 1}:
             msg = f'Invalid bucket file: {filename}'
-            raise RuntimeError(msg) from None
+            raise ValueError(msg) from None
         for line in bucket_file:
             yield decrypt_bucket_item(
                 base64.standard_b64decode(line), master_keys
             )
 
 
-def store(config: dict[str, Any], path: str, json_contents: bytes) -> None:
+def _store(config: dict[str, Any], path: str, json_contents: bytes) -> None:
     """Store the JSON contents at path in the config structure.
 
     Traverse the config structure according to path, and set the value
@@ -467,7 +622,7 @@ def store(config: dict[str, Any], path: str, json_contents: bytes) -> None:
         config[path_parts[-1]] = contents
 
 
-def export_storeroom_data(
+def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
     storeroom_path: str | bytes | os.PathLike | None = None,
     master_keys_key: str | bytes | None = None,
 ) -> dict[str, Any]:
@@ -499,7 +654,6 @@ def export_storeroom_data(
             The storeroom is probably corrupted.
 
     """
-
     if storeroom_path is None:
         storeroom_path = exporter.get_vault_path()
     if master_keys_key is None:
@@ -564,14 +718,14 @@ def export_storeroom_data(
             logger.debug(
                 'Setting contents (empty directory): %s -> %s', path, '{}'
             )
-            store(config_structure, path, b'{}')
+            _store(config_structure, path, b'{}')
         else:
             logger.debug(
                 'Setting contents: %s -> %s',
                 path,
                 json_content.decode('utf-8'),
             )
-            store(config_structure, path, json_content)
+            _store(config_structure, path, json_content)
     for _dir, namelist in dirs_to_check.items():
         namelist = [x.rstrip('/') for x in namelist]  # noqa: PLW2901
         try:

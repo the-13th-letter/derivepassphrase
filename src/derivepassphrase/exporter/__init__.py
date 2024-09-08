@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2024 Marco Ricci <m@the13thletter.info>
+# SPDX-FileCopyrightText: 2024 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: MIT
 
@@ -33,7 +33,6 @@ def get_vault_key() -> bytes:
             Please set `VAULT_KEY` manually to the desired value.
 
     """
-
     username = (
         os.environb.get(b'VAULT_KEY')
         or os.environb.get(b'LOGNAME')
@@ -63,7 +62,6 @@ def get_vault_path() -> str | bytes | os.PathLike:
             manually to the correct value.
 
     """
-
     result = os.path.join(
         os.path.expanduser('~'), os.environ.get('VAULT_PATH', '.vault')
     )

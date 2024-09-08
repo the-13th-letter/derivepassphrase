@@ -1,10 +1,11 @@
-# SPDX-FileCopyrightText: 2024 Marco Ricci <m@the13thletter.info>
+# SPDX-FileCopyrightText: 2024 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: MIT
 
 from __future__ import annotations
 
 import contextlib
+import errno
 import json
 import os
 import shutil
@@ -43,12 +44,12 @@ DUMMY_KEY3_B64 = tests.DUMMY_KEY3_B64
 class IncompatibleConfiguration(NamedTuple):
     other_options: list[tuple[str, ...]]
     needs_service: bool | None
-    input: bytes | None
+    input: str | None
 
 
 class SingleConfiguration(NamedTuple):
     needs_service: bool | None
-    input: bytes | None
+    input: str | None
     check_success: bool
 
 
@@ -56,7 +57,7 @@ class OptionCombination(NamedTuple):
     options: list[str]
     incompatible: bool
     needs_service: bool | None
-    input: bytes | None
+    input: str | None
     check_success: bool
 
 
@@ -164,7 +165,7 @@ SINGLES: dict[tuple[str, ...], SingleConfiguration] = {
     ('--delete-globals',): SingleConfiguration(False, None, True),
     ('--clear',): SingleConfiguration(False, None, True),
     ('--export', '-'): SingleConfiguration(False, None, True),
-    ('--import', '-'): SingleConfiguration(False, b'{"services": {}}', True),
+    ('--import', '-'): SingleConfiguration(False, '{"services": {}}', True),
 }
 INTERESTING_OPTION_COMBINATIONS: list[OptionCombination] = []
 config: IncompatibleConfiguration | SingleConfiguration
@@ -199,29 +200,29 @@ for opt, config in SINGLES.items():
 
 
 class TestCLI:
-    def test_200_help_output(self, monkeypatch: Any) -> None:
+    def test_200_help_output(self, monkeypatch: pytest.MonkeyPatch) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
             config={'services': {}},
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase, ['--help'], catch_exceptions=False
             )
-        assert result.exit_code == 0
-        assert (
-            'Password generation:\n' in result.output
-        ), 'Option groups not respected in help text.'
-        assert (
-            'Use NUMBER=0, e.g. "--symbol 0"' in result.output
-        ), 'Option group epilog not printed.'
+            result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(
+            empty_stderr=True, output='Password generation:\n'
+        ), 'expected clean exit, and option groups in help text'
+        assert result.clean_exit(
+            empty_stderr=True, output='Use NUMBER=0, e.g. "--symbol 0"'
+        ), 'expected clean exit, and option group epilog in help text'
 
     @pytest.mark.parametrize(
         'charset_name', ['lower', 'upper', 'number', 'space', 'dash', 'symbol']
     )
     def test_201_disable_character_set(
-        self, monkeypatch: Any, charset_name: str
+        self, monkeypatch: pytest.MonkeyPatch, charset_name: str
     ) -> None:
         monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
         option = f'--{charset_name}'
@@ -232,25 +233,22 @@ class TestCLI:
             runner=runner,
             config={'services': {}},
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 [option, '0', '-p', DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-        assert (
-            result.exit_code == 0
-        ), f'program died unexpectedly with exit code {result.exit_code}'
-        assert (
-            not result.stderr_bytes
-        ), f'program barfed on stderr: {result.stderr_bytes!r}'
+            result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(empty_stderr=True), 'expected clean exit:'
         for c in charset:
-            assert c not in result.stdout, (
-                f'derived password contains forbidden character {c!r}: '
-                f'{result.stdout!r}'
-            )
+            assert (
+                c not in result.output
+            ), f'derived password contains forbidden character {c!r}'
 
-    def test_202_disable_repetition(self, monkeypatch: Any) -> None:
+    def test_202_disable_repetition(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -258,23 +256,21 @@ class TestCLI:
             runner=runner,
             config={'services': {}},
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['--repeat', '0', '-p', DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-        assert (
-            result.exit_code == 0
-        ), f'program died unexpectedly with exit code {result.exit_code}'
-        assert (
-            not result.stderr_bytes
-        ), f'program barfed on stderr: {result.stderr_bytes!r}'
-        passphrase = result.stdout.rstrip('\r\n')
+            result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(
+            empty_stderr=True
+        ), 'expected clean exit and empty stderr'
+        passphrase = result.output.rstrip('\r\n')
         for i in range(len(passphrase) - 1):
             assert passphrase[i : i + 1] != passphrase[i + 1 : i + 2], (
                 f'derived password contains repeated character '
-                f'at position {i}: {result.stdout!r}'
+                f'at position {i}: {result.output!r}'
             )
 
     @pytest.mark.parametrize(
@@ -289,11 +285,7 @@ class TestCLI:
             ),
             pytest.param(
                 {
-                    'global': {
-                        'phrase': DUMMY_PASSPHRASE.rstrip(b'\n').decode(
-                            'ASCII'
-                        )
-                    },
+                    'global': {'phrase': DUMMY_PASSPHRASE.rstrip('\n')},
                     'services': {
                         DUMMY_SERVICE: {
                             'key': DUMMY_KEY1_B64,
@@ -307,7 +299,7 @@ class TestCLI:
     )
     def test_204a_key_from_config(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
         config: _types.VaultConfig,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
@@ -317,21 +309,24 @@ class TestCLI:
             monkeypatch.setattr(
                 dpp.vault.Vault, 'phrase_from_key', tests.phrase_from_key
             )
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase, [DUMMY_SERVICE], catch_exceptions=False
             )
-            assert (result.exit_code, result.stderr_bytes) == (
-                0,
-                b'',
-            ), 'program exited with failure'
-            assert (
-                result.stdout_bytes.rstrip(b'\n') != DUMMY_RESULT_PASSPHRASE
-            ), 'program generated unexpected result (phrase instead of key)'
-            assert (
-                result.stdout_bytes.rstrip(b'\n') == DUMMY_RESULT_KEY1
-            ), 'program generated unexpected result (wrong settings?)'
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(
+            empty_stderr=True
+        ), 'expected clean exit and empty stderr'
+        assert _result.stdout_bytes
+        assert (
+            _result.stdout_bytes.rstrip(b'\n') != DUMMY_RESULT_PASSPHRASE
+        ), 'known false output: phrase-based instead of key-based'
+        assert (
+            _result.stdout_bytes.rstrip(b'\n') == DUMMY_RESULT_KEY1
+        ), 'expected known output'
 
-    def test_204b_key_from_command_line(self, monkeypatch: Any) -> None:
+    def test_204b_key_from_command_line(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -344,21 +339,22 @@ class TestCLI:
             monkeypatch.setattr(
                 dpp.vault.Vault, 'phrase_from_key', tests.phrase_from_key
             )
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['-k', DUMMY_SERVICE],
-                input=b'1\n',
+                input='1\n',
                 catch_exceptions=False,
             )
-            assert result.exit_code == 0, 'program exited with failure'
-            assert result.stdout_bytes, 'program output expected'
-            last_line = result.stdout_bytes.splitlines(True)[-1]
-            assert (
-                last_line.rstrip(b'\n') != DUMMY_RESULT_PASSPHRASE
-            ), 'program generated unexpected result (phrase instead of key)'
-            assert (
-                last_line.rstrip(b'\n') == DUMMY_RESULT_KEY1
-            ), 'program generated unexpected result (wrong settings?)'
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(), 'expected clean exit'
+        assert _result.stdout_bytes, 'expected program output'
+        last_line = _result.stdout_bytes.splitlines(True)[-1]
+        assert (
+            last_line.rstrip(b'\n') != DUMMY_RESULT_PASSPHRASE
+        ), 'known false output: phrase-based instead of key-based'
+        assert (
+            last_line.rstrip(b'\n') == DUMMY_RESULT_KEY1
+        ), 'expected known output'
 
     @tests.skip_if_no_agent
     @pytest.mark.parametrize(
@@ -387,12 +383,12 @@ class TestCLI:
     @pytest.mark.parametrize('key_index', [1, 2, 3], ids=lambda i: f'index{i}')
     def test_204c_key_override_on_command_line(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
         config: dict[str, Any],
         key_index: int,
     ) -> None:
         def sign(
-            _, key: bytes | bytearray, message: bytes | bytearray
+            _: Any, key: bytes | bytearray, message: bytes | bytearray
         ) -> bytes:
             del message  # Unused.
             for value in tests.SUPPORTED_KEYS.values():
@@ -409,21 +405,22 @@ class TestCLI:
         with tests.isolated_config(
             monkeypatch=monkeypatch, runner=runner, config=config
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['-k', DUMMY_SERVICE],
-                input=f'{key_index}\n'.encode('ASCII'),
+                input=f'{key_index}\n',
             )
-            assert result.stderr_bytes is not None
-            assert (
-                b'Error:' not in result.stderr_bytes
-            ), 'program exited with failure'
-            assert result.stdout_bytes, 'program output expected'
-            assert result.exit_code == 0, 'program exited with failure'
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(), 'expected clean exit'
+        assert result.output, 'expected program output'
+        assert result.stderr, 'expected stderr'
+        assert (
+            'Error:' not in result.stderr
+        ), 'expected no error messages on stderr'
 
     def test_205_service_phrase_if_key_in_global_config(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -433,26 +430,25 @@ class TestCLI:
                 'global': {'key': DUMMY_KEY1_B64},
                 'services': {
                     DUMMY_SERVICE: {
-                        'phrase': DUMMY_PASSPHRASE.rstrip(b'\n').decode(
-                            'ASCII'
-                        ),
+                        'phrase': DUMMY_PASSPHRASE.rstrip('\n'),
                         **DUMMY_CONFIG_SETTINGS,
                     }
                 },
             },
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase, [DUMMY_SERVICE], catch_exceptions=False
             )
-            assert result.exit_code == 0, 'program exited with failure'
-            assert result.stdout_bytes, 'program output expected'
-            last_line = result.stdout_bytes.splitlines(True)[-1]
-            assert (
-                last_line.rstrip(b'\n') != DUMMY_RESULT_KEY1
-            ), 'program generated unexpected result (key instead of phrase)'
-            assert (
-                last_line.rstrip(b'\n') == DUMMY_RESULT_PASSPHRASE
-            ), 'program generated unexpected result (wrong settings?)'
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(), 'expected clean exit'
+        assert _result.stdout_bytes, 'expected program output'
+        last_line = _result.stdout_bytes.splitlines(True)[-1]
+        assert (
+            last_line.rstrip(b'\n') != DUMMY_RESULT_KEY1
+        ), 'known false output: key-based instead of phrase-based'
+        assert (
+            last_line.rstrip(b'\n') == DUMMY_RESULT_PASSPHRASE
+        ), 'expected known output'
 
     @pytest.mark.parametrize(
         'option',
@@ -468,7 +464,7 @@ class TestCLI:
         ],
     )
     def test_210_invalid_argument_range(
-        self, monkeypatch: Any, option: str
+        self, monkeypatch: pytest.MonkeyPatch, option: str
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -477,19 +473,16 @@ class TestCLI:
             config={'services': {}},
         ):
             for value in '-42', 'invalid':
-                result = runner.invoke(
+                _result = runner.invoke(
                     cli.derivepassphrase,
                     [option, value, '-p', DUMMY_SERVICE],
                     input=DUMMY_PASSPHRASE,
                     catch_exceptions=False,
                 )
-                assert result.exit_code > 0, 'program unexpectedly succeeded'
-                assert (
-                    result.stderr_bytes
-                ), 'program did not print any error message'
-                assert (
-                    b'Error: Invalid value' in result.stderr_bytes
-                ), 'program did not print the expected error message'
+                result = tests.ReadableResult.parse(_result)
+                assert result.error_exit(
+                    error='Error: Invalid value'
+                ), 'expected error exit and known error message'
 
     @pytest.mark.parametrize(
         ['options', 'service', 'input', 'check_success'],
@@ -501,10 +494,10 @@ class TestCLI:
     )
     def test_211_service_needed(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
         options: list[str],
         service: bool | None,
-        input: bytes | None,
+        input: str | None,
         check_success: bool,
     ) -> None:
         monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
@@ -514,30 +507,26 @@ class TestCLI:
             runner=runner,
             config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 options if service else [*options, DUMMY_SERVICE],
                 input=input,
                 catch_exceptions=False,
             )
+            result = tests.ReadableResult.parse(_result)
             if service is not None:
-                assert result.exit_code > 0, 'program unexpectedly succeeded'
-                assert (
-                    result.stderr_bytes
-                ), 'program did not print any error message'
                 err_msg = (
-                    b' requires a SERVICE'
+                    ' requires a SERVICE'
                     if service
-                    else b' does not take a SERVICE argument'
+                    else ' does not take a SERVICE argument'
                 )
-                assert (
-                    err_msg in result.stderr_bytes
-                ), 'program did not print the expected error message'
+                assert result.error_exit(
+                    error=err_msg
+                ), 'expected error exit and known error message'
             else:
-                assert (result.exit_code, result.stderr_bytes) == (
-                    0,
-                    b'',
-                ), 'program unexpectedly failed'
+                assert result.clean_exit(
+                    empty_stderr=True
+                ), 'expected clean exit'
         if check_success:
             with tests.isolated_config(
                 monkeypatch=monkeypatch,
@@ -547,16 +536,14 @@ class TestCLI:
                 monkeypatch.setattr(
                     cli, '_prompt_for_passphrase', tests.auto_prompt
                 )
-                result = runner.invoke(
+                _result = runner.invoke(
                     cli.derivepassphrase,
                     [*options, DUMMY_SERVICE] if service else options,
                     input=input,
                     catch_exceptions=False,
                 )
-                assert (result.exit_code, result.stderr_bytes) == (
-                    0,
-                    b'',
-                ), 'program unexpectedly failed'
+                result = tests.ReadableResult.parse(_result)
+            assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
     @pytest.mark.parametrize(
         ['options', 'service'],
@@ -568,7 +555,7 @@ class TestCLI:
     )
     def test_212_incompatible_options(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
         options: list[str],
         service: bool | None,
     ) -> None:
@@ -578,65 +565,58 @@ class TestCLI:
             runner=runner,
             config={'services': {}},
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 [*options, DUMMY_SERVICE] if service else options,
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-        assert result.exit_code > 0, 'program unexpectedly succeeded'
-        assert result.stderr_bytes, 'program did not print any error message'
-        assert (
-            b'mutually exclusive with ' in result.stderr_bytes
-        ), 'program did not print the expected error message'
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='mutually exclusive with '
+        ), 'expected error exit and known error message'
 
     def test_213_import_bad_config_not_vault_config(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch, runner=runner, config={'services': {}}
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['--import', '-'],
-                input=b'null',
+                input='null',
                 catch_exceptions=False,
             )
-            assert result.exit_code > 0, 'program unexpectedly succeeded'
-            assert (
-                result.stderr_bytes
-            ), 'program did not print any error message'
-            assert (
-                b'Invalid vault config' in result.stderr_bytes
-            ), 'program did not print the expected error message'
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='Invalid vault config'
+        ), 'expected error exit and known error message'
 
     def test_213a_import_bad_config_not_json_data(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch, runner=runner, config={'services': {}}
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['--import', '-'],
-                input=b'This string is not valid JSON.',
+                input='This string is not valid JSON.',
                 catch_exceptions=False,
             )
-            assert result.exit_code > 0, 'program unexpectedly succeeded'
-            assert (
-                result.stderr_bytes
-            ), 'program did not print any error message'
-            assert (
-                b'cannot decode JSON' in result.stderr_bytes
-            ), 'program did not print the expected error message'
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='cannot decode JSON'
+        ), 'expected error exit and known error message'
 
     def test_213b_import_bad_config_not_a_file(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         # `isolated_config` validates the configuration.  So, to pass an
@@ -650,21 +630,19 @@ class TestCLI:
             ) as outfile:
                 print('This string is not valid JSON.', file=outfile)
             dname = os.path.dirname(cli._config_filename())
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['--import', os.fsdecode(dname)],
                 catch_exceptions=False,
             )
-            assert result.exit_code > 0, 'program unexpectedly succeeded'
-            assert (
-                result.stderr_bytes
-            ), 'program did not print any error message'
-            # Don't test the actual error message, because it is subject to
-            # locale settings.  TODO: find a way anyway.
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error=os.strerror(errno.EISDIR)
+        ), 'expected error exit and known error message'
 
     def test_214_export_settings_no_stored_settings(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -672,39 +650,34 @@ class TestCLI:
         ):
             with contextlib.suppress(FileNotFoundError):
                 os.remove(cli._config_filename())
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase, ['--export', '-'], catch_exceptions=False
             )
-            assert (result.exit_code, result.stderr_bytes) == (
-                0,
-                b'',
-            ), 'program exited with failure'
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
     def test_214a_export_settings_bad_stored_config(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch, runner=runner, config={}
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['--export', '-'],
-                input=b'null',
+                input='null',
                 catch_exceptions=False,
             )
-            assert result.exit_code > 0, 'program unexpectedly succeeded'
-            assert (
-                result.stderr_bytes
-            ), 'program did not print any error message'
-            assert (
-                b'Cannot load config' in result.stderr_bytes
-            ), 'program did not print the expected error message'
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='Cannot load config'
+        ), 'expected error exit and known error message'
 
     def test_214b_export_settings_not_a_file(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -713,46 +686,40 @@ class TestCLI:
             with contextlib.suppress(FileNotFoundError):
                 os.remove(cli._config_filename())
             os.makedirs(cli._config_filename())
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['--export', '-'],
-                input=b'null',
+                input='null',
                 catch_exceptions=False,
             )
-            assert result.exit_code > 0, 'program unexpectedly succeeded'
-            assert (
-                result.stderr_bytes
-            ), 'program did not print any error message'
-            assert (
-                b'Cannot load config' in result.stderr_bytes
-            ), 'program did not print the expected error message'
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='Cannot load config'
+        ), 'expected error exit and known error message'
 
     def test_214c_export_settings_target_not_a_file(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch, runner=runner, config={'services': {}}
         ):
             dname = os.path.dirname(cli._config_filename())
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['--export', os.fsdecode(dname)],
-                input=b'null',
+                input='null',
                 catch_exceptions=False,
             )
-            assert result.exit_code > 0, 'program unexpectedly succeeded'
-            assert (
-                result.stderr_bytes
-            ), 'program did not print any error message'
-            assert (
-                b'Cannot store config' in result.stderr_bytes
-            ), 'program did not print the expected error message'
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='Cannot store config'
+        ), 'expected error exit and known error message'
 
     def test_214d_export_settings_settings_directory_not_a_directory(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -762,21 +729,20 @@ class TestCLI:
                 shutil.rmtree('.derivepassphrase')
             with open('.derivepassphrase', 'w', encoding='UTF-8') as outfile:
                 print('Obstruction!!', file=outfile)
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['--export', '-'],
-                input=b'null',
+                input='null',
                 catch_exceptions=False,
             )
-            assert result.exit_code > 0, 'program unexpectedly succeeded'
-            assert (
-                result.stderr_bytes
-            ), 'program did not print any error message'
-            assert (
-                b'Cannot load config' in result.stderr_bytes
-            ), 'program did not print the expected error message'
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='Cannot load config'
+        ), 'expected error exit and known error message'
 
-    def test_220_edit_notes_successfully(self, monkeypatch: Any) -> None:
+    def test_220_edit_notes_successfully(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         edit_result = """
 
 # - - - - - >8 - - - - - >8 - - - - - >8 - - - - - >8 - - - - -
@@ -789,13 +755,11 @@ contents go here
             config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: edit_result)  # noqa: ARG005
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase, ['--notes', 'sv'], catch_exceptions=False
             )
-            assert (result.exit_code, result.stderr_bytes) == (
-                0,
-                b'',
-            ), 'program exited with failure'
+            result = tests.ReadableResult.parse(_result)
+            assert result.clean_exit(empty_stderr=True), 'expected clean exit'
             with open(cli._config_filename(), encoding='UTF-8') as infile:
                 config = json.load(infile)
             assert config == {
@@ -803,7 +767,9 @@ contents go here
                 'services': {'sv': {'notes': 'contents go here'}},
             }
 
-    def test_221_edit_notes_noop(self, monkeypatch: Any) -> None:
+    def test_221_edit_notes_noop(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -811,18 +777,18 @@ contents go here
             config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: None)  # noqa: ARG005
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase, ['--notes', 'sv'], catch_exceptions=False
             )
-            assert (result.exit_code, result.stderr_bytes) == (
-                0,
-                b'',
-            ), 'program exited with failure'
+            result = tests.ReadableResult.parse(_result)
+            assert result.clean_exit(empty_stderr=True), 'expected clean exit'
             with open(cli._config_filename(), encoding='UTF-8') as infile:
                 config = json.load(infile)
             assert config == {'global': {'phrase': 'abc'}, 'services': {}}
 
-    def test_222_edit_notes_marker_removed(self, monkeypatch: Any) -> None:
+    def test_222_edit_notes_marker_removed(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -830,13 +796,11 @@ contents go here
             config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: 'long\ntext')  # noqa: ARG005
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase, ['--notes', 'sv'], catch_exceptions=False
             )
-            assert (result.exit_code, result.stderr_bytes) == (
-                0,
-                b'',
-            ), 'program exited with failure'
+            result = tests.ReadableResult.parse(_result)
+            assert result.clean_exit(empty_stderr=True), 'expected clean exit'
             with open(cli._config_filename(), encoding='UTF-8') as infile:
                 config = json.load(infile)
             assert config == {
@@ -844,7 +808,9 @@ contents go here
                 'services': {'sv': {'notes': 'long\ntext'}},
             }
 
-    def test_223_edit_notes_abort(self, monkeypatch: Any) -> None:
+    def test_223_edit_notes_abort(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -852,14 +818,13 @@ contents go here
             config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: '\n\n')  # noqa: ARG005
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase, ['--notes', 'sv'], catch_exceptions=False
             )
-            assert result.exit_code != 0, 'program unexpectedly succeeded'
-            assert result.stderr_bytes is not None
-            assert (
-                b'user aborted request' in result.stderr_bytes
-            ), 'expected error message missing'
+            result = tests.ReadableResult.parse(_result)
+            assert result.error_exit(
+                error='user aborted request'
+            ), 'expected known error message'
             with open(cli._config_filename(), encoding='UTF-8') as infile:
                 config = json.load(infile)
             assert config == {'global': {'phrase': 'abc'}, 'services': {}}
@@ -869,17 +834,17 @@ contents go here
         [
             (
                 ['--phrase'],
-                b'my passphrase\n',
+                'my passphrase\n',
                 {'global': {'phrase': 'my passphrase'}, 'services': {}},
             ),
             (
                 ['--key'],
-                b'1\n',
+                '1\n',
                 {'global': {'key': DUMMY_KEY1_B64}, 'services': {}},
             ),
             (
                 ['--phrase', 'sv'],
-                b'my passphrase\n',
+                'my passphrase\n',
                 {
                     'global': {'phrase': 'abc'},
                     'services': {'sv': {'phrase': 'my passphrase'}},
@@ -887,7 +852,7 @@ contents go here
             ),
             (
                 ['--key', 'sv'],
-                b'1\n',
+                '1\n',
                 {
                     'global': {'phrase': 'abc'},
                     'services': {'sv': {'key': DUMMY_KEY1_B64}},
@@ -895,7 +860,7 @@ contents go here
             ),
             (
                 ['--key', '--length', '15', 'sv'],
-                b'1\n',
+                '1\n',
                 {
                     'global': {'phrase': 'abc'},
                     'services': {'sv': {'key': DUMMY_KEY1_B64, 'length': 15}},
@@ -905,9 +870,9 @@ contents go here
     )
     def test_224_store_config_good(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
         command_line: list[str],
-        input: bytes,
+        input: str,
         result_config: Any,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
@@ -919,13 +884,14 @@ contents go here
             monkeypatch.setattr(
                 cli, '_get_suitable_ssh_keys', tests.suitable_ssh_keys
             )
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['--config', *command_line],
                 catch_exceptions=False,
                 input=input,
             )
-            assert result.exit_code == 0, 'program exited with failure'
+            result = tests.ReadableResult.parse(_result)
+            assert result.clean_exit(), 'expected clean exit'
             with open(cli._config_filename(), encoding='UTF-8') as infile:
                 config = json.load(infile)
             assert (
@@ -935,26 +901,22 @@ contents go here
     @pytest.mark.parametrize(
         ['command_line', 'input', 'err_text'],
         [
-            (
-                [],
-                b'',
-                b'Cannot update global settings without actual settings',
-            ),
+            ([], '', 'Cannot update global settings without actual settings'),
             (
                 ['sv'],
-                b'',
-                b'Cannot update service settings without actual settings',
+                '',
+                'Cannot update service settings without actual settings',
             ),
-            (['--phrase', 'sv'], b'', b'No passphrase given'),
-            (['--key'], b'', b'No valid SSH key selected'),
+            (['--phrase', 'sv'], '', 'No passphrase given'),
+            (['--key'], '', 'No valid SSH key selected'),
         ],
     )
     def test_225_store_config_fail(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
         command_line: list[str],
-        input: bytes,
-        err_text: bytes,
+        input: str,
+        err_text: str,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -965,21 +927,20 @@ contents go here
             monkeypatch.setattr(
                 cli, '_get_suitable_ssh_keys', tests.suitable_ssh_keys
             )
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['--config', *command_line],
                 catch_exceptions=False,
                 input=input,
             )
-            assert result.exit_code != 0, 'program unexpectedly succeeded?!'
-            assert result.stderr_bytes is not None
-            assert (
-                err_text in result.stderr_bytes
-            ), 'expected error message missing'
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error=err_text
+        ), 'expected error exit and known error message'
 
     def test_225a_store_config_fail_manual_no_ssh_key_selection(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -993,20 +954,19 @@ contents go here
                 raise RuntimeError(custom_error)
 
             monkeypatch.setattr(cli, '_select_ssh_key', raiser)
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['--key', '--config'],
                 catch_exceptions=False,
             )
-            assert result.exit_code != 0, 'program unexpectedly succeeded'
-            assert result.stderr_bytes is not None
-            assert (
-                custom_error.encode() in result.stderr_bytes
-            ), 'expected error message missing'
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error=custom_error
+        ), 'expected error exit and known error message'
 
     def test_225b_store_config_fail_manual_no_ssh_agent(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -1015,20 +975,19 @@ contents go here
             config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['--key', '--config'],
                 catch_exceptions=False,
             )
-            assert result.exit_code != 0, 'program unexpectedly succeeded'
-            assert result.stderr_bytes is not None
-            assert (
-                b'Cannot find running SSH agent' in result.stderr_bytes
-            ), 'expected error message missing'
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='Cannot find running SSH agent'
+        ), 'expected error exit and known error message'
 
     def test_225c_store_config_fail_manual_bad_ssh_agent_connection(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -1037,21 +996,20 @@ contents go here
             config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.setenv('SSH_AUTH_SOCK', os.getcwd())
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['--key', '--config'],
                 catch_exceptions=False,
             )
-            assert result.exit_code != 0, 'program unexpectedly succeeded'
-            assert result.stderr_bytes is not None
-            assert (
-                b'Cannot connect to SSH agent' in result.stderr_bytes
-            ), 'expected error message missing'
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='Cannot connect to SSH agent'
+        ), 'expected error exit and known error message'
 
     @pytest.mark.parametrize('try_race_free_implementation', [True, False])
     def test_225d_store_config_fail_manual_read_only_file(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
         try_race_free_implementation: bool,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
@@ -1064,20 +1022,19 @@ contents go here
                 cli._config_filename(),
                 try_race_free_implementation=try_race_free_implementation,
             )
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['--config', '--length=15', DUMMY_SERVICE],
                 catch_exceptions=False,
             )
-            assert result.exit_code != 0, 'program unexpectedly succeeded'
-            assert result.stderr_bytes is not None
-            assert (
-                b'Cannot store config' in result.stderr_bytes
-            ), 'expected error message missing'
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='Cannot store config'
+        ), 'expected error exit and known error message'
 
     def test_225e_store_config_fail_manual_custom_error(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -1092,50 +1049,51 @@ contents go here
                 raise RuntimeError(custom_error)
 
             monkeypatch.setattr(cli, '_save_config', raiser)
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['--config', '--length=15', DUMMY_SERVICE],
                 catch_exceptions=False,
             )
-            assert result.exit_code != 0, 'program unexpectedly succeeded'
-            assert result.stderr_bytes is not None
-            assert (
-                custom_error.encode() in result.stderr_bytes
-            ), 'expected error message missing'
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error=custom_error
+        ), 'expected error exit and known error message'
 
-    def test_226_no_arguments(self, monkeypatch: Any) -> None:
+    def test_226_no_arguments(self, monkeypatch: pytest.MonkeyPatch) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
             config={'services': {}},
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase, [], catch_exceptions=False
             )
-        assert result.exit_code != 0, 'program unexpectedly succeeded'
-        assert result.stderr_bytes is not None
-        assert (
-            b'SERVICE is required' in result.stderr_bytes
-        ), 'expected error message missing'
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='SERVICE is required'
+        ), 'expected error exit and known error message'
 
-    def test_226a_no_passphrase_or_key(self, monkeypatch: Any) -> None:
+    def test_226a_no_passphrase_or_key(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
             config={'services': {}},
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase, [DUMMY_SERVICE], catch_exceptions=False
             )
-        assert result.exit_code != 0, 'program unexpectedly succeeded'
-        assert result.stderr_bytes is not None
-        assert (
-            b'No passphrase or key given' in result.stderr_bytes
-        ), 'expected error message missing'
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='No passphrase or key given'
+        ), 'expected error exit and known error message'
 
-    def test_230_config_directory_nonexistant(self, monkeypatch: Any) -> None:
+    def test_230_config_directory_nonexistant(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """the-13th-letter/derivepassphrase#6"""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -1154,16 +1112,17 @@ contents go here
                 return real_os_makedirs(*args, **kwargs)
 
             monkeypatch.setattr(os, 'makedirs', makedirs)
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['--config', '-p'],
                 catch_exceptions=False,
                 input='abc\n',
             )
+            result = tests.ReadableResult.parse(_result)
+            assert result.clean_exit(), 'expected clean exit'
             assert (
-                result.stderr_bytes == b'Passphrase:'
+                result.stderr == 'Passphrase:'
             ), 'program unexpectedly failed?!'
-            assert result.exit_code == 0, 'program unexpectedly failed?!'
             assert os_makedirs_called, 'os.makedirs has not been called?!'
             with open(cli._config_filename(), encoding='UTF-8') as infile:
                 config_readback = json.load(infile)
@@ -1172,7 +1131,9 @@ contents go here
                 'services': {},
             }, 'config mismatch'
 
-    def test_230a_config_directory_not_a_file(self, monkeypatch: Any) -> None:
+    def test_230a_config_directory_not_a_file(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """the-13th-letter/derivepassphrase#6"""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -1193,19 +1154,20 @@ contents go here
                 return _save_config(*args, **kwargs)
 
             monkeypatch.setattr(cli, '_save_config', obstruct_config_saving)
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['--config', '-p'],
                 catch_exceptions=False,
                 input='abc\n',
             )
-            assert result.exit_code != 0, 'program unexpectedly succeeded?!'
-            assert result.stderr_bytes is not None
-            assert (
-                b'Cannot store config' in result.stderr_bytes
-            ), 'program unexpectedly failed?!'
+            result = tests.ReadableResult.parse(_result)
+            assert result.error_exit(
+                error='Cannot store config'
+            ), 'expected error exit and known error message'
 
-    def test_230b_store_config_custom_error(self, monkeypatch: Any) -> None:
+    def test_230b_store_config_custom_error(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -1225,20 +1187,19 @@ contents go here
                 return _save_config(*args, **kwargs)
 
             monkeypatch.setattr(cli, '_save_config', obstruct_config_saving)
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 ['--config', '-p'],
                 catch_exceptions=False,
                 input='abc\n',
             )
-            assert result.exit_code != 0, 'program unexpectedly succeeded?!'
-            assert result.stderr_bytes is not None
-            assert (
-                b'Cannot store config' in result.stderr_bytes
-            ), 'program unexpectedly failed?!'
+            result = tests.ReadableResult.parse(_result)
+            assert result.error_exit(
+                error='Cannot store config'
+            ), 'expected error exit and known error message'
 
     @pytest.mark.parametrize(
-        ['command_line', 'input', 'error_message'],
+        ['command_line', 'input', 'warning_message'],
         [
             pytest.param(
                 ['--import', '-'],
@@ -1299,7 +1260,7 @@ contents go here
                     'services': {
                         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
                         'weird entry name': {'phrase': 'D\u00fcsseldorf'},
-                    }
+                    },
                 }),
                 (
                     "the services.'weird entry name' passphrase "
@@ -1311,10 +1272,10 @@ contents go here
     )
     def test_300_unicode_normalization_form_warning(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
         command_line: list[str],
         input: str | None,
-        error_message: str,
+        warning_message: str,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -1322,19 +1283,23 @@ contents go here
             runner=runner,
             config={'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}},
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase,
                 command_line,
                 catch_exceptions=False,
                 input=input,
             )
-            assert (result.exception, result.exit_code) == (None, 0)
-            assert result.stderr_bytes is not None
-            assert error_message in result.stderr
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(), 'expected clean exit'
+        assert (
+            warning_message in result.stderr
+        ), 'expected known warning message in stderr'
 
 
 class TestCLIUtils:
-    def test_100_save_bad_config(self, monkeypatch: Any) -> None:
+    def test_100_save_bad_config(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         runner = click.testing.CliRunner()
         with (
             tests.isolated_config(
@@ -1342,7 +1307,7 @@ class TestCLIUtils:
             ),
             pytest.raises(ValueError, match='Invalid vault config'),
         ):
-            cli._save_config(None)  # type: ignore
+            cli._save_config(None)  # type: ignore[arg-type]
 
     def test_101_prompt_for_selection_multiple(self) -> None:
         @click.command()
@@ -1375,11 +1340,10 @@ class TestCLIUtils:
             click.echo('(Note: Vikings strictly optional.)')
 
         runner = click.testing.CliRunner(mix_stderr=True)
-        result = runner.invoke(driver, [], input='9')
-        assert result.exit_code == 0, 'driver program failed'
-        assert (
-            result.stdout
-            == """\
+        _result = runner.invoke(driver, [], input='9')
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(
+            output="""\
 Our menu:
 [1] Egg and bacon
 [2] Egg, sausage and bacon
@@ -1395,13 +1359,16 @@ Your selection? (1-10, leave empty to abort): 9
 A fine choice: Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam and spam
 (Note: Vikings strictly optional.)
 """  # noqa: E501
-        ), 'driver program produced unexpected output'
-        result = runner.invoke(
+        ), 'expected clean exit'
+        _result = runner.invoke(
             driver, ['--heading='], input='', catch_exceptions=True
         )
-        assert result.exit_code > 0, 'driver program succeeded?!'
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error=IndexError
+        ), 'expected error exit and known error type'
         assert (
-            result.stdout
+            result.output
             == """\
 [1] Egg and bacon
 [2] Egg, sausage and bacon
@@ -1415,10 +1382,7 @@ A fine choice: Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam
 [10] Lobster thermidor aux crevettes with a mornay sauce garnished with truffle paté, brandy and a fried egg on top and spam
 Your selection? (1-10, leave empty to abort):\x20
 """  # noqa: E501
-        ), 'driver program produced unexpected output'
-        assert isinstance(
-            result.exception, IndexError
-        ), 'driver program did not raise IndexError?!'
+        ), 'expected known output'
 
     def test_102_prompt_for_selection_single(self) -> None:
         @click.command()
@@ -1436,37 +1400,38 @@ Your selection? (1-10, leave empty to abort):\x20
                 click.echo('Great!')
 
         runner = click.testing.CliRunner(mix_stderr=True)
-        result = runner.invoke(
+        _result = runner.invoke(
             driver, ['Will replace with spam. Confirm, y/n?'], input='y'
         )
-        assert result.exit_code == 0, 'driver program failed'
-        assert (
-            result.stdout
-            == """\
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(
+            output="""\
 [1] baked beans
 Will replace with spam. Confirm, y/n? y
 Great!
 """
-        ), 'driver program produced unexpected output'
-        result = runner.invoke(
+        ), 'expected clean exit'
+        _result = runner.invoke(
             driver,
             ['Will replace with spam, okay? ' '(Please say "y" or "n".)'],
             input='',
         )
-        assert result.exit_code > 0, 'driver program succeeded?!'
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error=IndexError
+        ), 'expected error exit and known error type'
         assert (
-            result.stdout
+            result.output
             == """\
 [1] baked beans
 Will replace with spam, okay? (Please say "y" or "n".):\x20
 Boo.
 """
-        ), 'driver program produced unexpected output'
-        assert isinstance(
-            result.exception, IndexError
-        ), 'driver program did not raise IndexError?!'
+        ), 'expected known output'
 
-    def test_103_prompt_for_passphrase(self, monkeypatch: Any) -> None:
+    def test_103_prompt_for_passphrase(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr(
             click,
             'prompt',
@@ -1510,7 +1475,7 @@ Boo.
     )
     def test_203_repeated_config_deletion(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
         command_line: list[str],
         config: _types.VaultConfig,
         result_config: _types.VaultConfig,
@@ -1520,13 +1485,13 @@ Boo.
             with tests.isolated_config(
                 monkeypatch=monkeypatch, runner=runner, config=start_config
             ):
-                result = runner.invoke(
+                _result = runner.invoke(
                     cli.derivepassphrase, command_line, catch_exceptions=False
                 )
-                assert (result.exit_code, result.stderr_bytes) == (
-                    0,
-                    b'',
-                ), 'program exited with failure'
+                result = tests.ReadableResult.parse(_result)
+                assert result.clean_exit(
+                    empty_stderr=True
+                ), 'expected clean exit'
                 with open(cli._config_filename(), encoding='UTF-8') as infile:
                     config_readback = json.load(infile)
                 assert config_readback == result_config
@@ -1559,7 +1524,7 @@ Boo.
     @pytest.mark.parametrize('conn_hint', ['none', 'socket', 'client'])
     def test_227_get_suitable_ssh_keys(
         self,
-        monkeypatch: Any,
+        monkeypatch: pytest.MonkeyPatch,
         conn_hint: str,
     ) -> None:
         monkeypatch.setattr(

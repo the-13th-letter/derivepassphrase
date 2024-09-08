@@ -26,7 +26,7 @@ justification is not yet binding, and <em>any</em> new release may
 effectively constitute a new <q>major</q> release.)
 </small></aside>
 
-  [REFERENCE]: reference.md
+  [REFERENCE]: reference/index.md
 
 <!-- towncrier release notes start -->
 

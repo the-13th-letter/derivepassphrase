@@ -10,7 +10,7 @@ requires-python = ">= 3.10"
 license = "MIT"
 keywords = []
 authors = [
-  { name = "Marco Ricci", email = "m@the13thletter.info" },
+  { name = "Marco Ricci", email = "software@the13thletter.info" },
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -189,27 +189,30 @@ quote-style = 'single'
 [tool.ruff.lint]
 ignore = [
     # Suggested ignore by ruff when also using ruff to format.  We *do*
-    # check for E501, because this usually only happens when there is a text
-    # string that should be manually broken.
-    'W191', 'E111', 'E114', 'E117', 'D206', 'D300', 'Q000', 'Q001', 'Q002',
-    'Q003', 'COM812', 'COM819', 'ISC001', 'ISC002',
+    # check for E501, because this usually only happens when there is
+    # a text string that should be manually broken.
+    'W191', 'E111', 'E114', 'E117', 'D206', 'D300', 'Q000', 'Q001',
+    'Q002', 'Q003', 'COM812', 'COM819', 'ISC001', 'ISC002',
     # We use `assert` regularly to appease the type checker, and because
     # it is the right language tool for this job.
     'S101',
     # The formatter takes care of trailing commas and docstring code
     # automatically.
     'COM812', 'W505',
-    # We document transitive exceptions as well (if we feel they would be
-    # surprising to the user otherwise).
+    # We document transitive exceptions as well (if we feel they would
+    # be surprising to the user otherwise).
     'DOC502',
-    # We currently don't have issues for every TODO.  Forcing an issue also
-    # goes against the philosophy of TODOs as low-overhead markers for
-    # future work; see
+    # We currently don't have issues for every TODO.  Forcing an issue
+    # also goes against the philosophy of TODOs as low-overhead markers
+    # for future work; see
     # https://gist.github.com/dmnd/ed5d8ef8de2e4cfea174bd5dafcda382 .
     'TD003',
-    # We somewhat regularly use loops where each iteration needs a separate
-    # try-except block.
+    # We somewhat regularly use loops where each iteration needs
+    # a separate try-except block.
     'PERF203',
+    # We do not currently use pathlib.  The PTH rules are unselected,
+    # but FURB includes several pathlib-related rules.
+    'FURB101', 'FURB103',
     # We catch type-ignore comments without specific code via the mypy
     # configuration, not via ruff.
     'PGH003',
@@ -226,13 +229,13 @@ select = [
     'INT', 'ARG',
     # We currently do not use pathlib. Disable 'PTH'.
     'TD',
-    # We use TODOs and FIXMEs as notes for later, and don't want the linter
-    # to nag about every occurrence.  Disable 'FIX'.
+    # We use TODOs and FIXMEs as notes for later, and don't want the
+    # linter to nag about every occurrence.  Disable 'FIX'.
     #
-    # The "eradicate" rule is prone to a lot of false positives, and it is
-    # unclear to me, and probably confusing to read, where to apply a noqa
-    # marker.  Instead, disable 'ERA', and if necessary, specify it on the
-    # command-line.
+    # The "eradicate" rule is prone to a lot of false positives, and it
+    # is unclear to me, and probably confusing to read, where to apply
+    # a noqa marker.  Instead, disable 'ERA', and if necessary, specify
+    # it on the command-line.
     'PD', 'PGH', 'PL', 'TRY', 'FLY', 'NPY', 'FAST',
     'AIR', 'PERF', 'FURB', 'DOC', 'RUF',
 ]
@@ -251,8 +254,9 @@ select = [
   'PLC1901',
   # Suggested by hatch, assumingly because tests may use "magic values".
   'PLR2004',
-  # Suggested by hatch, because tests are typically organized as classes and
-  # instance methods but may not really be using the `self` argument.
+  # Suggested by hatch, because tests are typically organized as classes
+  # and instance methods but may not really be using the `self`
+  # argument.
   'PLR6301',
   # Suggested by hatch, because these warnings may be precisely what the
   # tests are supposed to test.
@@ -274,8 +278,8 @@ select = [
   # Importing this from the tests directory would then automatically
   # trigger `PLC2701`.
   'PLC2701',
-  # Too many public methods/arguments/returns/branches/locals doesn't really
-  # apply here.
+  # Too many public methods/arguments/returns/branches/locals doesn't
+  # really apply here.
   'PLR0904', 'PLR0911', 'PLR0912', 'PLR0913', 'PLR0914', 'PLR0915',
   'PLR0916', 'PLR0917',
   # To fully test the `derivepassphrase.cli` module (and a couple other

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2024 Marco Ricci <m@the13thletter.info>
+# SPDX-FileCopyrightText: 2024 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: MIT
 
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
 
 __all__ = ('Sequin', 'SequinExhaustedError')
-__author__ = 'Marco Ricci <m@the13thletter.info>'
+__author__ = 'Marco Ricci <software@the13thletter.info>'
 
 
 class Sequin:
@@ -64,7 +64,7 @@ class Sequin:
         /,
         *,
         is_bitstring: bool = False,
-    ):
+    ) -> None:
         """Initialize the Sequin.
 
         Args:
@@ -176,6 +176,9 @@ class Sequin:
             digits: A sequence of integers to evaluate.
             base: The number base to evaluate those integers in.
 
+        Returns:
+            The number value of the integer sequence.
+
         Raises:
             ValueError: `base` is an invalid base.
             ValueError: Not all integers are valid base `base` digits.
@@ -204,7 +207,7 @@ class Sequin:
             x = digits[i]
             if not isinstance(x, int):
                 msg = f'not an integer: {x!r}'
-                raise TypeError(msg)
+                raise TypeError(msg)  # noqa: DOC501
             if x not in allowed_range:
                 msg = f'invalid base {base!r} digit: {x!r}'
                 raise ValueError(msg)
@@ -387,5 +390,5 @@ class SequinExhaustedError(Exception):
 
     """
 
-    def __init__(self) -> None:
+    def __init__(self) -> None:  # noqa: D107
         super().__init__('Sequin is exhausted')

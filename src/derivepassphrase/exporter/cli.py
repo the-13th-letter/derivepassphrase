@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2024 Marco Ricci <m@the13thletter.info>
+# SPDX-FileCopyrightText: 2024 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: MIT
 
@@ -35,28 +35,32 @@ def _load_data(
     fmt: Literal['v0.2', 'v0.3', 'storeroom'],
     path: str | bytes | os.PathLike[str],
     key: bytes,
-) -> Any:
+) -> Any:  # noqa: ANN401
     contents: bytes
     module: types.ModuleType
     match fmt:
         case 'v0.2':
             module = importlib.import_module(
-                'derivepassphrase.exporter.vault_v03_and_below'
+                'derivepassphrase.exporter.vault_native'
             )
             if module.STUBBED:
                 raise ModuleNotFoundError
             with open(path, 'rb') as infile:
                 contents = base64.standard_b64decode(infile.read())
-            return module.VaultNativeV02ConfigParser(contents, key)()
+            return module.export_vault_native_data(
+                contents, key, try_formats=['v0.2']
+            )
         case 'v0.3':
             module = importlib.import_module(
-                'derivepassphrase.exporter.vault_v03_and_below'
+                'derivepassphrase.exporter.vault_native'
             )
             if module.STUBBED:
                 raise ModuleNotFoundError
             with open(path, 'rb') as infile:
                 contents = base64.standard_b64decode(infile.read())
-            return module.VaultNativeV03ConfigParser(contents, key)()
+            return module.export_vault_native_data(
+                contents, key, try_formats=['v0.3']
+            )
         case 'storeroom':
             module = importlib.import_module(
                 'derivepassphrase.exporter.storeroom'
@@ -106,7 +110,8 @@ def derivepassphrase_export(
     Read the vault-native configuration at PATH, extract all information
     from it, and export the resulting configuration to standard output.
     Depending on the configuration format, this may either be a file or
-    a directory.
+    a directory.  Supports the vault "v0.2", "v0.3" and "storeroom"
+    formats.
 
     If PATH is explicitly given as `VAULT_PATH`, then use the
     `VAULT_PATH` environment variable to determine the correct path.
@@ -114,7 +119,6 @@ def derivepassphrase_export(
     named `VAULT_PATH`.)
 
     """
-
     logging.basicConfig()
     if path in {'VAULT_PATH', b'VAULT_PATH'}:
         path = exporter.get_vault_path()

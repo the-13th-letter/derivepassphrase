@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2024 Marco Ricci <m@the13thletter.info>
+# SPDX-FileCopyrightText: 2024 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: MIT
 
@@ -15,7 +15,7 @@ import zipfile
 from typing import TYPE_CHECKING
 
 import pytest
-from typing_extensions import assert_never
+from typing_extensions import NamedTuple, Self, assert_never
 
 from derivepassphrase import _types, cli
 
@@ -323,7 +323,7 @@ JAu0J3Q+cypZuKQVAAAAMQD5sTy8p+B1cn/DhOmXquui1BcxvASqzzevkBlbQoBa73y04B
 }
 
 DUMMY_SERVICE = 'service1'
-DUMMY_PASSPHRASE = b'my secret passphrase\n'
+DUMMY_PASSPHRASE = 'my secret passphrase'
 DUMMY_KEY1 = SUPPORTED_KEYS['ed25519']['public_key_data']
 DUMMY_KEY1_B64 = base64.standard_b64encode(DUMMY_KEY1).decode('ASCII')
 DUMMY_KEY2 = SUPPORTED_KEYS['rsa']['public_key_data']
@@ -355,7 +355,7 @@ VAULT_MASTER_KEY = 'vault key'
 VAULT_V02_CONFIG = 'P7xeh5y4jmjpJ2pFq4KUcTVoaE9ZOEkwWmpVTURSSWQxbGt6emN4aFE4eFM3anVPbDRNTGpOLzY3eDF5aE1YTm5LNWh5Q1BwWTMwM3M5S083MWRWRFlmOXNqSFJNcStGMWFOS3c2emhiOUNNenZYTmNNMnZxaUErdlRoOGF2ZHdGT1ZLNTNLOVJQcU9jWmJrR3g5N09VcVBRZ0ZnSFNUQy9HdFVWWnFteVhRVkY3MHNBdnF2ZWFEbFBseWRGelE1c3BFTnVUckRQdWJSL29wNjFxd2Y2ZVpob3VyVzRod3FKTElTenJ1WTZacTJFOFBtK3BnVzh0QWVxcWtyWFdXOXYyenNQeFNZbWt1MDU2Vm1kVGtISWIxWTBpcWRFbyswUVJudVVhZkVlNVpGWDA4WUQ2Q2JTWW81SnlhQ2Zxa3cxNmZoQjJES0Uyd29rNXpSck5iWVBrVmEwOXFya1NpMi9saU5LL3F0M3N3MjZKekNCem9ER2svWkZ0SUJLdmlHRno0VlQzQ3pqZTBWcTM3YmRiNmJjTkhqUHZoQ0NxMW1ldW1XOFVVK3pQMEtUMkRMVGNvNHFlOG40ck5KcGhsYXg1b1VzZ1NYU1B2T3RXdEkwYzg4NWE3YWUzOWI1MDI0MThhMWZjODQ3MDA2OTJmNDQ0MDkxNGFiNmRlMGQ2YjZiNjI5NGMwN2IwMmI4MGZi'  # noqa: E501
 VAULT_V02_CONFIG_DATA = {
     'global': {
-        'phrase': DUMMY_PASSPHRASE.decode('utf-8').rstrip('\n'),
+        'phrase': DUMMY_PASSPHRASE.rstrip('\n'),
     },
     'services': {
         '(meta)': {
@@ -367,7 +367,7 @@ VAULT_V02_CONFIG_DATA = {
 VAULT_V03_CONFIG = 'sBPBrr8BFHPxSJkV/A53zk9zwDQHFxLe6UIusCVvzFQre103pcj5xxmE11lMTA0U2QTYjkhRXKkH5WegSmYpAnzReuRsYZlWWp6N4kkubf+twZ9C3EeggPm7as2Af4TICHVbX4uXpIHeQJf9y1OtqrO+SRBrgPBzgItoxsIxebxVKgyvh1CZQOSkn7BIzt9xKhDng3ubS4hQ91fB0QCumlldTbUl8tj4Xs5JbvsSlUMxRlVzZ0OgAOrSsoWELXmsp6zXFa9K6wIuZa4wQuMLQFHiA64JO1CR3I+rviWCeMlbTOuJNx6vMB5zotKJqA2hIUpN467TQ9vI4g/QTo40m5LT2EQKbIdTvBQAzcV4lOcpr5Lqt4LHED5mKvm/4YfpuuT3I3XCdWfdG5SB7ciiB4Go+xQdddy3zZMiwm1fEwIB8XjFf2cxoJdccLQ2yxf+9diedBP04EsMHrvxKDhQ7/vHl7xF2MMFTDKl3WFd23vvcjpR1JgNAKYprG/e1p/7'  # noqa: E501
 VAULT_V03_CONFIG_DATA = {
     'global': {
-        'phrase': DUMMY_PASSPHRASE.decode('utf-8').rstrip('\n'),
+        'phrase': DUMMY_PASSPHRASE.rstrip('\n'),
     },
     'services': {
         '(meta)': {
@@ -430,7 +430,7 @@ AAABAAAApIHsBwAAMWFQSwUGAAAAAAUABQDzAAAABAoAAAAA
 """
 VAULT_STOREROOM_CONFIG_DATA = {
     'global': {
-        'phrase': DUMMY_PASSPHRASE.decode('utf-8').rstrip('\n'),
+        'phrase': DUMMY_PASSPHRASE.rstrip('\n'),
     },
     'services': {
         '(meta)': {
@@ -486,7 +486,7 @@ AAAApIHIBAAAMWVQSwUGAAAAAAQABADDAAAAoQYAAAAA
 """
 
 CANNOT_LOAD_CRYPTOGRAPHY = (
-    b'Cannot load the required Python module "cryptography".'
+    'Cannot load the required Python module "cryptography".'
 )
 
 skip_if_no_agent = pytest.mark.skipif(
@@ -543,7 +543,7 @@ def phrase_from_key(key: bytes) -> bytes:
 
 @contextlib.contextmanager
 def isolated_config(
-    monkeypatch: Any,
+    monkeypatch: pytest.MonkeyPatch,
     runner: click.testing.CliRunner,
     config: Any,
 ) -> Iterator[None]:
@@ -615,7 +615,7 @@ def isolated_vault_exporter_config(
 
 def auto_prompt(*args: Any, **kwargs: Any) -> str:
     del args, kwargs  # Unused.
-    return DUMMY_PASSPHRASE.decode('UTF-8')
+    return DUMMY_PASSPHRASE
 
 
 def make_file_readonly(
@@ -668,3 +668,63 @@ def make_file_readonly(
     finally:
         if isinstance(fname, int):
             os.close(fname)
+
+
+class ReadableResult(NamedTuple):
+    """Helper class for formatting and testing click.testing.Result objects."""
+
+    exception: BaseException | None
+    exit_code: int
+    output: str
+    stderr: str
+
+    @classmethod
+    def parse(cls, r: click.testing.Result, /) -> Self:
+        try:
+            stderr = r.stderr
+        except ValueError:
+            stderr = r.output
+        return cls(r.exception, r.exit_code, r.output or '', stderr or '')
+
+    def clean_exit(
+        self, *, output: str = '', empty_stderr: bool = False
+    ) -> bool:
+        """Return whether the invocation exited cleanly.
+
+        Args:
+            output:
+                An expected output string.
+
+        """
+        return (
+            (
+                not self.exception
+                or (
+                    isinstance(self.exception, SystemExit)
+                    and self.exit_code == 0
+                )
+            )
+            and (not output or output in self.output)
+            and (not empty_stderr or not self.stderr)
+        )
+
+    def error_exit(
+        self, *, error: str | type[BaseException] = BaseException
+    ) -> bool:
+        """Return whether the invocation exited uncleanly.
+
+        Args:
+            error:
+                An expected error message, or an expected numeric error
+                code, or an expected exception type.
+
+        """
+        match error:
+            case str():
+                return (
+                    isinstance(self.exception, SystemExit)
+                    and self.exit_code > 0
+                    and (not error or error in self.stderr)
+                )
+            case _:
+                return isinstance(self.exception, error)

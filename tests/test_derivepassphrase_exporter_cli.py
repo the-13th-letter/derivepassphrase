@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2024 Marco Ricci <m@the13thletter.info>
+# SPDX-FileCopyrightText: 2024 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: MIT
 
@@ -12,7 +12,7 @@ import click.testing
 import pytest
 
 import tests
-from derivepassphrase.exporter import cli, storeroom, vault_v03_and_below
+from derivepassphrase.exporter import cli, storeroom, vault_native
 
 cryptography = pytest.importorskip('cryptography', minversion='38.0')
 
@@ -31,13 +31,13 @@ class TestCLI:
             vault_key=tests.VAULT_MASTER_KEY,
         ):
             monkeypatch.setenv('VAULT_KEY', tests.VAULT_MASTER_KEY)
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase_export,
                 ['VAULT_PATH'],
             )
-        assert not result.exception
-        assert (result.exit_code, result.stderr_bytes) == (0, b'')
-        assert json.loads(result.stdout) == tests.VAULT_V03_CONFIG_DATA
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+        assert json.loads(result.output) == tests.VAULT_V03_CONFIG_DATA
 
     def test_201_key_parameter(self, monkeypatch: pytest.MonkeyPatch) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
@@ -46,13 +46,13 @@ class TestCLI:
             runner=runner,
             vault_config=tests.VAULT_V03_CONFIG,
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase_export,
                 ['-k', tests.VAULT_MASTER_KEY, '.vault'],
             )
-        assert not result.exception
-        assert (result.exit_code, result.stderr_bytes) == (0, b'')
-        assert json.loads(result.stdout) == tests.VAULT_V03_CONFIG_DATA
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+        assert json.loads(result.output) == tests.VAULT_V03_CONFIG_DATA
 
     @pytest.mark.parametrize(
         ['format', 'config', 'config_data'],
@@ -90,13 +90,13 @@ class TestCLI:
             runner=runner,
             vault_config=config,
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase_export,
                 ['-f', format, '-k', tests.VAULT_MASTER_KEY, 'VAULT_PATH'],
             )
-        assert not result.exception
-        assert (result.exit_code, result.stderr_bytes) == (0, b'')
-        assert json.loads(result.stdout) == config_data
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+        assert json.loads(result.output) == config_data
 
     # test_300_invalid_format is found in
     # tests.test_derivepassphrase_export::Test002CLI
@@ -112,18 +112,15 @@ class TestCLI:
             vault_config=tests.VAULT_V03_CONFIG,
             vault_key=tests.VAULT_MASTER_KEY,
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase_export,
                 ['does-not-exist.txt'],
             )
-        assert isinstance(result.exception, SystemExit)
-        assert result.exit_code
-        assert result.stderr_bytes
-        assert (
-            b"Cannot parse 'does-not-exist.txt' as a valid config"
-            in result.stderr_bytes
-        )
-        assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr_bytes
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error="Cannot parse 'does-not-exist.txt' as a valid config"
+        ), 'expected error exit and known error message'
+        assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
     def test_302_vault_config_invalid(
         self,
@@ -136,17 +133,15 @@ class TestCLI:
             vault_config='',
             vault_key=tests.VAULT_MASTER_KEY,
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase_export,
                 ['.vault'],
             )
-        assert isinstance(result.exception, SystemExit)
-        assert result.exit_code
-        assert result.stderr_bytes
-        assert (
-            b"Cannot parse '.vault' as a valid config." in result.stderr_bytes
-        )
-        assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr_bytes
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error="Cannot parse '.vault' as a valid config"
+        ), 'expected error exit and known error message'
+        assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
     def test_403_invalid_vault_config_bad_signature(
         self,
@@ -159,17 +154,15 @@ class TestCLI:
             vault_config=tests.VAULT_V02_CONFIG,
             vault_key=tests.VAULT_MASTER_KEY,
         ):
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase_export,
                 ['-f', 'v0.3', '.vault'],
             )
-        assert isinstance(result.exception, SystemExit)
-        assert result.exit_code
-        assert result.stderr_bytes
-        assert (
-            b"Cannot parse '.vault' as a valid config." in result.stderr_bytes
-        )
-        assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr_bytes
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error="Cannot parse '.vault' as a valid config"
+        ), 'expected error exit and known error message'
+        assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
     def test_500_vault_config_invalid_internal(
         self,
@@ -187,15 +180,15 @@ class TestCLI:
                 return None
 
             monkeypatch.setattr(cli, '_load_data', _load_data)
-            result = runner.invoke(
+            _result = runner.invoke(
                 cli.derivepassphrase_export,
                 ['.vault'],
             )
-        assert isinstance(result.exception, SystemExit)
-        assert result.exit_code
-        assert result.stderr_bytes
-        assert b'Invalid vault config: ' in result.stderr_bytes
-        assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr_bytes
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='Invalid vault config: '
+        ), 'expected error exit and known error message'
+        assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
 
 class TestStoreroom:
@@ -235,7 +228,7 @@ class TestStoreroom:
             'signing_key': bytes(storeroom.KEY_SIZE),
             'hashing_key': bytes(storeroom.KEY_SIZE),
         }
-        with pytest.raises(RuntimeError, match='Cannot handle version 255'):
+        with pytest.raises(ValueError, match='Cannot handle version 255'):
             storeroom.decrypt_bucket_item(bucket_item, master_keys)
 
     @pytest.mark.parametrize('config', ['xxx', 'null', '{"version": 255}'])
@@ -259,7 +252,7 @@ class TestStoreroom:
         ):
             with open('.vault/20', 'w', encoding='UTF-8') as outfile:
                 print(config, file=outfile)
-            with pytest.raises(RuntimeError, match='Invalid bucket file: '):
+            with pytest.raises(ValueError, match='Invalid bucket file: '):
                 list(storeroom.decrypt_bucket_file('.vault/20', master_keys))
 
     @pytest.mark.parametrize(
@@ -317,23 +310,36 @@ class TestVaultNativeConfig:
     )
     def test_200_pbkdf2_manually(self, iterations: int, result: bytes) -> None:
         assert (
-            vault_v03_and_below.VaultNativeConfigParser.pbkdf2(
+            vault_native.VaultNativeConfigParser._pbkdf2(
                 tests.VAULT_MASTER_KEY.encode('utf-8'), 32, iterations
             )
             == result
         )
 
+    def test_201_export_vault_native_data_no_arguments(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_exporter_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            vault_config=tests.VAULT_V03_CONFIG,
+            vault_key=tests.VAULT_MASTER_KEY,
+        ):
+            parsed_config = vault_native.export_vault_native_data(None)
+        assert parsed_config == tests.VAULT_V03_CONFIG_DATA
+
     @pytest.mark.parametrize(
         ['parser_class', 'config', 'result'],
         [
             pytest.param(
-                vault_v03_and_below.VaultNativeV02ConfigParser,
+                vault_native.VaultNativeV02ConfigParser,
                 tests.VAULT_V02_CONFIG,
                 tests.VAULT_V02_CONFIG_DATA,
                 id='0.2',
             ),
             pytest.param(
-                vault_v03_and_below.VaultNativeV03ConfigParser,
+                vault_native.VaultNativeV03ConfigParser,
                 tests.VAULT_V03_CONFIG,
                 tests.VAULT_V03_CONFIG_DATA,
                 id='0.3',
@@ -343,7 +349,7 @@ class TestVaultNativeConfig:
     def test_300_result_caching(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        parser_class: type[vault_v03_and_below.VaultNativeConfigParser],
+        parser_class: type[vault_native.VaultNativeConfigParser],
         config: str,
         result: dict[str, Any],
     ) -> None:
@@ -378,9 +384,9 @@ class TestVaultNativeConfig:
                 parser, '_decrypt_payload', null_func('_decrypt_payload')
             )
             assert parser() == result
-            super_call = vault_v03_and_below.VaultNativeConfigParser.__call__
+            super_call = vault_native.VaultNativeConfigParser.__call__
             assert super_call(parser) == result
 
     def test_400_no_password(self) -> None:
         with pytest.raises(ValueError, match='Password must not be empty'):
-            vault_v03_and_below.VaultNativeV03ConfigParser(b'', b'')
+            vault_native.VaultNativeV03ConfigParser(b'', b'')

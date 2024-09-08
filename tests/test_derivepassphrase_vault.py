@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2024 Marco Ricci <m@the13thletter.info>
+# SPDX-FileCopyrightText: 2024 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: MIT
 
@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import math
-from typing import Any
 
 import pytest
 
@@ -193,7 +192,10 @@ class TestVault:
         ],
     )
     def test_223_hash_length_expansion(
-        self, monkeypatch: Any, service: str | bytes, expected: bytes
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        service: str | bytes,
+        expected: bytes,
     ) -> None:
         v = Vault(phrase=self.phrase)
         monkeypatch.setattr(
@@ -255,4 +257,4 @@ class TestVault:
         with pytest.raises(
             TypeError, match='invalid safety factor: not a float'
         ):
-            assert v._estimate_sufficient_hash_length(None)  # type: ignore
+            assert v._estimate_sufficient_hash_length(None)  # type: ignore[arg-type]
