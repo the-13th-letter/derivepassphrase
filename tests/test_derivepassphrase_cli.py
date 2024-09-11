@@ -205,7 +205,6 @@ class TestCLI:
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'services': {}},
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault, ['--help'], catch_exceptions=False
@@ -231,7 +230,6 @@ class TestCLI:
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'services': {}},
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -254,7 +252,6 @@ class TestCLI:
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'services': {}},
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -303,7 +300,7 @@ class TestCLI:
         config: _types.VaultConfig,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
+        with tests.isolated_vault_config(
             monkeypatch=monkeypatch, runner=runner, config=config
         ):
             monkeypatch.setattr(
@@ -330,7 +327,7 @@ class TestCLI:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
+        with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
             config={'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
@@ -404,7 +401,7 @@ class TestCLI:
         )
         monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', sign)
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
+        with tests.isolated_vault_config(
             monkeypatch=monkeypatch, runner=runner, config=config
         ):
             _result = runner.invoke(
@@ -425,7 +422,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
+        with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
             config={
@@ -474,7 +471,6 @@ class TestCLI:
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'services': {}},
         ):
             for value in '-42', 'invalid':
                 _result = runner.invoke(
@@ -506,7 +502,7 @@ class TestCLI:
     ) -> None:
         monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
+        with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
             config={'global': {'phrase': 'abc'}, 'services': {}},
@@ -532,7 +528,7 @@ class TestCLI:
                     empty_stderr=True
                 ), 'expected clean exit'
         if check_success:
-            with tests.isolated_config(
+            with tests.isolated_vault_config(
                 monkeypatch=monkeypatch,
                 runner=runner,
                 config={'global': {'phrase': 'abc'}, 'services': {}},
@@ -567,7 +563,6 @@ class TestCLI:
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'services': {}},
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -585,9 +580,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch, runner=runner, config={'services': {}}
-        ):
+        with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', '-'],
@@ -604,9 +597,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch, runner=runner, config={'services': {}}
-        ):
+        with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', '-'],
@@ -623,12 +614,11 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        # `isolated_config` validates the configuration.  So, to pass an
-        # actual broken configuration, we must open the configuration file
-        # ourselves afterwards, inside the context.
-        with tests.isolated_config(
-            monkeypatch=monkeypatch, runner=runner, config={'services': {}}
-        ):
+        # `isolated_vault_config` validates the configuration.  So, to
+        # pass an actual broken configuration, we must open the
+        # configuration file ourselves afterwards, inside the context.
+        # We also might as well use `isolated_config` instead.
+        with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             with open(
                 cli._config_filename(), 'w', encoding='UTF-8'
             ) as outfile:
@@ -649,9 +639,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch, runner=runner, config={'services': {}}
-        ):
+        with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             with contextlib.suppress(FileNotFoundError):
                 os.remove(cli._config_filename())
             _result = runner.invoke(
@@ -667,7 +655,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
+        with tests.isolated_vault_config(
             monkeypatch=monkeypatch, runner=runner, config={}
         ):
             _result = runner.invoke(
@@ -686,9 +674,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch, runner=runner, config={'services': {}}
-        ):
+        with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             with contextlib.suppress(FileNotFoundError):
                 os.remove(cli._config_filename())
             os.makedirs(cli._config_filename())
@@ -708,9 +694,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch, runner=runner, config={'services': {}}
-        ):
+        with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             dname = os.path.dirname(cli._config_filename())
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -728,9 +712,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch, runner=runner, config={'services': {}}
-        ):
+        with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             with contextlib.suppress(FileNotFoundError):
                 shutil.rmtree('.derivepassphrase')
             with open('.derivepassphrase', 'w', encoding='UTF-8') as outfile:
@@ -755,7 +737,7 @@ class TestCLI:
 contents go here
 """
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
+        with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
             config={'global': {'phrase': 'abc'}, 'services': {}},
@@ -779,7 +761,7 @@ contents go here
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
+        with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
             config={'global': {'phrase': 'abc'}, 'services': {}},
@@ -800,7 +782,7 @@ contents go here
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
+        with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
             config={'global': {'phrase': 'abc'}, 'services': {}},
@@ -824,7 +806,7 @@ contents go here
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
+        with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
             config={'global': {'phrase': 'abc'}, 'services': {}},
@@ -890,7 +872,7 @@ contents go here
         result_config: Any,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
+        with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
             config={'global': {'phrase': 'abc'}, 'services': {}},
@@ -933,7 +915,7 @@ contents go here
         err_text: str,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
+        with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
             config={'global': {'phrase': 'abc'}, 'services': {}},
@@ -957,7 +939,7 @@ contents go here
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
+        with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
             config={'global': {'phrase': 'abc'}, 'services': {}},
@@ -983,7 +965,7 @@ contents go here
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
+        with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
             config={'global': {'phrase': 'abc'}, 'services': {}},
@@ -1004,7 +986,7 @@ contents go here
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
+        with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
             config={'global': {'phrase': 'abc'}, 'services': {}},
@@ -1027,7 +1009,7 @@ contents go here
         try_race_free_implementation: bool,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
+        with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
             config={'global': {'phrase': 'abc'}, 'services': {}},
@@ -1051,7 +1033,7 @@ contents go here
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
+        with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
             config={'global': {'phrase': 'abc'}, 'services': {}},
@@ -1078,7 +1060,6 @@ contents go here
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'services': {}},
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault, [], catch_exceptions=False
@@ -1095,7 +1076,6 @@ contents go here
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'services': {}},
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -1115,7 +1095,6 @@ contents go here
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'services': {}},
         ):
             os.remove('.derivepassphrase/settings.json')
             os.rmdir('.derivepassphrase')
@@ -1155,7 +1134,6 @@ contents go here
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'services': {}},
         ):
             _save_config = cli._save_config
 
@@ -1188,7 +1166,6 @@ contents go here
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'services': {}},
         ):
             _save_config = cli._save_config
 
@@ -1294,7 +1271,7 @@ contents go here
         warning_message: str,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
+        with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
             config={'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}},
@@ -1318,7 +1295,7 @@ class TestCLIUtils:
     ) -> None:
         runner = click.testing.CliRunner()
         with (
-            tests.isolated_config(
+            tests.isolated_vault_config(
                 monkeypatch=monkeypatch, runner=runner, config={}
             ),
             pytest.raises(ValueError, match='Invalid vault config'),
@@ -1498,7 +1475,7 @@ Boo.
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         for start_config in [config, result_config]:
-            with tests.isolated_config(
+            with tests.isolated_vault_config(
                 monkeypatch=monkeypatch, runner=runner, config=start_config
             ):
                 _result = runner.invoke(
@@ -1575,7 +1552,6 @@ class TestCLITransition:
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'services': {}},
         ):
             _result = runner.invoke(
                 cli.derivepassphrase, ['--help'], catch_exceptions=False
@@ -1592,7 +1568,6 @@ class TestCLITransition:
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'services': {}},
         ):
             _result = runner.invoke(
                 cli.derivepassphrase,
@@ -1611,7 +1586,6 @@ class TestCLITransition:
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'services': {}},
         ):
             _result = runner.invoke(
                 cli.derivepassphrase,
@@ -1630,7 +1604,6 @@ class TestCLITransition:
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'services': {}},
         ):
             _result = runner.invoke(
                 cli.derivepassphrase,
@@ -1682,7 +1655,6 @@ class TestCLITransition:
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'services': {}},
         ):
             _result = runner.invoke(
                 cli.derivepassphrase,
