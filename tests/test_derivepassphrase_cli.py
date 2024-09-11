@@ -1090,14 +1090,13 @@ contents go here
     def test_230_config_directory_nonexistant(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """the-13th-letter/derivepassphrase#6"""
+        """https://github.com/the-13th-letter/derivepassphrase/issues/6"""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            os.remove('.derivepassphrase/settings.json')
-            os.rmdir('.derivepassphrase')
+            shutil.rmtree('.derivepassphrase')
             os_makedirs_called = False
             real_os_makedirs = os.makedirs
 
@@ -1129,7 +1128,7 @@ contents go here
     def test_230a_config_directory_not_a_file(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """the-13th-letter/derivepassphrase#6"""
+        """https://github.com/the-13th-letter/derivepassphrase/issues/6"""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -1167,19 +1166,13 @@ contents go here
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            _save_config = cli._save_config
+            custom_error = 'custom error message'
 
-            def obstruct_config_saving(*args: Any, **kwargs: Any) -> Any:
-                with contextlib.suppress(FileNotFoundError):
-                    shutil.rmtree('.derivepassphrase')
-                with open(
-                    '.derivepassphrase', 'w', encoding='UTF-8'
-                ) as outfile:
-                    print('Obstruction!!', file=outfile)
-                monkeypatch.setattr(cli, '_save_config', _save_config)
-                return _save_config(*args, **kwargs)
+            def raiser(config: Any) -> None:
+                del config
+                raise RuntimeError(custom_error)
 
-            monkeypatch.setattr(cli, '_save_config', obstruct_config_saving)
+            monkeypatch.setattr(cli, '_save_config', raiser)
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '-p'],
@@ -1188,7 +1181,7 @@ contents go here
             )
             result = tests.ReadableResult.parse(_result)
             assert result.error_exit(
-                error='Cannot store config'
+                error=custom_error
             ), 'expected error exit and known error message'
 
     @pytest.mark.parametrize(
@@ -1636,10 +1629,13 @@ class TestCLITransition:
             )
         result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
-        assert result.stderr == f"""\
+        assert (
+            result.stderr
+            == f"""\
 {cli.PROG_NAME}: Deprecation warning: A subcommand will be required in v1.0. See --help for available subcommands.
 {cli.PROG_NAME}: Warning: Defaulting to subcommand "vault".
 """  # noqa: E501
+        )
         assert json.loads(result.output) == tests.VAULT_V03_CONFIG_DATA
 
     @pytest.mark.parametrize(
@@ -1664,10 +1660,13 @@ class TestCLITransition:
             )
             result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
-        assert result.stderr == f"""\
+        assert (
+            result.stderr
+            == f"""\
 {cli.PROG_NAME}: Deprecation warning: A subcommand will be required in v1.0. See --help for available subcommands.
 {cli.PROG_NAME}: Warning: Defaulting to subcommand "vault".
 """  # noqa: E501
+        )
         for c in charset:
             assert (
                 c not in result.output

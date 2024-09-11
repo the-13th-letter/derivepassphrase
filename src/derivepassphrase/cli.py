@@ -72,7 +72,7 @@ _EMPTY_SELECTION = 'Empty selection'
         DERIVEPASSPHRASE_PATH variable, which defaults to
         `~/.derivepassphrase` on UNIX-like systems and
         `C:\Users\<user>\AppData\Roaming\Derivepassphrase` on Windows.
-    """
+    """,
 )
 @click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
 @click.argument('subcommand_args', nargs=-1, type=click.UNPROCESSED)
