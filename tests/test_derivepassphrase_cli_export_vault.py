@@ -12,7 +12,8 @@ import click.testing
 import pytest
 
 import tests
-from derivepassphrase.exporter import cli, storeroom, vault_native
+from derivepassphrase import cli
+from derivepassphrase.exporter import storeroom, vault_native
 
 cryptography = pytest.importorskip('cryptography', minversion='38.0')
 
@@ -32,7 +33,7 @@ class TestCLI:
         ):
             monkeypatch.setenv('VAULT_KEY', tests.VAULT_MASTER_KEY)
             _result = runner.invoke(
-                cli.derivepassphrase_export,
+                cli.derivepassphrase_export_vault,
                 ['VAULT_PATH'],
             )
         result = tests.ReadableResult.parse(_result)
@@ -47,7 +48,7 @@ class TestCLI:
             vault_config=tests.VAULT_V03_CONFIG,
         ):
             _result = runner.invoke(
-                cli.derivepassphrase_export,
+                cli.derivepassphrase_export_vault,
                 ['-k', tests.VAULT_MASTER_KEY, '.vault'],
             )
         result = tests.ReadableResult.parse(_result)
@@ -91,7 +92,7 @@ class TestCLI:
             vault_config=config,
         ):
             _result = runner.invoke(
-                cli.derivepassphrase_export,
+                cli.derivepassphrase_export_vault,
                 ['-f', format, '-k', tests.VAULT_MASTER_KEY, 'VAULT_PATH'],
             )
         result = tests.ReadableResult.parse(_result)
@@ -113,7 +114,7 @@ class TestCLI:
             vault_key=tests.VAULT_MASTER_KEY,
         ):
             _result = runner.invoke(
-                cli.derivepassphrase_export,
+                cli.derivepassphrase_export_vault,
                 ['does-not-exist.txt'],
             )
         result = tests.ReadableResult.parse(_result)
@@ -134,7 +135,7 @@ class TestCLI:
             vault_key=tests.VAULT_MASTER_KEY,
         ):
             _result = runner.invoke(
-                cli.derivepassphrase_export,
+                cli.derivepassphrase_export_vault,
                 ['.vault'],
             )
         result = tests.ReadableResult.parse(_result)
@@ -155,7 +156,7 @@ class TestCLI:
             vault_key=tests.VAULT_MASTER_KEY,
         ):
             _result = runner.invoke(
-                cli.derivepassphrase_export,
+                cli.derivepassphrase_export_vault,
                 ['-f', 'v0.3', '.vault'],
             )
         result = tests.ReadableResult.parse(_result)
@@ -181,7 +182,7 @@ class TestCLI:
 
             monkeypatch.setattr(cli, '_load_data', _load_data)
             _result = runner.invoke(
-                cli.derivepassphrase_export,
+                cli.derivepassphrase_export_vault,
                 ['.vault'],
             )
         result = tests.ReadableResult.parse(_result)

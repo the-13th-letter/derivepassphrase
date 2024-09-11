@@ -1,14 +1,14 @@
-# derivepassphrase\_export(1)
+# derivepassphrase-export-vault(1)
 
 ## NAME
 
-derivepassphrase\_export – export a vault-native configuration to standard
-output
+derivepassphrase-export-vault – export a vault-native configuration to
+standard output
 
 ## SYNOPSIS
 
 ````
-derivepassphrase_export [OPTIONS] PATH
+derivepassphrase export vault [OPTIONS] PATH
 ````
 
 ## DESCRIPTION

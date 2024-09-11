@@ -10,8 +10,7 @@ import click.testing
 import pytest
 
 import tests
-from derivepassphrase import exporter
-from derivepassphrase.exporter import cli
+from derivepassphrase import cli, exporter
 
 
 class Test001ExporterUtils:
@@ -116,7 +115,7 @@ class Test002CLI:
             vault_key=tests.VAULT_MASTER_KEY,
         ):
             _result = runner.invoke(
-                cli.derivepassphrase_export,
+                cli.derivepassphrase_export_vault,
                 ['-f', 'INVALID', 'VAULT_PATH'],
                 catch_exceptions=False,
             )
@@ -165,7 +164,7 @@ class Test002CLI:
             vault_key=key,
         ):
             _result = runner.invoke(
-                cli.derivepassphrase_export,
+                cli.derivepassphrase_export_vault,
                 ['-f', format, 'VAULT_PATH'],
                 catch_exceptions=False,
             )
