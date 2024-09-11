@@ -340,20 +340,48 @@ def derivepassphrase_export_vault(
 # =====
 
 
-def _config_filename() -> str | bytes | pathlib.Path:
-    """Return the filename of the configuration file.
+def _config_filename(
+    subsystem: str | None = 'settings',
+) -> str | bytes | pathlib.Path:
+    """Return the filename of the configuration file for the subsystem.
 
-    The file is currently named `settings.json`, located within the
-    configuration directory as determined by the `DERIVEPASSPHRASE_PATH`
-    environment variable, or by [`click.get_app_dir`][] in POSIX
-    mode.
+    The (implicit default) file is currently named `settings.json`,
+    located within the configuration directory as determined by the
+    `DERIVEPASSPHRASE_PATH` environment variable, or by
+    [`click.get_app_dir`][] in POSIX mode.  Depending on the requested
+    subsystem, this will usually be a different file within that
+    directory.
+
+    Args:
+        subsystem:
+            Name of the configuration subsystem whose configuration
+            filename to return.  If not given, return the old filename
+            from before the subcommand migration.  If `None`, return the
+            configuration directory instead.
+
+    Raises:
+        AssertionError:
+            An unknown subsystem was passed.
+
+    Deprecated:
+        Since v0.2.0: The implicit default subsystem and the old
+        configuration filename are deprecated, and will be removed in v1.0.
+        The subsystem will be mandatory to specify.
 
     """
     path: str | bytes | pathlib.Path
     path = os.getenv(PROG_NAME.upper() + '_PATH') or click.get_app_dir(
         PROG_NAME, force_posix=True
     )
-    return os.path.join(path, 'settings.json')
+    match subsystem:
+        case None:
+            return path
+        case 'vault' | 'settings':
+            filename = f'{subsystem}.json'
+        case _:  # pragma: no cover
+            msg = f'Unknown configuration subsystem: {subsystem!r}'
+            raise AssertionError(msg)
+    return os.path.join(path, filename)
 
 
 def _load_config() -> _types.VaultConfig:
@@ -375,12 +403,49 @@ def _load_config() -> _types.VaultConfig:
             config.
 
     """
-    filename = _config_filename()
+    filename = _config_filename(subsystem='vault')
     with open(filename, 'rb') as fileobj:
         data = json.load(fileobj)
     if not _types.is_vault_config(data):
         raise ValueError(_INVALID_VAULT_CONFIG)
     return data
+
+
+def _migrate_and_load_old_config() -> (
+    tuple[_types.VaultConfig, OSError | None]
+):
+    """Load and migrate a vault(1)-compatible config.
+
+    The (old) filename is obtained via
+    [`derivepassphrase.cli._config_filename`][].  This must be an
+    unencrypted JSON file.  After loading, the file is migrated to the new
+    standard filename.
+
+    Returns:
+        The vault settings, and an optional exception encountered during
+        migration.  See [`derivepassphrase.types.VaultConfig`][] for
+        details on the former.
+
+    Raises:
+        OSError:
+            There was an OS error accessing the old file.
+        ValueError:
+            The data loaded from the file is not a vault(1)-compatible
+            config.
+
+    """
+    new_filename = _config_filename(subsystem='vault')
+    old_filename = _config_filename()
+    with open(old_filename, 'rb') as fileobj:
+        data = json.load(fileobj)
+    if not _types.is_vault_config(data):
+        raise ValueError(_INVALID_VAULT_CONFIG)
+    try:
+        os.replace(old_filename, new_filename)
+    except OSError as exc:
+        return data, exc
+    else:
+        return data, None
 
 
 def _save_config(config: _types.VaultConfig, /) -> None:
@@ -403,7 +468,7 @@ def _save_config(config: _types.VaultConfig, /) -> None:
     """
     if not _types.is_vault_config(config):
         raise ValueError(_INVALID_VAULT_CONFIG)
-    filename = _config_filename()
+    filename = _config_filename(subsystem='vault')
     filedir = os.path.dirname(os.path.abspath(filename))
     try:
         os.makedirs(filedir, exist_ok=False)
@@ -1204,7 +1269,35 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         try:
             return _load_config()
         except FileNotFoundError:
-            return {'services': {}}
+            try:
+                backup_config, exc = _migrate_and_load_old_config()
+            except FileNotFoundError:
+                return {'services': {}}
+            old_name = os.path.basename(_config_filename())
+            new_name = os.path.basename(_config_filename(subsystem='vault'))
+            click.echo(
+                (
+                    f'{PROG_NAME}: Using deprecated v0.1-style config file '
+                    f'{old_name!r}, instead of v0.2-style {new_name!r}.  '
+                    f'Support for v0.1-style config filenames will be '
+                    f'removed in v1.0.'
+                ),
+                err=True,
+            )
+            if isinstance(exc, OSError):
+                click.echo(
+                    (
+                        f'{PROG_NAME}: Warning: Failed to migrate to '
+                        f'{new_name!r}: {exc.strerror}: {exc.filename!r}'
+                    ),
+                    err=True,
+                )
+            else:
+                click.echo(
+                    f'{PROG_NAME}: Successfully migrated to {new_name!r}.',
+                    err=True,
+                )
+            return backup_config
         except OSError as e:
             err(f'Cannot load config: {e.strerror}: {e.filename!r}')
         except Exception as e:  # noqa: BLE001

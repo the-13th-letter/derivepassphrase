@@ -552,7 +552,8 @@ def isolated_config(
         monkeypatch.setenv('HOME', os.getcwd())
         monkeypatch.setenv('USERPROFILE', os.getcwd())
         monkeypatch.delenv(env_name, raising=False)
-        os.makedirs(os.path.dirname(cli._config_filename()), exist_ok=True)
+        config_dir = cli._config_filename(subsystem=None)
+        os.makedirs(config_dir, exist_ok=True)
         yield
 
 
@@ -563,7 +564,8 @@ def isolated_vault_config(
     config: Any,
 ) -> Iterator[None]:
     with isolated_config(monkeypatch=monkeypatch, runner=runner):
-        with open(cli._config_filename(), 'w', encoding='UTF-8') as outfile:
+        config_filename = cli._config_filename(subsystem='vault')
+        with open(config_filename, 'w', encoding='UTF-8') as outfile:
             json.dump(config, outfile)
         yield
 
