@@ -12,25 +12,25 @@
         <meta name="author" content="Marco Ricci">
       
       
-        <link rel="canonical" href="https://the13thletter.info/derivepassphrase/0.x/reference/ssh_agent_client/">
+        <link rel="canonical" href="https://the13thletter.info/derivepassphrase/0.x/reference/ssh_agent/">
       
       
         <link rel="prev" href="../sequin/">
       
       
-        <link rel="next" href="../../changelog/">
+        <link rel="next" href="../types/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.30">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.34">
     
     
       
-        <title>Module ssh_agent_client - derivepassphrase</title>
+        <title>Submodule ssh_agent - derivepassphrase</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.3cba04c6.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.35f28582.min.css">
       
       
 
@@ -65,7 +65,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#ssh_agent_client" class="md-skip">
+        <a href="#derivepassphrase.ssh_agent" class="md-skip">
           Skip to content
         </a>
       
@@ -73,6 +73,10 @@
     <div data-md-component="announce">
       
     </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
     
     
       
@@ -115,6 +119,8 @@
       <li class="md-tabs__item md-tabs__item--active">
         <a href="../" class="md-tabs__link">
           
+  
+    
   
   Reference
 
@@ -166,7 +172,7 @@
     <a href="../.." title="derivepassphrase" class="md-nav__button md-logo" aria-label="derivepassphrase" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
     derivepassphrase
@@ -176,7 +182,7 @@
       <a href="https://github.com/the-13th-letter/derivepassphrase" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
   </div>
   <div class="md-source__repository">
     the-13th-letter/derivepassphrase
@@ -216,15 +222,31 @@
   
     
     
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
     
       
         
         
       
       
-    
-    
+        
       
+    
     
     <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
@@ -233,16 +255,24 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
-            
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
   
   <span class="md-ellipsis">
     Reference
   </span>
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
@@ -251,25 +281,6 @@
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Reference overview
-  </span>
-  
-
-      </a>
-    </li>
-  
-
               
             
               
@@ -300,11 +311,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../derivepassphrase/" class="md-nav__link">
+      <a href="../derivepassphrase-vault.1/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Module derivepassphrase
+    Man page: derivepassphrase-vault
   </span>
   
 
@@ -321,11 +332,229 @@
   
   
     <li class="md-nav__item">
+      <a href="../derivepassphrase-export.1/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Man page: derivepassphrase-export
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../derivepassphrase-export-vault.1/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Man page: derivepassphrase-export-vault
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Module derivepassphrase
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            Module derivepassphrase
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../derivepassphrase/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Submodule cli
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6_2" id="__nav_2_6_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Subpackage exporter
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            Subpackage exporter
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../exporter/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Subpackage exporter
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../exporter_vault/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Exporters for vault
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../sequin/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Module sequin
+    Submodule sequin
   </span>
   
 
@@ -353,7 +582,7 @@
           
   
   <span class="md-ellipsis">
-    Module ssh_agent_client
+    Submodule ssh_agent
   </span>
   
 
@@ -364,7 +593,7 @@
         
   
   <span class="md-ellipsis">
-    Module ssh_agent_client
+    Submodule ssh_agent
   </span>
   
 
@@ -384,17 +613,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#ssh_agent_client" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;ssh_agent_client
+      <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;ssh_agent
     </span>
   </a>
   
-    <nav class="md-nav" aria-label=" ssh_agent_client">
+    <nav class="md-nav" aria-label=" ssh_agent">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.TrailingDataError" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.TrailingDataError" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;TrailingDataError
     </span>
@@ -403,7 +632,16 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentFailedError" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SSHAgentFailedError
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SSHAgentClient
     </span>
@@ -413,7 +651,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient.__enter__" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient.__enter__" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__enter__
     </span>
@@ -422,7 +660,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient.__exit__" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient.__exit__" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__exit__
     </span>
@@ -431,7 +669,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient.uint32" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient.uint32" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;uint32
     </span>
@@ -440,7 +678,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient.string" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient.string" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;string
     </span>
@@ -449,7 +687,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient.unstring" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient.unstring" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;unstring
     </span>
@@ -458,7 +696,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient.unstring_prefix" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient.unstring_prefix" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;unstring_prefix
     </span>
@@ -467,7 +705,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient.request" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient.request" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;request
     </span>
@@ -476,7 +714,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient.list_keys" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient.list_keys" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;list_keys
     </span>
@@ -485,51 +723,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient.sign" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient.sign" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;sign
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ssh_agent_client.types" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;types
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label=" types">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#ssh_agent_client.types.KeyCommentPair" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;KeyCommentPair
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ssh_agent_client.types.SSH_AGENTC" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SSH_AGENTC
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ssh_agent_client.types.SSH_AGENT" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SSH_AGENT
     </span>
   </a>
   
@@ -548,6 +744,56 @@
     </ul>
   
 </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../types/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Submodule _types
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vault/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Submodule vault
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
       
     </li>
   
@@ -606,17 +852,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#ssh_agent_client" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;ssh_agent_client
+      <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;ssh_agent
     </span>
   </a>
   
-    <nav class="md-nav" aria-label=" ssh_agent_client">
+    <nav class="md-nav" aria-label=" ssh_agent">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.TrailingDataError" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.TrailingDataError" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;TrailingDataError
     </span>
@@ -625,7 +871,16 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentFailedError" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SSHAgentFailedError
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SSHAgentClient
     </span>
@@ -635,7 +890,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient.__enter__" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient.__enter__" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__enter__
     </span>
@@ -644,7 +899,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient.__exit__" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient.__exit__" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__exit__
     </span>
@@ -653,7 +908,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient.uint32" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient.uint32" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;uint32
     </span>
@@ -662,7 +917,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient.string" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient.string" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;string
     </span>
@@ -671,7 +926,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient.unstring" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient.unstring" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;unstring
     </span>
@@ -680,7 +935,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient.unstring_prefix" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient.unstring_prefix" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;unstring_prefix
     </span>
@@ -689,7 +944,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient.request" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient.request" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;request
     </span>
@@ -698,7 +953,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient.list_keys" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient.list_keys" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;list_keys
     </span>
@@ -707,51 +962,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ssh_agent_client.SSHAgentClient.sign" class="md-nav__link">
+  <a href="#derivepassphrase.ssh_agent.SSHAgentClient.sign" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;sign
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ssh_agent_client.types" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;types
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label=" types">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#ssh_agent_client.types.KeyCommentPair" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;KeyCommentPair
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ssh_agent_client.types.SSH_AGENTC" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SSH_AGENTC
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ssh_agent_client.types.SSH_AGENT" class="md-nav__link">
-    <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SSH_AGENT
     </span>
   </a>
   
@@ -786,24 +999,24 @@
     
       
     
-    <a href="https://github.com/the-13th-letter/derivepassphrase/raw/master/docs/reference/ssh_agent_client.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/the-13th-letter/derivepassphrase/raw/master/docs/reference/ssh_agent.md" title="View source of this page" class="md-content__button md-icon">
       
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.15 8.15 0 0 1-1.23-2Z"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
     </a>
   
 
 
-  <h1>Module ssh_agent_client</h1>
+  <h1>Submodule ssh_agent</h1>
 
 <div class="doc doc-object doc-module">
 
 
 
-<h2 id="ssh_agent_client" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">ssh_agent_client</span>
+<h2 id="derivepassphrase.ssh_agent" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">derivepassphrase.ssh_agent</span>
 
 
-<a href="#ssh_agent_client" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#derivepassphrase.ssh_agent" class="headerlink" title="Permanent link">&para;</a></h2>
 
     <div class="doc doc-contents first">
 
@@ -824,11 +1037,11 @@
 
 
 
-<h3 id="ssh_agent_client.TrailingDataError" class="doc doc-heading">
+<h3 id="derivepassphrase.ssh_agent.TrailingDataError" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">TrailingDataError</span>
 
 
-<a href="#ssh_agent_client.TrailingDataError" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#derivepassphrase.ssh_agent.TrailingDataError" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">TrailingDataError</span><span class="p">()</span>
 </code></pre></div>
 
@@ -864,11 +1077,50 @@
 
 
 
-<h3 id="ssh_agent_client.SSHAgentClient" class="doc doc-heading">
+<h3 id="derivepassphrase.ssh_agent.SSHAgentFailedError" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">SSHAgentFailedError</span>
+
+
+<a href="#derivepassphrase.ssh_agent.SSHAgentFailedError" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError">RuntimeError</a></code></p>
+
+
+      <p>The SSH agent failed to complete the requested operation.</p>
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="derivepassphrase.ssh_agent.SSHAgentClient" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">SSHAgentClient</span>
 
 
-<a href="#ssh_agent_client.SSHAgentClient" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#derivepassphrase.ssh_agent.SSHAgentClient" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">SSHAgentClient</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">socket</span><span class="p">:</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -987,17 +1239,40 @@ agent.</p>
 <div class="doc doc-object doc-function">
 
 
-<h4 id="ssh_agent_client.SSHAgentClient.__enter__" class="doc doc-heading">
+<h4 id="derivepassphrase.ssh_agent.SSHAgentClient.__enter__" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">__enter__</span>
 
 
-<a href="#ssh_agent_client.SSHAgentClient.__enter__" class="headerlink" title="Permanent link">&para;</a></h4>
+<a href="#derivepassphrase.ssh_agent.SSHAgentClient.__enter__" class="headerlink" title="Permanent link">&para;</a></h4>
 <div class="doc-signature highlight"><pre><span></span><code><span class="fm">__enter__</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nf">Self</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
       <p>Close socket connection upon context manager completion.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" title="typing_extensions.Self" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Self">Self</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Self.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
     </div>
 
@@ -1006,11 +1281,11 @@ agent.</p>
 <div class="doc doc-object doc-function">
 
 
-<h4 id="ssh_agent_client.SSHAgentClient.__exit__" class="doc doc-heading">
+<h4 id="derivepassphrase.ssh_agent.SSHAgentClient.__exit__" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">__exit__</span>
 
 
-<a href="#ssh_agent_client.SSHAgentClient.__exit__" class="headerlink" title="Permanent link">&para;</a></h4>
+<a href="#derivepassphrase.ssh_agent.SSHAgentClient.__exit__" class="headerlink" title="Permanent link">&para;</a></h4>
 <div class="doc-signature highlight"><pre><span></span><code><span class="fm">__exit__</span><span class="p">(</span>
     <span class="nf">exc_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="ne">BaseException</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">exc_val</span><span class="p">:</span> <span class="ne">BaseException</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
@@ -1022,6 +1297,87 @@ agent.</p>
 
       <p>Close socket connection upon context manager completion.</p>
 
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>exc_type</code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#type">type</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/exceptions.html#BaseException">BaseException</a>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An optional exception type.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>exc_val</code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/exceptions.html#BaseException">BaseException</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An optional exception value.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>exc_tb</code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="types.TracebackType" href="https://docs.python.org/3/library/types.html#types.TracebackType">TracebackType</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An optional exception traceback.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True if the exception was handled, false if it should
+propagate.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
     </div>
 
 </div>
@@ -1029,7 +1385,7 @@ agent.</p>
 <div class="doc doc-object doc-function">
 
 
-<h4 id="ssh_agent_client.SSHAgentClient.uint32" class="doc doc-heading">
+<h4 id="derivepassphrase.ssh_agent.SSHAgentClient.uint32" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">uint32</span>
 
 
@@ -1037,7 +1393,7 @@ agent.</p>
       <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
   </span>
 
-<a href="#ssh_agent_client.SSHAgentClient.uint32" class="headerlink" title="Permanent link">&para;</a></h4>
+<a href="#derivepassphrase.ssh_agent.SSHAgentClient.uint32" class="headerlink" title="Permanent link">&para;</a></h4>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">uint32</span><span class="p">(</span><span class="n">num</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span>
 </code></pre></div>
 
@@ -1134,7 +1490,7 @@ a 32-bit big endian number.</p>
 <div class="doc doc-object doc-function">
 
 
-<h4 id="ssh_agent_client.SSHAgentClient.string" class="doc doc-heading">
+<h4 id="derivepassphrase.ssh_agent.SSHAgentClient.string" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">string</span>
 
 
@@ -1142,7 +1498,7 @@ a 32-bit big endian number.</p>
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
 
-<a href="#ssh_agent_client.SSHAgentClient.string" class="headerlink" title="Permanent link">&para;</a></h4>
+<a href="#derivepassphrase.ssh_agent.SSHAgentClient.string" class="headerlink" title="Permanent link">&para;</a></h4>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">string</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">bytearray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">bytearray</span>
 </code></pre></div>
 
@@ -1215,7 +1571,7 @@ a 32-bit big endian number.</p>
 <div class="doc doc-object doc-function">
 
 
-<h4 id="ssh_agent_client.SSHAgentClient.unstring" class="doc doc-heading">
+<h4 id="derivepassphrase.ssh_agent.SSHAgentClient.unstring" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">unstring</span>
 
 
@@ -1223,7 +1579,7 @@ a 32-bit big endian number.</p>
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
 
-<a href="#ssh_agent_client.SSHAgentClient.unstring" class="headerlink" title="Permanent link">&para;</a></h4>
+<a href="#derivepassphrase.ssh_agent.SSHAgentClient.unstring" class="headerlink" title="Permanent link">&para;</a></h4>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">unstring</span><span class="p">(</span>
     <span class="n">bytestring</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">bytearray</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">bytearray</span>
@@ -1325,7 +1681,7 @@ a 32-bit big endian number.</p>
 <div class="doc doc-object doc-function">
 
 
-<h4 id="ssh_agent_client.SSHAgentClient.unstring_prefix" class="doc doc-heading">
+<h4 id="derivepassphrase.ssh_agent.SSHAgentClient.unstring_prefix" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">unstring_prefix</span>
 
 
@@ -1333,7 +1689,7 @@ a 32-bit big endian number.</p>
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
 
-<a href="#ssh_agent_client.SSHAgentClient.unstring_prefix" class="headerlink" title="Permanent link">&para;</a></h4>
+<a href="#derivepassphrase.ssh_agent.SSHAgentClient.unstring_prefix" class="headerlink" title="Permanent link">&para;</a></h4>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">unstring_prefix</span><span class="p">(</span>
     <span class="n">bytestring</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">bytearray</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bytes</span> <span class="o">|</span> <span class="nb">bytearray</span><span class="p">,</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">bytearray</span><span class="p">]</span>
@@ -1442,11 +1798,11 @@ string/payload at the beginning of input byte string, and
 <div class="doc doc-object doc-function">
 
 
-<h4 id="ssh_agent_client.SSHAgentClient.request" class="doc doc-heading">
+<h4 id="derivepassphrase.ssh_agent.SSHAgentClient.request" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">request</span>
 
 
-<a href="#ssh_agent_client.SSHAgentClient.request" class="headerlink" title="Permanent link">&para;</a></h4>
+<a href="#derivepassphrase.ssh_agent.SSHAgentClient.request" class="headerlink" title="Permanent link">&para;</a></h4>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">request</span><span class="p">(</span>
     <span class="n">code</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">bytearray</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">bytearray</span><span class="p">]</span>
@@ -1558,12 +1914,12 @@ with all wire framing removed.</p>
 <div class="doc doc-object doc-function">
 
 
-<h4 id="ssh_agent_client.SSHAgentClient.list_keys" class="doc doc-heading">
+<h4 id="derivepassphrase.ssh_agent.SSHAgentClient.list_keys" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">list_keys</span>
 
 
-<a href="#ssh_agent_client.SSHAgentClient.list_keys" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">list_keys</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">types</span><span class="o">.</span><span class="n">KeyCommentPair</span><span class="p">]</span>
+<a href="#derivepassphrase.ssh_agent.SSHAgentClient.list_keys" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">list_keys</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">_types</span><span class="o">.</span><span class="n">KeyCommentPair</span><span class="p">]</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1582,7 +1938,7 @@ with all wire framing removed.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" title="collections.abc.Sequence" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence">Sequence</a>[<a class="autorefs autorefs-internal" title="ssh_agent_client.types.KeyCommentPair" href="#ssh_agent_client.types.KeyCommentPair">KeyCommentPair</a>]</code>
+                  <code><a class="autorefs autorefs-external" title="collections.abc.Sequence" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence">Sequence</a>[<a class="autorefs autorefs-internal" title="derivepassphrase._types.KeyCommentPair" href="../types/#derivepassphrase._types.KeyCommentPair">KeyCommentPair</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1615,7 +1971,7 @@ with all wire framing removed.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="ssh_agent_client.TrailingDataError" href="#ssh_agent_client.TrailingDataError">TrailingDataError</a></code>
+                  <code><a class="autorefs autorefs-internal" title="derivepassphrase.ssh_agent.TrailingDataError" href="#derivepassphrase.ssh_agent.TrailingDataError">TrailingDataError</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1625,7 +1981,7 @@ with all wire framing removed.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError">RuntimeError</a></code>
+                  <code><a class="autorefs autorefs-internal" title="derivepassphrase.ssh_agent.SSHAgentFailedError" href="#derivepassphrase.ssh_agent.SSHAgentFailedError">SSHAgentFailedError</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1643,11 +1999,11 @@ with all wire framing removed.</p>
 <div class="doc doc-object doc-function">
 
 
-<h4 id="ssh_agent_client.SSHAgentClient.sign" class="doc doc-heading">
+<h4 id="derivepassphrase.ssh_agent.SSHAgentClient.sign" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">sign</span>
 
 
-<a href="#ssh_agent_client.SSHAgentClient.sign" class="headerlink" title="Permanent link">&para;</a></h4>
+<a href="#derivepassphrase.ssh_agent.SSHAgentClient.sign" class="headerlink" title="Permanent link">&para;</a></h4>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">sign</span><span class="p">(</span>
     <span class="n">key</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">bytearray</span><span class="p">,</span>
     <span class="n">payload</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">bytearray</span><span class="p">,</span>
@@ -1785,7 +2141,7 @@ corresponding key has been loaded into the agent.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="ssh_agent_client.TrailingDataError" href="#ssh_agent_client.TrailingDataError">TrailingDataError</a></code>
+                  <code><a class="autorefs autorefs-internal" title="derivepassphrase.ssh_agent.TrailingDataError" href="#derivepassphrase.ssh_agent.TrailingDataError">TrailingDataError</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1795,7 +2151,7 @@ corresponding key has been loaded into the agent.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError">RuntimeError</a></code>
+                  <code><a class="autorefs autorefs-internal" title="derivepassphrase.ssh_agent.SSHAgentFailedError" href="#derivepassphrase.ssh_agent.SSHAgentFailedError">SSHAgentFailedError</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1831,265 +2187,6 @@ loaded into the agent.</p>
 
 
 
-<div class="doc doc-object doc-module">
-
-
-
-<h3 id="ssh_agent_client.types" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">types</span>
-
-
-<a href="#ssh_agent_client.types" class="headerlink" title="Permanent link">&para;</a></h3>
-
-    <div class="doc doc-contents ">
-
-      <p>Common typing declarations for the parent module.</p>
-
-
-
-  <div class="doc doc-children">
-
-
-
-
-
-
-
-
-<div class="doc doc-object doc-class">
-
-
-
-<h4 id="ssh_agent_client.types.KeyCommentPair" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">KeyCommentPair</span>
-
-
-<a href="#ssh_agent_client.types.KeyCommentPair" class="headerlink" title="Permanent link">&para;</a></h4>
-
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-external" title="typing.NamedTuple" href="https://docs.python.org/3/library/typing.html#typing.NamedTuple">NamedTuple</a></code></p>
-
-
-      <p>SSH key plus comment pair.  For typing purposes.</p>
-
-
-<p><span class="doc-section-title">Attributes:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td><code><span title="ssh_agent_client.types.KeyCommentPair.key">key</span></code></td>
-            <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#bytes">bytes</a> | <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#bytearray">bytearray</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>SSH key.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><span title="ssh_agent_client.types.KeyCommentPair.comment">comment</span></code></td>
-            <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#bytes">bytes</a> | <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#bytearray">bytearray</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>SSH key comment.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-
-
-  <div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h4 id="ssh_agent_client.types.SSH_AGENTC" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">SSH_AGENTC</span>
-
-
-<a href="#ssh_agent_client.types.SSH_AGENTC" class="headerlink" title="Permanent link">&para;</a></h4>
-
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
-
-
-      <p>SSH agent protocol numbers: client requests.</p>
-
-
-<p><span class="doc-section-title">Attributes:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td><code><span title="ssh_agent_client.types.SSH_AGENTC.REQUEST_IDENTITIES">REQUEST_IDENTITIES</span></code></td>
-            <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>List identities.  Expecting <code>SSH_AGENT.IDENTITIES_ANSWER</code>.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><span title="ssh_agent_client.types.SSH_AGENTC.SIGN_REQUEST">SIGN_REQUEST</span></code></td>
-            <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Sign data.  Expecting <code>SSH_AGENT.SIGN_RESPONSE</code>.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-
-
-  <div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h4 id="ssh_agent_client.types.SSH_AGENT" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">SSH_AGENT</span>
-
-
-<a href="#ssh_agent_client.types.SSH_AGENT" class="headerlink" title="Permanent link">&para;</a></h4>
-
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
-
-
-      <p>SSH agent protocol numbers: server replies.</p>
-
-
-<p><span class="doc-section-title">Attributes:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td><code><span title="ssh_agent_client.types.SSH_AGENT.IDENTITIES_ANSWER">IDENTITIES_ANSWER</span></code></td>
-            <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Successful answer to <code>SSH_AGENTC.REQUEST_IDENTITIES</code>.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><span title="ssh_agent_client.types.SSH_AGENT.SIGN_RESPONSE">SIGN_RESPONSE</span></code></td>
-            <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Successful answer to <code>SSH_AGENTC.SIGN_REQUEST</code>.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-
-
-  <div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
 
   </div>
 
@@ -2124,35 +2221,35 @@ loaded into the agent.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../sequin/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Module sequin">
+          <a href="../sequin/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Submodule sequin">
             <div class="md-footer__button md-icon">
               
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
             </div>
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Previous
               </span>
               <div class="md-ellipsis">
-                Module sequin
+                Submodule sequin
               </div>
             </div>
           </a>
         
         
           
-          <a href="../../changelog/" class="md-footer__link md-footer__link--next" aria-label="Next: Changelog">
+          <a href="../types/" class="md-footer__link md-footer__link--next" aria-label="Next: Submodule _types">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Changelog
+                Submodule _types
               </div>
             </div>
             <div class="md-footer__button md-icon">
               
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4Z"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
             </div>
           </a>
         

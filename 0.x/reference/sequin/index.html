@@ -15,22 +15,22 @@
         <link rel="canonical" href="https://the13thletter.info/derivepassphrase/0.x/reference/sequin/">
       
       
-        <link rel="prev" href="../derivepassphrase/">
+        <link rel="prev" href="../exporter_vault/">
       
       
-        <link rel="next" href="../ssh_agent_client/">
+        <link rel="next" href="../ssh_agent/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.30">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.34">
     
     
       
-        <title>Module sequin - derivepassphrase</title>
+        <title>Submodule sequin - derivepassphrase</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.3cba04c6.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.35f28582.min.css">
       
       
 
@@ -65,7 +65,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#sequin" class="md-skip">
+        <a href="#derivepassphrase.sequin" class="md-skip">
           Skip to content
         </a>
       
@@ -73,6 +73,10 @@
     <div data-md-component="announce">
       
     </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
     
     
       
@@ -115,6 +119,8 @@
       <li class="md-tabs__item md-tabs__item--active">
         <a href="../" class="md-tabs__link">
           
+  
+    
   
   Reference
 
@@ -166,7 +172,7 @@
     <a href="../.." title="derivepassphrase" class="md-nav__button md-logo" aria-label="derivepassphrase" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
     derivepassphrase
@@ -176,7 +182,7 @@
       <a href="https://github.com/the-13th-letter/derivepassphrase" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
   </div>
   <div class="md-source__repository">
     the-13th-letter/derivepassphrase
@@ -216,15 +222,31 @@
   
     
     
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
     
       
         
         
       
       
-    
-    
+        
       
+    
     
     <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
@@ -233,16 +255,24 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
-            
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
   
   <span class="md-ellipsis">
     Reference
   </span>
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
@@ -251,25 +281,6 @@
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Reference overview
-  </span>
-  
-
-      </a>
-    </li>
-  
-
               
             
               
@@ -300,15 +311,233 @@
   
   
     <li class="md-nav__item">
-      <a href="../derivepassphrase/" class="md-nav__link">
+      <a href="../derivepassphrase-vault.1/" class="md-nav__link">
         
+  
+  <span class="md-ellipsis">
+    Man page: derivepassphrase-vault
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../derivepassphrase-export.1/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Man page: derivepassphrase-export
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../derivepassphrase-export-vault.1/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Man page: derivepassphrase-export-vault
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="">
+            
   
   <span class="md-ellipsis">
     Module derivepassphrase
   </span>
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            Module derivepassphrase
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../derivepassphrase/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Submodule cli
+  </span>
+  
+
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6_2" id="__nav_2_6_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Subpackage exporter
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            Subpackage exporter
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../exporter/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Subpackage exporter
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../exporter_vault/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Exporters for vault
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -332,7 +561,7 @@
           
   
   <span class="md-ellipsis">
-    Module sequin
+    Submodule sequin
   </span>
   
 
@@ -343,7 +572,7 @@
         
   
   <span class="md-ellipsis">
-    Module sequin
+    Submodule sequin
   </span>
   
 
@@ -363,7 +592,7 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#sequin" class="md-nav__link">
+  <a href="#derivepassphrase.sequin" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;sequin
     </span>
@@ -373,7 +602,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#sequin.Sequin" class="md-nav__link">
+  <a href="#derivepassphrase.sequin.Sequin" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;Sequin
     </span>
@@ -383,7 +612,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#sequin.Sequin.generate" class="md-nav__link">
+  <a href="#derivepassphrase.sequin.Sequin.generate" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;generate
     </span>
@@ -397,7 +626,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#sequin.SequinExhaustedError" class="md-nav__link">
+  <a href="#derivepassphrase.sequin.SequinExhaustedError" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SequinExhaustedError
     </span>
@@ -426,15 +655,65 @@
   
   
     <li class="md-nav__item">
-      <a href="../ssh_agent_client/" class="md-nav__link">
+      <a href="../ssh_agent/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Module ssh_agent_client
+    Submodule ssh_agent
   </span>
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../types/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Submodule _types
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vault/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Submodule vault
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -492,7 +771,7 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#sequin" class="md-nav__link">
+  <a href="#derivepassphrase.sequin" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;sequin
     </span>
@@ -502,7 +781,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#sequin.Sequin" class="md-nav__link">
+  <a href="#derivepassphrase.sequin.Sequin" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;Sequin
     </span>
@@ -512,7 +791,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#sequin.Sequin.generate" class="md-nav__link">
+  <a href="#derivepassphrase.sequin.Sequin.generate" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;generate
     </span>
@@ -526,7 +805,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#sequin.SequinExhaustedError" class="md-nav__link">
+  <a href="#derivepassphrase.sequin.SequinExhaustedError" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;SequinExhaustedError
     </span>
@@ -560,22 +839,22 @@
     
     <a href="https://github.com/the-13th-letter/derivepassphrase/raw/master/docs/reference/sequin.md" title="View source of this page" class="md-content__button md-icon">
       
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.15 8.15 0 0 1-1.23-2Z"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
     </a>
   
 
 
-  <h1>Module sequin</h1>
+  <h1>Submodule sequin</h1>
 
 <div class="doc doc-object doc-module">
 
 
 
-<h2 id="sequin" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">sequin</span>
+<h2 id="derivepassphrase.sequin" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">derivepassphrase.sequin</span>
 
 
-<a href="#sequin" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#derivepassphrase.sequin" class="headerlink" title="Permanent link">&para;</a></h2>
 
     <div class="doc doc-contents first">
 
@@ -589,8 +868,8 @@ served.  The sequin module is used in Coglan&rsquo;s &ldquo;vault&rdquo; module 
 deterministic, stateless password manager that recomputes passwords
 instead of storing them), and this reimplementation is used for
 a similar purpose.</p>
-<p>The main API is the <a class="autorefs autorefs-internal" href="#sequin.Sequin"><code>Sequin</code></a> class, which is
-thoroughly documented.</p>
+<p>The main API is the <a class="autorefs autorefs-internal" href="#derivepassphrase.sequin.Sequin"><code>Sequin</code></a> class,
+which is thoroughly documented.</p>
 
 
 
@@ -607,11 +886,11 @@ thoroughly documented.</p>
 
 
 
-<h3 id="sequin.Sequin" class="doc doc-heading">
+<h3 id="derivepassphrase.sequin.Sequin" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">Sequin</span>
 
 
-<a href="#sequin.Sequin" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#derivepassphrase.sequin.Sequin" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">Sequin</span><span class="p">(</span>
     <span class="n">sequence</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="nb">bytearray</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
     <span class="o">/</span><span class="p">,</span>
@@ -728,11 +1007,11 @@ range.</p>
 <div class="doc doc-object doc-function">
 
 
-<h4 id="sequin.Sequin.generate" class="doc doc-heading">
+<h4 id="derivepassphrase.sequin.Sequin.generate" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">generate</span>
 
 
-<a href="#sequin.Sequin.generate" class="headerlink" title="Permanent link">&para;</a></h4>
+<a href="#derivepassphrase.sequin.Sequin.generate" class="headerlink" title="Permanent link">&para;</a></h4>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">generate</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span>
 </code></pre></div>
 
@@ -820,7 +1099,7 @@ a different base).</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="sequin.SequinExhaustedError" href="#sequin.SequinExhaustedError">SequinExhaustedError</a></code>
+                  <code><a class="autorefs autorefs-internal" title="derivepassphrase.sequin.SequinExhaustedError" href="#derivepassphrase.sequin.SequinExhaustedError">SequinExhaustedError</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -879,11 +1158,11 @@ a different base).</p>
 
 
 
-<h3 id="sequin.SequinExhaustedError" class="doc doc-heading">
+<h3 id="derivepassphrase.sequin.SequinExhaustedError" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">SequinExhaustedError</span>
 
 
-<a href="#sequin.SequinExhaustedError" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#derivepassphrase.sequin.SequinExhaustedError" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">SequinExhaustedError</span><span class="p">()</span>
 </code></pre></div>
 
@@ -952,35 +1231,35 @@ a different base).</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../derivepassphrase/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Module derivepassphrase">
+          <a href="../exporter_vault/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Exporters for vault">
             <div class="md-footer__button md-icon">
               
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
             </div>
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Previous
               </span>
               <div class="md-ellipsis">
-                Module derivepassphrase
+                Exporters for vault
               </div>
             </div>
           </a>
         
         
           
-          <a href="../ssh_agent_client/" class="md-footer__link md-footer__link--next" aria-label="Next: Module ssh_agent_client">
+          <a href="../ssh_agent/" class="md-footer__link md-footer__link--next" aria-label="Next: Submodule ssh_agent">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Module ssh_agent_client
+                Submodule ssh_agent
               </div>
             </div>
             <div class="md-footer__button md-icon">
               
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4Z"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
             </div>
           </a>
         

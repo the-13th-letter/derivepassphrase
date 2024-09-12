@@ -15,12 +15,12 @@
         <link rel="canonical" href="https://the13thletter.info/derivepassphrase/0.x/changelog/">
       
       
-        <link rel="prev" href="../reference/ssh_agent_client/">
+        <link rel="prev" href="../reference/vault/">
       
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.30">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.34">
     
     
       
@@ -28,7 +28,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.3cba04c6.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.35f28582.min.css">
       
       
 
@@ -72,6 +72,10 @@
       
     </div>
     
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
     
       
     
@@ -111,6 +115,8 @@
       <li class="md-tabs__item">
         <a href="../reference/" class="md-tabs__link">
           
+  
+    
   
   Reference
 
@@ -164,7 +170,7 @@
     <a href=".." title="derivepassphrase" class="md-nav__button md-logo" aria-label="derivepassphrase" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
     derivepassphrase
@@ -174,7 +180,7 @@
       <a href="https://github.com/the-13th-letter/derivepassphrase" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
   </div>
   <div class="md-source__repository">
     the-13th-letter/derivepassphrase
@@ -212,35 +218,413 @@
   
     
     
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
     
       
       
+        
+      
     
     
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-      
-    
-    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
-      
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
         
-  
-  
-    <a href="../reference/" class="md-nav__link">
-      
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/" class="md-nav__link ">
+              
   
   <span class="md-ellipsis">
     Reference
   </span>
   
 
-      
-        <span class="md-nav__icon md-icon"></span>
-      
-    </a>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/derivepassphrase.1/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Man page: derivepassphrase
+  </span>
   
 
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/derivepassphrase-vault.1/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Man page: derivepassphrase-vault
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/derivepassphrase-export.1/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Man page: derivepassphrase-export
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/derivepassphrase-export-vault.1/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Man page: derivepassphrase-export-vault
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Module derivepassphrase
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            Module derivepassphrase
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/derivepassphrase/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Submodule cli
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6_2" id="__nav_2_6_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Subpackage exporter
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            Subpackage exporter
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/exporter/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Subpackage exporter
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/exporter_vault/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Exporters for vault
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/sequin/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Submodule sequin
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ssh_agent/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Submodule ssh_agent
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/types/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Submodule _types
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/vault/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Submodule vault
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
       
     </li>
   
@@ -299,6 +683,57 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#020-2024-09-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.2.0 (2024-09-12)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="0.2.0 (2024-09-12)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      Added
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Changed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deprecated" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deprecated
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#013-2024-07-28" class="md-nav__link">
     <span class="md-ellipsis">
       0.1.3 (2024-07-28)
@@ -309,7 +744,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#fixed" class="md-nav__link">
+  <a href="#fixed_1" class="md-nav__link">
     <span class="md-ellipsis">
       Fixed
     </span>
@@ -333,7 +768,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#fixed_1" class="md-nav__link">
+  <a href="#fixed_2" class="md-nav__link">
     <span class="md-ellipsis">
       Fixed
     </span>
@@ -357,7 +792,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#fixed_2" class="md-nav__link">
+  <a href="#fixed_3" class="md-nav__link">
     <span class="md-ellipsis">
       Fixed
     </span>
@@ -381,7 +816,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#added" class="md-nav__link">
+  <a href="#added_1" class="md-nav__link">
     <span class="md-ellipsis">
       Added
     </span>
@@ -429,6 +864,57 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#020-2024-09-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      0.2.0 (2024-09-12)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="0.2.0 (2024-09-12)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      Added
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Changed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deprecated" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deprecated
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#013-2024-07-28" class="md-nav__link">
     <span class="md-ellipsis">
       0.1.3 (2024-07-28)
@@ -439,7 +925,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#fixed" class="md-nav__link">
+  <a href="#fixed_1" class="md-nav__link">
     <span class="md-ellipsis">
       Fixed
     </span>
@@ -463,7 +949,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#fixed_1" class="md-nav__link">
+  <a href="#fixed_2" class="md-nav__link">
     <span class="md-ellipsis">
       Fixed
     </span>
@@ -487,7 +973,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#fixed_2" class="md-nav__link">
+  <a href="#fixed_3" class="md-nav__link">
     <span class="md-ellipsis">
       Fixed
     </span>
@@ -511,7 +997,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#added" class="md-nav__link">
+  <a href="#added_1" class="md-nav__link">
     <span class="md-ellipsis">
       Added
     </span>
@@ -545,7 +1031,7 @@
     
     <a href="https://github.com/the-13th-letter/derivepassphrase/raw/master/docs/changelog.md" title="View source of this page" class="md-content__button md-icon">
       
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.15 8.15 0 0 1-1.23-2Z"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
     </a>
   
 
@@ -574,8 +1060,57 @@ effectively constitute a new <q>major</q> release.)
 </aside>
 <!-- towncrier release notes start -->
 
-<h2 id="013-2024-07-28">0.1.3 (2024-07-28)<a class="headerlink" href="#013-2024-07-28" title="Permanent link">&para;</a></h2>
+<h2 id="020-2024-09-12">0.2.0 (2024-09-12)<a class="headerlink" href="#020-2024-09-12" title="Permanent link">&para;</a></h2>
+<h4 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h4>
+<ul>
+<li>
+<p>Support configuration data export from <code>vault</code> in v0.2, v0.3 and storeroom
+  formats.</p>
+<p>This feature requires the <code>cryptography</code> Python module, but is available
+  even if <code>vault</code> is not installed. (<a href="https://github.com/the-13th-letter/derivepassphrase/1">#1</a>)</p>
+</li>
+</ul>
 <h4 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Deploy versioned documentation with <a href="https://pypi.org/project/mike">mike</a>.
+  Set up a &ldquo;latest&rdquo; tag and the &ldquo;0.<var>x</var>&rdquo; version of the documentation
+  with the contents so far.</li>
+</ul>
+<h4 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Changed <code>sequin</code> and <code>ssh_agent_client</code> to be submodules of
+  <code>derivepassphrase</code>.  Further moved <code>derivepassphrase.Vault</code> and
+  <code>derivepassphrase.AmbiguousByteRepresentation</code> into a new submodule <code>vault</code>,
+  and renamed submodule <code>ssh_agent_client</code> to <code>ssh_agent</code>. (<a href="https://github.com/the-13th-letter/derivepassphrase/3">#3</a>)</li>
+<li>Changed internal error handling and error messages, to better work in the
+  context of a command-line tool. (<a href="https://github.com/the-13th-letter/derivepassphrase/4">#4</a>)</li>
+<li>Combine and consolidate <code>derivepassphrase.types</code> and
+  <code>derivepassphrase.ssh_agent.types</code> into a new submodule
+  <code>derivepassphrase._types</code>.  Despite the name, the module is public. (<a href="https://github.com/the-13th-letter/derivepassphrase/7">#7</a>)</li>
+<li>Warn the user when entering (directly, or via configuration
+  editing/importing) a passphrase that is not in the configured Unicode
+  normalization form. (But don&rsquo;t otherwise reject any textual master
+  passphrases.) (<a href="https://github.com/the-13th-letter/derivepassphrase/9">#9</a>)</li>
+<li>
+<p>Move all existing functionality into a subcommand, in anticipation of other
+  passphrase derivation schemes, with different settings.  Automatically
+  forward calls without a subcommand to the &ldquo;vault&rdquo; subcommand.</p>
+<p>Also store the settings in a file specific to the respective subsystem,
+  instead of globally.  Automatically fall back to, and migrate, the old global
+  settings file if no subsystem-specific configuration was found. (<a href="https://github.com/the-13th-letter/derivepassphrase/10">#10</a>)</p>
+</li>
+<li>
+<p>Make <code>derivepassphrase_export</code> a subcommand: <code>derivepassphrase export</code>.
+  (<a href="https://github.com/the-13th-letter/derivepassphrase/11">#11</a>)</p>
+</li>
+</ul>
+<h4 id="deprecated">Deprecated<a class="headerlink" href="#deprecated" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Using the implied subcommand or the implied global configuration file is
+  deprecated, and will be removed in v1.0.</li>
+</ul>
+<h2 id="013-2024-07-28">0.1.3 (2024-07-28)<a class="headerlink" href="#013-2024-07-28" title="Permanent link">&para;</a></h2>
+<h4 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Do not crash upon selecting a key on the command-line if there already is a
   key stored in the configuration. (<a href="https://github.com/the-13th-letter/derivepassphrase/5">#5</a>)</li>
@@ -588,7 +1123,7 @@ effectively constitute a new <q>major</q> release.)
 <li>Fix typing issues according to <code>mypy</code>&rsquo;s strict mode.</li>
 </ul>
 <h2 id="012-2024-07-22">0.1.2 (2024-07-22)<a class="headerlink" href="#012-2024-07-22" title="Permanent link">&para;</a></h2>
-<h4 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h4>
+<h4 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Include and exclude the correct files in the <code>sdist</code> and <code>wheel</code>
   distributions.  (Previously, <code>sdist</code> contained VCS artifacts, and <code>wheel</code> was
@@ -601,7 +1136,7 @@ effectively constitute a new <q>major</q> release.)
 <li>Set up a changelog, using <a href="https://pypi.org/package/towncrier">towncrier</a>.</li>
 </ul>
 <h2 id="011-2024-07-14">0.1.1 (2024-07-14)<a class="headerlink" href="#011-2024-07-14" title="Permanent link">&para;</a></h2>
-<h4 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h4>
+<h4 id="fixed_3">Fixed<a class="headerlink" href="#fixed_3" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Restore the <code>__version__</code> attribute in all top-level packages.</li>
 <li>Declare compatibility with Python 3.10 in project metadata, and include
@@ -610,7 +1145,7 @@ effectively constitute a new <q>major</q> release.)
   and the Python package metadata.</li>
 </ul>
 <h2 id="010-2024-07-14">0.1.0 (2024-07-14)<a class="headerlink" href="#010-2024-07-14" title="Permanent link">&para;</a></h2>
-<h4 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h4>
+<h4 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h4>
 <ul>
 <li>Initial release.</li>
 </ul>
@@ -642,17 +1177,17 @@ effectively constitute a new <q>major</q> release.)
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../reference/ssh_agent_client/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Module ssh_agent_client">
+          <a href="../reference/vault/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Submodule vault">
             <div class="md-footer__button md-icon">
               
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
             </div>
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Previous
               </span>
               <div class="md-ellipsis">
-                Module ssh_agent_client
+                Submodule vault
               </div>
             </div>
           </a>
