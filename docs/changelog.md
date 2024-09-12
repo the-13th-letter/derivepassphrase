@@ -30,6 +30,63 @@ effectively constitute a new <q>major</q> release.)
 
 <!-- towncrier release notes start -->
 
+## 0.2.0 (2024-09-12)
+
+#### Added
+
+- Support configuration data export from `vault` in v0.2, v0.3 and storeroom
+  formats.
+
+    This feature requires the `cryptography` Python module, but is available
+  even if `vault` is not installed. ([#1])
+
+[#1]: https://github.com/the-13th-letter/derivepassphrase/1
+
+#### Fixed
+
+- Deploy versioned documentation with [mike](https://pypi.org/project/mike).
+  Set up a "latest" tag and the "0.<var>x</var>" version of the documentation
+  with the contents so far.
+
+#### Changed
+
+- Changed `sequin` and `ssh_agent_client` to be submodules of
+  `derivepassphrase`.  Further moved `derivepassphrase.Vault` and
+  `derivepassphrase.AmbiguousByteRepresentation` into a new submodule `vault`,
+  and renamed submodule `ssh_agent_client` to `ssh_agent`. ([#3])
+- Changed internal error handling and error messages, to better work in the
+  context of a command-line tool. ([#4])
+- Combine and consolidate `derivepassphrase.types` and
+  `derivepassphrase.ssh_agent.types` into a new submodule
+  `derivepassphrase._types`.  Despite the name, the module is public. ([#7])
+- Warn the user when entering (directly, or via configuration
+  editing/importing) a passphrase that is not in the configured Unicode
+  normalization form. (But don't otherwise reject any textual master
+  passphrases.) ([#9])
+- Move all existing functionality into a subcommand, in anticipation of other
+  passphrase derivation schemes, with different settings.  Automatically
+  forward calls without a subcommand to the "vault" subcommand.
+
+    Also store the settings in a file specific to the respective subsystem,
+  instead of globally.  Automatically fall back to, and migrate, the old global
+  settings file if no subsystem-specific configuration was found. ([#10])
+
+- Make `derivepassphrase_export` a subcommand: `derivepassphrase export`.
+  ([#11])
+
+[#3]: https://github.com/the-13th-letter/derivepassphrase/3
+[#4]: https://github.com/the-13th-letter/derivepassphrase/4
+[#7]: https://github.com/the-13th-letter/derivepassphrase/7
+[#9]: https://github.com/the-13th-letter/derivepassphrase/9
+[#10]: https://github.com/the-13th-letter/derivepassphrase/10
+[#11]: https://github.com/the-13th-letter/derivepassphrase/11
+
+#### Deprecated
+
+- Using the implied subcommand or the implied global configuration file is
+  deprecated, and will be removed in v1.0.
+
+
 ## 0.1.3 (2024-07-28)
 
 #### Fixed
