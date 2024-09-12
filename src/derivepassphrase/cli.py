@@ -10,8 +10,10 @@ import base64
 import collections
 import contextlib
 import copy
+import importlib
 import inspect
 import json
+import logging
 import os
 import socket
 import unicodedata
@@ -30,10 +32,11 @@ from typing_extensions import (
 )
 
 import derivepassphrase as dpp
-from derivepassphrase import _types, ssh_agent, vault
+from derivepassphrase import _types, exporter, ssh_agent, vault
 
 if TYPE_CHECKING:
     import pathlib
+    import types
     from collections.abc import (
         Iterator,
         Sequence,
@@ -54,20 +57,331 @@ _NO_USABLE_KEYS = 'No usable SSH keys were found'
 _EMPTY_SELECTION = 'Empty selection'
 
 
-def _config_filename() -> str | bytes | pathlib.Path:
-    """Return the filename of the configuration file.
+# Top-level
+# =========
 
-    The file is currently named `settings.json`, located within the
-    configuration directory as determined by the `DERIVEPASSPHRASE_PATH`
-    environment variable, or by [`click.get_app_dir`][] in POSIX
-    mode.
+
+@click.command(
+    context_settings={
+        'help_option_names': ['-h', '--help'],
+        'ignore_unknown_options': True,
+        'allow_interspersed_args': False,
+    },
+    epilog=r"""
+        Configuration is stored in a directory according to the
+        DERIVEPASSPHRASE_PATH variable, which defaults to
+        `~/.derivepassphrase` on UNIX-like systems and
+        `C:\Users\<user>\AppData\Roaming\Derivepassphrase` on Windows.
+    """,
+)
+@click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
+@click.argument('subcommand_args', nargs=-1, type=click.UNPROCESSED)
+def derivepassphrase(
+    *,
+    subcommand_args: list[str],
+) -> None:
+    """Derive a strong passphrase, deterministically, from a master secret.
+
+    Using a master secret, derive a passphrase for a named service,
+    subject to constraints e.g. on passphrase length, allowed
+    characters, etc.  The exact derivation depends on the selected
+    derivation scheme.  For each scheme, it is computationally
+    infeasible to discern the master secret from the derived passphrase.
+    The derivations are also deterministic, given the same inputs, thus
+    the resulting passphrases need not be stored explicitly.  The
+    service name and constraints themselves also generally need not be
+    kept secret, depending on the scheme.
+
+    The currently implemented subcommands are "vault" (for the scheme
+    used by vault) and "export" (for exporting foreign configuration
+    data).  See the respective `--help` output for instructions.  If no
+    subcommand is given, we default to "vault".
+
+    Deprecation notice: Defaulting to "vault" is deprecated.  Starting
+    in v1.0, the subcommand must be specified explicitly.\f
+
+    This is a [`click`][CLICK]-powered command-line interface function,
+    and not intended for programmatic use.  Call with arguments
+    `['--help']` to see full documentation of the interface.  (See also
+    [`click.testing.CliRunner`][] for controlled, programmatic
+    invocation.)
+
+    [CLICK]: https://click.palletsprojects.com/
+
+    """  # noqa: D301
+    if subcommand_args and subcommand_args[0] == 'export':
+        return derivepassphrase_export.main(
+            args=subcommand_args[1:],
+            prog_name=f'{PROG_NAME} export',
+            standalone_mode=False,
+        )
+    if not (subcommand_args and subcommand_args[0] == 'vault'):
+        click.echo(
+            (
+                f'{PROG_NAME}: Deprecation warning: A subcommand will be '
+                f'required in v1.0. See --help for available subcommands.'
+            ),
+            err=True,
+        )
+        click.echo(
+            f'{PROG_NAME}: Warning: Defaulting to subcommand "vault".',
+            err=True,
+        )
+    else:
+        subcommand_args = subcommand_args[1:]
+    return derivepassphrase_vault.main(
+        args=subcommand_args,
+        prog_name=f'{PROG_NAME} vault',
+        standalone_mode=False,
+    )
+
+
+# Exporter
+# ========
+
+
+@click.command(
+    context_settings={
+        'help_option_names': ['-h', '--help'],
+        'ignore_unknown_options': True,
+        'allow_interspersed_args': False,
+    }
+)
+@click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
+@click.argument('subcommand_args', nargs=-1, type=click.UNPROCESSED)
+def derivepassphrase_export(
+    *,
+    subcommand_args: list[str],
+) -> None:
+    """Export a foreign configuration to standard output.
+
+    Read a foreign system configuration, extract all information from
+    it, and export the resulting configuration to standard output.
+
+    The only available subcommand is "vault", which implements the
+    vault-native configuration scheme.  If no subcommand is given, we
+    default to "vault".
+
+    Deprecation notice: Defaulting to "vault" is deprecated.  Starting
+    in v1.0, the subcommand must be specified explicitly.\f
+
+    This is a [`click`][CLICK]-powered command-line interface function,
+    and not intended for programmatic use.  Call with arguments
+    `['--help']` to see full documentation of the interface.  (See also
+    [`click.testing.CliRunner`][] for controlled, programmatic
+    invocation.)
+
+    [CLICK]: https://click.palletsprojects.com/
+
+    """  # noqa: D301
+    if not (subcommand_args and subcommand_args[0] == 'vault'):
+        click.echo(
+            (
+                f'{PROG_NAME}: Deprecation warning: A subcommand will be '
+                f'required in v1.0. See --help for available subcommands.'
+            ),
+            err=True,
+        )
+        click.echo(
+            f'{PROG_NAME}: Warning: Defaulting to subcommand "vault".',
+            err=True,
+        )
+    else:
+        subcommand_args = subcommand_args[1:]
+    return derivepassphrase_export_vault.main(
+        args=subcommand_args,
+        prog_name=f'{PROG_NAME} export vault',
+        standalone_mode=False,
+    )
+
+
+def _load_data(
+    fmt: Literal['v0.2', 'v0.3', 'storeroom'],
+    path: str | bytes | os.PathLike[str],
+    key: bytes,
+) -> Any:  # noqa: ANN401
+    contents: bytes
+    module: types.ModuleType
+    match fmt:
+        case 'v0.2':
+            module = importlib.import_module(
+                'derivepassphrase.exporter.vault_native'
+            )
+            if module.STUBBED:
+                raise ModuleNotFoundError
+            with open(path, 'rb') as infile:
+                contents = base64.standard_b64decode(infile.read())
+            return module.export_vault_native_data(
+                contents, key, try_formats=['v0.2']
+            )
+        case 'v0.3':
+            module = importlib.import_module(
+                'derivepassphrase.exporter.vault_native'
+            )
+            if module.STUBBED:
+                raise ModuleNotFoundError
+            with open(path, 'rb') as infile:
+                contents = base64.standard_b64decode(infile.read())
+            return module.export_vault_native_data(
+                contents, key, try_formats=['v0.3']
+            )
+        case 'storeroom':
+            module = importlib.import_module(
+                'derivepassphrase.exporter.storeroom'
+            )
+            if module.STUBBED:
+                raise ModuleNotFoundError
+            return module.export_storeroom_data(path, key)
+        case _:  # pragma: no cover
+            assert_never(fmt)
+
+
+@click.command(
+    context_settings={'help_option_names': ['-h', '--help']},
+)
+@click.option(
+    '-f',
+    '--format',
+    'formats',
+    metavar='FMT',
+    multiple=True,
+    default=('v0.3', 'v0.2', 'storeroom'),
+    type=click.Choice(['v0.2', 'v0.3', 'storeroom']),
+    help='try the following storage formats, in order (default: v0.3, v0.2)',
+)
+@click.option(
+    '-k',
+    '--key',
+    metavar='K',
+    help=(
+        'use K as the storage master key '
+        '(default: check the `VAULT_KEY`, `LOGNAME`, `USER` or '
+        '`USERNAME` environment variables)'
+    ),
+)
+@click.argument('path', metavar='PATH', required=True)
+@click.pass_context
+def derivepassphrase_export_vault(
+    ctx: click.Context,
+    /,
+    *,
+    path: str | bytes | os.PathLike[str],
+    formats: Sequence[Literal['v0.2', 'v0.3', 'storeroom']] = (),
+    key: str | bytes | None = None,
+) -> None:
+    """Export a vault-native configuration to standard output.
+
+    Read the vault-native configuration at PATH, extract all information
+    from it, and export the resulting configuration to standard output.
+    Depending on the configuration format, PATH may either be a file or
+    a directory.  Supports the vault "v0.2", "v0.3" and "storeroom"
+    formats.
+
+    If PATH is explicitly given as `VAULT_PATH`, then use the
+    `VAULT_PATH` environment variable to determine the correct path.
+    (Use `./VAULT_PATH` or similar to indicate a file/directory actually
+    named `VAULT_PATH`.)
+
+    """
+    logging.basicConfig()
+    if path in {'VAULT_PATH', b'VAULT_PATH'}:
+        path = exporter.get_vault_path()
+    if key is None:
+        key = exporter.get_vault_key()
+    elif isinstance(key, str):  # pragma: no branch
+        key = key.encode('utf-8')
+    for fmt in formats:
+        try:
+            config = _load_data(fmt, path, key)
+        except (
+            IsADirectoryError,
+            NotADirectoryError,
+            ValueError,
+            RuntimeError,
+        ):
+            logging.info('Cannot load as %s: %s', fmt, path)
+            continue
+        except OSError as exc:
+            click.echo(
+                (
+                    f'{PROG_NAME}: ERROR: Cannot parse {path!r} as '
+                    f'a valid config: {exc.strerror}: {exc.filename!r}'
+                ),
+                err=True,
+            )
+            ctx.exit(1)
+        except ModuleNotFoundError:
+            # TODO(the-13th-letter): Use backslash continuation.
+            # https://github.com/nedbat/coveragepy/issues/1836
+            msg = f"""
+{PROG_NAME}: ERROR: Cannot load the required Python module "cryptography".
+{PROG_NAME}: INFO: pip users: see the "export" extra.
+""".lstrip('\n')
+            click.echo(msg, nl=False, err=True)
+            ctx.exit(1)
+        else:
+            if not _types.is_vault_config(config):
+                click.echo(
+                    f'{PROG_NAME}: ERROR: Invalid vault config: {config!r}',
+                    err=True,
+                )
+                ctx.exit(1)
+            click.echo(json.dumps(config, indent=2, sort_keys=True))
+            break
+    else:
+        click.echo(
+            f'{PROG_NAME}: ERROR: Cannot parse {path!r} as a valid config.',
+            err=True,
+        )
+        ctx.exit(1)
+
+
+# Vault
+# =====
+
+
+def _config_filename(
+    subsystem: str | None = 'settings',
+) -> str | bytes | pathlib.Path:
+    """Return the filename of the configuration file for the subsystem.
+
+    The (implicit default) file is currently named `settings.json`,
+    located within the configuration directory as determined by the
+    `DERIVEPASSPHRASE_PATH` environment variable, or by
+    [`click.get_app_dir`][] in POSIX mode.  Depending on the requested
+    subsystem, this will usually be a different file within that
+    directory.
+
+    Args:
+        subsystem:
+            Name of the configuration subsystem whose configuration
+            filename to return.  If not given, return the old filename
+            from before the subcommand migration.  If `None`, return the
+            configuration directory instead.
+
+    Raises:
+        AssertionError:
+            An unknown subsystem was passed.
+
+    Deprecated:
+        Since v0.2.0: The implicit default subsystem and the old
+        configuration filename are deprecated, and will be removed in v1.0.
+        The subsystem will be mandatory to specify.
 
     """
     path: str | bytes | pathlib.Path
     path = os.getenv(PROG_NAME.upper() + '_PATH') or click.get_app_dir(
         PROG_NAME, force_posix=True
     )
-    return os.path.join(path, 'settings.json')
+    match subsystem:
+        case None:
+            return path
+        case 'vault' | 'settings':
+            filename = f'{subsystem}.json'
+        case _:  # pragma: no cover
+            msg = f'Unknown configuration subsystem: {subsystem!r}'
+            raise AssertionError(msg)
+    return os.path.join(path, filename)
 
 
 def _load_config() -> _types.VaultConfig:
@@ -89,12 +403,49 @@ def _load_config() -> _types.VaultConfig:
             config.
 
     """
-    filename = _config_filename()
+    filename = _config_filename(subsystem='vault')
     with open(filename, 'rb') as fileobj:
         data = json.load(fileobj)
     if not _types.is_vault_config(data):
         raise ValueError(_INVALID_VAULT_CONFIG)
     return data
+
+
+def _migrate_and_load_old_config() -> (
+    tuple[_types.VaultConfig, OSError | None]
+):
+    """Load and migrate a vault(1)-compatible config.
+
+    The (old) filename is obtained via
+    [`derivepassphrase.cli._config_filename`][].  This must be an
+    unencrypted JSON file.  After loading, the file is migrated to the new
+    standard filename.
+
+    Returns:
+        The vault settings, and an optional exception encountered during
+        migration.  See [`derivepassphrase.types.VaultConfig`][] for
+        details on the former.
+
+    Raises:
+        OSError:
+            There was an OS error accessing the old file.
+        ValueError:
+            The data loaded from the file is not a vault(1)-compatible
+            config.
+
+    """
+    new_filename = _config_filename(subsystem='vault')
+    old_filename = _config_filename()
+    with open(old_filename, 'rb') as fileobj:
+        data = json.load(fileobj)
+    if not _types.is_vault_config(data):
+        raise ValueError(_INVALID_VAULT_CONFIG)
+    try:
+        os.replace(old_filename, new_filename)
+    except OSError as exc:
+        return data, exc
+    else:
+        return data, None
 
 
 def _save_config(config: _types.VaultConfig, /) -> None:
@@ -117,7 +468,7 @@ def _save_config(config: _types.VaultConfig, /) -> None:
     """
     if not _types.is_vault_config(config):
         raise ValueError(_INVALID_VAULT_CONFIG)
-    filename = _config_filename()
+    filename = _config_filename(subsystem='vault')
     filedir = os.path.dirname(os.path.abspath(filename))
     try:
         os.makedirs(filedir, exist_ok=False)
@@ -603,6 +954,8 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
 
 
 @click.command(
+    # 'vault',
+    # help="derivation scheme compatible with James Coglan's vault(1)",
     context_settings={'help_option_names': ['-h', '--help']},
     cls=CommandWithHelpGroups,
     epilog=r"""
@@ -612,10 +965,6 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
         combinations.  You are STRONGLY advised to keep independent
         backups of the settings and the SSH key, if any.
 
-        Configuration is stored in a directory according to the
-        DERIVEPASSPHRASE_PATH variable, which defaults to
-        `~/.derivepassphrase` on UNIX-like systems and
-        `C:\Users\<user>\AppData\Roaming\Derivepassphrase` on Windows.
         The configuration is NOT encrypted, and you are STRONGLY
         discouraged from using a stored passphrase.
     """,
@@ -751,7 +1100,7 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
 @click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
 @click.argument('service', required=False)
 @click.pass_context
-def derivepassphrase(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
+def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     ctx: click.Context,
     /,
     *,
@@ -774,7 +1123,7 @@ def derivepassphrase(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     export_settings: TextIO | pathlib.Path | os.PathLike[str] | None = None,
     import_settings: TextIO | pathlib.Path | os.PathLike[str] | None = None,
 ) -> None:
-    """Derive a strong passphrase, deterministically, from a master secret.
+    """Derive a passphrase using the vault(1) derivation scheme.
 
     Using a master passphrase or a master SSH key, derive a passphrase
     for SERVICE, subject to length, character and character repetition
@@ -920,7 +1269,35 @@ def derivepassphrase(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         try:
             return _load_config()
         except FileNotFoundError:
-            return {'services': {}}
+            try:
+                backup_config, exc = _migrate_and_load_old_config()
+            except FileNotFoundError:
+                return {'services': {}}
+            old_name = os.path.basename(_config_filename())
+            new_name = os.path.basename(_config_filename(subsystem='vault'))
+            click.echo(
+                (
+                    f'{PROG_NAME}: Using deprecated v0.1-style config file '
+                    f'{old_name!r}, instead of v0.2-style {new_name!r}.  '
+                    f'Support for v0.1-style config filenames will be '
+                    f'removed in v1.0.'
+                ),
+                err=True,
+            )
+            if isinstance(exc, OSError):
+                click.echo(
+                    (
+                        f'{PROG_NAME}: Warning: Failed to migrate to '
+                        f'{new_name!r}: {exc.strerror}: {exc.filename!r}'
+                    ),
+                    err=True,
+                )
+            else:
+                click.echo(
+                    f'{PROG_NAME}: Successfully migrated to {new_name!r}.',
+                    err=True,
+                )
+            return backup_config
         except OSError as e:
             err(f'Cannot load config: {e.strerror}: {e.filename!r}')
         except Exception as e:  # noqa: BLE001

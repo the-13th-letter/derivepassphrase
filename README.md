@@ -26,14 +26,16 @@ $ pip install derivepassphrase
 
 `derivepassphrase` is a pure Python package, and may be easily installed manually by placing the respective files and the package's dependencies into Python's import path.
 `derivepassphrase` requires Python 3.10 or higher as well as the [typing-extensions package][TYPING_EXTENSIONS] for its core functionality and programmatic interface, and [`click`][CLICK] 8.1 or higher for its command-line interface.
+Using the `export vault` subcommand additionally requires the [cryptography package][CRYPTOGRAPHY], version 39.0 or newer.
 
 [TYPING_EXTENSIONS]: https://pypi.org/project/typing-extensions/
 [CLICK]: https://click.palletsprojects.com/
+[CRYPTOGRAPHY]: https://github.com/pyca/cryptography
 
 ## Quick Usage
 
 ```` shell-session
-$ derivepassphrase -p --length 30 --upper 3 --lower 1 --number 2 --space 0 --symbol 0 my-email-account
+$ derivepassphrase vault -p --length 30 --upper 3 --lower 1 --number 2 --space 0 --symbol 0 my-email-account
 Passphrase: This passphrase is for demonstration purposes only.
 JKeet7GeBpxysOgdCEJo6UzmP8A0Ih
 ````
@@ -41,7 +43,7 @@ JKeet7GeBpxysOgdCEJo6UzmP8A0Ih
 Some time later…
 
 ```` shell-session
-$ derivepassphrase -p --length 30 --upper 3 --lower 1 --number 2 --space 0 --symbol 0 my-email-account
+$ derivepassphrase vault -p --length 30 --upper 3 --lower 1 --number 2 --space 0 --symbol 0 my-email-account
 Passphrase: This passphrase is for demonstration purposes only.
 JKeet7GeBpxysOgdCEJo6UzmP8A0Ih
 ````

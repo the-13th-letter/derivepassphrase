@@ -545,7 +545,6 @@ def phrase_from_key(key: bytes) -> bytes:
 def isolated_config(
     monkeypatch: pytest.MonkeyPatch,
     runner: click.testing.CliRunner,
-    config: Any,
 ) -> Iterator[None]:
     prog_name = cli.PROG_NAME
     env_name = prog_name.replace(' ', '_').upper() + '_PATH'
@@ -553,8 +552,20 @@ def isolated_config(
         monkeypatch.setenv('HOME', os.getcwd())
         monkeypatch.setenv('USERPROFILE', os.getcwd())
         monkeypatch.delenv(env_name, raising=False)
-        os.makedirs(os.path.dirname(cli._config_filename()), exist_ok=True)
-        with open(cli._config_filename(), 'w', encoding='UTF-8') as outfile:
+        config_dir = cli._config_filename(subsystem=None)
+        os.makedirs(config_dir, exist_ok=True)
+        yield
+
+
+@contextlib.contextmanager
+def isolated_vault_config(
+    monkeypatch: pytest.MonkeyPatch,
+    runner: click.testing.CliRunner,
+    config: Any,
+) -> Iterator[None]:
+    with isolated_config(monkeypatch=monkeypatch, runner=runner):
+        config_filename = cli._config_filename(subsystem='vault')
+        with open(config_filename, 'w', encoding='UTF-8') as outfile:
             json.dump(config, outfile)
         yield
 
