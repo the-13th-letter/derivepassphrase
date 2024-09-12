@@ -2,3 +2,4 @@ ErrorDocument 404 /derivepassphrase/latest/404.html
 RewriteEngine on
 RewriteBase /derivepassphrase/
 RewriteRule ^(index\.html)?$ latest/ [R=307,L]
+RewriteRule ^(0.x|latest)/reference/ssh_agent_client/(.*)$ $1/reference/ssh_agent/$2 [R=301,L]
