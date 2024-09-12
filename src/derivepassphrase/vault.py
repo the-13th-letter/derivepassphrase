@@ -10,6 +10,7 @@ import base64
 import collections
 import hashlib
 import math
+import types
 from collections.abc import Callable
 from typing import TypeAlias
 
@@ -18,24 +19,6 @@ from typing_extensions import assert_type
 from derivepassphrase import sequin, ssh_agent
 
 __author__ = 'Marco Ricci <software@the13thletter.info>'
-
-
-_CHARSETS = collections.OrderedDict([
-    ('lower', b'abcdefghijklmnopqrstuvwxyz'),
-    ('upper', b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
-    ('alpha', b''),  # Placeholder.
-    ('number', b'0123456789'),
-    ('alphanum', b''),  # Placeholder.
-    ('space', b' '),
-    ('dash', b'-_'),
-    ('symbol', b'!"#$%&\'()*+,./:;<=>?@[\\]^{|}~-_'),
-    ('all', b''),  # Placeholder.
-])
-_CHARSETS['alpha'] = _CHARSETS['lower'] + _CHARSETS['upper']
-_CHARSETS['alphanum'] = _CHARSETS['alpha'] + _CHARSETS['number']
-_CHARSETS['all'] = (
-    _CHARSETS['alphanum'] + _CHARSETS['space'] + _CHARSETS['symbol']
-)
 
 
 class Vault:
@@ -63,7 +46,51 @@ class Vault:
 
     _UUID = b'e87eb0f4-34cb-46b9-93ad-766c5ab063e7'
     """A tag used by vault in the bit stream generation."""
-    _CHARSETS = _CHARSETS
+    _CHARSETS = types.MappingProxyType(
+        collections.OrderedDict([
+            ('lower', b'abcdefghijklmnopqrstuvwxyz'),
+            ('upper', b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
+            (
+                'alpha',
+                (
+                    # _CHARSETS['lower']
+                    b'abcdefghijklmnopqrstuvwxyz'
+                    # _CHARSETS['upper']
+                    b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                ),
+            ),
+            ('number', b'0123456789'),
+            (
+                'alphanum',
+                (
+                    # _CHARSETS['lower']
+                    b'abcdefghijklmnopqrstuvwxyz'
+                    # _CHARSETS['upper']
+                    b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                    # _CHARSETS['number']
+                    b'0123456789'
+                ),
+            ),
+            ('space', b' '),
+            ('dash', b'-_'),
+            ('symbol', b'!"#$%&\'()*+,./:;<=>?@[\\]^{|}~-_'),
+            (
+                'all',
+                (
+                    # _CHARSETS['lower']
+                    b'abcdefghijklmnopqrstuvwxyz'
+                    # _CHARSETS['upper']
+                    b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                    # _CHARSETS['number']
+                    b'0123456789'
+                    # _CHARSETS['space']
+                    b' '
+                    # _CHARSETS['symbol']
+                    b'!"#$%&\'()*+,./:;<=>?@[\\]^{|}~-_'
+                ),
+            ),
+        ])
+    )
     """
         Known character sets from which to draw passphrase characters.
         Relies on a certain, fixed order for their definition and their

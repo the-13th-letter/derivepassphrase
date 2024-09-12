@@ -393,7 +393,7 @@ def _load_config() -> _types.VaultConfig:
 
     Returns:
         The vault settings.  See
-        [`derivepassphrase.types.VaultConfig`][] for details.
+        [`derivepassphrase._types.VaultConfig`][] for details.
 
     Raises:
         OSError:
@@ -423,7 +423,7 @@ def _migrate_and_load_old_config() -> (
 
     Returns:
         The vault settings, and an optional exception encountered during
-        migration.  See [`derivepassphrase.types.VaultConfig`][] for
+        migration.  See [`derivepassphrase._types.VaultConfig`][] for
         details on the former.
 
     Raises:
@@ -485,7 +485,7 @@ def _get_suitable_ssh_keys(
     """Yield all SSH keys suitable for passphrase derivation.
 
     Suitable SSH keys are queried from the running SSH agent (see
-    [`ssh_agent.SSHAgentClient.list_keys`][]).
+    [`derivepassphrase.ssh_agent.SSHAgentClient.list_keys`][]).
 
     Args:
         conn:
@@ -521,7 +521,7 @@ def _get_suitable_ssh_keys(
             SSH agent.
         RuntimeError:
             There was an error communicating with the SSH agent.
-        SSHAgentFailedError:
+        ssh_agent.SSHAgentFailedError:
             The agent failed to supply a list of loaded keys.
 
     """
@@ -629,8 +629,9 @@ def _select_ssh_key(
     """Interactively select an SSH key for passphrase derivation.
 
     Suitable SSH keys are queried from the running SSH agent (see
-    [`ssh_agent.SSHAgentClient.list_keys`][]), then the user is
-    prompted interactively (see [`click.prompt`][]) for a selection.
+    [`derivepassphrase.ssh_agent.SSHAgentClient.list_keys`][]), then the
+    user is prompted interactively (see [`click.prompt`][]) for
+    a selection.
 
     Args:
         conn:
