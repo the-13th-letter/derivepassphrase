@@ -18,9 +18,19 @@ The service name and constraints themselves also need not be kept secret; the la
 
 ### With `pip`
 
+(If not inside a [virtual environment][VENV], use `pip install --user` instead of plain `pip install`.)
+
 ```` shell-session
 $ pip install derivepassphrase
 ````
+
+To use the `export` subcommand, install the `export` extra:
+
+```` shell-session
+$ pip install "derivepassphrase[export]"
+````
+
+[VENV]: https://docs.python.org/3/library/venv.html
 
 ### Manually
 
