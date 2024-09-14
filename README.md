@@ -10,7 +10,7 @@ The derivation is cryptographically strong, meaning that even if a single passph
 The derivation is also deterministic, given the same inputs, thus the resulting passphrase need not be stored explicitly.
 The service name and constraints themselves also need not be kept secret; the latter are usually stored in a world-readable file.
 
-[VAULT]: https://getvau.lt
+[VAULT]: https://www.npmjs.com/package/vault
 
 -----
 
@@ -39,8 +39,8 @@ $ pip install "derivepassphrase[export]"
 Using the `export vault` subcommand additionally requires the [cryptography package][CRYPTOGRAPHY], version 38.0 or newer.
 
 [TYPING_EXTENSIONS]: https://pypi.org/project/typing-extensions/
-[CLICK]: https://click.palletsprojects.com/
-[CRYPTOGRAPHY]: https://github.com/pyca/cryptography
+[CLICK]: https://pypi.org/project/click/
+[CRYPTOGRAPHY]: https://pypi.org/project/cryptography/
 
 ## Quick Usage
 

@@ -106,7 +106,7 @@ def derivepassphrase(
     [`click.testing.CliRunner`][] for controlled, programmatic
     invocation.)
 
-    [CLICK]: https://click.palletsprojects.com/
+    [CLICK]: https://pypi.org/package/click/
 
     """  # noqa: D301
     if subcommand_args and subcommand_args[0] == 'export':
@@ -171,7 +171,7 @@ def derivepassphrase_export(
     [`click.testing.CliRunner`][] for controlled, programmatic
     invocation.)
 
-    [CLICK]: https://click.palletsprojects.com/
+    [CLICK]: https://pypi.org/package/click/
 
     """  # noqa: D301
     if not (subcommand_args and subcommand_args[0] == 'vault'):
@@ -1145,7 +1145,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     [`click.testing.CliRunner`][] for controlled, programmatic
     invocation.)
 
-    [CLICK]: https://click.palletsprojects.com/
+    [CLICK]: https://pypi.org/package/click/
 
     Parameters:
         ctx (click.Context):

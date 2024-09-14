@@ -39,7 +39,7 @@ class Vault:
     numbers select passphrase characters until the desired length is
     reached.
 
-    [vault]: https://getvau.lt
+    [vault]: https://www.npmjs.com/package/vault
     [ALGORITHM]: https://blog.jcoglan.com/2012/07/16/designing-vaults-generator-algorithm/
 
     """

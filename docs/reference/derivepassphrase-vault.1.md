@@ -114,4 +114,4 @@ discouraged from using a stored passphrase.
 ## SEE ALSO
 
 [derivepassphrase(1)](derivepassphrase.1.md),
-[vault(1)](https://github.com/jcoglan/vault)
+[vault(1)](https://www.npmjs.com/package/vault)
