@@ -44,9 +44,13 @@ Using the `export vault` subcommand additionally requires the [cryptography pack
 
 ## Quick Usage
 
+`derivepassphrase` is designed to principally support multiple passphrase derivation schemes, but currently only the "[vault][VAULT]" scheme is implemented.
+
+Using the passphrase `This passphrase is for demonstration purposes only.` when prompted:
+
 ```` shell-session
 $ derivepassphrase vault -p --length 30 --upper 3 --lower 1 --number 2 --space 0 --symbol 0 my-email-account
-Passphrase: This passphrase is for demonstration purposes only.
+Passphrase: 
 JKeet7GeBpxysOgdCEJo6UzmP8A0Ih
 ````
 
@@ -54,11 +58,51 @@ Some time later…
 
 ```` shell-session
 $ derivepassphrase vault -p --length 30 --upper 3 --lower 1 --number 2 --space 0 --symbol 0 my-email-account
-Passphrase: This passphrase is for demonstration purposes only.
+Passphrase: 
 JKeet7GeBpxysOgdCEJo6UzmP8A0Ih
 ````
 
-(The user input `This passphrase is for demonstration purposes only.` for the passphrase prompt is not actually displayed on-screen.)
+### Storing settings
+
+`derivepassphrase` can store the length and character constraint settings in its configuration file so that you do not have to re-enter them each time.
+
+```` shell-session
+$ derivepassphrase vault --config --length 30 --upper 3 --lower 1 --number 2 --space 0 --symbol 0 my-email-account
+$ derivepassphrase vault -p my-email-account
+Passphrase: 
+JKeet7GeBpxysOgdCEJo6UzmP8A0Ih
+````
+
+### SSH agent support
+
+On UNIX-like systems with OpenSSH or PuTTY installed, you can use an Ed25519, Ed448 or RSA key from the agent instead of a master passphrase.
+([On Windows there are problems establishing communication channels with the agent.][#13])
+
+```` shell-session
+$ derivepassphrase vault -k my-email-account
+Suitable SSH keys:
+[1] ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQ... test key
+[2] ssh-ed448 AAAACXNzaC1lZDQ0OAAAADni9nLTT1... test key
+[3] ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIF4gW... test key
+Your selection? (1-3, leave empty to abort): 1
+oXDGCvMhLWPQyCzYtaobOq2Wh9olYj
+````
+
+`derivepassphrase` can store the SSH key selection in its configuration file so you do not have to re-select it each time.
+This choice can be made either specifically for the service (in this case, `my-email-account`), or globally.
+
+```` shell-session
+$ derivepassphrase vault --config -k  # global setting
+Suitable SSH keys:
+[1] ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQ... test key
+[2] ssh-ed448 AAAACXNzaC1lZDQ0OAAAADni9nLTT1... test key
+[3] ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIF4gW... test key
+Your selection? (1-3, leave empty to abort): 1
+$ derivepassphrase vault my-email-account
+oXDGCvMhLWPQyCzYtaobOq2Wh9olYj
+````
+
+[#13]: https://github.com/the-13th-letter/derivepassphrase/issues/13 "Issue 13: Support PuTTY/Pageant (and maybe OpenSSH/ssh-agent) on Windows"
 
 ## License
 
