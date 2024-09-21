@@ -168,12 +168,13 @@ class TestStaticFunctionality:
 @tests.skip_if_no_agent
 class TestAgentInteraction:
     @pytest.mark.parametrize(
-        ['keytype', 'data_dict'], list(tests.SUPPORTED_KEYS.items())
+        'data_dict',
+        list(tests.SUPPORTED_KEYS.values()),
+        ids=tests.SUPPORTED_KEYS.keys(),
     )
     def test_200_sign_data_via_agent(
-        self, keytype: str, data_dict: tests.SSHTestKey
+        self, data_dict: tests.SSHTestKey
     ) -> None:
-        del keytype  # Unused.
         private_key = data_dict['private_key']
         try:
             _ = subprocess.run(
@@ -215,12 +216,13 @@ class TestAgentInteraction:
             ), 'SSH signature mismatch'
 
     @pytest.mark.parametrize(
-        ['keytype', 'data_dict'], list(tests.UNSUITABLE_KEYS.items())
+        'data_dict',
+        list(tests.UNSUITABLE_KEYS.values()),
+        ids=tests.UNSUITABLE_KEYS.keys(),
     )
     def test_201_sign_data_via_agent_unsupported(
-        self, keytype: str, data_dict: tests.SSHTestKey
+        self, data_dict: tests.SSHTestKey
     ) -> None:
-        del keytype  # Unused.
         private_key = data_dict['private_key']
         try:
             _ = subprocess.run(
