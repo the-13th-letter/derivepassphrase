@@ -25,10 +25,11 @@ if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping
 
     import click.testing
-    from typing_extensions import Any, TypedDict
+    from typing_extensions import Any, NotRequired, TypedDict
 
     class SSHTestKey(TypedDict):
         private_key: bytes
+        private_key_blob: NotRequired[bytes]
         public_key: bytes | str
         public_key_data: bytes
         expected_signature: bytes | None
@@ -45,6 +46,19 @@ AAAEAbM/A869nkWZbe2tp3Dm/L6gitvmpH/aRZt8sBII3ExYF4gWgm1gJIXw//Mkhv5MEw
 idwcakUGCekJD/vCEml2AAAAG3Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQEC
 -----END OPENSSH PRIVATE KEY-----
 """,
+        'private_key_blob': bytes.fromhex("""
+            00 00 00 0b 73 73 68 2d 65 64 32 35 35 31 39
+            00 00 00 20
+            81 78 81 68 26 d6 02 48 5f 0f ff 32 48 6f e4 c1
+            30 89 dc 1c 6a 45 06 09 e9 09 0f fb c2 12 69 76
+            00 00 00 40
+            1b 33 f0 3c eb d9 e4 59 96 de da da 77 0e 6f cb
+            ea 08 ad be 6a 47 fd a4 59 b7 cb 01 20 8d c4 c5
+            81 78 81 68 26 d6 02 48 5f 0f ff 32 48 6f e4 c1
+            30 89 dc 1c 6a 45 06 09 e9 09 0f fb c2 12 69 76
+            00 00 00 1b 74 65 73 74 20 6b 65 79 20 77 69 74
+            68 6f 75 74 20 70 61 73 73 70 68 72 61 73 65
+"""),
         'public_key': rb"""ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIF4gWgm1gJIXw//Mkhv5MEwidwcakUGCekJD/vCEml2 test key without passphrase
 """,  # noqa: E501
         'public_key_data': bytes.fromhex("""
@@ -77,15 +91,31 @@ GUbErWQ4AUO9mYLTzHJHc2m4s+yWzP29Cc3EcxizLG8AAAAAG3Rlc3Qga2V5IHdp
 dGhvdXQgcGFzc3BocmFzZQECAwQFBgcICQ==
 -----END OPENSSH PRIVATE KEY-----
 """,
+        'private_key_blob': bytes.fromhex("""
+            00 00 00 09 73 73 68 2d 65 64 34 34 38
+            00 00 00 39 e2 f6 72 d3 4f 56 bb cc 04
+            c6 3b c4 6f 78 6a b4 bc f5 18 ef fe 77 9b e6 19
+            46 c4 ad 64 38 01 43 bd 99 82 d3 cc 72 47 73 69
+            b8 b3 ec 96 cc fd bd 09 cd c4 73 18 b3 2c 6f 00
+            00 00 00 72 33 b1
+            88 31 1b d6 24 1d d8 0f a4 88 a4 01 76 ba e7 57
+            e2 8c d9 7b 45 fd d7 bc 0f c2 20 6b b3 7e f7 f5
+            33 35 9f de 0d 89 be a1 af 11 8d 98 29 36 88 14
+            03 7b 62 80 2c f8 00 e2 f6 72 d3 4f 56 bb cc 04
+            c6 3b c4 6f 78 6a b4 bc f5 18 ef fe 77 9b e6 19
+            46 c4 ad 64 38 01 43 bd 99 82 d3 cc 72 47 73 69
+            b8 b3 ec 96 cc fd bd 09 cd c4 73 18 b3 2c 6f 00
+            00 00 00 1b 74 65 73 74 20 6b 65 79 20 77 69
+            74 68 6f 75 74 20 70 61 73 73 70 68 72 61 73 65
+"""),
         'public_key': rb"""ssh-ed448 AAAACXNzaC1lZDQ0OAAAADni9nLTT1a7zATGO8RveGq0vPUY7/53m+YZRsStZDgBQ72ZgtPMckdzabiz7JbM/b0JzcRzGLMsbwA= test key without passphrase
 """,  # noqa: E501
         'public_key_data': bytes.fromhex("""
             00 00 00 09 73 73 68 2d 65 64 34 34 38
-            00 00 00 39
-            e2 f6 72 d3 4f 56 bb cc 04 c6 3b c4 6f 78 6a b4
-            bc f5 18 ef fe 77 9b e6 19 46 c4 ad 64 38 01 43
-            bd 99 82 d3 cc 72 47 73 69 b8 b3 ec 96 cc fd bd
-            09 cd c4 73 18 b3 2c 6f 00
+            00 00 00 39 e2 f6 72 d3 4f 56 bb cc 04
+            c6 3b c4 6f 78 6a b4 bc f5 18 ef fe 77 9b e6 19
+            46 c4 ad 64 38 01 43 bd 99 82 d3 cc 72 47 73 69
+            b8 b3 ec 96 cc fd bd 09 cd c4 73 18 b3 2c 6f 00
         """),
         'expected_signature': bytes.fromhex("""
             00 00 00 09 73 73 68 2d 65 64 34 34 38
@@ -140,6 +170,101 @@ btBNdMEJJp7ifucYmoYAAwE7K+VlWagDEK2y8Mte9y9E+N0uO2j+h85sQt/UIb2iE/vhcg
 Bgp6142WnSCQAAABt0ZXN0IGtleSB3aXRob3V0IHBhc3NwaHJhc2UB
 -----END OPENSSH PRIVATE KEY-----
 """,
+        'private_key_blob': bytes.fromhex("""
+            00 00 00 07 73 73 68 2d 72 73 61
+            00 00 01 81 00
+            b1 a1 ee e9 7b 38 71 5b 2e 0d 23 49 94 c0 aa a0
+            f5 60 98 38 04 be 22 3c 4d f5 e6 1c aa 97 dc 99
+            08 a8 8d cb b2 f5 7b 22 37 fc 58 27 53 bd e1 2a
+            ec 29 2e 66 12 26 b6 c4 79 d8 03 84 54 0a 14 f2
+            60 d7 0c da fe 9c 9e 70 50 fc df d5 42 1a 46 30
+            de d2 57 17 5b 84 a5 17 4d 61 42 c1 b8 c1 80 ee
+            ab 1b 21 c1 e9 6b 68 1f cb dd ed 33 84 3e df 8d
+            81 c5 f0 86 c5 b2 a1 a5 14 75 84 c0 eb 65 7e 18
+            5f 6f 12 6c 4c 68 2e 2e 6e 00 f3 f8 1d 10 90 f9
+            da b9 2a 0d c6 69 21 70 87 b4 96 c2 cd 6f 5a 42
+            95 9c b3 f3 c3 c3 9c a5 c2 5f f7 74 1e e3 7f 1c
+            9f ac 6c f8 3b 74 2b ce ca a1 58 4b 22 a7 de e6
+            3a 6c 25 ea a0 87 6e af 15 f3 1f 73 bb cf 43 fc
+            7f 9b 1b 98 a3 ab 18 62 8d b8 dc 55 45 b7 95 97
+            f0 ff de e0 cb d2 7a ac 6d f5 1c d6 ab e4 7f 06
+            c9 c2 d3 17 0b 82 15 ea 43 99 31 29 36 04 0b 2a
+            87 bc 78 f2 04 3e ae 16 1e 11 54 a2 f0 5d c2 5a
+            ce 07 25 0a 2a ac 6b 7b 2b d6 b7 98 24 a5 30 11
+            cf ef 4b b7 c3 a3 04 ed eb a6 a2 bc b1 95 4a 1f
+            7b 04 dd d7 b6 44 93 37 57 d3 c9 76 66 52 b3 66
+            fc 10 52 b7 3e c5 06 76 53 0f 33 da 67 d6 e9 38
+            b8 82 2d 29 60 66 a2 83 b2 9e e0 fc 2e 5e 9a 3f
+            0b 96 00 59 f7 97 c9 cb 2f 25 9d ae 69 84 63 31
+            d6 5e 24 63 40 9c 72 d4 18 b9 01 b1 cc 39 68 8f
+            00 00 00 03 01 00 01
+            00 00 01 7f
+            70 d5 58 4f e3 a6 e3 1f 7e 48 8b 5c cf 96 ce
+            07 21 88 3a 3c 96 50 7f 1f f6 b4 63 9e be 48 2e
+            ec 1a 6c 80 e0 bc 56 95 1b ec 4c d4 ed 61 58 00
+            ea cc c9 d2 11 c9 27 1d 19 13 60 4b 2a 60 fc a4
+            02 dc 45 be 33 85 12 1e f4 ea a4 54 27 e7 d5 66
+            4a 91 18 46 88 de 85 b2 58 a4 ce 85 c0 88 60 89
+            ad 38 db db d0 b3 af fc 74 36 1f 60 17 0a 87 aa
+            8d 24 f5 aa bf f1 4a e9 63 06 d7 01 f2 ec 31 b3
+            71 2a 68 ed 72 53 b4 28 66 90 dc 31 7f 69 94 7e
+            d1 99 cf 67 35 f6 5c 82 b9 e4 b4 f9 36 75 e5 f6
+            f9 8f c0 e6 dc dd 56 01 b5 21 ea 98 a7 a0 81 30
+            b3 4c ba 12 f4 38 f7 43 7a 18 01 a0 3b a3 c7 ea
+            e1 91 9d 60 a6 8d 70 71 42 c8 33 de 0d 2f b5 52
+            1c 13 d7 d0 b8 21 f5 3f b7 8f 51 d5 3f e6 27 30
+            0b e1 7c eb df 72 d2 e5 6c 9d 3a f9 36 06 44 03
+            2e 17 62 cf 08 06 4c fe 6d 05 13 20 2e ad 18 16
+            c4 08 cb 5e 6f b8 92 9d 86 00 95 e5 c3 cd 9d 78
+            39 10 f8 ff 1c 1c d4 fa b3 d6 47 47 96 12 cb 79
+            69 67 7e 79 f7 86 4c 38 b4 7c 2a a5 6f 86 02 46
+            17 a8 bd d3 5f 41 88 5f 75 48 3c 63 13 eb 29 e9
+            d3 46 7c df 16 fb ae 2d 1d d0 ef d9 ad 0c b2 8f
+            bc 42 3c b1 ee c4 e9 8b ef 84 8c b5 3c 23 2e f7
+            fd ee 01 f2 a6 d7 33 28 5e c8 0f d4 51 f8 0c b4
+            d2 92 86 1e ac 2e 5a c3 f6 1d 92 9b d4 45 4e e1
+            00 00 00 c0
+            26 1d ee ed 67 e7 8e 18 4a 65 86 c0 5b 84 ec 3c
+            d5 c3 32 b0 74 fe de f1 c8 04 20 16 69 28 ec 97
+            c4 4b 2a c9 48 b8 35 70 ef 90 30 e8 83 80 3e f3
+            b9 0f 51 4a 93 48 29 d3 ec 9c 89 da e6 97 a1 f7
+            bf 66 56 36 f6 1e 09 e2 92 3c 89 10 29 81 a4 b7
+            70 64 a8 57 ec c9 c8 be 02 b0 e6 59 d0 5c 76 e8
+            12 d5 82 6b 53 79 f2 5e df b2 bc f0 6e 2f 69 15
+            4b 94 a7 d7 52 85 73 5f 7e 69 54 0a 30 d1 b1 52
+            db 2b 90 ba fa 26 88 43 20 96 15 82 bc 99 ce 9d
+            a4 d9 08 a0 f2 9f f9 78 3e 10 90 88 15 0a 08 4e
+            a7 ae df 41 9c d7 e3 3e 7d d6 5c da 08 6a d1 be
+            97 2e d8 61 fe e1 c4 af 2f 1b eb c3 39 2a 09 4c
+            00 00 00 c1 00
+            f0 d6 2f 88 75 cb cf 57 fd ee fe af 4e fe 4c cb
+            a4 a3 b7 b5 b4 fc f6 c7 35 ce 18 d9 b0 33 63 0c
+            01 a5 b8 da fa 9f 7f 22 ab f5 d8 45 9b bb 51 32
+            fd 04 6f 84 80 55 5f 21 45 7b 5e c6 13 e5 ef 81
+            3d fd 77 55 2f 78 af 36 7b 99 a0 ac 3a 55 0b 5f
+            e5 5d 30 ed b3 06 e7 07 22 87 9c f5 15 25 45 9a
+            df 07 6d 41 d9 6e d8 18 c8 5b a6 86 b9 94 dd e5
+            28 94 3b 69 f1 e8 75 76 54 32 9d 1c 4c 56 ce 99
+            bc c9 81 2c ce db f3 44 ec 18 55 c2 6b dc 53 34
+            c3 24 63 0c 2a ec 41 3b ac 3d f5 82 83 29 12 a6
+            d0 f3 4b 14 3c f6 ea b5 a6 f4 b7 4d 4b 63 15 7d
+            5b 8f 31 3a 73 4f 6e 87 40 6e 29 15 a8 1e ab d7
+            00 00 00 c1 00
+            bc d1 05 77 59 17 c9 1b 48 16 b9 31 35 01 55 34
+            f3 80 a4 26 d4 2e fb da 02 7c 4f 4d 43 24 45 d9
+            b1 5b 4e bf b9 94 0b 5f e6 fd bc ba 1e 4e 2d 3f
+            2b c3 06 e1 a3 f6 11 ea e0 de dd 3e a1 ae b4 76
+            f5 ab 99 f4 00 3b a8 42 34 56 ec 15 f0 e5 0b c2
+            d8 40 03 f7 5c 5e c5 da 2b 20 0e 41 81 75 3e aa
+            5b 41 ab 3c c1 57 35 6d 17 bf a3 39 93 a3 7f 33
+            a5 69 35 fd 23 92 39 bd ec 9e 4d a4 f1 66 3d 57
+            5d 4c e2 6e d0 4d 74 c1 09 26 9e e2 7e e7 18 9a
+            86 00 03 01 3b 2b e5 65 59 a8 03 10 ad b2 f0 cb
+            5e f7 2f 44 f8 dd 2e 3b 68 fe 87 ce 6c 42 df d4
+            21 bd a2 13 fb e1 72 00 60 a7 ad 78 d9 69 d2 09
+            00 00 00 1b 74 65 73 74 20 6b 65 79 20 77 69
+            74 68 6f 75 74 20 70 61 73 73 70 68 72 61 73 65
+"""),
         'public_key': rb"""ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCxoe7pezhxWy4NI0mUwKqg9WCYOAS+IjxN9eYcqpfcmQiojcuy9XsiN/xYJ1O94SrsKS5mEia2xHnYA4RUChTyYNcM2v6cnnBQ/N/VQhpGMN7SVxdbhKUXTWFCwbjBgO6rGyHB6WtoH8vd7TOEPt+NgcXwhsWyoaUUdYTA62V+GF9vEmxMaC4ubgDz+B0QkPnauSoNxmkhcIe0lsLNb1pClZyz88PDnKXCX/d0HuN/HJ+sbPg7dCvOyqFYSyKn3uY6bCXqoIdurxXzH3O7z0P8f5sbmKOrGGKNuNxVRbeVl/D/3uDL0nqsbfUc1qvkfwbJwtMXC4IV6kOZMSk2BAsqh7x48gQ+rhYeEVSi8F3CWs4HJQoqrGt7K9a3mCSlMBHP70u3w6ME7eumoryxlUofewTd17ZEkzdX08l2ZlKzZvwQUrc+xQZ2Uw8z2mfW6Ti4gi0pYGaig7Ke4PwuXpo/C5YAWfeXycsvJZ2uaYRjMdZeJGNAnHLUGLkBscw5aI8= test key without passphrase
 """,  # noqa: E501
         'public_key_data': bytes.fromhex("""
@@ -227,6 +352,42 @@ u7HfrQhdOiKSa+ZO9AAojbURqrLDRfBJa5dXn2AAAAFQDJHfenj4EJ9WkehpdJatPBlqCW
 0gAAABt0ZXN0IGtleSB3aXRob3V0IHBhc3NwaHJhc2UBAgMEBQYH
 -----END OPENSSH PRIVATE KEY-----
 """,
+        'private_key_blob': bytes.fromhex("""
+            00 00 00 07 73 73 68 2d 64 73 73
+            00 00 00 81 00
+            bb 28 06 57 a8 11 8d 54 b0 50 3e b7 0c 60 0a 0d
+            5b 9e 01 84 3f 1a 22 17 bb 04 35 98 cc 97 2c 68
+            cb 7b d9 52 92 92 0b 99 f3 e5 d1 ee 74 5a d0 2f
+            d9 b0 18 be b8 9a 74 76 9c 72 f5 93 13 39 65 f8
+            bb 96 0f 31 e4 1c 5c 47 46 13 16 48 7e 29 86 a9
+            23 80 b3 2e 9f 0a 57 76 21 f2 59 25 91 31 70 29
+            a1 7b d4 ac 8e c7 77 61 20 0f 25 19 6e 39 71 50
+            73 de 4c 66 84 79 84 cc 25 20 30 fc 43 3a c4 ed
+            00 00 00 15 00 f7 d9 ce 64
+            e8 1d ed a1 cc 54 6a 17 a5 41 01 72 7e c7 a2 cb
+            00 00 00 80
+            2e bd 80 83 78 71 33 7a ca 77 1c d5 53 0f 1f 5f
+            45 55 3d 73 be df e2 ab f2 11 9e d0 a7 3f ec dc
+            15 68 15 4b d4 64 3c 7d e9 c1 b9 6c a7 a4 05 1b
+            1f 4c 28 de 1d 70 90 1f fc 85 7e a9 f9 2f 1c 9e
+            ee 6b 20 19 54 b9 53 70 2f 0f db 21 8a 21 2b df
+            0b 7e a4 d8 2b f5 7e 83 a2 83 fb c9 b7 e3 0b c4
+            89 76 66 ab 2c 18 e7 89 f6 6e 4b 1c 87 53 6a be
+            3f ed 36 92 f3 13 14 b1 fd 74 b4 91 23 35 6a 28
+            00 00 00 80
+            6d 03 51 3d c5 44 b8 60 eb 11 c7 fe c6 0e 6d 80
+            07 a3 3d 70 4f 5e bf c9 b2 cf 82 86 4e b8 92 6d
+            e6 8a b3 18 8c 05 b2 59 8b 55 72 04 fe ee 13 98
+            c6 d6 11 8a 7f 0b c8 c2 ea 29 19 aa 6b 44 39 52
+            bb c3 7c 28 60 2e 1b ec 1b d6 12 6f f3 29 c3 9a
+            a6 f0 f8 87 49 a7 f0 86 46 b3 fe d7 b7 fb c8 4a
+            a2 0a a8 7b bb 1d fa d0 85 d3 a2 29 26 be 64 ef
+            40 02 88 db 51 1a ab 2c 34 5f 04 96 b9 75 79 f6
+            00 00 00 15 00 c9 1d f7 a7
+            8f 81 09 f5 69 1e 86 97 49 6a d3 c1 96 a0 96 d2
+            00 00 00 1b 74 65 73 74 20 6b 65 79 20 77 69
+            74 68 6f 75 74 20 70 61 73 73 70 68 72 61 73 65
+"""),
         'public_key': rb"""ssh-dss AAAAB3NzaC1kc3MAAACBALsoBleoEY1UsFA+twxgCg1bngGEPxoiF7sENZjMlyxoy3vZUpKSC5nz5dHudFrQL9mwGL64mnR2nHL1kxM5Zfi7lg8x5BxcR0YTFkh+KYapI4CzLp8KV3Yh8lklkTFwKaF71KyOx3dhIA8lGW45cVBz3kxmhHmEzCUgMPxDOsTtAAAAFQD32c5k6B3tocxUahelQQFyfseiywAAAIAuvYCDeHEzesp3HNVTDx9fRVU9c77f4qvyEZ7Qpz/s3BVoFUvUZDx96cG5bKekBRsfTCjeHXCQH/yFfqn5Lxye7msgGVS5U3AvD9shiiEr3wt+pNgr9X6DooP7ybfjC8SJdmarLBjnifZuSxyHU2q+P+02kvMTFLH9dLSRIzVqKAAAAIBtA1E9xUS4YOsRx/7GDm2AB6M9cE9ev8myz4KGTriSbeaKsxiMBbJZi1VyBP7uE5jG1hGKfwvIwuopGaprRDlSu8N8KGAuG+wb1hJv8ynDmqbw+IdJp/CGRrP+17f7yEqiCqh7ux360IXToikmvmTvQAKI21Eaqyw0XwSWuXV59g== test key without passphrase
 """,  # noqa: E501
         'public_key_data': bytes.fromhex("""
@@ -275,6 +436,21 @@ oAAAAhAKIl/3n0pKVIxpZkXTGtii782Qr4yIcvHdpxjO/QsIqKAAAAG3Rlc3Qga2V5IHdp
 dGhvdXQgcGFzc3BocmFzZQECAwQ=
 -----END OPENSSH PRIVATE KEY-----
 """,
+        'private_key_blob': bytes.fromhex("""
+            00 00 00 13 65 63 64
+            73 61 2d 73 68 61 32 2d 6e 69 73 74 70 32 35 36
+            00 00 00 08 6e 69 73 74 70 32 35 36
+            00 00 00 41 04
+            cb 6d 4d 33 0f 0b 24 d8 3b e9 f9 56 08 ae c3 55
+            7f 98 16 c3 3d 92 dd 26 7c 4d bc 62 41 19 29 9c
+            64 95 ab 22 28 1c 93 89 73 e3 50 22 d0 1a ef 19
+            49 ff c6 7a 81 fc f9 ed 9d da a5 49 1a 30 99 ba
+            00 00 00 21 00
+            a2 25 ff 79 f4 a4 a5 48 c6 96 64 5d 31 ad 8a 2e
+            fc d9 0a f8 c8 87 2f 1d da 71 8c ef d0 b0 8a 8a
+            00 00 00 1b 74 65 73 74 20 6b 65 79 20 77 69
+            74 68 6f 75 74 20 70 61 73 73 70 68 72 61 73 65
+"""),
         'public_key': rb"""ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMttTTMPCyTYO+n5Vgiuw1V/mBbDPZLdJnxNvGJBGSmcZJWrIigck4lz41Ai0BrvGUn/xnqB/PntndqlSRowmbo= test key without passphrase
 """,  # noqa: E501
         'public_key_data': bytes.fromhex("""
@@ -302,6 +478,24 @@ JAu0J3Q+cypZuKQVAAAAMQD5sTy8p+B1cn/DhOmXquui1BcxvASqzzevkBlbQoBa73y04B
 2OdqVOVRkwZWRROz0AAAAbdGVzdCBrZXkgd2l0aG91dCBwYXNzcGhyYXNlAQIDBA==
 -----END OPENSSH PRIVATE KEY-----
 """,
+        'private_key_blob': bytes.fromhex("""
+            00 00 00 13 65 63 64
+            73 61 2d 73 68 61 32 2d 6e 69 73 74 70 33 38 34
+            00 00 00 08 6e 69 73 74 70 33 38 34
+            00 00 00 61 04
+            a0 90 e8 e4 02 fa bb bf 9b c7 ba 3d ca 04 be 3f
+            10 05 9c 9f 98 59 0f 22 9c 6f 25 74 78 13 06 16
+            ae e1 29 74 25 66 a2 1a 84 b5 6a 78 c4 74 42 a9
+            a4 c4 d2 76 ae 5c b6 54 77 17 9d ea b7 bd 9f bd
+            7c 8b 16 08 e7 58 93 95 8f dc d6 4f ce ff 75 d5
+            79 fb c1 b1 24 0b b4 27 74 3e 73 2a 59 b8 a4 15
+            00 00 00 31 00
+            f9 b1 3c bc a7 e0 75 72 7f c3 84 e9 97 aa eb a2
+            d4 17 31 bc 04 aa cf 37 af 90 19 5b 42 80 5a ef
+            7c b4 e0 1d 8e 76 a5 4e 55 19 30 65 64 51 3b 3d
+            00 00 00 1b 74 65 73 74 20 6b 65 79 20 77 69
+            74 68 6f 75 74 20 70 61 73 73 70 68 72 61 73 65
+"""),
         'public_key': rb"""ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBKCQ6OQC+ru/m8e6PcoEvj8QBZyfmFkPIpxvJXR4EwYWruEpdCVmohqEtWp4xHRCqaTE0nauXLZUdxed6re9n718ixYI51iTlY/c1k/O/3XVefvBsSQLtCd0PnMqWbikFQ== test key without passphrase
 """,  # noqa: E501
         'public_key_data': bytes.fromhex("""
