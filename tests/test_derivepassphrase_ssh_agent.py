@@ -22,7 +22,7 @@ import tests
 from derivepassphrase import _types, cli, ssh_agent, vault
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterable, Iterator
 
 
 class TestStaticFunctionality:
@@ -387,30 +387,66 @@ class TestAgentInteraction:
         exc_type: type[Exception],
         exc_pattern: str,
     ) -> None:
+        passed_response_code = response_code
+
+        def request(
+            request_code: int | _types.SSH_AGENTC,
+            payload: bytes | bytearray,
+            /,
+            *,
+            response_code: Iterable[int | _types.SSH_AGENT]
+            | int
+            | _types.SSH_AGENT
+            | None = None,
+        ) -> tuple[int, bytes | bytearray] | bytes | bytearray:
+            del request_code
+            del payload
+            if isinstance(  # pragma: no branch
+                response_code, int | _types.SSH_AGENT
+            ):
+                response_code = frozenset({response_code})
+            if response_code is not None:  # pragma: no branch
+                response_code = frozenset({
+                    c if isinstance(c, int) else c.value for c in response_code
+                })
+
+            if not response_code:  # pragma: no cover
+                return (passed_response_code.value, response)
+            if passed_response_code.value not in response_code:
+                raise ssh_agent.SSHAgentFailedError(
+                    passed_response_code.value, response
+                )
+            return response
+
         client = ssh_agent.SSHAgentClient()
-        monkeypatch.setattr(
-            client,
-            'request',
-            lambda *a, **kw: (response_code.value, response),  # noqa: ARG005
-        )
+        monkeypatch.setattr(client, 'request', request)
         with pytest.raises(exc_type, match=exc_pattern):
             client.list_keys()
 
     @tests.skip_if_no_agent
     @pytest.mark.parametrize(
-        ['key', 'check', 'response', 'exc_type', 'exc_pattern'],
+        [
+            'key',
+            'check',
+            'response_code',
+            'response',
+            'exc_type',
+            'exc_pattern',
+        ],
         [
             (
                 b'invalid-key',
                 True,
-                (_types.SSH_AGENT.FAILURE, b''),
+                _types.SSH_AGENT.FAILURE,
+                b'',
                 KeyError,
                 'target SSH key not loaded into agent',
             ),
             (
                 tests.SUPPORTED_KEYS['ed25519']['public_key_data'],
                 True,
-                (_types.SSH_AGENT.FAILURE, b''),
+                _types.SSH_AGENT.FAILURE,
+                b'',
                 ssh_agent.SSHAgentFailedError,
                 'failed to complete the request',
             ),
@@ -421,16 +457,46 @@ class TestAgentInteraction:
         monkeypatch: pytest.MonkeyPatch,
         key: bytes | bytearray,
         check: bool,
-        response: tuple[_types.SSH_AGENT, bytes | bytearray],
+        response_code: _types.SSH_AGENT,
+        response: bytes | bytearray,
         exc_type: type[Exception],
         exc_pattern: str,
     ) -> None:
+        passed_response_code = response_code
+
+        def request(
+            request_code: int | _types.SSH_AGENTC,
+            payload: bytes | bytearray,
+            /,
+            *,
+            response_code: Iterable[int | _types.SSH_AGENT]
+            | int
+            | _types.SSH_AGENT
+            | None = None,
+        ) -> tuple[int, bytes | bytearray] | bytes | bytearray:
+            del request_code
+            del payload
+            if isinstance(  # pragma: no branch
+                response_code, int | _types.SSH_AGENT
+            ):
+                response_code = frozenset({response_code})
+            if response_code is not None:  # pragma: no branch
+                response_code = frozenset({
+                    c if isinstance(c, int) else c.value for c in response_code
+                })
+
+            if not response_code:  # pragma: no cover
+                return (passed_response_code.value, response)
+            if (
+                passed_response_code.value not in response_code
+            ):  # pragma: no branch
+                raise ssh_agent.SSHAgentFailedError(
+                    passed_response_code.value, response
+                )
+            return response  # pragma: no cover
+
         client = ssh_agent.SSHAgentClient()
-        monkeypatch.setattr(
-            client,
-            'request',
-            lambda a, b: (response[0].value, response[1]),  # noqa: ARG005
-        )
+        monkeypatch.setattr(client, 'request', request)
         KeyCommentPair = _types.KeyCommentPair  # noqa: N806
         loaded_keys = [
             KeyCommentPair(v['public_key_data'], b'no comment')
@@ -439,3 +505,28 @@ class TestAgentInteraction:
         monkeypatch.setattr(client, 'list_keys', lambda: loaded_keys)
         with pytest.raises(exc_type, match=exc_pattern):
             client.sign(key, b'abc', check_if_key_loaded=check)
+
+    @tests.skip_if_no_agent
+    @pytest.mark.parametrize(
+        ['request_code', 'response_code', 'exc_type', 'exc_pattern'],
+        [
+            (
+                _types.SSH_AGENTC.REQUEST_IDENTITIES,
+                _types.SSH_AGENT.SUCCESS,
+                ssh_agent.SSHAgentFailedError,
+                f'[Code {_types.SSH_AGENT.IDENTITIES_ANSWER.value}]',
+            ),
+        ],
+    )
+    def test_340_request_error_responses(
+        self,
+        request_code: _types.SSH_AGENTC,
+        response_code: _types.SSH_AGENT,
+        exc_type: type[Exception],
+        exc_pattern: str,
+    ) -> None:
+        with (
+            pytest.raises(exc_type, match=exc_pattern),
+            ssh_agent.SSHAgentClient() as client,
+        ):
+            client.request(request_code, b'', response_code=response_code)
