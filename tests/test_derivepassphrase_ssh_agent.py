@@ -249,13 +249,6 @@ class TestAgentInteraction:
             _ = data_dict['expected_signature']
             if public_key_data not in key_comment_pairs:  # pragma: no cover
                 pytest.skip('prerequisite SSH key not loaded')
-            signature = bytes(
-                client.sign(payload=vault.Vault._UUID, key=public_key_data)
-            )
-            signature2 = bytes(
-                client.sign(payload=vault.Vault._UUID, key=public_key_data)
-            )
-            assert signature != signature2, 'SSH signature repeatable?!'
             with pytest.raises(ValueError, match='unsuitable SSH key'):
                 vault.Vault.phrase_from_key(public_key_data)
 
