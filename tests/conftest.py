@@ -423,11 +423,11 @@ def spawn_ssh_agent(
                     client.list_keys()
                 except KeyError:  # pragma: no cover
                     pytest.skip('SSH agent is not running')
-                # except OSError as exc:  # pragma: no cover
-                #     pytest.skip(
-                #         f'Cannot talk to SSH agent: '
-                #         f'{exc.strerror}: {exc.filename!r}'
-                #     )
+                except OSError as exc:  # pragma: no cover
+                    pytest.skip(
+                        f'Cannot talk to SSH agent: '
+                        f'{exc.strerror}: {exc.filename!r}'
+                    )
                 with client:
                     assert (
                         os.environ.get('SSH_AUTH_SOCK', None)
@@ -510,6 +510,39 @@ def spawn_ssh_agent(
 def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
     spawn_ssh_agent: tests.SpawnedSSHAgentInfo,
 ) -> Iterator[ssh_agent.SSHAgentClient]:
+    """Provide an SSH agent with loaded test keys, as a pytest fixture.
+
+    Use the `spawn_ssh_agent` fixture to acquire a usable SSH agent,
+    upload the known test keys into the agent, and return a connected
+    client.
+
+    The agent may reject several of the test keys due to unsupported or
+    obsolete key types.  Rejected keys will be silently ignored, unless
+    all keys are rejected; then the test will be skipped.  You must not
+    automatically assume any particular key is present in the agent.
+
+    Yields:
+        (ssh_agent.SSHAgentClient):
+            A [named tuple][collection.namedtuple] containing
+            information about the spawned agent, e.g. the software
+            product, a client connected to the agent, and whether the
+            agent is isolated from other clients.
+
+    Raises:
+        OSError:
+            There was a communication or a socket setup error with the
+            agent.
+        pytest.skip.Exception:
+            If the agent is unusable or if it rejected all test keys,
+            skip this test.
+
+    Warning:
+        It is the fixture's responsibility to clean up the SSH agent
+        client after the test.  Closing the client's socket connection
+        beforehand (e.g. by using the client as a context manager) may
+        lead to exceptions being thrown upon fixture teardown.
+
+    """
     agent_type, client, isolated = spawn_ssh_agent
     all_test_keys = {**tests.SUPPORTED_KEYS, **tests.UNSUITABLE_KEYS}
     successfully_loaded_keys: set[str] = set()
