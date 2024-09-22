@@ -10,14 +10,14 @@ import collections
 import errno
 import os
 import socket
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 
 from typing_extensions import Self
 
 from derivepassphrase import _types
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Iterable, Sequence
     from types import TracebackType
 
 __all__ = ('SSHAgentClient',)
@@ -268,9 +268,48 @@ class SSHAgentClient:
             bytestring[m + HEAD_LEN :],
         )
 
+    @overload
+    def request(  # pragma: no cover
+        self,
+        code: int | _types.SSH_AGENTC,
+        payload: bytes | bytearray,
+        /,
+        *,
+        response_code: None = None,
+    ) -> tuple[int, bytes | bytearray]: ...
+
+    @overload
+    def request(  # pragma: no cover
+        self,
+        code: int | _types.SSH_AGENTC,
+        payload: bytes | bytearray,
+        /,
+        *,
+        response_code: Iterable[_types.SSH_AGENT | int] = frozenset({
+            _types.SSH_AGENT.SUCCESS
+        }),
+    ) -> tuple[int, bytes | bytearray]: ...
+
+    @overload
+    def request(  # pragma: no cover
+        self,
+        code: int | _types.SSH_AGENTC,
+        payload: bytes | bytearray,
+        /,
+        *,
+        response_code: _types.SSH_AGENT | int = _types.SSH_AGENT.SUCCESS,
+    ) -> bytes | bytearray: ...
+
     def request(
-        self, code: int, payload: bytes | bytearray, /
-    ) -> tuple[int, bytes | bytearray]:
+        self,
+        code: int | _types.SSH_AGENTC,
+        payload: bytes | bytearray,
+        /,
+        *,
+        response_code: (
+            Iterable[_types.SSH_AGENT | int] | _types.SSH_AGENT | int | None
+        ) = None,
+    ) -> tuple[int, bytes | bytearray] | bytes | bytearray:
         """Issue a generic request to the SSH agent.
 
         Args:
@@ -283,6 +322,10 @@ class SSHAgentClient:
                 the request.  Request-specific.  `request` will add any
                 necessary wire framing around the request code and the
                 payload.
+            response_code:
+                An optional response code, or a set of response codes,
+                that we expect.  If given, and the actual response code
+                does not match, raise an error.
 
         Returns:
             A 2-tuple consisting of the response code and the payload,
@@ -291,9 +334,24 @@ class SSHAgentClient:
         Raises:
             EOFError:
                 The response from the SSH agent is truncated or missing.
+            OSError:
+                There was a communication error with the SSH agent.
+            SSHAgentFailedError:
+                We expected specific response codes, but did not receive
+                any of them.
 
         """
-        request_message = bytearray([code])
+        if isinstance(  # pragma: no branch
+            response_code, int | _types.SSH_AGENT
+        ):
+            response_code = frozenset({response_code})
+        if response_code is not None:  # pragma: no branch
+            response_code = frozenset({
+                c if isinstance(c, int) else c.value for c in response_code
+            })
+        request_message = bytearray([
+            code if isinstance(code, int) else code.value
+        ])
         request_message.extend(payload)
         self._connection.sendall(self.string(request_message))
         chunk = self._connection.recv(HEAD_LEN)
@@ -305,7 +363,11 @@ class SSHAgentClient:
         if len(response) < response_length:
             msg = 'truncated response from SSH agent'
             raise EOFError(msg)
-        return response[0], response[1:]
+        if not response_code:  # pragma: no cover
+            return response[0], response[1:]
+        if response[0] not in response_code:
+            raise SSHAgentFailedError(response[0], response[1:])
+        return response[1:]
 
     def list_keys(self) -> Sequence[_types.KeyCommentPair]:
         """Request a list of keys known to the SSH agent.
@@ -316,17 +378,19 @@ class SSHAgentClient:
         Raises:
             EOFError:
                 The response from the SSH agent is truncated or missing.
+            OSError:
+                There was a communication error with the SSH agent.
             TrailingDataError:
                 The response from the SSH agent is too long.
             SSHAgentFailedError:
                 The agent failed to complete the request.
 
         """
-        response_code, response = self.request(
-            _types.SSH_AGENTC.REQUEST_IDENTITIES.value, b''
+        response = self.request(
+            _types.SSH_AGENTC.REQUEST_IDENTITIES.value,
+            b'',
+            response_code=_types.SSH_AGENT.IDENTITIES_ANSWER,
         )
-        if response_code != _types.SSH_AGENT.IDENTITIES_ANSWER.value:
-            raise SSHAgentFailedError(response_code, response)
         response_stream = collections.deque(response)
 
         def shift(num: int) -> bytes:
@@ -390,6 +454,8 @@ class SSHAgentClient:
         Raises:
             EOFError:
                 The response from the SSH agent is truncated or missing.
+            OSError:
+                There was a communication error with the SSH agent.
             TrailingDataError:
                 The response from the SSH agent is too long.
             SSHAgentFailedError:
@@ -407,9 +473,10 @@ class SSHAgentClient:
         request_data = bytearray(self.string(key))
         request_data.extend(self.string(payload))
         request_data.extend(self.uint32(flags))
-        response_code, response = self.request(
-            _types.SSH_AGENTC.SIGN_REQUEST.value, request_data
+        return self.unstring(
+            self.request(
+                _types.SSH_AGENTC.SIGN_REQUEST.value,
+                request_data,
+                response_code=_types.SSH_AGENT.SIGN_RESPONSE,
+            )
         )
-        if response_code != _types.SSH_AGENT.SIGN_RESPONSE.value:
-            raise SSHAgentFailedError(response_code, response)
-        return self.unstring(response)
