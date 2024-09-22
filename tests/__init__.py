@@ -6,9 +6,11 @@ from __future__ import annotations
 
 import base64
 import contextlib
+import enum
 import importlib.util
 import json
 import os
+import shlex
 import stat
 import tempfile
 import zipfile
@@ -17,7 +19,7 @@ from typing import TYPE_CHECKING
 import pytest
 from typing_extensions import NamedTuple, Self, assert_never
 
-from derivepassphrase import _types, cli
+from derivepassphrase import _types, cli, ssh_agent
 
 __all__ = ()
 
@@ -34,6 +36,18 @@ if TYPE_CHECKING:
         public_key_data: bytes
         expected_signature: bytes | None
         derived_passphrase: bytes | str | None
+
+
+class KnownSSHAgent(str, enum.Enum):
+    UNKNOWN: str = '(unknown)'
+    Pageant: str = 'Pageant'
+    OpenSSHAgent: str = 'OpenSSHAgent'
+
+
+class SpawnedSSHAgentInfo(NamedTuple):
+    agent_type: KnownSSHAgent
+    client: ssh_agent.SSHAgentClient
+    isolated: bool
 
 
 SUPPORTED_KEYS: Mapping[str, SSHTestKey] = {
@@ -683,9 +697,6 @@ CANNOT_LOAD_CRYPTOGRAPHY = (
     'Cannot load the required Python module "cryptography".'
 )
 
-skip_if_no_agent = pytest.mark.skipif(
-    not os.environ.get('SSH_AUTH_SOCK'), reason='running SSH agent required'
-)
 skip_if_cryptography_support = pytest.mark.skipif(
     importlib.util.find_spec('cryptography') is not None,
     reason='cryptography support available; cannot test "no support" scenario',
@@ -933,3 +944,26 @@ class ReadableResult(NamedTuple):
                 )
             case _:
                 return isinstance(self.exception, error)
+
+
+def parse_sh_export_line(line: str, *, env_name: str) -> str:
+    line = line.rstrip('\r\n')
+    shlex_parser = shlex.shlex(
+        instream=line, posix=True, punctuation_chars=True
+    )
+    shlex_parser.whitespace = ' \t'
+    tokens = list(shlex_parser)
+    orig_tokens = tokens.copy()
+    if tokens[-1] == ';':
+        tokens.pop()
+    if tokens[-3:] == [';', 'export', env_name]:
+        tokens[-3:] = []
+        tokens[:0] = ['export']
+    if not (
+        len(tokens) == 2
+        and tokens[0] == 'export'
+        and tokens[1].startswith(f'{env_name}=')
+    ):
+        msg = f'Cannot parse sh line: {orig_tokens!r} -> {tokens!r}'
+        raise ValueError(msg)
+    return tokens[1].split('=', 1)[1]
