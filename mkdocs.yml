@@ -97,14 +97,12 @@ nav:
     - 'Man page: derivepassphrase-export': reference/derivepassphrase-export.1.md
     - 'Man page: derivepassphrase-export-vault': reference/derivepassphrase-export-vault.1.md
     - Module derivepassphrase:
-      - Submodule cli: reference/derivepassphrase.md
-      - Subpackage exporter:
-        - Subpackage exporter: reference/exporter.md
-        - Exporters for vault: reference/exporter_vault.md
-      - Submodule sequin: reference/sequin.md
-      - Submodule ssh_agent: reference/ssh_agent.md
-      - Submodule _types: reference/types.md
-      - Submodule vault: reference/vault.md
+      - Submodule cli: reference/derivepassphrase.cli.md
+      - Subpackage exporter: reference/derivepassphrase.exporter.md
+      - Submodule sequin: reference/derivepassphrase.sequin.md
+      - Submodule ssh_agent: reference/derivepassphrase.ssh_agent.md
+      - Submodule _types: reference/derivepassphrase._types.md
+      - Submodule vault: reference/derivepassphrase.vault.md
   #- Design & Background: explanation.md
   - Changelog: changelog.md
 
