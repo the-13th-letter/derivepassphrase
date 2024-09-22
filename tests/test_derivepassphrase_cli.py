@@ -355,7 +355,6 @@ class TestCLI:
             last_line.rstrip(b'\n') == DUMMY_RESULT_KEY1
         ), 'expected known output'
 
-    @tests.skip_if_no_agent
     @pytest.mark.parametrize(
         'config',
         [
@@ -383,6 +382,7 @@ class TestCLI:
     def test_204c_key_override_on_command_line(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        running_ssh_agent: str,
         config: dict[str, Any],
         key_index: int,
     ) -> None:
@@ -396,19 +396,21 @@ class TestCLI:
                     return value['expected_signature']
             raise AssertionError
 
-        monkeypatch.setattr(
-            ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
-        )
-        monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', sign)
-        runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch, runner=runner, config=config
-        ):
-            _result = runner.invoke(
-                cli.derivepassphrase_vault,
-                ['-k', DUMMY_SERVICE],
-                input=f'{key_index}\n',
+        with monkeypatch.context():
+            monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent)
+            monkeypatch.setattr(
+                ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
+            monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', sign)
+            runner = click.testing.CliRunner(mix_stderr=False)
+            with tests.isolated_vault_config(
+                monkeypatch=monkeypatch, runner=runner, config=config
+            ):
+                _result = runner.invoke(
+                    cli.derivepassphrase_vault,
+                    ['-k', DUMMY_SERVICE],
+                    input=f'{key_index}\n',
+                )
         result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(), 'expected clean exit'
         assert result.output, 'expected program output'
@@ -1553,35 +1555,39 @@ Boo.
         param = cli.derivepassphrase_vault.params[0]
         assert vfunc(ctx, param, input) == input
 
-    @tests.skip_if_no_agent
     @pytest.mark.parametrize('conn_hint', ['none', 'socket', 'client'])
     def test_227_get_suitable_ssh_keys(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        running_ssh_agent: str,
         conn_hint: str,
     ) -> None:
-        monkeypatch.setattr(
-            ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
-        )
-        hint: ssh_agent.SSHAgentClient | socket.socket | None
-        match conn_hint:
-            case 'client':
-                hint = ssh_agent.SSHAgentClient()
-            case 'socket':
-                hint = socket.socket(family=socket.AF_UNIX)
-                hint.connect(os.environ['SSH_AUTH_SOCK'])
-            case _:
-                assert conn_hint == 'none'
-                hint = None
-        exception: Exception | None = None
-        try:
-            list(cli._get_suitable_ssh_keys(hint))
-        except RuntimeError:  # pragma: no cover
-            pass
-        except Exception as e:  # noqa: BLE001 # pragma: no cover
-            exception = e
-        finally:
-            assert exception is None, 'exception querying suitable SSH keys'
+        with monkeypatch.context():
+            monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent)
+            monkeypatch.setattr(
+                ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
+            )
+            hint: ssh_agent.SSHAgentClient | socket.socket | None
+            match conn_hint:
+                case 'client':
+                    hint = ssh_agent.SSHAgentClient()
+                case 'socket':
+                    hint = socket.socket(family=socket.AF_UNIX)
+                    hint.connect(running_ssh_agent)
+                case _:
+                    assert conn_hint == 'none'
+                    hint = None
+            exception: Exception | None = None
+            try:
+                list(cli._get_suitable_ssh_keys(hint))
+            except RuntimeError:  # pragma: no cover
+                pass
+            except Exception as e:  # noqa: BLE001 # pragma: no cover
+                exception = e
+            finally:
+                assert (
+                    exception is None
+                ), 'exception querying suitable SSH keys'
 
 
 class TestCLITransition:

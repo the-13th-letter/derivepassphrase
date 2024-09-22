@@ -181,11 +181,20 @@ class SSH_AGENTC(enum.Enum):  # noqa: N801
         SIGN_REQUEST:
             Sign data.  Expecting [`SSH_AGENT.SIGN_RESPONSE`]
             [derivepassphrase._types.SSH_AGENT].
+        ADD_IDENTITY:
+            Add an (SSH2) identity.
+        REMOVE_IDENTITY:
+            Remove an (SSH2) identity.
+        ADD_ID_CONSTRAINED:
+            Add an (SSH2) identity, including key constraints.
 
     """
 
     REQUEST_IDENTITIES: int = 11
     SIGN_REQUEST: int = 13
+    ADD_IDENTITY: int = 17
+    REMOVE_IDENTITY: int = 18
+    ADD_ID_CONSTRAINED: int = 25
 
 
 class SSH_AGENT(enum.Enum):  # noqa: N801
