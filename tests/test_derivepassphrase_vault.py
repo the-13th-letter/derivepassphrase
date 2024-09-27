@@ -7,12 +7,18 @@
 from __future__ import annotations
 
 import math
+from typing import TYPE_CHECKING, TypeAlias, TypeVar
 
+import hypothesis
 import pytest
+from hypothesis import strategies
 
 import derivepassphrase
 
-Vault = derivepassphrase.vault.Vault
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+Vault: TypeAlias = derivepassphrase.vault.Vault
 
 
 class TestVault:
@@ -258,3 +264,165 @@ class TestVault:
             TypeError, match='invalid safety factor: not a float'
         ):
             assert v._estimate_sufficient_hash_length(None)  # type: ignore[arg-type]
+
+
+@strategies.composite
+def vault_config(draw: strategies.DrawFn) -> dict[str, int]:
+    lower = draw(strategies.integers(min_value=0, max_value=10))
+    upper = draw(strategies.integers(min_value=0, max_value=10))
+    number = draw(strategies.integers(min_value=0, max_value=10))
+    space = draw(strategies.integers(min_value=0, max_value=10))
+    dash = draw(strategies.integers(min_value=0, max_value=10))
+    symbol = draw(strategies.integers(min_value=0, max_value=10))
+    repeat = draw(strategies.integers(min_value=0, max_value=10))
+    length = draw(
+        strategies.integers(
+            min_value=max(1, lower + upper + number + space + dash + symbol),
+            max_value=70,
+        )
+    )
+    hypothesis.assume(lower + upper + number + dash + symbol > 0)
+    hypothesis.assume(lower + upper + number + space + symbol > 0)
+    hypothesis.assume(repeat >= space)
+    return {
+        'lower': lower,
+        'upper': upper,
+        'number': number,
+        'space': space,
+        'dash': dash,
+        'symbol': symbol,
+        'repeat': repeat,
+        'length': length,
+    }
+
+
+class TestHypotheses:
+    @hypothesis.given(
+        phrase=strategies.one_of(
+            strategies.binary(min_size=1), strategies.text(min_size=1)
+        ),
+        config=vault_config(),
+        service=strategies.text(min_size=1),
+    )
+    # regression test
+    @hypothesis.example(
+        phrase=b'\x00',
+        config={
+            'lower': 0,
+            'upper': 0,
+            'number': 0,
+            'space': 2,
+            'dash': 0,
+            'symbol': 1,
+            'repeat': 2,
+            'length': 3,
+        },
+        service='0',
+    )
+    # regression test
+    @hypothesis.example(
+        phrase=b'\x00',
+        config={
+            'lower': 0,
+            'upper': 0,
+            'number': 0,
+            'space': 1,
+            'dash': 0,
+            'symbol': 0,
+            'repeat': 9,
+            'length': 5,
+        },
+        service='0',
+    )
+    def test_100_all_length_character_and_occurrence_constraints_satisfied(
+        self,
+        phrase: str | bytes,
+        config: dict[str, int],
+        service: str,
+    ) -> None:
+        try:
+            password = Vault(phrase=phrase, **config).generate(service)
+        except ValueError as exc:
+            if 'no allowed characters left' in exc.args:
+                return
+            raise  # pragma: no cover
+        n = len(password)
+        assert n == config['length'], 'Password has wrong length.'
+        for key in ('lower', 'upper', 'number', 'space', 'dash', 'symbol'):
+            if config[key] > 0:
+                assert (
+                    sum(c in Vault._CHARSETS[key] for c in password)
+                    >= config[key]
+                ), (
+                    'Password does not satisfy '
+                    'character occurrence constraints.'
+                )
+            elif key in {'dash', 'symbol'}:
+                # Character classes overlap, so "forbidden" characters may
+                # appear via the other character class.
+                assert True
+            else:
+                assert (
+                    sum(c in Vault._CHARSETS[key] for c in password) == 0
+                ), 'Password does not satisfy character ban constraints.'
+
+        T = TypeVar('T', str, bytes)
+
+        def length_r_substrings(string: T, *, r: int) -> Iterator[T]:
+            for i in range(len(string) - (r - 1)):
+                yield string[i : i + r]
+
+        repeat = config['repeat']
+        if repeat:
+            for snippet in length_r_substrings(password, r=(repeat + 1)):
+                assert (
+                    len(set(snippet)) > 1
+                ), 'Password does not satisfy character repeat constraints.'
+
+    @hypothesis.given(
+        phrase=strategies.one_of(
+            strategies.binary(min_size=1),
+            strategies.text(
+                min_size=1,
+                alphabet=strategies.characters(max_codepoint=255),
+            ),
+        ),
+        length=strategies.integers(min_value=1, max_value=1000),
+        service=strategies.text(min_size=1),
+    )
+    def test_101_password_with_length(
+        self,
+        phrase: str | bytes,
+        length: int,
+        service: str,
+    ) -> None:
+        password = Vault(phrase=phrase, length=length).generate(service)
+        assert len(password) == length
+
+    # This test has time complexity `O(length * repeat)`, both of which
+    # are chosen by hypothesis.  So disable the deadline.
+    @hypothesis.settings(deadline=None)
+    @hypothesis.given(
+        phrase=strategies.one_of(
+            strategies.binary(min_size=1),
+            strategies.text(
+                min_size=1,
+                alphabet=strategies.characters(max_codepoint=255),
+            ),
+        ),
+        length=strategies.integers(min_value=2, max_value=1000),
+        repeat=strategies.integers(min_value=1, max_value=1000),
+        service=strategies.text(min_size=1),
+    )
+    def test_102_password_with_repeat(
+        self,
+        phrase: str | bytes,
+        length: int,
+        repeat: int,
+        service: str,
+    ) -> None:
+        password = Vault(phrase=phrase, length=length, repeat=repeat).generate(
+            service
+        )
+        for i in range((length + 1) - (repeat + 1)):
+            assert len(set(password[i : i + repeat + 1])) > 1

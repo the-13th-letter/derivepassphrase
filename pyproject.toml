@@ -89,7 +89,7 @@ omit = [
 
 [tool.hatch.build.targets.sdist]
 exclude = [
-    'towncrier.d/[0123456789+]*.md',
+    'docs/changelog.d/*.md',
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -127,28 +127,44 @@ dependencies = [
 
 [tool.hatch.envs.hatch-test]
 default-args = ['src', 'tests']
+extra-dependencies = [
+    "hypothesis >= 6.0",
+]
+matrix-name-format = '{variable}_{value}'
 
 [[tool.hatch.envs.hatch-test.matrix]]
-python = ["3.10", "3.11", "3.12", "pypy3.10"]
+python = ["3.12", "3.11", "3.10", "pypy3.10"]
+cryptography = ["no", "yes"]
+hypothesis-profile = ["user-default"]
 
 [[tool.hatch.envs.hatch-test.matrix]]
-python = ["3.10", "3.11", "3.12", "pypy3.10"]
-feature = ["export"]
+cryptography = ["yes"]
+hypothesis-profile = ["ci"]
 
 [tool.hatch.envs.hatch-test.overrides]
-matrix.feature.features = [
-    { value = "export", if = ["export"] },
+matrix.cryptography.features = [
+    { value = "export", if = ["yes"] },
 ]
+matrix.hypothesis-profile.env-vars = [
+    { key = "HYPOTHESIS_PROFILE", if = ["ci", "default", "dev", "debug"] },
+]
+
+[tool.hatch.envs.hatch-test.scripts]
+run = "pytest --hypothesis-profile={env:HYPOTHESIS_PROFILE:default}{env:HATCH_TEST_ARGS:} {args}"
+run-cov = "coverage run -m pytest --hypothesis-profile={env:HYPOTHESIS_PROFILE:default}{env:HATCH_TEST_ARGS:} {args}"
+cov-combine = "coverage combine"
+cov-report = "coverage report"
 
 [tool.hatch.envs.release]
 extra-dependencies = [
-  "towncrier >= 23.11"
+  "scriv >= 1.4"
 ]
 
 [tool.hatch.envs.release.scripts]
 
 [tool.hatch.envs.types]
 extra-dependencies = [
+  "hypothesis >= 6.0",
   "mypy ~= 1.0",
   "pytest ~= 8.1",
 ]
@@ -310,43 +326,12 @@ max-doc-length = 72  # for W505
 [tool.ruff.lint.pydocstyle]
 convention = 'google'
 
-[tool.towncrier]
-package = 'derivepassphrase'
-package_dir = 'src'
-directory = 'towncrier.d'
-filename = 'docs/changelog.md'
-template = 'towncrier-template.md'
-#title_format = '[{version}](https://github.com/the-13th-letter/derivepassphrase/tree/{version}) – {project_date}'
-underlines = ['', '', '']
-issue_format = '[#{issue}]: https://github.com/the-13th-letter/derivepassphrase/{issue}'
-wrap = true
-
-[[tool.towncrier.type]]
-directory = "security"
-name = "Security"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "added"
-name = "Added"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "fixed"
-name = "Fixed"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "removed"
-name = "Removed"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "changed"
-name = "Changed"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "deprecated"
-name = "Deprecated"
-showcontent = true
+[tool.scriv]
+version = "command: hatch version"
+format = "md"
+fragment_directory = "docs/changelog.d"
+output_file = "docs/changelog.md"
+insert_marker = "<!-- scriv changelog start -->"
+end_marker = "<!-- scriv changelog end -->"
+md_header_level = "2"
+entry_title_template = "{% if version %}{{ version }} ({% endif %}{{ date.strftime('%Y-%m-%d') }}{% if version %}){% endif %}"

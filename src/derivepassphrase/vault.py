@@ -146,6 +146,11 @@ class Vault:
                 Conflicting passphrase constraints.  Permit more
                 characters, or increase the desired passphrase length.
 
+        Warning:
+            Because of repetition constraints, it is not always possible
+            to detect conflicting passphrase constraints at construction
+            time.
+
         """
         self._phrase = self._get_binary_string(phrase)
         self._length = length
@@ -352,6 +357,11 @@ class Vault:
         Returns:
             The service passphrase.
 
+        Raises:
+            ValueError:
+                Conflicting passphrase constraints.  Permit more
+                characters, or increase the desired passphrase length.
+
         Examples:
             >>> phrase = b'She cells C shells bye the sea shoars'
             >>> # Using default options in constructor.
@@ -360,6 +370,29 @@ class Vault:
             >>> # Also possible:
             >>> Vault().generate(b'google', phrase=phrase)
             b': 4TVH#5:aZl8LueOT\\{'
+
+            Conflicting constraints are sometimes only found during
+            generation.
+
+            >>> # Note: no error here...
+            >>> v = Vault(
+            ...     lower=0,
+            ...     upper=0,
+            ...     number=0,
+            ...     space=2,
+            ...     dash=0,
+            ...     symbol=1,
+            ...     repeat=2,
+            ...     length=3,
+            ... )
+            >>> # ... but here.
+            >>> v.generate(
+            ...     '0', phrase=b'\x00'
+            ... )  # doctest: +IGNORE_EXCEPTION_DETAIL
+            Traceback (most recent call last):
+                ...
+            ValueError: no allowed characters left
+
 
         """
         hash_length = self._estimate_sufficient_hash_length()
@@ -403,6 +436,9 @@ class Vault:
                             )
                     pos = seq.generate(len(charset))
                     result.extend(charset[pos : pos + 1])
+            except ValueError as exc:
+                msg = 'no allowed characters left'
+                raise ValueError(msg) from exc
             except sequin.SequinExhaustedError:
                 hash_length *= 2
             else:
