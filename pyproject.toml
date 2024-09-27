@@ -89,7 +89,7 @@ omit = [
 
 [tool.hatch.build.targets.sdist]
 exclude = [
-    'towncrier.d/[0123456789+]*.md',
+    'docs/changelog.d/*.md',
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -157,7 +157,7 @@ cov-report = "coverage report"
 
 [tool.hatch.envs.release]
 extra-dependencies = [
-  "towncrier >= 23.11"
+  "scriv >= 1.4"
 ]
 
 [tool.hatch.envs.release.scripts]
@@ -326,43 +326,12 @@ max-doc-length = 72  # for W505
 [tool.ruff.lint.pydocstyle]
 convention = 'google'
 
-[tool.towncrier]
-package = 'derivepassphrase'
-package_dir = 'src'
-directory = 'towncrier.d'
-filename = 'docs/changelog.md'
-template = 'towncrier-template.md'
-#title_format = '[{version}](https://github.com/the-13th-letter/derivepassphrase/tree/{version}) – {project_date}'
-underlines = ['', '', '']
-issue_format = '[#{issue}]: https://github.com/the-13th-letter/derivepassphrase/{issue}'
-wrap = true
-
-[[tool.towncrier.type]]
-directory = "security"
-name = "Security"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "added"
-name = "Added"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "fixed"
-name = "Fixed"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "removed"
-name = "Removed"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "changed"
-name = "Changed"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "deprecated"
-name = "Deprecated"
-showcontent = true
+[tool.scriv]
+version = "command: hatch version"
+format = "md"
+fragment_directory = "docs/changelog.d"
+output_file = "docs/changelog.md"
+insert_marker = "<!-- scriv changelog start -->"
+end_marker = "<!-- scriv changelog end -->"
+md_header_level = "2"
+entry_title_template = "{% if version %}{{ version }} ({% endif %}{{ date.strftime('%Y-%m-%d') }}{% if version %}){% endif %}"
