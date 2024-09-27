@@ -14,6 +14,7 @@ import sys
 import textwrap
 from typing import TYPE_CHECKING, TypeVar
 
+import hypothesis
 import packaging.version
 import pytest
 
@@ -24,8 +25,14 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from typing import Literal
 
-
 startup_ssh_auth_sock = os.environ.get('SSH_AUTH_SOCK', None)
+
+# https://hypothesis.readthedocs.io/en/latest/settings.html#settings-profiles
+hypothesis.settings.register_profile("ci", max_examples=1000)
+hypothesis.settings.register_profile("dev", max_examples=10)
+hypothesis.settings.register_profile(
+    "debug", max_examples=10, verbosity=hypothesis.Verbosity.verbose
+)
 
 
 # https://docs.pytest.org/en/stable/explanation/fixtures.html#a-note-about-fixture-cleanup
