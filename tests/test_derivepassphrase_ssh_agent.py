@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import base64
 import io
-import os
 import socket
 from typing import TYPE_CHECKING
 
@@ -22,7 +21,6 @@ from derivepassphrase import _types, cli, ssh_agent, vault
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
-    from typing import Literal
 
 
 class TestStaticFunctionality:
