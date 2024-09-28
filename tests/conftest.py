@@ -382,7 +382,7 @@ def spawn_ssh_agent(  # noqa: C901
 
     Yields:
         (tests.SpawnedSSHAgentInfo):
-            A [named tuple][collection.namedtuple] containing
+            A [named tuple][collections.namedtuple] containing
             information about the spawned agent, e.g. the software
             product, a client connected to the agent, and whether the
             agent is isolated from other clients.
@@ -530,7 +530,7 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
 
     Yields:
         (ssh_agent.SSHAgentClient):
-            A [named tuple][collection.namedtuple] containing
+            A [named tuple][collections.namedtuple] containing
             information about the spawned agent, e.g. the software
             product, a client connected to the agent, and whether the
             agent is isolated from other clients.
