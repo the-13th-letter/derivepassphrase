@@ -73,11 +73,10 @@ plugins:
           show_root_heading: true
           show_symbol_type_heading: true
           show_symbol_type_toc: true
-          parameters_heading: true
           members_order: 'source'
           show_signature_annotations: true
           separate_signature: true
-          signature_crossrefs: false
+          signature_crossrefs: true
           unwrap_annotated: true
         paths:
           - src

@@ -93,7 +93,9 @@ class KeyPair(TypedDict):
     """
 
     encryption_key: bytes
+    """"""
     signing_key: bytes
+    """"""
 
 
 class MasterKeys(TypedDict):
@@ -112,8 +114,11 @@ class MasterKeys(TypedDict):
     """
 
     hashing_key: bytes
+    """"""
     encryption_key: bytes
+    """"""
     signing_key: bytes
+    """"""
 
 
 def derive_master_keys_keys(password: str | bytes, iterations: int) -> KeyPair:
