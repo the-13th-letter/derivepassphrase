@@ -13,12 +13,11 @@ cryptographic weaknesses (API misuse of a key derivation function, and
 a low-entropy method of generating initialization vectors for CBC block
 encryption mode) and should thus be avoided if possible.
 
-The public interface is the
-[`derivepassphrase.exporter.vault_native.export_vault_native_data`][]
-function.  Multiple *non-public* classes are additionally documented
-here for didactical and educational reasons, but they are not part of
-the module API, are subject to change without notice (including
-removal), and should *not* be used or relied on.
+The public interface is the [`export_vault_native_data`][] function.
+Multiple *non-public* classes are additionally documented here for
+didactical and educational reasons, but they are not part of the module
+API, are subject to change without notice (including removal), and
+should *not* be used or relied on.
 
 """
 
@@ -108,8 +107,7 @@ class VaultNativeConfigParser(abc.ABC):
             password:
                 The vault master key/master passphrase the file is
                 encrypted with.  Must be non-empty.  See
-                [`derivepassphrase.exporter.get_vault_key`][] for
-                details.
+                [`exporter.get_vault_key`][] for details.
 
                 If this is a text string, then the UTF-8 encoding of the
                 string is used as the binary password.
@@ -403,8 +401,8 @@ def export_vault_native_data(
         contents:
             The binary encrypted contents of the vault configuration
             file.  If not given, then query
-            [`derivepassphrase.exporter.get_vault_path`][] for the
-            correct filename and read the contents from there.
+            [`exporter.get_vault_path`][] for the correct filename and
+            read the contents from there.
 
             Note: On disk, these are usually stored in base64-encoded
             form, not in the "raw" form as needed here.
@@ -412,7 +410,7 @@ def export_vault_native_data(
             Encryption key/password for the configuration file, usually
             the username, or passed via the `VAULT_KEY` environment
             variable.  If not given, then query
-            [`derivepassphrase.exporter.get_vault_key`][] for the value.
+            [`exporter.get_vault_key`][] for the value.
         try_formats:
             A sequence of formats to try out, in order.  Each key must
             be one of `v0.2` or `v0.3`.

@@ -34,10 +34,9 @@ class Vault:
     detail][ALGORITHM] in his blog post on said topic: A principally
     infinite bit stream is obtained by running a key-derivation function
     on the master passphrase and the service name, then this bit stream
-    is fed into a [Sequin][derivepassphrase.sequin.Sequin] to generate
-    random numbers in the correct range, and finally these random
-    numbers select passphrase characters until the desired length is
-    reached.
+    is fed into a [sequin.Sequin][] to generate random numbers in the
+    correct range, and finally these random numbers select passphrase
+    characters until the desired length is reached.
 
     [vault]: https://www.npmjs.com/package/vault
     [ALGORITHM]: https://blog.jcoglan.com/2012/07/16/designing-vaults-generator-algorithm/
@@ -219,10 +218,10 @@ class Vault:
     ) -> int:
         """Estimate the sufficient hash length, given the current settings.
 
-        Using the entropy (via `_entropy`) and a safety factor, give an
-        initial estimate of the length to use for `create_hash` such
-        that using a `Sequin` with this hash will not exhaust it during
-        passphrase generation.
+        Using the entropy (via [`_entropy`][]) and a safety factor, give
+        an initial estimate of the length to use for [`create_hash`][]
+        such that using a [`sequin.Sequin`][] with this hash will not
+        exhaust it during passphrase generation.
 
         Args:
             safety_factor: The safety factor.  Must be at least 1.

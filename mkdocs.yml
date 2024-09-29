@@ -78,6 +78,7 @@ plugins:
           separate_signature: true
           signature_crossrefs: true
           unwrap_annotated: true
+          scoped_crossrefs: true
         paths:
           - src
   mike:

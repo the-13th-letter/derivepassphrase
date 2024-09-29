@@ -14,8 +14,7 @@ deterministic, stateless password manager that recomputes passwords
 instead of storing them), and this reimplementation is used for
 a similar purpose.
 
-The main API is the [`Sequin`] [derivepassphrase.sequin.Sequin] class,
-which is thoroughly documented.
+The main API is the [`Sequin`][] class, which is thoroughly documented.
 
 """
 

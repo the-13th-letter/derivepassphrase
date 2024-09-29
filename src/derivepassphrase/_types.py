@@ -190,11 +190,10 @@ class SSH_AGENTC(enum.Enum):  # noqa: N801
 
     Attributes:
         REQUEST_IDENTITIES:
-            List identities.  Expecting [`SSH_AGENT.IDENTITIES_ANSWER`]
-            [derivepassphrase._types.SSH_AGENT].
+            List identities.  Expecting
+            [`SSH_AGENT.IDENTITIES_ANSWER`][].
         SIGN_REQUEST:
-            Sign data.  Expecting [`SSH_AGENT.SIGN_RESPONSE`]
-            [derivepassphrase._types.SSH_AGENT].
+            Sign data.  Expecting [`SSH_AGENT.SIGN_RESPONSE`][].
         ADD_IDENTITY:
             Add an (SSH2) identity.
         REMOVE_IDENTITY:
@@ -225,11 +224,9 @@ class SSH_AGENT(enum.Enum):  # noqa: N801
         SUCCESS:
             Generic success code.
         IDENTITIES_ANSWER:
-            Successful answer to [`SSH_AGENTC.REQUEST_IDENTITIES`]
-            [derivepassphrase._types.SSH_AGENTC].
+            Successful answer to [`SSH_AGENTC.REQUEST_IDENTITIES`][].
         SIGN_RESPONSE:
-            Successful answer to [`SSH_AGENTC.SIGN_REQUEST`]
-            [derivepassphrase._types.SSH_AGENTC].
+            Successful answer to [`SSH_AGENTC.SIGN_REQUEST`][].
 
     """
 
