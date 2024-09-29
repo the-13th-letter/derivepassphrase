@@ -14,8 +14,7 @@ deterministic, stateless password manager that recomputes passwords
 instead of storing them), and this reimplementation is used for
 a similar purpose.
 
-The main API is the [`Sequin`] [derivepassphrase.sequin.Sequin] class,
-which is thoroughly documented.
+The main API is the [`Sequin`][] class, which is thoroughly documented.
 
 """
 
@@ -285,21 +284,21 @@ class Sequin:
         take `k` numbers from the base `base` sequence (or bail if not
         possible).  If the resulting number `v` is out of range for
         base `n`, then push `v - n` onto the rejection queue for
-        base `r` = `base` ** `k` - `n`, and attempt to generate the
-        requested base `n` integer from the sequence of base `r` numbers
-        next.  (This recursion is not attempted if `r` = 1.)  Otherwise,
-        return the number.
+        base `r` (where `r = base ** k - n`), and attempt to generate
+        the requested base `n` integer from the sequence of base `r`
+        numbers next.  (This recursion is not attempted if `r` = 1.)
+        Otherwise, return the number.
 
         Args:
             n:
-                Generate numbers in the range 0, ..., `n` - 1.
+                Generate numbers in the range 0, ..., `n - 1`.
                 (Inclusive.)  Must be larger than 0.
             base:
                 Use the base `base` sequence as a source for
                 pseudorandom numbers.
 
         Returns:
-            A pseudorandom number in the range 0, ..., `n` - 1 if
+            A pseudorandom number in the range 0, ..., `n - 1` if
             possible, or `n` if the stream is exhausted.
 
         Raises:
@@ -377,7 +376,11 @@ class Sequin:
         return v
 
     def _stash(self, value: int, /, *, base: int = 2) -> None:
-        """Stash `value` on the base `base` sequence."""
+        """Stash `value` on the base `base` sequence.
+
+        Sets up the base `base` sequence if it does not yet exist.
+
+        """
         if base not in self.bases:
             self.bases[base] = collections.deque()
         self.bases[base].append(value)

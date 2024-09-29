@@ -51,4 +51,4 @@ If <i>PATH</i> is explicitly given as `VAULT_PATH`, then use the
 ## SEE ALSO
 
 [derivepassphrase(1)](derivepassphrase.1.md),
-[vault(1)](https://github.com/jcoglan/vault)
+[vault(1)](https://www.npmjs.com/package/vault)

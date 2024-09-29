@@ -12,12 +12,11 @@ table entry is separately encrypted and authenticated.  James Coglan
 designed this format to avoid concurrent write issues when updating or
 synchronizing the vault configuration with e.g. a cloud service.
 
-The public interface is the
-[`derivepassphrase.exporter.storeroom.export_storeroom_data`][]
-function.  Multiple *non-public* functions are additionally documented
-here for didactical and educational reasons, but they are not part of
-the module API, are subject to change without notice (including
-removal), and should *not* be used or relied on.
+The public interface is the [`export_storeroom_data`][] function.
+Multiple *non-public* functions are additionally documented here for
+didactical and educational reasons, but they are not part of the module
+API, are subject to change without notice (including removal), and
+should *not* be used or relied on.
 
 """
 
@@ -93,7 +92,9 @@ class KeyPair(TypedDict):
     """
 
     encryption_key: bytes
+    """"""
     signing_key: bytes
+    """"""
 
 
 class MasterKeys(TypedDict):
@@ -112,8 +113,11 @@ class MasterKeys(TypedDict):
     """
 
     hashing_key: bytes
+    """"""
     encryption_key: bytes
+    """"""
     signing_key: bytes
+    """"""
 
 
 def derive_master_keys_keys(password: str | bytes, iterations: int) -> KeyPair:
@@ -204,8 +208,7 @@ def decrypt_master_keys_data(data: bytes, keys: KeyPair) -> MasterKeys:
         keys:
             The encryption and signing keys for the master keys data.
             These should have previously been derived via the
-            [`derivepassphrase.exporter.storeroom.derive_master_keys_keys`][]
-            function.
+            [`derive_master_keys_keys`][] function.
 
     Returns:
         The master encryption, signing and hashing keys.
@@ -298,9 +301,7 @@ def decrypt_session_keys(data: bytes, master_keys: MasterKeys) -> KeyPair:
             The encrypted bucket item session key data.
         master_keys:
             The master keys.  Presumably these have previously been
-            obtained via the
-            [`derivepassphrase.exporter.storeroom.decrypt_master_keys_data`][]
-            function.
+            obtained via the [`decrypt_master_keys_data`][] function.
 
     Returns:
         The bucket item's encryption and signing keys.
@@ -409,8 +410,7 @@ def decrypt_contents(data: bytes, session_keys: KeyPair) -> bytes:
             The encrypted bucket item payload data.
         session_keys:
             The bucket item's session keys.  Presumably these have
-            previously been obtained via the
-            [`derivepassphrase.exporter.storeroom.decrypt_session_keys`][]
+            previously been obtained via the [`decrypt_session_keys`][]
             function.
 
     Returns:
@@ -489,9 +489,7 @@ def decrypt_bucket_item(bucket_item: bytes, master_keys: MasterKeys) -> bytes:
             The encrypted bucket item.
         master_keys:
             The master keys.  Presumably these have previously been
-            obtained via the
-            [`derivepassphrase.exporter.storeroom.decrypt_master_keys_data`][]
-            function.
+            obtained via the [`decrypt_master_keys_data`][] function.
 
     Returns:
         The decrypted bucket item.
@@ -548,16 +546,13 @@ def decrypt_bucket_file(
             The bucket file's filename.
         master_keys:
             The master keys.  Presumably these have previously been
-            obtained via the
-            [`derivepassphrase.exporter.storeroom.decrypt_master_keys_data`][]
-            function.
+            obtained via the [`decrypt_master_keys_data`][] function.
         root_dir:
             The root directory of the data store.  The filename is
             interpreted relatively to this directory.
 
     Yields:
-        :
-            A decrypted bucket item.
+        A decrypted bucket item.
 
     Raises:
         cryptography.exceptions.InvalidSignature:
@@ -631,13 +626,12 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
     Args:
         storeroom_path:
             Path to the storeroom; usually `~/.vault`.  If not given,
-            then query [`derivepassphrase.exporter.get_vault_path`][]
-            for the value.
+            then query [`exporter.get_vault_path`][] for the value.
         master_keys_key:
             Encryption key/password for the master keys, usually the
             username, or passed via the `VAULT_KEY` environment
             variable.  If not given, then query
-            [`derivepassphrase.exporter.get_vault_key`][] for the value.
+            [`exporter.get_vault_key`][] for the value.
 
     Returns:
         The full configuration, as stored in the storeroom.

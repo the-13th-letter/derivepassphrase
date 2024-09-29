@@ -10,6 +10,7 @@ import base64
 import collections
 import hashlib
 import math
+import types
 from collections.abc import Callable
 from typing import TypeAlias
 
@@ -18,24 +19,6 @@ from typing_extensions import assert_type
 from derivepassphrase import sequin, ssh_agent
 
 __author__ = 'Marco Ricci <software@the13thletter.info>'
-
-
-_CHARSETS = collections.OrderedDict([
-    ('lower', b'abcdefghijklmnopqrstuvwxyz'),
-    ('upper', b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
-    ('alpha', b''),  # Placeholder.
-    ('number', b'0123456789'),
-    ('alphanum', b''),  # Placeholder.
-    ('space', b' '),
-    ('dash', b'-_'),
-    ('symbol', b'!"#$%&\'()*+,./:;<=>?@[\\]^{|}~-_'),
-    ('all', b''),  # Placeholder.
-])
-_CHARSETS['alpha'] = _CHARSETS['lower'] + _CHARSETS['upper']
-_CHARSETS['alphanum'] = _CHARSETS['alpha'] + _CHARSETS['number']
-_CHARSETS['all'] = (
-    _CHARSETS['alphanum'] + _CHARSETS['space'] + _CHARSETS['symbol']
-)
 
 
 class Vault:
@@ -51,19 +34,62 @@ class Vault:
     detail][ALGORITHM] in his blog post on said topic: A principally
     infinite bit stream is obtained by running a key-derivation function
     on the master passphrase and the service name, then this bit stream
-    is fed into a [Sequin][derivepassphrase.sequin.Sequin] to generate
-    random numbers in the correct range, and finally these random
-    numbers select passphrase characters until the desired length is
-    reached.
+    is fed into a [sequin.Sequin][] to generate random numbers in the
+    correct range, and finally these random numbers select passphrase
+    characters until the desired length is reached.
 
-    [vault]: https://getvau.lt
+    [vault]: https://www.npmjs.com/package/vault
     [ALGORITHM]: https://blog.jcoglan.com/2012/07/16/designing-vaults-generator-algorithm/
 
     """
 
     _UUID = b'e87eb0f4-34cb-46b9-93ad-766c5ab063e7'
     """A tag used by vault in the bit stream generation."""
-    _CHARSETS = _CHARSETS
+    _CHARSETS = types.MappingProxyType(
+        collections.OrderedDict([
+            ('lower', b'abcdefghijklmnopqrstuvwxyz'),
+            ('upper', b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
+            (
+                'alpha',
+                (
+                    # _CHARSETS['lower']
+                    b'abcdefghijklmnopqrstuvwxyz'
+                    # _CHARSETS['upper']
+                    b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                ),
+            ),
+            ('number', b'0123456789'),
+            (
+                'alphanum',
+                (
+                    # _CHARSETS['lower']
+                    b'abcdefghijklmnopqrstuvwxyz'
+                    # _CHARSETS['upper']
+                    b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                    # _CHARSETS['number']
+                    b'0123456789'
+                ),
+            ),
+            ('space', b' '),
+            ('dash', b'-_'),
+            ('symbol', b'!"#$%&\'()*+,./:;<=>?@[\\]^{|}~-_'),
+            (
+                'all',
+                (
+                    # _CHARSETS['lower']
+                    b'abcdefghijklmnopqrstuvwxyz'
+                    # _CHARSETS['upper']
+                    b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                    # _CHARSETS['number']
+                    b'0123456789'
+                    # _CHARSETS['space']
+                    b' '
+                    # _CHARSETS['symbol']
+                    b'!"#$%&\'()*+,./:;<=>?@[\\]^{|}~-_'
+                ),
+            ),
+        ])
+    )
     """
         Known character sets from which to draw passphrase characters.
         Relies on a certain, fixed order for their definition and their
@@ -192,10 +218,10 @@ class Vault:
     ) -> int:
         """Estimate the sufficient hash length, given the current settings.
 
-        Using the entropy (via `_entropy`) and a safety factor, give an
-        initial estimate of the length to use for `create_hash` such
-        that using a `Sequin` with this hash will not exhaust it during
-        passphrase generation.
+        Using the entropy (via [`_entropy`][]) and a safety factor, give
+        an initial estimate of the length to use for [`create_hash`][]
+        such that using a [`sequin.Sequin`][] with this hash will not
+        exhaust it during passphrase generation.
 
         Args:
             safety_factor: The safety factor.  Must be at least 1.

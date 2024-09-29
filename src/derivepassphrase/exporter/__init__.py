@@ -17,10 +17,11 @@ __all__ = ()
 
 
 def get_vault_key() -> bytes:
-    """Automatically determine the vault master key/password.
+    """Automatically determine the vault(1) master key/password.
 
     Query the `VAULT_KEY`, `LOGNAME`, `USER` and `USERNAME` environment
-    variables, in that order.  This is the same algorithm as vault uses.
+    variables, in that order.  This is the same algorithm that vault
+    uses.
 
     Returns:
         The master key/password.  This is generally used as input to
@@ -46,10 +47,10 @@ def get_vault_key() -> bytes:
 
 
 def get_vault_path() -> str | bytes | os.PathLike:
-    """Automatically determine the vault configuration path.
+    """Automatically determine the vault(1) configuration path.
 
     Query the `VAULT_PATH` environment variable, or default to
-    `~/.vault`.  This is the same algorithm as vault uses.  If not
+    `~/.vault`.  This is the same algorithm that vault uses.  If not
     absolute, then `VAULT_PATH` is relative to the home directory.
 
     Returns:

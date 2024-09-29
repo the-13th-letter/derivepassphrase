@@ -119,8 +119,9 @@ effectively constitute a new <q>major</q> release.)
   - Include and exclude the correct files in the `sdist` and `wheel`
     distributions.  (Previously, `sdist` contained VCS artifacts, and
     `wheel` was missing some paths.)
-  - Lint and reformat all code using [ruff](https://astral.sh/ruff/).
-  - Mention [`mkdocstrings-python`](https://mkdocstrings.github.io/python/)
+  - Lint and reformat all code using [ruff](https://pypi.org/package/ruff/).
+  - Mention
+    [`mkdocstrings-python`](https://pypi.org/package/mkdocstrings-python/)
     in the documentation's page footer.
   - Remove JavaScript and external font loading from documentation website,
     so that the site works even in restricted browser settings.

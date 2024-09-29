@@ -61,11 +61,13 @@ class SSHAgentClient:
     The main use case is requesting the agent sign some data, after
     checking that the necessary key is already loaded.
 
-    The main fleshed out methods are `list_keys` and `sign`, which
-    implement the `REQUEST_IDENTITIES` and `SIGN_REQUEST` requests.  If
-    you *really* wanted to, there is enough infrastructure in place to
-    issue other requests as defined in the protocol---it's merely the
-    wrapper functions and the protocol numbers table that are missing.
+    The main fleshed out methods are [`list_keys`][] and [`sign`][],
+    which implement the [`REQUEST_IDENTITIES`]
+    [_types.SSH_AGENTC.REQUEST_IDENTITIES] and [`SIGN_REQUEST`]
+    [_types.SSH_AGENTC.SIGN_REQUEST] requests.  If you *really* wanted
+    to, there is enough infrastructure in place to issue other requests
+    as defined in the protocol---it's merely the wrapper functions and
+    the protocol numbers table that are missing.
 
     """
 
@@ -433,7 +435,7 @@ class SSHAgentClient:
         Args:
             key:
                 The public SSH key to sign the payload with, in the same
-                format as returned by, e.g., the `list_keys` method.
+                format as returned by, e.g., the [`list_keys`][] method.
                 The corresponding private key must have previously been
                 loaded into the agent to successfully issue a signature.
             payload:
@@ -445,7 +447,7 @@ class SSHAgentClient:
                 algorithms when signing with RSA keys.  (No such
                 real-world usage is currently implemented.)
             check_if_key_loaded:
-                If true, check beforehand (via `list_keys`) if the
+                If true, check beforehand (via [`list_keys`][]) if the
                 corresponding key has been loaded into the agent.
 
         Returns:

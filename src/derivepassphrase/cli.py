@@ -106,7 +106,7 @@ def derivepassphrase(
     [`click.testing.CliRunner`][] for controlled, programmatic
     invocation.)
 
-    [CLICK]: https://click.palletsprojects.com/
+    [CLICK]: https://pypi.org/package/click/
 
     """  # noqa: D301
     if subcommand_args and subcommand_args[0] == 'export':
@@ -171,7 +171,7 @@ def derivepassphrase_export(
     [`click.testing.CliRunner`][] for controlled, programmatic
     invocation.)
 
-    [CLICK]: https://click.palletsprojects.com/
+    [CLICK]: https://pypi.org/package/click/
 
     """  # noqa: D301
     if not (subcommand_args and subcommand_args[0] == 'vault'):
@@ -387,13 +387,11 @@ def _config_filename(
 def _load_config() -> _types.VaultConfig:
     """Load a vault(1)-compatible config from the application directory.
 
-    The filename is obtained via
-    [`derivepassphrase.cli._config_filename`][].  This must be an
-    unencrypted JSON file.
+    The filename is obtained via [`_config_filename`][].  This must be
+    an unencrypted JSON file.
 
     Returns:
-        The vault settings.  See
-        [`derivepassphrase.types.VaultConfig`][] for details.
+        The vault settings.  See [`_types.VaultConfig`][] for details.
 
     Raises:
         OSError:
@@ -416,15 +414,14 @@ def _migrate_and_load_old_config() -> (
 ):
     """Load and migrate a vault(1)-compatible config.
 
-    The (old) filename is obtained via
-    [`derivepassphrase.cli._config_filename`][].  This must be an
-    unencrypted JSON file.  After loading, the file is migrated to the new
-    standard filename.
+    The (old) filename is obtained via [`_config_filename`][].  This
+    must be an unencrypted JSON file.  After loading, the file is
+    migrated to the new standard filename.
 
     Returns:
         The vault settings, and an optional exception encountered during
-        migration.  See [`derivepassphrase.types.VaultConfig`][] for
-        details on the former.
+        migration.  See [`_types.VaultConfig`][] for details on the
+        former.
 
     Raises:
         OSError:
@@ -451,9 +448,8 @@ def _migrate_and_load_old_config() -> (
 def _save_config(config: _types.VaultConfig, /) -> None:
     """Save a vault(1)-compatible config to the application directory.
 
-    The filename is obtained via
-    [`derivepassphrase.cli._config_filename`][].  The config will be
-    stored as an unencrypted JSON file.
+    The filename is obtained via [`_config_filename`][].  The config
+    will be stored as an unencrypted JSON file.
 
     Args:
         config:
@@ -505,9 +501,8 @@ def _get_suitable_ssh_keys(
             previous case.
 
     Yields:
-        :
-            Every SSH key from the SSH agent that is suitable for
-            passphrase derivation.
+        Every SSH key from the SSH agent that is suitable for passphrase
+        derivation.
 
     Raises:
         KeyError:
@@ -521,7 +516,7 @@ def _get_suitable_ssh_keys(
             SSH agent.
         RuntimeError:
             There was an error communicating with the SSH agent.
-        SSHAgentFailedError:
+        ssh_agent.SSHAgentFailedError:
             The agent failed to supply a list of loaded keys.
 
     """
@@ -629,8 +624,8 @@ def _select_ssh_key(
     """Interactively select an SSH key for passphrase derivation.
 
     Suitable SSH keys are queried from the running SSH agent (see
-    [`ssh_agent.SSHAgentClient.list_keys`][]), then the user is
-    prompted interactively (see [`click.prompt`][]) for a selection.
+    [`ssh_agent.SSHAgentClient.list_keys`][]), then the user is prompted
+    interactively (see [`click.prompt`][]) for a selection.
 
     Args:
         conn:
@@ -744,9 +739,8 @@ def _check_for_misleading_passphrase(
 class OptionGroupOption(click.Option):
     """A [`click.Option`][] with an associated group name and group epilog.
 
-    Used by [`derivepassphrase.cli.CommandWithHelpGroups`][] to print
-    help sections.  Each subclass contains its own group name and
-    epilog.
+    Used by [`CommandWithHelpGroups`][] to print help sections.  Each
+    subclass contains its own group name and epilog.
 
     Attributes:
         option_group_name:
@@ -759,7 +753,9 @@ class OptionGroupOption(click.Option):
     """
 
     option_group_name: str = ''
+    """"""
     epilog: str = ''
+    """"""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
         if self.__class__ == __class__:  # type: ignore[name-defined]
@@ -789,12 +785,12 @@ class CommandWithHelpGroups(click.Command):
         of the `formatter`.  We list all options (like the base
         implementation), but grouped into sections according to the
         concrete [`click.Option`][] subclass being used.  If the option
-        is an instance of some subclass `X` of
-        [`derivepassphrase.cli.OptionGroupOption`][], then the section
-        heading and the epilog are taken from `X.option_group_name` and
-        `X.epilog`; otherwise, the section heading is "Options" (or
-        "Other options" if there are other option groups) and the epilog
-        is empty.
+        is an instance of some subclass of [`OptionGroupOption`][], then
+        the section heading and the epilog are taken from the
+        [`option_group_name`] [OptionGroupOption.option_group_name] and
+        [`epilog`] [OptionGroupOption.epilog] attributes; otherwise, the
+        section heading is "Options" (or "Other options" if there are
+        other option groups) and the epilog is empty.
 
         Args:
             ctx:
@@ -1144,7 +1140,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     [`click.testing.CliRunner`][] for controlled, programmatic
     invocation.)
 
-    [CLICK]: https://click.palletsprojects.com/
+    [CLICK]: https://pypi.org/package/click/
 
     Parameters:
         ctx (click.Context):

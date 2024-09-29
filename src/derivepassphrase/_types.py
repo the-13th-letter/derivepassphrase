@@ -42,10 +42,13 @@ class VaultConfigGlobalSettings(TypedDict, total=False):
     """
 
     key: NotRequired[str]
+    """"""
     phrase: NotRequired[str]
+    """"""
     unicode_normalization_form: NotRequired[
         Literal['NFC', 'NFD', 'NFKC', 'NFKD']
     ]
+    """"""
 
 
 class VaultConfigServicesSettings(VaultConfigGlobalSettings, total=False):
@@ -81,14 +84,23 @@ class VaultConfigServicesSettings(VaultConfigGlobalSettings, total=False):
     """
 
     notes: NotRequired[str]
+    """"""
     length: NotRequired[int]
+    """"""
     repeat: NotRequired[int]
+    """"""
     lower: NotRequired[int]
+    """"""
     upper: NotRequired[int]
+    """"""
     number: NotRequired[int]
+    """"""
     space: NotRequired[int]
+    """"""
     dash: NotRequired[int]
+    """"""
     symbol: NotRequired[int]
+    """"""
 
 
 _VaultConfig = TypedDict(
@@ -99,7 +111,7 @@ _VaultConfig = TypedDict(
 
 
 class VaultConfig(TypedDict, _VaultConfig, total=False):
-    r"""Configuration for vault.
+    r"""Configuration for vault.  For typing purposes.
 
     Usually stored as JSON.
 
@@ -168,7 +180,9 @@ class KeyCommentPair(NamedTuple):
     """
 
     key: bytes | bytearray
+    """"""
     comment: bytes | bytearray
+    """"""
 
 
 class SSH_AGENTC(enum.Enum):  # noqa: N801
@@ -176,9 +190,10 @@ class SSH_AGENTC(enum.Enum):  # noqa: N801
 
     Attributes:
         REQUEST_IDENTITIES:
-            List identities.  Expecting `SSH_AGENT.IDENTITIES_ANSWER`.
+            List identities.  Expecting
+            [`SSH_AGENT.IDENTITIES_ANSWER`][].
         SIGN_REQUEST:
-            Sign data.  Expecting `SSH_AGENT.SIGN_RESPONSE`.
+            Sign data.  Expecting [`SSH_AGENT.SIGN_RESPONSE`][].
         ADD_IDENTITY:
             Add an (SSH2) identity.
         REMOVE_IDENTITY:
@@ -189,10 +204,15 @@ class SSH_AGENTC(enum.Enum):  # noqa: N801
     """
 
     REQUEST_IDENTITIES: int = 11
+    """"""
     SIGN_REQUEST: int = 13
+    """"""
     ADD_IDENTITY: int = 17
+    """"""
     REMOVE_IDENTITY: int = 18
+    """"""
     ADD_ID_CONSTRAINED: int = 25
+    """"""
 
 
 class SSH_AGENT(enum.Enum):  # noqa: N801
@@ -204,13 +224,17 @@ class SSH_AGENT(enum.Enum):  # noqa: N801
         SUCCESS:
             Generic success code.
         IDENTITIES_ANSWER:
-            Successful answer to `SSH_AGENTC.REQUEST_IDENTITIES`.
+            Successful answer to [`SSH_AGENTC.REQUEST_IDENTITIES`][].
         SIGN_RESPONSE:
-            Successful answer to `SSH_AGENTC.SIGN_REQUEST`.
+            Successful answer to [`SSH_AGENTC.SIGN_REQUEST`][].
 
     """
 
     FAILURE: int = 5
+    """"""
     SUCCESS: int = 6
+    """"""
     IDENTITIES_ANSWER: int = 12
+    """"""
     SIGN_RESPONSE: int = 14
+    """"""
