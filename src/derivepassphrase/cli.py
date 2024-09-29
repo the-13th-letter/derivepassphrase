@@ -505,9 +505,8 @@ def _get_suitable_ssh_keys(
             previous case.
 
     Yields:
-        :
-            Every SSH key from the SSH agent that is suitable for
-            passphrase derivation.
+        Every SSH key from the SSH agent that is suitable for passphrase
+        derivation.
 
     Raises:
         KeyError:

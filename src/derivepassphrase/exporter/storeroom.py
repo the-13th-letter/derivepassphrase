@@ -561,8 +561,7 @@ def decrypt_bucket_file(
             interpreted relatively to this directory.
 
     Yields:
-        :
-            A decrypted bucket item.
+        A decrypted bucket item.
 
     Raises:
         cryptography.exceptions.InvalidSignature:
