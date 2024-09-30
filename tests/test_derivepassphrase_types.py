@@ -45,6 +45,10 @@ from derivepassphrase import _types
             'bad config value: services.sv.length',
         ),
         (
+            {'services': {'sv': {'lower': '10'}}},
+            'bad config value: services.sv.lower',
+        ),
+        (
             {'services': {'sv': {'upper': -10}}},
             'bad config value: services.sv.upper',
         ),
@@ -86,6 +90,48 @@ from derivepassphrase import _types
             },
             '',
         ),
+        (
+            {
+                'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
+                'services': {
+                    'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
+                    'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
+                },
+            },
+            '',
+        ),
+        (
+            {
+                'global': {'key': '...', 'unicode_normalization_form': None},
+                'services': {},
+            },
+            'bad config value: global.unicode_normalization_form',
+        ),
+        (
+            {
+                'global': {'key': '...', 'unknown_key': None},
+                'services': {
+                    'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
+                    'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
+                },
+            },
+            '',
+        ),
+        (
+            {
+                'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
+                'services': {
+                    'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
+                    'sv2': {
+                        'length': 10,
+                        'repeat': 1,
+                        'lower': 1,
+                        'unknown_key': None,
+                    },
+                },
+            },
+            '',
+        ),
     ],
 )
 def test_200_is_vault_config(obj: Any, comment: str) -> None:
@@ -95,3 +141,91 @@ def test_200_is_vault_config(obj: Any, comment: str) -> None:
         if comment
         else 'failed on valid example'
     )
+
+
+@pytest.mark.parametrize(
+    ['obj', 'allow_unknown_settings', 'allow_derivepassphrase_extensions'],
+    [
+        (
+            {
+                'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
+                'services': {
+                    'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
+                    'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
+                },
+            },
+            False,
+            False,
+        ),
+        (
+            {
+                'global': {'key': '...', 'unknown_key': None},
+                'services': {
+                    'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
+                    'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
+                },
+            },
+            False,
+            False,
+        ),
+        (
+            {
+                'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
+                'services': {
+                    'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
+                    'sv2': {
+                        'length': 10,
+                        'repeat': 1,
+                        'lower': 1,
+                        'unknown_key': None,
+                    },
+                },
+            },
+            False,
+            False,
+        ),
+        (
+            {
+                'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
+                'services': {
+                    'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
+                    'sv2': {
+                        'length': 10,
+                        'repeat': 1,
+                        'lower': 1,
+                        'unknown_key': None,
+                    },
+                },
+            },
+            False,
+            True,
+        ),
+        (
+            {
+                'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
+                'services': {
+                    'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
+                    'sv2': {
+                        'length': 10,
+                        'repeat': 1,
+                        'lower': 1,
+                        'unknown_key': None,
+                    },
+                },
+            },
+            True,
+            False,
+        ),
+    ],
+)
+def test_400_validate_vault_config(
+    obj: Any,
+    allow_unknown_settings: bool,
+    allow_derivepassphrase_extensions: bool,
+) -> None:
+    with pytest.raises((TypeError, ValueError), match='vault config '):
+        _types.validate_vault_config(
+            obj,
+            allow_unknown_settings=allow_unknown_settings,
+            allow_derivepassphrase_extensions=allow_derivepassphrase_extensions,
+        )

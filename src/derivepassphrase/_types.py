@@ -7,14 +7,23 @@
 from __future__ import annotations
 
 import enum
-from typing import Literal, NamedTuple, TypeGuard
+from typing import TYPE_CHECKING
 
 from typing_extensions import (
-    Any,
+    NamedTuple,
     NotRequired,
-    Required,
     TypedDict,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from typing import Literal
+
+    from typing_extensions import (
+        Any,
+        Required,
+        TypeIs,
+    )
 
 __all__ = (
     'SSH_AGENT',
@@ -126,7 +135,164 @@ class VaultConfig(TypedDict, _VaultConfig, total=False):
     services: Required[dict[str, VaultConfigServicesSettings]]
 
 
-def is_vault_config(obj: Any) -> TypeGuard[VaultConfig]:  # noqa: ANN401,C901,PLR0911,PLR0912
+def validate_vault_config(  # noqa: C901,PLR0912,PLR0915
+    obj: Any,  # noqa: ANN401
+    /,
+    *,
+    allow_unknown_settings: bool = False,
+    allow_derivepassphrase_extensions: bool = False,
+) -> None:
+    """Check that `obj` is a valid vault config.
+
+    Args:
+        obj:
+            The object to test.
+        allow_unknown_settings:
+            If false, abort on unknown settings.
+        allow_derivepassphrase_extensions:
+            If true, allow `derivepassphrase` extensions.
+
+    Raises:
+        TypeError:
+            An entry in the vault config, or the vault config itself,
+            has the wrong type.
+        ValueError:
+            An entry in the vault config is not allowed, or has a
+            disallowed value.
+
+    """
+
+    def as_json_path_string(json_path: Sequence[str], /) -> str:
+        return ''.join('.' + repr(x) for x in json_path)
+
+    err_obj_not_a_dict = 'vault config is not a dict'
+    err_non_str_service_name = (
+        'vault config contains non-string service name {!r}'
+    )
+
+    def err_not_a_dict(json_path: Sequence[str], /) -> str:
+        json_path_str = as_json_path_string(json_path)
+        return f'vault config entry {json_path_str} is not a dict'
+
+    def err_not_a_string(json_path: Sequence[str], /) -> str:
+        json_path_str = as_json_path_string(json_path)
+        return f'vault config entry {json_path_str} is not a string'
+
+    def err_not_an_int(json_path: Sequence[str], /) -> str:
+        json_path_str = as_json_path_string(json_path)
+        return f'vault config entry {json_path_str} is not an integer'
+
+    err_key_and_phrase = (
+        '"key" and "phrase" specified on the same vault config level'
+    )
+
+    def err_derivepassphrase_extension(
+        key: str, json_path: Sequence[str], /
+    ) -> str:
+        json_path_str = as_json_path_string(json_path)
+        return (
+            f'vault config entry {json_path_str} uses '
+            f'`derivepassphrase` extension {key!r}'
+        )
+
+    def err_unknown_setting(key: str, json_path: Sequence[str], /) -> str:
+        json_path_str = as_json_path_string(json_path)
+        return (
+            f'vault config entry {json_path_str} uses '
+            f'unknown setting {key!r}'
+        )
+
+    def err_bad_number(
+        key: str,
+        json_path: Sequence[str],
+        /,
+        *,
+        strictly_positive: bool = False,
+    ) -> str:
+        json_path_str = as_json_path_string((*json_path, key))
+        return f'vault config entry {json_path_str} is ' + (
+            'not positive' if strictly_positive else 'negative'
+        )
+
+    if not isinstance(obj, dict):
+        raise TypeError(err_obj_not_a_dict)
+    if 'global' in obj:
+        o_global = obj['global']
+        if not isinstance(o_global, dict):
+            raise TypeError(err_not_a_dict(['global']))
+        for key, value in o_global.items():
+            match key:
+                case 'key' | 'phrase':
+                    if not isinstance(value, str):
+                        raise TypeError(err_not_a_dict(['global', key]))
+                case 'unicode_normalization_form':
+                    if not isinstance(value, str):
+                        raise TypeError(err_not_a_dict(['global', key]))
+                    if not allow_derivepassphrase_extensions:
+                        raise ValueError(
+                            err_derivepassphrase_extension(key, ('global',))
+                        )
+                case _ if not allow_unknown_settings:
+                    raise ValueError(err_unknown_setting(key, ('global',)))
+        if 'key' in o_global and 'phrase' in o_global:
+            raise ValueError(err_key_and_phrase)
+    if not isinstance(obj.get('services'), dict):
+        raise TypeError(err_not_a_dict(['services']))
+    for sv_name, service in obj['services'].items():
+        if not isinstance(sv_name, str):
+            raise TypeError(err_non_str_service_name.format(sv_name))
+        if not isinstance(service, dict):
+            raise TypeError(err_not_a_dict(['services', sv_name]))
+        for key, value in service.items():
+            match key:
+                case 'notes' | 'phrase' | 'key':
+                    if not isinstance(value, str):
+                        raise TypeError(
+                            err_not_a_string(['services', sv_name, key])
+                        )
+                case 'length':
+                    if not isinstance(value, int):
+                        raise TypeError(
+                            err_not_an_int(['services', sv_name, key])
+                        )
+                    if value < 1:
+                        raise ValueError(
+                            err_bad_number(
+                                key,
+                                ['services', sv_name],
+                                strictly_positive=True,
+                            )
+                        )
+                case (
+                    'repeat'
+                    | 'lower'
+                    | 'upper'
+                    | 'number'
+                    | 'space'
+                    | 'dash'
+                    | 'symbol'
+                ):
+                    if not isinstance(value, int):
+                        raise TypeError(
+                            err_not_an_int(['services', sv_name, key])
+                        )
+                    if value < 0:
+                        raise ValueError(
+                            err_bad_number(
+                                key,
+                                ['services', sv_name],
+                                strictly_positive=False,
+                            )
+                        )
+                case _ if not allow_unknown_settings:
+                    raise ValueError(
+                        err_unknown_setting(key, ['services', sv_name])
+                    )
+        if 'key' in service and 'phrase' in service:
+            raise ValueError(err_key_and_phrase)
+
+
+def is_vault_config(obj: Any) -> TypeIs[VaultConfig]:  # noqa: ANN401
     """Check if `obj` is a valid vault config, according to typing.
 
     Args:
@@ -136,37 +302,16 @@ def is_vault_config(obj: Any) -> TypeGuard[VaultConfig]:  # noqa: ANN401,C901,PL
         True if this is a vault config, false otherwise.
 
     """
-    if not isinstance(obj, dict):
+    try:
+        validate_vault_config(
+            obj,
+            allow_unknown_settings=True,
+            allow_derivepassphrase_extensions=True,
+        )
+    except (TypeError, ValueError) as exc:
+        if 'vault config ' not in str(exc):  # pragma: no cover
+            raise  # noqa: DOC501
         return False
-    if 'global' in obj:
-        o_global = obj['global']
-        if not isinstance(o_global, dict):
-            return False
-        for key in ('key', 'phrase', 'unicode_normalization_form'):
-            if key in o_global and not isinstance(o_global[key], str):
-                return False
-        if 'key' in o_global and 'phrase' in o_global:
-            return False
-    if not isinstance(obj.get('services'), dict):
-        return False
-    for sv_name, service in obj['services'].items():
-        if not isinstance(sv_name, str):
-            return False
-        if not isinstance(service, dict):
-            return False
-        for key, value in service.items():
-            match key:
-                case 'notes' | 'phrase' | 'key':
-                    if not isinstance(value, str):
-                        return False
-                case 'length':
-                    if not isinstance(value, int) or value < 1:
-                        return False
-                case _:
-                    if not isinstance(value, int) or value < 0:
-                        return False
-        if 'key' in service and 'phrase' in service:
-            return False
     return True
 
 
