@@ -334,6 +334,21 @@ class TestHypotheses:
         },
         service='0',
     )
+    # branch coverage: case `repeat = 0` in `if config[repeat]` below
+    @hypothesis.example(
+        phrase=b'\x00',
+        config={
+            'lower': 0,
+            'upper': 0,
+            'number': 0,
+            'space': 1,
+            'dash': 0,
+            'symbol': 0,
+            'repeat': 0,
+            'length': 5,
+        },
+        service='0',
+    )
     def test_100_all_length_character_and_occurrence_constraints_satisfied(
         self,
         phrase: str | bytes,

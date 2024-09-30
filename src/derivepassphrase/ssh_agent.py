@@ -20,6 +20,8 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
     from types import TracebackType
 
+    from typing_extensions import Buffer
+
 __all__ = ('SSHAgentClient',)
 __author__ = 'Marco Ricci <software@the13thletter.info>'
 
@@ -171,70 +173,69 @@ class SSHAgentClient:
         return int.to_bytes(num, 4, 'big', signed=False)
 
     @classmethod
-    def string(cls, payload: bytes | bytearray, /) -> bytes | bytearray:
+    def string(cls, payload: Buffer, /) -> bytes:
         r"""Format the payload as an SSH string, as per the agent protocol.
 
         Args:
-            payload: A byte string.
+            payload: A bytes-like object.
 
         Returns:
-            The payload, framed in the SSH agent wire protocol format.
+            The payload, framed in the SSH agent wire protocol format,
+            as a bytes object.
 
         Examples:
-            >>> bytes(SSHAgentClient.string(b'ssh-rsa'))
+            >>> SSHAgentClient.string(b'ssh-rsa')
             b'\x00\x00\x00\x07ssh-rsa'
 
         """
         try:
-            ret = bytearray()
-            ret.extend(cls.uint32(len(payload)))
-            ret.extend(payload)
-        except Exception as e:
+            payload = memoryview(payload)
+        except TypeError as e:
             msg = 'invalid payload type'
             raise TypeError(msg) from e  # noqa: DOC501
-        return ret
+        ret = bytearray()
+        ret.extend(cls.uint32(len(payload)))
+        ret.extend(payload)
+        return bytes(ret)
 
     @classmethod
-    def unstring(cls, bytestring: bytes | bytearray, /) -> bytes | bytearray:
+    def unstring(cls, bytestring: Buffer, /) -> bytes:
         r"""Unpack an SSH string.
 
         Args:
-            bytestring: A framed byte string.
+            bytestring: A framed bytes-like object.
 
         Returns:
-            The unframed byte string, i.e., the payload.
+            The payload, as a bytes object.
 
         Raises:
             ValueError:
                 The byte string is not an SSH string.
 
         Examples:
-            >>> bytes(SSHAgentClient.unstring(b'\x00\x00\x00\x07ssh-rsa'))
+            >>> SSHAgentClient.unstring(b'\x00\x00\x00\x07ssh-rsa')
             b'ssh-rsa'
-            >>> bytes(
-            ...     SSHAgentClient.unstring(SSHAgentClient.string(b'ssh-ed25519'))
-            ... )
+            >>> SSHAgentClient.unstring(SSHAgentClient.string(b'ssh-ed25519'))
             b'ssh-ed25519'
 
-        """  # noqa: E501
+        """
+        bytestring = memoryview(bytestring)
         n = len(bytestring)
         msg = 'malformed SSH byte string'
         if n < HEAD_LEN or n != HEAD_LEN + int.from_bytes(
             bytestring[:HEAD_LEN], 'big', signed=False
         ):
             raise ValueError(msg)
-        return bytestring[HEAD_LEN:]
+        return bytes(bytestring[HEAD_LEN:])
 
     @classmethod
-    def unstring_prefix(
-        cls, bytestring: bytes | bytearray, /
-    ) -> tuple[bytes | bytearray, bytes | bytearray]:
+    def unstring_prefix(cls, bytestring: Buffer, /) -> tuple[bytes, bytes]:
         r"""Unpack an SSH string at the beginning of the byte string.
 
         Args:
             bytestring:
-                A (general) byte string, beginning with a framed/SSH
-                byte string.
+                A bytes-like object, beginning with a framed/SSH byte
+                string.
 
         Returns:
             A 2-tuple `(a, b)`, where `a` is the unframed byte
@@ -246,18 +247,17 @@ class SSHAgentClient:
                 The byte string does not begin with an SSH string.
 
         Examples:
-            >>> a, b = SSHAgentClient.unstring_prefix(
+            >>> SSHAgentClient.unstring_prefix(
             ...     b'\x00\x00\x00\x07ssh-rsa____trailing data'
             ... )
-            >>> (bytes(a), bytes(b))
             (b'ssh-rsa', b'____trailing data')
-            >>> a, b = SSHAgentClient.unstring_prefix(
+            >>> SSHAgentClient.unstring_prefix(
             ...     SSHAgentClient.string(b'ssh-ed25519')
             ... )
-            >>> (bytes(a), bytes(b))
             (b'ssh-ed25519', b'')
 
         """
+        bytestring = memoryview(bytestring).toreadonly()
         n = len(bytestring)
         msg = 'malformed SSH byte string'
         if n < HEAD_LEN:
@@ -266,52 +266,52 @@ class SSHAgentClient:
         if m + HEAD_LEN > n:
             raise ValueError(msg)
         return (
-            bytestring[HEAD_LEN : m + HEAD_LEN],
-            bytestring[m + HEAD_LEN :],
+            bytes(bytestring[HEAD_LEN : m + HEAD_LEN]),
+            bytes(bytestring[m + HEAD_LEN :]),
         )
 
     @overload
     def request(  # pragma: no cover
         self,
         code: int | _types.SSH_AGENTC,
-        payload: bytes | bytearray,
+        payload: Buffer,
         /,
         *,
         response_code: None = None,
-    ) -> tuple[int, bytes | bytearray]: ...
+    ) -> tuple[int, bytes]: ...
 
     @overload
     def request(  # pragma: no cover
         self,
         code: int | _types.SSH_AGENTC,
-        payload: bytes | bytearray,
+        payload: Buffer,
         /,
         *,
         response_code: Iterable[_types.SSH_AGENT | int] = frozenset({
             _types.SSH_AGENT.SUCCESS
         }),
-    ) -> tuple[int, bytes | bytearray]: ...
+    ) -> tuple[int, bytes]: ...
 
     @overload
     def request(  # pragma: no cover
         self,
         code: int | _types.SSH_AGENTC,
-        payload: bytes | bytearray,
+        payload: Buffer,
         /,
         *,
         response_code: _types.SSH_AGENT | int = _types.SSH_AGENT.SUCCESS,
-    ) -> bytes | bytearray: ...
+    ) -> bytes: ...
 
     def request(
         self,
         code: int | _types.SSH_AGENTC,
-        payload: bytes | bytearray,
+        payload: Buffer,
         /,
         *,
         response_code: (
             Iterable[_types.SSH_AGENT | int] | _types.SSH_AGENT | int | None
         ) = None,
-    ) -> tuple[int, bytes | bytearray] | bytes | bytearray:
+    ) -> tuple[int, bytes] | bytes:
         """Issue a generic request to the SSH agent.
 
         Args:
@@ -320,10 +320,12 @@ class SSHAgentClient:
                 protocol numbers to use here (and which protocol numbers
                 to expect in a response).
             payload:
-                A byte string containing the payload, or "contents", of
-                the request.  Request-specific.  `request` will add any
-                necessary wire framing around the request code and the
-                payload.
+                A bytes-like object containing the payload, or
+                "contents", of the request.  Request-specific.
+
+                It is our responsibility to add any necessary wire
+                framing around the request code and the payload,
+                not the caller's.
             response_code:
                 An optional response code, or a set of response codes,
                 that we expect.  If given, and the actual response code
@@ -332,6 +334,8 @@ class SSHAgentClient:
         Returns:
             A 2-tuple consisting of the response code and the payload,
             with all wire framing removed.
+
+            If a response code was passed, then only return the payload.
 
         Raises:
             EOFError:
@@ -351,6 +355,7 @@ class SSHAgentClient:
             response_code = frozenset({
                 c if isinstance(c, int) else c.value for c in response_code
             })
+        payload = memoryview(payload)
         request_message = bytearray([
             code if isinstance(code, int) else code.value
         ])
@@ -424,12 +429,12 @@ class SSHAgentClient:
     def sign(
         self,
         /,
-        key: bytes | bytearray,
-        payload: bytes | bytearray,
+        key: Buffer,
+        payload: Buffer,
         *,
         flags: int = 0,
         check_if_key_loaded: bool = False,
-    ) -> bytes | bytearray:
+    ) -> bytes:
         """Request the SSH agent sign the payload with the key.
 
         Args:
@@ -467,6 +472,8 @@ class SSHAgentClient:
                 loaded into the agent.
 
         """
+        key = memoryview(key)
+        payload = memoryview(payload)
         if check_if_key_loaded:
             loaded_keys = frozenset({pair.key for pair in self.list_keys()})
             if bytes(key) not in loaded_keys:
@@ -475,10 +482,12 @@ class SSHAgentClient:
         request_data = bytearray(self.string(key))
         request_data.extend(self.string(payload))
         request_data.extend(self.uint32(flags))
-        return self.unstring(
-            self.request(
-                _types.SSH_AGENTC.SIGN_REQUEST.value,
-                request_data,
-                response_code=_types.SSH_AGENT.SIGN_RESPONSE,
+        return bytes(
+            self.unstring(
+                self.request(
+                    _types.SSH_AGENTC.SIGN_REQUEST.value,
+                    request_data,
+                    response_code=_types.SSH_AGENT.SIGN_RESPONSE,
+                )
             )
         )
