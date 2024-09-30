@@ -13,14 +13,17 @@ from typing import TYPE_CHECKING
 
 import click
 import click.testing
+import hypothesis
 import pytest
-from typing_extensions import Any
+from hypothesis import strategies
 
 import tests
 from derivepassphrase import _types, cli, ssh_agent, vault
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
+
+    from typing_extensions import Any
 
 
 class TestStaticFunctionality:
@@ -566,3 +569,45 @@ class TestAgentInteraction:
             ssh_agent.SSHAgentClient() as client,
         ):
             client.request(request_code, b'', response_code=response_code)
+
+
+class TestHypotheses:
+    @hypothesis.given(strategies.integers(min_value=0, max_value=0xFFFFFFFF))
+    # standard example value
+    @hypothesis.example(0xDEADBEEF)
+    def test_210_uint32(self, num: int) -> None:
+        uint32 = ssh_agent.SSHAgentClient.uint32
+        assert int.from_bytes(uint32(num), 'big', signed=False) == num
+
+    @hypothesis.given(strategies.binary(min_size=4, max_size=4))
+    # standard example value
+    @hypothesis.example(b'\xde\xad\xbe\xef')
+    def test_210a_uint32(self, bytestring: bytes) -> None:
+        uint32 = ssh_agent.SSHAgentClient.uint32
+        assert (
+            uint32(int.from_bytes(bytestring, 'big', signed=False))
+            == bytestring
+        )
+
+    @hypothesis.given(strategies.binary(max_size=0x0001FFFF))
+    # example: highest order bit is set
+    @hypothesis.example(b'DEADBEEF' * 10000)
+    def test_211_string(self, bytestring: bytes) -> None:
+        res = ssh_agent.SSHAgentClient.string(bytestring)
+        assert res.startswith((b'\x00\x00', b'\x00\x01'))
+        assert int.from_bytes(res[:4], 'big', signed=False) == len(bytestring)
+        assert res[4:] == bytestring
+
+    @hypothesis.given(strategies.binary(max_size=0x00FFFFFF))
+    # example: check for double-deserialization
+    @hypothesis.example(b'\x00\x00\x00\x07ssh-rsa')
+    def test_212_string_unstring(self, bytestring: bytes) -> None:
+        string = ssh_agent.SSHAgentClient.string
+        unstring = ssh_agent.SSHAgentClient.unstring
+        unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
+        encoded = string(bytestring)
+        assert unstring(encoded) == bytestring
+        assert unstring_prefix(encoded) == (bytestring, b'')
+        trailing_data = b'  trailing data'
+        encoded2 = string(bytestring) + trailing_data
+        assert unstring_prefix(encoded2) == (bytestring, trailing_data)
