@@ -335,6 +335,8 @@ class SSHAgentClient:
             A 2-tuple consisting of the response code and the payload,
             with all wire framing removed.
 
+            If a response code was passed, then only return the payload.
+
         Raises:
             EOFError:
                 The response from the SSH agent is truncated or missing.
