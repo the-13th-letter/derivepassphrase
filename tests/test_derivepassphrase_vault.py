@@ -394,6 +394,16 @@ class TestHypotheses:
                     len(set(snippet)) > 1
                 ), 'Password does not satisfy character repeat constraints.'
 
+    # This test tends to time out when using coverage without the
+    # C tracer, which in my testing leads to a roughly 40-fold execution
+    # time. So reset the deadline accordingly.
+    @hypothesis.settings(
+        deadline=(
+            40 * deadline  # type: ignore[name-defined]
+            if (deadline := hypothesis.settings().deadline) is not None
+            else None
+        )
+    )
     @hypothesis.given(
         phrase=strategies.one_of(
             strategies.binary(min_size=1),
