@@ -21,7 +21,7 @@ import tests
 from derivepassphrase import _types, cli, ssh_agent, vault
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator
+    from collections.abc import Iterable
 
     from typing_extensions import Any
 
@@ -276,18 +276,14 @@ class TestAgentInteraction:
         with pytest.raises(ValueError, match='unsuitable SSH key'):
             vault.Vault.phrase_from_key(public_key_data)
 
-    @staticmethod
-    def _params() -> Iterator[tuple[bytes, bool]]:
-        for value in tests.SUPPORTED_KEYS.values():
-            key = value['public_key_data']
-            yield (key, False)
-        singleton_key = tests.list_keys_singleton()[0].key
-        for value in tests.SUPPORTED_KEYS.values():
-            key = value['public_key_data']
-            if key == singleton_key:
-                yield (key, True)
-
-    @pytest.mark.parametrize(['key', 'single'], list(_params()))
+    @pytest.mark.parametrize(
+        ['key', 'single'],
+        [
+            (value['public_key_data'], False)
+            for value in tests.SUPPORTED_KEYS.values()
+        ]
+        + [(tests.list_keys_singleton()[0].key, True)],
+    )
     def test_210_ssh_key_selector(
         self,
         monkeypatch: pytest.MonkeyPatch,
@@ -344,8 +340,6 @@ class TestAgentInteraction:
         result = tests.ReadableResult.parse(_result)
         for snippet in ('Suitable SSH keys:\n', text, f'\n{b64_key}\n'):
             assert result.clean_exit(output=snippet), 'expected clean exit'
-
-    del _params
 
     def test_300_constructor_bad_running_agent(
         self,
