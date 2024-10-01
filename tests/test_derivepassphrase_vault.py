@@ -7,11 +7,12 @@
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING, TypeAlias, TypeVar
+from typing import TYPE_CHECKING
 
 import hypothesis
 import pytest
 from hypothesis import strategies
+from typing_extensions import TypeAlias, TypeVar
 
 import derivepassphrase
 

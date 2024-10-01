@@ -1568,15 +1568,15 @@ Boo.
                 ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
             hint: ssh_agent.SSHAgentClient | socket.socket | None
-            match conn_hint:
-                case 'client':
-                    hint = ssh_agent.SSHAgentClient()
-                case 'socket':
-                    hint = socket.socket(family=socket.AF_UNIX)
-                    hint.connect(running_ssh_agent)
-                case _:
-                    assert conn_hint == 'none'
-                    hint = None
+            # Use match/case here once Python 3.9 becomes unsupported.
+            if conn_hint == 'client':
+                hint = ssh_agent.SSHAgentClient()
+            elif conn_hint == 'socket':
+                hint = socket.socket(family=socket.AF_UNIX)
+                hint.connect(running_ssh_agent)
+            else:
+                assert conn_hint == 'none'
+                hint = None
             exception: Exception | None = None
             try:
                 list(cli._get_suitable_ssh_keys(hint))

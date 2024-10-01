@@ -441,25 +441,25 @@ def export_vault_native_data(
         key = exporter.get_vault_key()
     stored_exception: Exception | None = None
     for config_format in try_formats:
-        match config_format:
-            case 'v0.2':
-                try:
-                    return VaultNativeV02ConfigParser(contents, key)()
-                except ValueError as exc:
-                    exc.__context__ = stored_exception
-                    stored_exception = exc
-            case 'v0.3':
-                try:
-                    return VaultNativeV03ConfigParser(contents, key)()
-                except ValueError as exc:
-                    exc.__context__ = stored_exception
-                    stored_exception = exc
-            case _:  # pragma: no cover
-                msg = (
-                    f'Invalid vault native configuration format: '
-                    f'{config_format!r}'
-                )
-                raise ValueError(msg)
+        # Use match/case here once Python 3.9 becomes unsupported.
+        if config_format == 'v0.2':
+            try:
+                return VaultNativeV02ConfigParser(contents, key)()
+            except ValueError as exc:
+                exc.__context__ = stored_exception
+                stored_exception = exc
+        elif config_format == 'v0.3':
+            try:
+                return VaultNativeV03ConfigParser(contents, key)()
+            except ValueError as exc:
+                exc.__context__ = stored_exception
+                stored_exception = exc
+        else:  # pragma: no cover
+            msg = (
+                f'Invalid vault native configuration format: '
+                f'{config_format!r}'
+            )
+            raise ValueError(msg)
     msg = (
         f'Not a valid vault native configuration. '
         f'(We tried: {try_formats!r}.)'

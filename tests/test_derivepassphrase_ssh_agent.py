@@ -430,7 +430,7 @@ class TestAgentInteraction:
             del request_code
             del payload
             if isinstance(  # pragma: no branch
-                response_code, int | _types.SSH_AGENT
+                response_code, (int, _types.SSH_AGENT)
             ):
                 response_code = frozenset({response_code})
             if response_code is not None:  # pragma: no branch
@@ -507,7 +507,7 @@ class TestAgentInteraction:
             del request_code
             del payload
             if isinstance(  # pragma: no branch
-                response_code, int | _types.SSH_AGENT
+                response_code, (int, _types.SSH_AGENT)
             ):
                 response_code = frozenset({response_code})
             if response_code is not None:  # pragma: no branch

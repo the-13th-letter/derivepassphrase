@@ -43,15 +43,18 @@ class SSHAgentFailedError(RuntimeError):
     """The SSH agent failed to complete the requested operation."""
 
     def __str__(self) -> str:
-        match self.args:
-            case (_types.SSH_AGENT.FAILURE.value, b''):  # pragma: no branch
-                return 'The SSH agent failed to complete the request'
-            case (_, _msg) if _msg:  # pragma: no cover
-                code = self.args[0]
-                msg = self.args[1].decode('utf-8', 'surrogateescape')
-                return f'[Code {code:d}] {msg:s}'
-            case _:  # pragma: no cover
-                return repr(self)
+        # Use match/case here once Python 3.9 becomes unsupported.
+        if self.args == (  # pragma: no branch
+            _types.SSH_AGENT.FAILURE.value,
+            b'',
+        ):
+            return 'The SSH agent failed to complete the request'
+        elif self.args[1]:  # noqa: RET505  # pragma: no cover
+            code = self.args[0]
+            msg = self.args[1].decode('utf-8', 'surrogateescape')
+            return f'[Code {code:d}] {msg:s}'
+        else:  # pragma: no cover
+            return repr(self)
 
     def __repr__(self) -> str:  # pragma: no cover
         return f'{self.__class__.__name__}{self.args!r}'
@@ -348,7 +351,7 @@ class SSHAgentClient:
 
         """
         if isinstance(  # pragma: no branch
-            response_code, int | _types.SSH_AGENT
+            response_code, (int, _types.SSH_AGENT)
         ):
             response_code = frozenset({response_code})
         if response_code is not None:  # pragma: no branch
