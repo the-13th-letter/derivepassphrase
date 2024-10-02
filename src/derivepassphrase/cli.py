@@ -496,7 +496,8 @@ def _get_suitable_ssh_keys(
             If neither are given, then the agent's socket location is
             looked up in the `SSH_AUTH_SOCK` environment variable, and
             used to construct/deconstruct a one-shot client, as in the
-            previous case.
+            previous case.  This requires the [`socket.AF_UNIX`][]
+            symbol to exist.
 
     Yields:
         Every SSH key from the SSH agent that is suitable for passphrase
@@ -506,6 +507,10 @@ def _get_suitable_ssh_keys(
         KeyError:
             `conn` was `None`, and the `SSH_AUTH_SOCK` environment
             variable was not found.
+        NotImplementedError:
+            `conn` was `None`, and this Python does not support
+            [`socket.AF_UNIX`][], so the SSH agent client cannot be
+            automatically set up.
         OSError:
             `conn` was a socket or `None`, and there was an error
             setting up a socket connection to the agent.
@@ -640,7 +645,8 @@ def _select_ssh_key(
             If neither are given, then the agent's socket location is
             looked up in the `SSH_AUTH_SOCK` environment variable, and
             used to construct/deconstruct a one-shot client, as in the
-            previous case.
+            previous case.  This requires the [`socket.AF_UNIX`][]
+            symbol to exist.
 
     Returns:
         The selected SSH key.
@@ -649,6 +655,10 @@ def _select_ssh_key(
         KeyError:
             `conn` was `None`, and the `SSH_AUTH_SOCK` environment
             variable was not found.
+        NotImplementedError:
+            `conn` was `None`, and this Python does not support
+            [`socket.AF_UNIX`][], so the SSH agent client cannot be
+            automatically set up.
         OSError:
             `conn` was a socket or `None`, and there was an error
             setting up a socket connection to the agent.
@@ -1477,6 +1487,11 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 err('No valid SSH key selected')
             except KeyError:
                 err('Cannot find running SSH agent; check SSH_AUTH_SOCK')
+            except NotImplementedError:
+                err(
+                    'Cannot connect to SSH agent because '
+                    'this Python version does not support UNIX domain sockets'
+                )
             except OSError as e:
                 err(
                     f'Cannot connect to SSH agent: {e.strerror}: '

@@ -9,6 +9,7 @@ import contextlib
 import operator
 import os
 import shutil
+import socket
 import subprocess
 import sys
 import textwrap
@@ -49,6 +50,20 @@ def term_handler() -> Iterator[None]:  # pragma: no cover
         orig_term = signal.signal(signal.SIGTERM, sigint_handler)
         yield
         signal.signal(signal.SIGTERM, orig_term)
+
+
+@pytest.fixture(scope='session')
+def skip_if_no_af_unix_support() -> None:  # pragma: no cover
+    """Skip the test if Python does not support AF_UNIX.
+
+    Implemented as a fixture instead of a mark because it has
+    consequences for other fixtures, and because another "autouse"
+    session fixture may want to force/simulate non-support of
+    [`socket.AF_UNIX`][].
+
+    """
+    if not hasattr(socket, 'AF_UNIX'):
+        pytest.skip('socket module does not support AF_UNIX')
 
 
 def _spawn_pageant(  # pragma: no cover
@@ -217,7 +232,9 @@ _spawn_handlers = [
 
 
 @pytest.fixture
-def running_ssh_agent() -> Iterator[str]:  # pragma: no cover
+def running_ssh_agent(  # pragma: no cover
+    skip_if_no_af_unix_support: None,
+) -> Iterator[str]:
     """Ensure a running SSH agent, if possible, as a pytest fixture.
 
     Check for a running SSH agent, or spawn a new one if possible.  We
@@ -237,6 +254,7 @@ def running_ssh_agent() -> Iterator[str]:  # pragma: no cover
             If no agent is running or can be spawned, skip this test.
 
     """
+    del skip_if_no_af_unix_support
     exit_stack = contextlib.ExitStack()
     Popen = TypeVar('Popen', bound=subprocess.Popen)
 
@@ -371,6 +389,7 @@ def _spawn_data_sink(  # pragma: no cover
 @pytest.fixture(params=_spawn_handlers, ids=operator.itemgetter(0))
 def spawn_ssh_agent(  # noqa: C901
     request: pytest.FixtureRequest,
+    skip_if_no_af_unix_support: None,
 ) -> Iterator[tests.SpawnedSSHAgentInfo]:
     """Spawn an isolated SSH agent, if possible, as a pytest fixture.
 
@@ -390,6 +409,7 @@ def spawn_ssh_agent(  # noqa: C901
             If the agent cannot be spawned, skip this test.
 
     """
+    del skip_if_no_af_unix_support
     agent_env = os.environ.copy()
     agent_env.pop('SSH_AUTH_SOCK', None)
     exit_stack = contextlib.ExitStack()
