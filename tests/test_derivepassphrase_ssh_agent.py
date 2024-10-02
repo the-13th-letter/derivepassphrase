@@ -104,14 +104,16 @@ class TestStaticFunctionality:
                 tests.parse_sh_export_line(line, env_name=env_name)
 
     def test_200_constructor_no_running_agent(
-        self, monkeypatch: pytest.MonkeyPatch
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        skip_if_no_af_unix_support: None,
     ) -> None:
+        del skip_if_no_af_unix_support
         monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
-        sock = socket.socket(family=socket.AF_UNIX)
         with pytest.raises(
             KeyError, match='SSH_AUTH_SOCK environment variable'
         ):
-            ssh_agent.SSHAgentClient(socket=sock)
+            ssh_agent.SSHAgentClient()
 
     @pytest.mark.parametrize(
         ['input', 'expected'],
@@ -351,6 +353,19 @@ class TestAgentInteraction:
             sock = socket.socket(family=socket.AF_UNIX)
             with pytest.raises(OSError):  # noqa: PT011
                 ssh_agent.SSHAgentClient(socket=sock)
+
+    def test_301_constructor_no_af_unix_support(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        with monkeypatch.context() as monkeypatch2:
+            monkeypatch2.setenv('SSH_AUTH_SOCK', "the value doesn't matter")
+            monkeypatch2.delattr(socket, 'AF_UNIX', raising=False)
+            with pytest.raises(
+                NotImplementedError,
+                match='UNIX domain sockets',
+            ):
+                ssh_agent.SSHAgentClient()
 
     @pytest.mark.parametrize(
         'response',

@@ -975,7 +975,9 @@ contents go here
     def test_225b_store_config_fail_manual_no_ssh_agent(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        skip_if_no_af_unix_support: None,
     ) -> None:
+        del skip_if_no_af_unix_support
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -1294,6 +1296,30 @@ contents go here
         assert (
             warning_message in result.stderr
         ), 'expected known warning message in stderr'
+
+    def test_400_missing_af_unix_support(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'global': {'phrase': 'abc'}, 'services': {}},
+        ):
+            monkeypatch.setenv(
+                'SSH_AUTH_SOCK', "the value doesn't even matter"
+            )
+            monkeypatch.delattr(socket, 'AF_UNIX', raising=False)
+            _result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--key', '--config'],
+                catch_exceptions=False,
+            )
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='does not support UNIX domain sockets'
+        ), 'expected error exit and known error message'
 
 
 class TestCLIUtils:

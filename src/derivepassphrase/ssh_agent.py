@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import collections
-import errno
 import os
 import socket
 from typing import TYPE_CHECKING, overload
@@ -85,9 +84,16 @@ class SSHAgentClient:
 
         Args:
             socket:
-                An optional socket, connected to the SSH agent.  If not
-                given, we query the `SSH_AUTH_SOCK` environment
+                An optional socket, already connected to the SSH agent.
+                If not given, we query the `SSH_AUTH_SOCK` environment
                 variable to auto-discover the correct socket address.
+
+                [We currently only support connecting via UNIX domain
+                sockets][issue13], and only on platforms with support
+                for [`socket.AF_UNIX`][AF_UNIX].
+
+                [issue13]: https://github.com/the-13th-letter/derivepassphrase/issues/13
+                [AF_UNIX]: https://docs.python.org/3/library/socket.html#socket.AF_UNIX
             timeout:
                 A connection timeout for the SSH agent.  Only used if
                 the socket is not yet connected.  The default value
@@ -96,7 +102,11 @@ class SSHAgentClient:
 
         Raises:
             KeyError:
-                The `SSH_AUTH_SOCK` environment was not found.
+                The `SSH_AUTH_SOCK` environment variable was not found.
+            NotImplementedError:
+                This Python version does not support UNIX domain
+                sockets, necessary to automatically connect to a running
+                SSH agent via the `SSH_AUTH_SOCK` environment variable.
             OSError:
                 There was an error setting up a socket connection to the
                 agent.
@@ -104,19 +114,18 @@ class SSHAgentClient:
         """
         if socket is not None:
             self._connection = socket
-        else:
-            self._connection = _socket.socket(family=_socket.AF_UNIX)
-        try:
             # Test whether the socket is connected.
             self._connection.getpeername()
-        except OSError as e:
-            # This condition is hard to test purposefully, so exclude
-            # from coverage.
-            if e.errno != errno.ENOTCONN:  # pragma: no cover
-                raise
+        else:
+            if not hasattr(_socket, 'AF_UNIX'):
+                msg = (
+                    'This Python version does not support UNIX domain sockets'
+                )
+                raise NotImplementedError(msg)
+            self._connection = _socket.socket(family=_socket.AF_UNIX)
             if 'SSH_AUTH_SOCK' not in os.environ:
                 msg = 'SSH_AUTH_SOCK environment variable'
-                raise KeyError(msg) from None
+                raise KeyError(msg)
             ssh_auth_sock = os.environ['SSH_AUTH_SOCK']
             self._connection.settimeout(timeout)
             self._connection.connect(ssh_auth_sock)
