@@ -11,12 +11,14 @@ import collections
 import hashlib
 import math
 import types
-from collections.abc import Callable
-from typing import TypeAlias
+from typing import TYPE_CHECKING
 
-from typing_extensions import assert_type
+from typing_extensions import TypeAlias, assert_type
 
 from derivepassphrase import sequin, ssh_agent
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 __author__ = 'Marco Ricci <software@the13thletter.info>'
 
@@ -458,7 +460,7 @@ class Vault:
             a passphrase deterministically.
 
         """
-        TestFunc: TypeAlias = Callable[[bytes | bytearray], bool]
+        TestFunc: TypeAlias = 'Callable[[bytes | bytearray], bool]'
         deterministic_signature_types: dict[str, TestFunc]
         deterministic_signature_types = {
             'ssh-ed25519': lambda k: k.startswith(

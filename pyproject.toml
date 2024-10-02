@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "derivepassphrase"
 description = "An almost faithful Python reimplementation of James Coglan's vault."
 readme = "README.md"
-requires-python = ">= 3.10"
+requires-python = ">= 3.9"
 license = "MIT"
 keywords = []
 authors = [
@@ -133,7 +133,7 @@ extra-dependencies = [
 matrix-name-format = '{variable}_{value}'
 
 [[tool.hatch.envs.hatch-test.matrix]]
-python = ["3.12", "3.11", "3.10", "pypy3.10"]
+python = ["3.12", "3.11", "3.10", "3.9", "pypy3.10", "pypy3.9"]
 cryptography = ["no", "yes"]
 hypothesis-profile = ["user-default"]
 

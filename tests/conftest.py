@@ -262,75 +262,73 @@ def running_ssh_agent() -> Iterator[str]:  # pragma: no cover
         else:  # pragma: no cover
             monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
         for exec_name, spawn_func, _ in _spawn_handlers:
-            match exec_name:
-                case '(system)':
+            # Use match/case here once Python 3.9 becomes unsupported.
+            if exec_name == '(system)':
+                assert (
+                    os.environ.get('SSH_AUTH_SOCK', None)
+                    == startup_ssh_auth_sock
+                ), 'SSH_AUTH_SOCK mismatch when checking for running agent'
+                try:
+                    with ssh_agent.SSHAgentClient() as client:
+                        client.list_keys()
+                except (KeyError, OSError):
+                    continue
+                yield os.environ['SSH_AUTH_SOCK']
+                assert (
+                    os.environ.get('SSH_AUTH_SOCK', None)
+                    == startup_ssh_auth_sock
+                ), 'SSH_AUTH_SOCK mismatch after returning from running agent'
+            else:
+                assert (
+                    os.environ.get('SSH_AUTH_SOCK', None)
+                    == startup_ssh_auth_sock
+                ), f'SSH_AUTH_SOCK mismatch when checking for spawnable {exec_name}'  # noqa: E501
+                spawn_data = spawn_func(  # type: ignore[operator]
+                    executable=shutil.which(exec_name), env={}
+                )
+                if spawn_data is None:
+                    continue
+                proc: subprocess.Popen[str]
+                emits_debug_output: bool
+                proc, emits_debug_output = spawn_data
+                with exit_stack:
+                    exit_stack.enter_context(terminate_on_exit(proc))
                     assert (
                         os.environ.get('SSH_AUTH_SOCK', None)
                         == startup_ssh_auth_sock
-                    ), 'SSH_AUTH_SOCK mismatch when checking for running agent'
+                    ), f'SSH_AUTH_SOCK mismatch after spawning {exec_name}'
+                    assert proc.stdout is not None
+                    ssh_auth_sock_line = proc.stdout.readline()
                     try:
-                        with ssh_agent.SSHAgentClient() as client:
-                            client.list_keys()
-                    except (KeyError, OSError):
+                        ssh_auth_sock = tests.parse_sh_export_line(
+                            ssh_auth_sock_line, env_name='SSH_AUTH_SOCK'
+                        )
+                    except ValueError:  # pragma: no cover
                         continue
-                    yield os.environ['SSH_AUTH_SOCK']
-                    assert (
-                        os.environ.get('SSH_AUTH_SOCK', None)
-                        == startup_ssh_auth_sock
-                    ), 'SSH_AUTH_SOCK mismatch after returning from running agent'  # noqa: E501
-                case _:
-                    assert (
-                        os.environ.get('SSH_AUTH_SOCK', None)
-                        == startup_ssh_auth_sock
-                    ), f'SSH_AUTH_SOCK mismatch when checking for spawnable {exec_name}'  # noqa: E501
-                    spawn_data = spawn_func(  # type: ignore[operator]
-                        executable=shutil.which(exec_name), env={}
+                    pid_line = proc.stdout.readline()
+                    if (
+                        'pid' not in pid_line.lower()
+                        and '_pid' not in pid_line.lower()
+                    ):  # pragma: no cover
+                        pytest.skip(f'Cannot parse agent output: {pid_line!r}')
+                    proc2 = _spawn_data_sink(
+                        emits_debug_output=emits_debug_output, proc=proc
                     )
-                    if spawn_data is None:
-                        continue
-                    proc: subprocess.Popen[str]
-                    emits_debug_output: bool
-                    proc, emits_debug_output = spawn_data
-                    with exit_stack:
-                        exit_stack.enter_context(terminate_on_exit(proc))
-                        assert (
-                            os.environ.get('SSH_AUTH_SOCK', None)
-                            == startup_ssh_auth_sock
-                        ), f'SSH_AUTH_SOCK mismatch after spawning {exec_name}'
-                        assert proc.stdout is not None
-                        ssh_auth_sock_line = proc.stdout.readline()
-                        try:
-                            ssh_auth_sock = tests.parse_sh_export_line(
-                                ssh_auth_sock_line, env_name='SSH_AUTH_SOCK'
-                            )
-                        except ValueError:  # pragma: no cover
-                            continue
-                        pid_line = proc.stdout.readline()
-                        if (
-                            'pid' not in pid_line.lower()
-                            and '_pid' not in pid_line.lower()
-                        ):  # pragma: no cover
-                            pytest.skip(
-                                f'Cannot parse agent output: {pid_line!r}'
-                            )
-                        proc2 = _spawn_data_sink(
-                            emits_debug_output=emits_debug_output, proc=proc
-                        )
-                        if proc2 is not None:  # pragma: no cover
-                            exit_stack.enter_context(terminate_on_exit(proc2))
-                        assert (
-                            os.environ.get('SSH_AUTH_SOCK', None)
-                            == startup_ssh_auth_sock
-                        ), f'SSH_AUTH_SOCK mismatch after spawning {exec_name} helper'  # noqa: E501
-                        monkeypatch2 = exit_stack.enter_context(
-                            pytest.MonkeyPatch.context()
-                        )
-                        monkeypatch2.setenv('SSH_AUTH_SOCK', ssh_auth_sock)
-                        yield ssh_auth_sock
+                    if proc2 is not None:  # pragma: no cover
+                        exit_stack.enter_context(terminate_on_exit(proc2))
                     assert (
                         os.environ.get('SSH_AUTH_SOCK', None)
                         == startup_ssh_auth_sock
-                    ), f'SSH_AUTH_SOCK mismatch after tearing down {exec_name}'
+                    ), f'SSH_AUTH_SOCK mismatch after spawning {exec_name} helper'  # noqa: E501
+                    monkeypatch2 = exit_stack.enter_context(
+                        pytest.MonkeyPatch.context()
+                    )
+                    monkeypatch2.setenv('SSH_AUTH_SOCK', ssh_auth_sock)
+                    yield ssh_auth_sock
+                assert (
+                    os.environ.get('SSH_AUTH_SOCK', None)
+                    == startup_ssh_auth_sock
+                ), f'SSH_AUTH_SOCK mismatch after tearing down {exec_name}'
             return
         pytest.skip('No SSH agent running or spawnable')
 
@@ -419,98 +417,93 @@ def spawn_ssh_agent(  # noqa: C901
         else:  # pragma: no cover
             monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
         exec_name, spawn_func, agent_type = request.param
-        match exec_name:
-            case '(system)':
+        # Use match/case here once Python 3.9 becomes unsupported.
+        if exec_name == '(system)':
+            assert (
+                os.environ.get('SSH_AUTH_SOCK', None) == startup_ssh_auth_sock
+            ), 'SSH_AUTH_SOCK mismatch when checking for running agent'
+            try:
+                client = ssh_agent.SSHAgentClient()
+                client.list_keys()
+            except KeyError:  # pragma: no cover
+                pytest.skip('SSH agent is not running')
+            except OSError as exc:  # pragma: no cover
+                pytest.skip(
+                    f'Cannot talk to SSH agent: '
+                    f'{exc.strerror}: {exc.filename!r}'
+                )
+            with client:
                 assert (
                     os.environ.get('SSH_AUTH_SOCK', None)
                     == startup_ssh_auth_sock
-                ), 'SSH_AUTH_SOCK mismatch when checking for running agent'
+                ), 'SSH_AUTH_SOCK mismatch before setting up for running agent'
+                yield tests.SpawnedSSHAgentInfo(agent_type, client, False)
+            assert (
+                os.environ.get('SSH_AUTH_SOCK', None) == startup_ssh_auth_sock
+            ), 'SSH_AUTH_SOCK mismatch after returning from running agent'
+            return
+
+        else:
+            assert (
+                os.environ.get('SSH_AUTH_SOCK', None) == startup_ssh_auth_sock
+            ), f'SSH_AUTH_SOCK mismatch when checking for spawnable {exec_name}'  # noqa: E501
+            spawn_data = spawn_func(
+                executable=shutil.which(exec_name), env=agent_env
+            )
+            assert (
+                os.environ.get('SSH_AUTH_SOCK', None) == startup_ssh_auth_sock
+            ), f'SSH_AUTH_SOCK mismatch after spawning {exec_name}'
+            if spawn_data is None:  # pragma: no cover
+                pytest.skip(f'Cannot spawn usable {exec_name}')
+            proc, emits_debug_output = spawn_data
+            with exit_stack:
+                exit_stack.enter_context(terminate_on_exit(proc))
+                assert proc.stdout is not None
+                ssh_auth_sock_line = proc.stdout.readline()
+                try:
+                    ssh_auth_sock = tests.parse_sh_export_line(
+                        ssh_auth_sock_line, env_name='SSH_AUTH_SOCK'
+                    )
+                except ValueError:  # pragma: no cover
+                    pytest.skip(
+                        f'Cannot parse agent output: {ssh_auth_sock_line}'
+                    )
+                pid_line = proc.stdout.readline()
+                if (
+                    'pid' not in pid_line.lower()
+                    and '_pid' not in pid_line.lower()
+                ):  # pragma: no cover
+                    pytest.skip(f'Cannot parse agent output: {pid_line!r}')
+                assert (
+                    os.environ.get('SSH_AUTH_SOCK', None)
+                    == startup_ssh_auth_sock
+                ), f'SSH_AUTH_SOCK mismatch before spawning {exec_name} helper'
+                proc2 = _spawn_data_sink(
+                    emits_debug_output=emits_debug_output, proc=proc
+                )
+                if proc2 is not None:  # pragma: no cover
+                    exit_stack.enter_context(terminate_on_exit(proc2))
+                assert (
+                    os.environ.get('SSH_AUTH_SOCK', None)
+                    == startup_ssh_auth_sock
+                ), f'SSH_AUTH_SOCK mismatch after spawning {exec_name} helper'
+                monkeypatch2 = exit_stack.enter_context(
+                    pytest.MonkeyPatch.context()
+                )
+                monkeypatch2.setenv('SSH_AUTH_SOCK', ssh_auth_sock)
                 try:
                     client = ssh_agent.SSHAgentClient()
-                    client.list_keys()
-                except KeyError:  # pragma: no cover
-                    pytest.skip('SSH agent is not running')
                 except OSError as exc:  # pragma: no cover
                     pytest.skip(
                         f'Cannot talk to SSH agent: '
                         f'{exc.strerror}: {exc.filename!r}'
                     )
-                with client:
-                    assert (
-                        os.environ.get('SSH_AUTH_SOCK', None)
-                        == startup_ssh_auth_sock
-                    ), 'SSH_AUTH_SOCK mismatch before setting up for running agent'  # noqa: E501
-                    yield tests.SpawnedSSHAgentInfo(agent_type, client, False)
-                assert (
-                    os.environ.get('SSH_AUTH_SOCK', None)
-                    == startup_ssh_auth_sock
-                ), 'SSH_AUTH_SOCK mismatch after returning from running agent'
-                return
-
-            case _:
-                assert (
-                    os.environ.get('SSH_AUTH_SOCK', None)
-                    == startup_ssh_auth_sock
-                ), f'SSH_AUTH_SOCK mismatch when checking for spawnable {exec_name}'  # noqa: E501
-                spawn_data = spawn_func(
-                    executable=shutil.which(exec_name), env=agent_env
-                )
-                assert (
-                    os.environ.get('SSH_AUTH_SOCK', None)
-                    == startup_ssh_auth_sock
-                ), f'SSH_AUTH_SOCK mismatch after spawning {exec_name}'
-                if spawn_data is None:  # pragma: no cover
-                    pytest.skip(f'Cannot spawn usable {exec_name}')
-                proc, emits_debug_output = spawn_data
-                with exit_stack:
-                    exit_stack.enter_context(terminate_on_exit(proc))
-                    assert proc.stdout is not None
-                    ssh_auth_sock_line = proc.stdout.readline()
-                    try:
-                        ssh_auth_sock = tests.parse_sh_export_line(
-                            ssh_auth_sock_line, env_name='SSH_AUTH_SOCK'
-                        )
-                    except ValueError:  # pragma: no cover
-                        pytest.skip(
-                            f'Cannot parse agent output: {ssh_auth_sock_line}'
-                        )
-                    pid_line = proc.stdout.readline()
-                    if (
-                        'pid' not in pid_line.lower()
-                        and '_pid' not in pid_line.lower()
-                    ):  # pragma: no cover
-                        pytest.skip(f'Cannot parse agent output: {pid_line!r}')
-                    assert (
-                        os.environ.get('SSH_AUTH_SOCK', None)
-                        == startup_ssh_auth_sock
-                    ), f'SSH_AUTH_SOCK mismatch before spawning {exec_name} helper'  # noqa: E501
-                    proc2 = _spawn_data_sink(
-                        emits_debug_output=emits_debug_output, proc=proc
-                    )
-                    if proc2 is not None:  # pragma: no cover
-                        exit_stack.enter_context(terminate_on_exit(proc2))
-                    assert (
-                        os.environ.get('SSH_AUTH_SOCK', None)
-                        == startup_ssh_auth_sock
-                    ), f'SSH_AUTH_SOCK mismatch after spawning {exec_name} helper'  # noqa: E501
-                    monkeypatch2 = exit_stack.enter_context(
-                        pytest.MonkeyPatch.context()
-                    )
-                    monkeypatch2.setenv('SSH_AUTH_SOCK', ssh_auth_sock)
-                    try:
-                        client = ssh_agent.SSHAgentClient()
-                    except OSError as exc:  # pragma: no cover
-                        pytest.skip(
-                            f'Cannot talk to SSH agent: '
-                            f'{exc.strerror}: {exc.filename!r}'
-                        )
-                    exit_stack.enter_context(client)
-                    yield tests.SpawnedSSHAgentInfo(agent_type, client, True)
-                assert (
-                    os.environ.get('SSH_AUTH_SOCK', None)
-                    == startup_ssh_auth_sock
-                ), f'SSH_AUTH_SOCK mismatch after tearing down {exec_name}'
-                return
+                exit_stack.enter_context(client)
+                yield tests.SpawnedSSHAgentInfo(agent_type, client, True)
+            assert (
+                os.environ.get('SSH_AUTH_SOCK', None) == startup_ssh_auth_sock
+            ), f'SSH_AUTH_SOCK mismatch after tearing down {exec_name}'
+            return
 
 
 @pytest.fixture

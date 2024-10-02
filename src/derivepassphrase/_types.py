@@ -221,19 +221,19 @@ def validate_vault_config(  # noqa: C901,PLR0912,PLR0915
         if not isinstance(o_global, dict):
             raise TypeError(err_not_a_dict(['global']))
         for key, value in o_global.items():
-            match key:
-                case 'key' | 'phrase':
-                    if not isinstance(value, str):
-                        raise TypeError(err_not_a_dict(['global', key]))
-                case 'unicode_normalization_form':
-                    if not isinstance(value, str):
-                        raise TypeError(err_not_a_dict(['global', key]))
-                    if not allow_derivepassphrase_extensions:
-                        raise ValueError(
-                            err_derivepassphrase_extension(key, ('global',))
-                        )
-                case _ if not allow_unknown_settings:
-                    raise ValueError(err_unknown_setting(key, ('global',)))
+            # Use match/case here once Python 3.9 becomes unsupported.
+            if key in {'key', 'phrase'}:
+                if not isinstance(value, str):
+                    raise TypeError(err_not_a_dict(['global', key]))
+            elif key == 'unicode_normalization_form':
+                if not isinstance(value, str):
+                    raise TypeError(err_not_a_dict(['global', key]))
+                if not allow_derivepassphrase_extensions:
+                    raise ValueError(
+                        err_derivepassphrase_extension(key, ('global',))
+                    )
+            elif not allow_unknown_settings:
+                raise ValueError(err_unknown_setting(key, ('global',)))
         if 'key' in o_global and 'phrase' in o_global:
             raise ValueError(err_key_and_phrase)
     if not isinstance(obj.get('services'), dict):
@@ -244,50 +244,46 @@ def validate_vault_config(  # noqa: C901,PLR0912,PLR0915
         if not isinstance(service, dict):
             raise TypeError(err_not_a_dict(['services', sv_name]))
         for key, value in service.items():
-            match key:
-                case 'notes' | 'phrase' | 'key':
-                    if not isinstance(value, str):
-                        raise TypeError(
-                            err_not_a_string(['services', sv_name, key])
-                        )
-                case 'length':
-                    if not isinstance(value, int):
-                        raise TypeError(
-                            err_not_an_int(['services', sv_name, key])
-                        )
-                    if value < 1:
-                        raise ValueError(
-                            err_bad_number(
-                                key,
-                                ['services', sv_name],
-                                strictly_positive=True,
-                            )
-                        )
-                case (
-                    'repeat'
-                    | 'lower'
-                    | 'upper'
-                    | 'number'
-                    | 'space'
-                    | 'dash'
-                    | 'symbol'
-                ):
-                    if not isinstance(value, int):
-                        raise TypeError(
-                            err_not_an_int(['services', sv_name, key])
-                        )
-                    if value < 0:
-                        raise ValueError(
-                            err_bad_number(
-                                key,
-                                ['services', sv_name],
-                                strictly_positive=False,
-                            )
-                        )
-                case _ if not allow_unknown_settings:
-                    raise ValueError(
-                        err_unknown_setting(key, ['services', sv_name])
+            # Use match/case here once Python 3.9 becomes unsupported.
+            if key in {'notes', 'phrase', 'key'}:
+                if not isinstance(value, str):
+                    raise TypeError(
+                        err_not_a_string(['services', sv_name, key])
                     )
+            elif key == 'length':
+                if not isinstance(value, int):
+                    raise TypeError(err_not_an_int(['services', sv_name, key]))
+                if value < 1:
+                    raise ValueError(
+                        err_bad_number(
+                            key,
+                            ['services', sv_name],
+                            strictly_positive=True,
+                        )
+                    )
+            elif key in {
+                'repeat',
+                'lower',
+                'upper',
+                'number',
+                'space',
+                'dash',
+                'symbol',
+            }:
+                if not isinstance(value, int):
+                    raise TypeError(err_not_an_int(['services', sv_name, key]))
+                if value < 0:
+                    raise ValueError(
+                        err_bad_number(
+                            key,
+                            ['services', sv_name],
+                            strictly_positive=False,
+                        )
+                    )
+            elif not allow_unknown_settings:
+                raise ValueError(
+                    err_unknown_setting(key, ['services', sv_name])
+                )
         if 'key' in service and 'phrase' in service:
             raise ValueError(err_key_and_phrase)
 

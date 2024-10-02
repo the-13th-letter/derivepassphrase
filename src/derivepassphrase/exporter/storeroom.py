@@ -23,7 +23,7 @@ should *not* be used or relied on.
 from __future__ import annotations
 
 import base64
-import glob
+import fnmatch
 import json
 import logging
 import os
@@ -678,9 +678,15 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
 
     config_structure: dict[str, Any] = {}
     json_contents: dict[str, bytes] = {}
-    for file in glob.glob(
-        '[01][0-9a-f]', root_dir=os.fsdecode(storeroom_path)
-    ):
+    # Use glob.glob(..., root_dir=...) here once Python 3.9 becomes
+    # unsupported.
+    storeroom_path_str = os.fsdecode(storeroom_path)
+    valid_hashdirs = [
+        hashdir_name
+        for hashdir_name in os.listdir(storeroom_path_str)
+        if fnmatch.fnmatch(hashdir_name, '[01][0-9a-f]')
+    ]
+    for file in valid_hashdirs:
         bucket_contents = list(
             decrypt_bucket_file(file, master_keys, root_dir=storeroom_path)
         )

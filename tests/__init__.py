@@ -806,26 +806,26 @@ def isolated_vault_exporter_config(
         monkeypatch.delenv('USERNAME', raising=False)
         if vault_key is not None:
             monkeypatch.setenv('VAULT_KEY', vault_key)
-        match vault_config:
-            case str():
-                with open('.vault', 'w', encoding='UTF-8') as outfile:
-                    print(vault_config, file=outfile)
-            case bytes():
-                os.makedirs('.vault', mode=0o700, exist_ok=True)
-                with (
-                    chdir('.vault'),
-                    tempfile.NamedTemporaryFile(suffix='.zip') as tmpzipfile,
-                ):
-                    for line in vault_config.splitlines():
-                        tmpzipfile.write(base64.standard_b64decode(line))
-                    tmpzipfile.flush()
-                    tmpzipfile.seek(0, 0)
-                    with zipfile.ZipFile(tmpzipfile.file) as zipfileobj:
-                        zipfileobj.extractall()
-            case None:
-                pass
-            case _:  # pragma: no cover
-                assert_never(vault_config)
+        # Use match/case here once Python 3.9 becomes unsupported.
+        if isinstance(vault_config, str):
+            with open('.vault', 'w', encoding='UTF-8') as outfile:
+                print(vault_config, file=outfile)
+        elif isinstance(vault_config, bytes):
+            os.makedirs('.vault', mode=0o700, exist_ok=True)
+            with (
+                chdir('.vault'),
+                tempfile.NamedTemporaryFile(suffix='.zip') as tmpzipfile,
+            ):
+                for line in vault_config.splitlines():
+                    tmpzipfile.write(base64.standard_b64decode(line))
+                tmpzipfile.flush()
+                tmpzipfile.seek(0, 0)
+                with zipfile.ZipFile(tmpzipfile.file) as zipfileobj:
+                    zipfileobj.extractall()
+        elif vault_config is None:
+            pass
+        else:  # pragma: no cover
+            assert_never(vault_config)
         yield
 
 
@@ -935,15 +935,15 @@ class ReadableResult(NamedTuple):
                 code, or an expected exception type.
 
         """
-        match error:
-            case str():
-                return (
-                    isinstance(self.exception, SystemExit)
-                    and self.exit_code > 0
-                    and (not error or error in self.stderr)
-                )
-            case _:
-                return isinstance(self.exception, error)
+        # Use match/case here once Python 3.9 becomes unsupported.
+        if isinstance(error, str):
+            return (
+                isinstance(self.exception, SystemExit)
+                and self.exit_code > 0
+                and (not error or error in self.stderr)
+            )
+        else:  # noqa: RET505
+            return isinstance(self.exception, error)
 
 
 def parse_sh_export_line(line: str, *, env_name: str) -> str:

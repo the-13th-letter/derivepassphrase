@@ -202,38 +202,36 @@ def _load_data(
 ) -> Any:  # noqa: ANN401
     contents: bytes
     module: types.ModuleType
-    match fmt:
-        case 'v0.2':
-            module = importlib.import_module(
-                'derivepassphrase.exporter.vault_native'
-            )
-            if module.STUBBED:
-                raise ModuleNotFoundError
-            with open(path, 'rb') as infile:
-                contents = base64.standard_b64decode(infile.read())
-            return module.export_vault_native_data(
-                contents, key, try_formats=['v0.2']
-            )
-        case 'v0.3':
-            module = importlib.import_module(
-                'derivepassphrase.exporter.vault_native'
-            )
-            if module.STUBBED:
-                raise ModuleNotFoundError
-            with open(path, 'rb') as infile:
-                contents = base64.standard_b64decode(infile.read())
-            return module.export_vault_native_data(
-                contents, key, try_formats=['v0.3']
-            )
-        case 'storeroom':
-            module = importlib.import_module(
-                'derivepassphrase.exporter.storeroom'
-            )
-            if module.STUBBED:
-                raise ModuleNotFoundError
-            return module.export_storeroom_data(path, key)
-        case _:  # pragma: no cover
-            assert_never(fmt)
+    # Use match/case here once Python 3.9 becomes unsupported.
+    if fmt == 'v0.2':
+        module = importlib.import_module(
+            'derivepassphrase.exporter.vault_native'
+        )
+        if module.STUBBED:
+            raise ModuleNotFoundError
+        with open(path, 'rb') as infile:
+            contents = base64.standard_b64decode(infile.read())
+        return module.export_vault_native_data(
+            contents, key, try_formats=['v0.2']
+        )
+    elif fmt == 'v0.3':  # noqa: RET505
+        module = importlib.import_module(
+            'derivepassphrase.exporter.vault_native'
+        )
+        if module.STUBBED:
+            raise ModuleNotFoundError
+        with open(path, 'rb') as infile:
+            contents = base64.standard_b64decode(infile.read())
+        return module.export_vault_native_data(
+            contents, key, try_formats=['v0.3']
+        )
+    elif fmt == 'storeroom':
+        module = importlib.import_module('derivepassphrase.exporter.storeroom')
+        if module.STUBBED:
+            raise ModuleNotFoundError
+        return module.export_storeroom_data(path, key)
+    else:  # pragma: no cover
+        assert_never(fmt)
 
 
 @click.command(
@@ -373,14 +371,14 @@ def _config_filename(
     path = os.getenv(PROG_NAME.upper() + '_PATH') or click.get_app_dir(
         PROG_NAME, force_posix=True
     )
-    match subsystem:
-        case None:
-            return path
-        case 'vault' | 'settings':
-            filename = f'{subsystem}.json'
-        case _:  # pragma: no cover
-            msg = f'Unknown configuration subsystem: {subsystem!r}'
-            raise AssertionError(msg)
+    # Use match/case here once Python 3.9 becomes unsupported.
+    if subsystem is None:
+        return path
+    elif subsystem in {'vault', 'settings'}:  # noqa: RET505
+        filename = f'{subsystem}.json'
+    else:  # pragma: no cover
+        msg = f'Unknown configuration subsystem: {subsystem!r}'
+        raise AssertionError(msg)
     return os.path.join(path, filename)
 
 
@@ -522,17 +520,17 @@ def _get_suitable_ssh_keys(
     """
     client: ssh_agent.SSHAgentClient
     client_context: contextlib.AbstractContextManager[Any]
-    match conn:
-        case ssh_agent.SSHAgentClient():
-            client = conn
-            client_context = contextlib.nullcontext()
-        case socket.socket() | None:
-            client = ssh_agent.SSHAgentClient(socket=conn)
-            client_context = client
-        case _:  # pragma: no cover
-            assert_never(conn)
-            msg = f'invalid connection hint: {conn!r}'
-            raise TypeError(msg)  # noqa: DOC501
+    # Use match/case here once Python 3.9 becomes unsupported.
+    if isinstance(conn, ssh_agent.SSHAgentClient):
+        client = conn
+        client_context = contextlib.nullcontext()
+    elif isinstance(conn, socket.socket) or conn is None:
+        client = ssh_agent.SSHAgentClient(socket=conn)
+        client_context = client
+    else:  # pragma: no cover
+        assert_never(conn)
+        msg = f'invalid connection hint: {conn!r}'
+        raise TypeError(msg)  # noqa: DOC501
     with client_context:
         try:
             all_key_comment_pairs = list(client.list_keys())
@@ -1216,19 +1214,19 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     for param in ctx.command.params:
         if isinstance(param, click.Option):
             group: type[click.Option]
-            match param:
-                case PasswordGenerationOption():
-                    group = PasswordGenerationOption
-                case ConfigurationOption():
-                    group = ConfigurationOption
-                case StorageManagementOption():
-                    group = StorageManagementOption
-                case OptionGroupOption():
-                    raise AssertionError(  # noqa: DOC501,TRY003
-                        f'Unknown option group for {param!r}'  # noqa: EM102
-                    )
-                case _:
-                    group = click.Option
+            # Use match/case here once Python 3.9 becomes unsupported.
+            if isinstance(param, PasswordGenerationOption):
+                group = PasswordGenerationOption
+            elif isinstance(param, ConfigurationOption):
+                group = ConfigurationOption
+            elif isinstance(param, StorageManagementOption):
+                group = StorageManagementOption
+            elif isinstance(param, OptionGroupOption):
+                raise AssertionError(  # noqa: DOC501,TRY003,TRY004
+                    f'Unknown option group for {param!r}'  # noqa: EM102
+                )
+            else:
+                group = click.Option
             options_in_group.setdefault(group, []).append(param)
         params_by_str[param.human_readable_name] = param
         for name in param.opts + param.secondary_opts:
