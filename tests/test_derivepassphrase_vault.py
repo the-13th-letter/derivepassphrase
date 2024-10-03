@@ -297,7 +297,20 @@ def vault_config(draw: strategies.DrawFn) -> dict[str, int]:
     }
 
 
+# TODO(@the-13th-letter): Since all tests in this class manipulate the
+# hypothesis deadline setting, perhaps it is more sensible to move this
+# manipulation into a separate decorator, or a fixture.
 class TestHypotheses:
+    # This test tends to time out when using coverage without the
+    # C tracer, which in my testing leads to a roughly 40-fold execution
+    # time. So reset the deadline accordingly.
+    @hypothesis.settings(
+        deadline=(
+            40 * deadline  # type: ignore[name-defined]
+            if (deadline := hypothesis.settings().deadline) is not None
+            else None
+        )
+    )
     @hypothesis.given(
         phrase=strategies.one_of(
             strategies.binary(min_size=1), strategies.text(min_size=1)
