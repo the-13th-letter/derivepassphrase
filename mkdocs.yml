@@ -105,6 +105,8 @@ nav:
       - Submodule vault: reference/derivepassphrase.vault.md
   #- Design & Background: explanation.md
   - Changelog: changelog.md
+exclude_docs: |
+  changelog.d
 
 markdown_extensions:
   - abbr
