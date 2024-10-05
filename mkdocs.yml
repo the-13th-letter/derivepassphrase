@@ -89,6 +89,8 @@ plugins:
 nav:
   - Overview: index.md
   #- Tutorials & Examples: tutorials.md
+  - Tutorials & Examples:
+    - tutorials/basic-setup-password.md
   #- How-Tos: how-tos.md
   - Reference:
     - reference/index.md
@@ -107,6 +109,8 @@ nav:
   - Changelog: changelog.md
 exclude_docs: |
   changelog.d
+not_in_nav: |
+  _future.md
 
 markdown_extensions:
   - abbr
@@ -118,6 +122,7 @@ markdown_extensions:
   - smarty
   - toc:
       permalink: true
+  - pymdownx.details
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
