@@ -22,7 +22,7 @@ from derivepassphrase import _types
         ),
         (
             {'global': {'phrase': 'abc', 'key': '...'}, 'services': {}},
-            'incompatible config values: global.key and global.phrase',
+            '',
         ),
         ({'services': None}, 'bad config value: services'),
         ({'services': {2: {}}}, 'bad config value: services."2"'),
@@ -62,10 +62,7 @@ from derivepassphrase import _types
         ({'services': {'sv': {'length': 10, 'phrase': '...'}}}, ''),
         ({'services': {'sv': {'length': 10, 'key': '...'}}}, ''),
         ({'services': {'sv': {'upper': 10, 'key': '...'}}}, ''),
-        (
-            {'services': {'sv': {'phrase': 'abc', 'key': '...'}}},
-            'incompatible config values: services.sv.key and services.sv.phrase',  # noqa: E501
-        ),
+        ({'services': {'sv': {'phrase': 'abc', 'key': '...'}}}, ''),
         (
             {
                 'global': {'phrase': 'abc'},

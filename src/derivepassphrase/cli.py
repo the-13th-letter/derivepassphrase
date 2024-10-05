@@ -1574,17 +1574,12 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
 
             # If either --key or --phrase are given, use that setting.
             # Otherwise, if both key and phrase are set in the config,
-            # one must be global (ignore it) and one must be
-            # service-specific (use that one). Otherwise, if only one of
-            # key and phrase is set in the config, use that one.  In all
-            # these above cases, set the phrase via
-            # derivepassphrase.vault.Vault.phrase_from_key if a key is
-            # given. Finally, if nothing is set, error out.
+            # use the key.  Otherwise, if only one of key and phrase is
+            # set in the config, use that one.  In all these above
+            # cases, set the phrase via vault.Vault.phrase_from_key if
+            # a key is given.  Finally, if nothing is set, error out.
             if use_key or use_phrase:
                 kwargs['phrase'] = key_to_phrase(key) if use_key else phrase
-            elif kwargs.get('phrase') and kwargs.get('key'):
-                if any('key' in m for m in settings.maps[:2]):
-                    kwargs['phrase'] = key_to_phrase(kwargs['key'])
             elif kwargs.get('key'):
                 kwargs['phrase'] = key_to_phrase(kwargs['key'])
             elif kwargs.get('phrase'):

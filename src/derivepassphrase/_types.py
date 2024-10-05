@@ -182,10 +182,6 @@ def validate_vault_config(  # noqa: C901,PLR0912,PLR0915
         json_path_str = as_json_path_string(json_path)
         return f'vault config entry {json_path_str} is not an integer'
 
-    err_key_and_phrase = (
-        '"key" and "phrase" specified on the same vault config level'
-    )
-
     def err_derivepassphrase_extension(
         key: str, json_path: Sequence[str], /
     ) -> str:
@@ -234,8 +230,6 @@ def validate_vault_config(  # noqa: C901,PLR0912,PLR0915
                     )
             elif not allow_unknown_settings:
                 raise ValueError(err_unknown_setting(key, ('global',)))
-        if 'key' in o_global and 'phrase' in o_global:
-            raise ValueError(err_key_and_phrase)
     if not isinstance(obj.get('services'), dict):
         raise TypeError(err_not_a_dict(['services']))
     for sv_name, service in obj['services'].items():
@@ -284,8 +278,6 @@ def validate_vault_config(  # noqa: C901,PLR0912,PLR0915
                 raise ValueError(
                     err_unknown_setting(key, ['services', sv_name])
                 )
-        if 'key' in service and 'phrase' in service:
-            raise ValueError(err_key_and_phrase)
 
 
 def is_vault_config(obj: Any) -> TypeIs[VaultConfig]:  # noqa: ANN401

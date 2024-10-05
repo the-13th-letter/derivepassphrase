@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 import pytest
 from typing_extensions import NamedTuple, Self, assert_never
 
-from derivepassphrase import _types, cli, ssh_agent
+from derivepassphrase import _types, cli, ssh_agent, vault
 
 __all__ = ()
 
@@ -719,6 +719,18 @@ def list_keys(self: Any = None) -> list[_types.KeyCommentPair]:
         for key, value in UNSUITABLE_KEYS.items()
     ]
     return list1 + list2
+
+
+def sign(
+    self: Any, key: bytes | bytearray, message: bytes | bytearray
+) -> bytes:
+    del self  # Unused.
+    assert message == vault.Vault._UUID
+    for value in SUPPORTED_KEYS.values():
+        if value['public_key_data'] == key:  # pragma: no branch
+            assert value['expected_signature'] is not None
+            return value['expected_signature']
+    raise AssertionError
 
 
 def list_keys_singleton(self: Any = None) -> list[_types.KeyCommentPair]:
