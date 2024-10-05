@@ -14,6 +14,11 @@
 
 * How to set up `derivepassphrase` with an SSH key
 * How to choose a good service name
+* How to edit a saved `derivepassphrase vault` configuration correctly
+
+## Reference
+
+* `derivepassphrase-vault.conf`(<b>5</b>)
 
 ## Explanation
 
