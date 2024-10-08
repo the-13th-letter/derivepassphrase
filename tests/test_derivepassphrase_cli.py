@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import contextlib
+import copy
 import errno
 import json
 import os
@@ -13,7 +14,9 @@ import socket
 from typing import TYPE_CHECKING
 
 import click.testing
+import hypothesis
 import pytest
+from hypothesis import strategies
 from typing_extensions import NamedTuple
 
 import tests
@@ -38,6 +41,8 @@ DUMMY_KEY2 = tests.DUMMY_KEY2
 DUMMY_KEY2_B64 = tests.DUMMY_KEY2_B64
 DUMMY_KEY3 = tests.DUMMY_KEY3
 DUMMY_KEY3_B64 = tests.DUMMY_KEY3_B64
+
+TEST_CONFIGS = tests.TEST_CONFIGS
 
 
 class IncompatibleConfiguration(NamedTuple):
@@ -573,7 +578,74 @@ class TestCLI:
             error='mutually exclusive with '
         ), 'expected error exit and known error message'
 
-    def test_213_import_bad_config_not_vault_config(
+    @pytest.mark.parametrize(
+        'config',
+        [
+            conf.config
+            for conf in tests.TEST_CONFIGS
+            if tests.is_valid_test_config(conf)
+        ],
+    )
+    def test_213_import_config_success(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        config: Any,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'services': {}},
+        ):
+            _result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--import', '-'],
+                input=json.dumps(config),
+                catch_exceptions=False,
+            )
+            with open(
+                cli._config_filename(subsystem='vault'), encoding='UTF-8'
+            ) as infile:
+                config2 = json.load(infile)
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+        assert config2 == config, 'config not imported correctly'
+
+    @hypothesis.given(
+        conf=tests.smudged_vault_test_config(
+            strategies.sampled_from(TEST_CONFIGS).filter(
+                tests.is_valid_test_config
+            )
+        )
+    )
+    def test_213a_import_config_success(
+        self,
+        conf: tests.VaultTestConfig,
+    ) -> None:
+        config = conf.config
+        config2 = copy.deepcopy(config)
+        _types.clean_up_falsy_vault_config_values(config2)
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_config(
+            monkeypatch=pytest.MonkeyPatch(),
+            runner=runner,
+            config={'services': {}},
+        ):
+            _result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--import', '-'],
+                input=json.dumps(config),
+                catch_exceptions=False,
+            )
+            with open(
+                cli._config_filename(subsystem='vault'), encoding='UTF-8'
+            ) as infile:
+                config3 = json.load(infile)
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+        assert config3 == config2, 'config not imported correctly'
+
+    def test_213b_import_bad_config_not_vault_config(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
@@ -590,7 +662,7 @@ class TestCLI:
             error='Invalid vault config'
         ), 'expected error exit and known error message'
 
-    def test_213a_import_bad_config_not_json_data(
+    def test_213c_import_bad_config_not_json_data(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
@@ -607,7 +679,7 @@ class TestCLI:
             error='cannot decode JSON'
         ), 'expected error exit and known error message'
 
-    def test_213b_import_bad_config_not_a_file(
+    def test_213d_import_bad_config_not_a_file(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:

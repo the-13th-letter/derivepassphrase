@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import base64
 import contextlib
+import copy
 import enum
 import importlib.util
 import json
@@ -16,7 +17,9 @@ import tempfile
 import zipfile
 from typing import TYPE_CHECKING
 
+import hypothesis
 import pytest
+from hypothesis import strategies
 from typing_extensions import NamedTuple, Self, assert_never
 
 from derivepassphrase import _types, cli, ssh_agent, vault
@@ -36,6 +39,376 @@ if TYPE_CHECKING:
         public_key_data: bytes
         expected_signature: bytes | None
         derived_passphrase: bytes | str | None
+
+
+class ValidationSettings(NamedTuple):
+    allow_unknown_settings: bool
+    allow_derivepassphrase_extensions: bool
+
+
+class VaultTestConfig(NamedTuple):
+    config: Any
+    comment: str
+    validation_settings: ValidationSettings | None
+
+
+TEST_CONFIGS: list[VaultTestConfig] = [
+    VaultTestConfig(None, 'not a dict', None),
+    VaultTestConfig({}, 'missing required keys', None),
+    VaultTestConfig(
+        {'global': None, 'services': {}}, 'bad config value: global', None
+    ),
+    VaultTestConfig(
+        {'global': {'key': 123}, 'services': {}},
+        'bad config value: global.key',
+        None,
+    ),
+    VaultTestConfig(
+        {'global': {'phrase': 'abc', 'key': '...'}, 'services': {}},
+        '',
+        None,
+    ),
+    VaultTestConfig({'services': None}, 'bad config value: services', None),
+    VaultTestConfig(
+        {'services': {'1': {}, 2: {}}}, 'bad config value: services."2"', None
+    ),
+    VaultTestConfig(
+        {'services': {'1': {}, '2': 2}}, 'bad config value: services."2"', None
+    ),
+    VaultTestConfig(
+        {'services': {'sv': {'notes': ['sentinel', 'list']}}},
+        'bad config value: services.sv.notes',
+        None,
+    ),
+    VaultTestConfig(
+        {'services': {'sv': {'notes': 'blah blah blah'}}}, '', None
+    ),
+    VaultTestConfig(
+        {'services': {'sv': {'length': '200'}}},
+        'bad config value: services.sv.length',
+        None,
+    ),
+    VaultTestConfig(
+        {'services': {'sv': {'length': 0.5}}},
+        'bad config value: services.sv.length',
+        None,
+    ),
+    VaultTestConfig(
+        {'services': {'sv': {'length': ['sentinel', 'list']}}},
+        'bad config value: services.sv.length',
+        None,
+    ),
+    VaultTestConfig(
+        {'services': {'sv': {'length': -10}}},
+        'bad config value: services.sv.length',
+        None,
+    ),
+    VaultTestConfig(
+        {'services': {'sv': {'lower': '10'}}},
+        'bad config value: services.sv.lower',
+        None,
+    ),
+    VaultTestConfig(
+        {'services': {'sv': {'upper': -10}}},
+        'bad config value: services.sv.upper',
+        None,
+    ),
+    VaultTestConfig(
+        {'services': {'sv': {'number': ['sentinel', 'list']}}},
+        'bad config value: services.sv.number',
+        None,
+    ),
+    VaultTestConfig(
+        {
+            'global': {'phrase': 'my secret phrase'},
+            'services': {'sv': {'length': 10}},
+        },
+        '',
+        None,
+    ),
+    VaultTestConfig(
+        {'services': {'sv': {'length': 10, 'phrase': '...'}}}, '', None
+    ),
+    VaultTestConfig(
+        {'services': {'sv': {'length': 10, 'key': '...'}}}, '', None
+    ),
+    VaultTestConfig(
+        {'services': {'sv': {'upper': 10, 'key': '...'}}}, '', None
+    ),
+    VaultTestConfig(
+        {'services': {'sv': {'phrase': 'abc', 'key': '...'}}}, '', None
+    ),
+    VaultTestConfig(
+        {
+            'global': {'phrase': 'abc'},
+            'services': {'sv': {'phrase': 'abc', 'length': 10}},
+        },
+        '',
+        None,
+    ),
+    VaultTestConfig(
+        {
+            'global': {'key': '...'},
+            'services': {'sv': {'phrase': 'abc', 'length': 10}},
+        },
+        '',
+        None,
+    ),
+    VaultTestConfig(
+        {
+            'global': {'key': '...'},
+            'services': {
+                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
+                'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
+            },
+        },
+        '',
+        None,
+    ),
+    VaultTestConfig(
+        {
+            'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
+            'services': {
+                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
+                'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
+            },
+        },
+        '',
+        None,
+    ),
+    VaultTestConfig(
+        {
+            'global': {'key': '...', 'unicode_normalization_form': True},
+            'services': {},
+        },
+        'bad config value: global.unicode_normalization_form',
+        None,
+    ),
+    VaultTestConfig(
+        {
+            'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
+            'services': {
+                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
+                'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
+            },
+        },
+        '',
+        ValidationSettings(False, True),
+    ),
+    VaultTestConfig(
+        {
+            'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
+            'services': {
+                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
+                'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
+            },
+        },
+        'extension key: .global.unicode_normalization_form',
+        ValidationSettings(False, False),
+    ),
+    VaultTestConfig(
+        {
+            'global': {'key': '...', 'unknown_key': True},
+            'services': {
+                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
+                'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
+            },
+        },
+        '',
+        ValidationSettings(True, False),
+    ),
+    VaultTestConfig(
+        {
+            'global': {'key': '...', 'unknown_key': True},
+            'services': {
+                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
+                'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
+            },
+        },
+        'unknown key: .global.unknown_key',
+        ValidationSettings(False, False),
+    ),
+    VaultTestConfig(
+        {
+            'global': {'key': '...'},
+            'services': {
+                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
+                'sv2': {
+                    'length': 10,
+                    'repeat': 1,
+                    'lower': 1,
+                    'unknown_key': True,
+                },
+            },
+        },
+        'unknown_key: .services.sv2.unknown_key',
+        ValidationSettings(False, False),
+    ),
+    VaultTestConfig(
+        {
+            'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
+            'services': {
+                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
+                'sv2': {
+                    'length': 10,
+                    'repeat': 1,
+                    'lower': 1,
+                    'unknown_key': True,
+                },
+            },
+        },
+        '',
+        ValidationSettings(True, True),
+    ),
+    VaultTestConfig(
+        {
+            'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
+            'services': {
+                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
+                'sv2': {
+                    'length': 10,
+                    'repeat': 1,
+                    'lower': 1,
+                    'unknown_key': True,
+                },
+            },
+        },
+        (
+            'extension key (permitted): .global.unicode_normalization_form; '
+            'unknown key: .services.sv2.unknown_key'
+        ),
+        ValidationSettings(False, True),
+    ),
+    VaultTestConfig(
+        {
+            'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
+            'services': {
+                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
+                'sv2': {
+                    'length': 10,
+                    'repeat': 1,
+                    'lower': 1,
+                    'unknown_key': True,
+                },
+            },
+        },
+        (
+            'unknown key (permitted): .services.sv2.unknown_key; '
+            'extension key: .global.unicode_normalization_form'
+        ),
+        ValidationSettings(True, False),
+    ),
+]
+
+
+def is_valid_test_config(conf: VaultTestConfig, /) -> bool:
+    """Return true if the test config is valid.
+
+    Args:
+        conf: The test config to check.
+
+    """
+    return not conf.comment and conf.validation_settings in {
+        None,
+        (True, True),
+    }
+
+
+def _test_config_ids(val: VaultTestConfig) -> Any:  # pragma: no cover
+    """pytest id function for VaultTestConfig objects."""
+    assert isinstance(val, VaultTestConfig)
+    return val[1] or (val[0], val[1], val[2])
+
+
+def is_smudgable_vault_test_config(conf: VaultTestConfig) -> bool:
+    """Check whether this vault test config can be effectively smudged.
+
+    A "smudged" test config is one where falsy values (in the JavaScript
+    sense) can be replaced by other falsy values without changing the
+    meaning of the config.
+
+    Args:
+        conf: A test config to check.
+
+    Returns:
+        True if the test config can be smudged, False otherwise.
+
+    """
+    config = conf.config
+    return bool(
+        isinstance(config, dict)
+        and ('global' not in config or isinstance(config['global'], dict))
+        and ('services' in config and isinstance(config['services'], dict))
+        and all(isinstance(x, dict) for x in config['services'].values())
+        and (config['services'] or config.get('global'))
+    )
+
+
+@strategies.composite
+def smudged_vault_test_config(
+    draw: strategies.DrawFn,
+    config: Any = strategies.sampled_from(TEST_CONFIGS).filter(  # noqa: B008
+        is_smudgable_vault_test_config
+    ),
+) -> Any:
+    """Hypothesis strategy to replace falsy values with other falsy values.
+
+    Uses [`_types.js_truthiness`][] internally, which is tested
+    separately by
+    [`tests.test_derivepassphrase_types.test_100_js_truthiness`][].
+
+    Args:
+        draw:
+            The hypothesis draw function.
+        config:
+            A strategy which generates [`VaultTestConfig`][] objects.
+
+    Returns:
+        A new [`VaultTestConfig`][] where some falsy values have been
+        replaced or added.
+
+    """
+
+    falsy = (None, False, 0, 0.0, '', float('nan'))
+    falsy_no_str = (None, False, 0, 0.0, float('nan'))
+    falsy_no_zero = (None, False, '', float('nan'))
+    conf = draw(config)
+    hypothesis.assume(is_smudgable_vault_test_config(conf))
+    obj = copy.deepcopy(conf.config)
+    services: list[dict[str, Any]] = list(obj['services'].values())
+    if 'global' in obj:
+        services.append(obj['global'])
+    assert all(isinstance(x, dict) for x in services), (
+        'is_smudgable_vault_test_config guard failed to '
+        'ensure each setings dict is a dict'
+    )
+    for service in services:
+        for key in ('phrase',):
+            value = service.get(key)
+            if not _types.js_truthiness(value) and value != '':
+                service[key] = draw(strategies.sampled_from(falsy_no_str))
+        for key in (
+            'notes',
+            'key',
+            'length',
+            'repeat',
+        ):
+            value = service.get(key)
+            if not _types.js_truthiness(value):
+                service[key] = draw(strategies.sampled_from(falsy))
+        for key in (
+            'lower',
+            'upper',
+            'number',
+            'space',
+            'dash',
+            'symbol',
+        ):
+            value = service.get(key)
+            if not _types.js_truthiness(value) and value != 0:
+                service[key] = draw(strategies.sampled_from(falsy_no_zero))
+    hypothesis.assume(obj != conf.config)
+    return VaultTestConfig(obj, conf.comment, conf.validation_settings)
 
 
 class KnownSSHAgent(str, enum.Enum):

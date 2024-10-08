@@ -1410,6 +1410,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             err(f'Cannot load config: cannot decode JSON: {e}')
         except OSError as e:
             err(f'Cannot load config: {e.strerror}: {e.filename!r}')
+        _types.clean_up_falsy_vault_config_values(maybe_config)
         if _types.is_vault_config(maybe_config):
             form = cast(
                 Literal['NFC', 'NFD', 'NFKC', 'NFKD'],

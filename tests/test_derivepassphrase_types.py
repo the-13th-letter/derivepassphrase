@@ -4,136 +4,103 @@
 
 from __future__ import annotations
 
+import copy
+
+import hypothesis
 import pytest
+from hypothesis import strategies
 from typing_extensions import Any
 
+import tests
 from derivepassphrase import _types
 
 
-@pytest.mark.parametrize(
-    ['obj', 'comment'],
-    [
-        (None, 'not a dict'),
-        ({}, 'missing required keys'),
-        ({'global': None, 'services': {}}, 'bad config value: global'),
-        (
-            {'global': {'key': 123}, 'services': {}},
-            'bad config value: global.key',
+@hypothesis.given(
+    value=strategies.one_of(
+        strategies.recursive(
+            strategies.one_of(
+                strategies.none(),
+                strategies.booleans(),
+                strategies.integers(),
+                strategies.floats(allow_nan=False, allow_infinity=False),
+                strategies.text(max_size=100),
+                strategies.binary(max_size=100),
+            ),
+            lambda s: strategies.one_of(
+                strategies.frozensets(s, max_size=100),
+                strategies.builds(
+                    tuple, strategies.frozensets(s, max_size=100)
+                ),
+            ),
+            max_leaves=8,
         ),
-        (
-            {'global': {'phrase': 'abc', 'key': '...'}, 'services': {}},
-            '',
+        strategies.recursive(
+            strategies.one_of(
+                strategies.none(),
+                strategies.booleans(),
+                strategies.integers(),
+                strategies.floats(allow_nan=False, allow_infinity=False),
+                strategies.text(max_size=100),
+                strategies.binary(max_size=100),
+            ),
+            lambda s: strategies.one_of(
+                strategies.lists(s, max_size=100),
+                strategies.dictionaries(strategies.text(max_size=100), s),
+            ),
+            max_leaves=25,
         ),
-        ({'services': None}, 'bad config value: services'),
-        ({'services': {2: {}}}, 'bad config value: services."2"'),
-        ({'services': {'2': 2}}, 'bad config value: services."2"'),
-        (
-            {'services': {'sv': {'notes': False}}},
-            'bad config value: services.sv.notes',
-        ),
-        ({'services': {'sv': {'notes': 'blah blah blah'}}}, ''),
-        (
-            {'services': {'sv': {'length': '200'}}},
-            'bad config value: services.sv.length',
-        ),
-        (
-            {'services': {'sv': {'length': 0.5}}},
-            'bad config value: services.sv.length',
-        ),
-        (
-            {'services': {'sv': {'length': -10}}},
-            'bad config value: services.sv.length',
-        ),
-        (
-            {'services': {'sv': {'lower': '10'}}},
-            'bad config value: services.sv.lower',
-        ),
-        (
-            {'services': {'sv': {'upper': -10}}},
-            'bad config value: services.sv.upper',
-        ),
-        (
-            {
-                'global': {'phrase': 'my secret phrase'},
-                'services': {'sv': {'length': 10}},
-            },
-            '',
-        ),
-        ({'services': {'sv': {'length': 10, 'phrase': '...'}}}, ''),
-        ({'services': {'sv': {'length': 10, 'key': '...'}}}, ''),
-        ({'services': {'sv': {'upper': 10, 'key': '...'}}}, ''),
-        ({'services': {'sv': {'phrase': 'abc', 'key': '...'}}}, ''),
-        (
-            {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'phrase': 'abc', 'length': 10}},
-            },
-            '',
-        ),
-        (
-            {
-                'global': {'key': '...'},
-                'services': {'sv': {'phrase': 'abc', 'length': 10}},
-            },
-            '',
-        ),
-        (
-            {
-                'global': {'key': '...'},
-                'services': {
-                    'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
-                    'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
-                },
-            },
-            '',
-        ),
-        (
-            {
-                'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
-                'services': {
-                    'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
-                    'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
-                },
-            },
-            '',
-        ),
-        (
-            {
-                'global': {'key': '...', 'unicode_normalization_form': None},
-                'services': {},
-            },
-            'bad config value: global.unicode_normalization_form',
-        ),
-        (
-            {
-                'global': {'key': '...', 'unknown_key': None},
-                'services': {
-                    'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
-                    'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
-                },
-            },
-            '',
-        ),
-        (
-            {
-                'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
-                'services': {
-                    'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
-                    'sv2': {
-                        'length': 10,
-                        'repeat': 1,
-                        'lower': 1,
-                        'unknown_key': None,
-                    },
-                },
-            },
-            '',
-        ),
-    ],
+        strategies.builds(tuple),
+        strategies.builds(list),
+        strategies.builds(dict),
+        strategies.builds(set),
+        strategies.builds(frozenset),
+    ),
 )
-def test_200_is_vault_config(obj: Any, comment: str) -> None:
-    is_vault_config = _types.is_vault_config
-    assert is_vault_config(obj) == (not comment), (
+def test_100_js_truthiness(value: Any) -> None:
+    expected = (
+        value is not None  # noqa: PLR1714
+        and value != False  # noqa: E712
+        and value != 0
+        and value != 0.0
+        and value != ''
+    )
+    assert _types.js_truthiness(value) == expected
+
+
+@pytest.mark.parametrize(
+    'test_config',
+    [
+        conf
+        for conf in tests.TEST_CONFIGS
+        if conf.validation_settings in {None, (True, True)}
+    ],
+    ids=tests._test_config_ids,
+)
+def test_200_is_vault_config(test_config: tests.VaultTestConfig) -> None:
+    obj, comment, _ = test_config
+    obj = copy.deepcopy(obj)
+    _types.clean_up_falsy_vault_config_values(obj)
+    assert _types.is_vault_config(obj) == (not comment), (
+        'failed to complain about: ' + comment
+        if comment
+        else 'failed on valid example'
+    )
+
+
+@hypothesis.given(
+    test_config=tests.smudged_vault_test_config(
+        config=strategies.sampled_from(tests.TEST_CONFIGS).filter(
+            tests.is_valid_test_config
+        )
+    )
+)
+def test_200a_is_vault_config_smudged(
+    test_config: tests.VaultTestConfig,
+) -> None:
+    obj, comment, _ = test_config
+    obj = copy.deepcopy(obj)
+    _types.clean_up_falsy_vault_config_values(obj)
+    assert _types.is_vault_config(obj) == (not comment), (
         'failed to complain about: ' + comment
         if comment
         else 'failed on valid example'
@@ -141,88 +108,62 @@ def test_200_is_vault_config(obj: Any, comment: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ['obj', 'allow_unknown_settings', 'allow_derivepassphrase_extensions'],
-    [
-        (
-            {
-                'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
-                'services': {
-                    'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
-                    'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
-                },
-            },
-            False,
-            False,
-        ),
-        (
-            {
-                'global': {'key': '...', 'unknown_key': None},
-                'services': {
-                    'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
-                    'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
-                },
-            },
-            False,
-            False,
-        ),
-        (
-            {
-                'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
-                'services': {
-                    'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
-                    'sv2': {
-                        'length': 10,
-                        'repeat': 1,
-                        'lower': 1,
-                        'unknown_key': None,
-                    },
-                },
-            },
-            False,
-            False,
-        ),
-        (
-            {
-                'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
-                'services': {
-                    'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
-                    'sv2': {
-                        'length': 10,
-                        'repeat': 1,
-                        'lower': 1,
-                        'unknown_key': None,
-                    },
-                },
-            },
-            False,
-            True,
-        ),
-        (
-            {
-                'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
-                'services': {
-                    'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
-                    'sv2': {
-                        'length': 10,
-                        'repeat': 1,
-                        'lower': 1,
-                        'unknown_key': None,
-                    },
-                },
-            },
-            True,
-            False,
-        ),
-    ],
+    'test_config', tests.TEST_CONFIGS, ids=tests._test_config_ids
 )
-def test_400_validate_vault_config(
-    obj: Any,
-    allow_unknown_settings: bool,
-    allow_derivepassphrase_extensions: bool,
-) -> None:
-    with pytest.raises((TypeError, ValueError), match='vault config '):
-        _types.validate_vault_config(
-            obj,
-            allow_unknown_settings=allow_unknown_settings,
-            allow_derivepassphrase_extensions=allow_derivepassphrase_extensions,
+def test_400_validate_vault_config(test_config: tests.VaultTestConfig) -> None:
+    obj, comment, validation_settings = test_config
+    allow_unknown_settings, allow_derivepassphrase_extensions = (
+        validation_settings or (True, True)
+    )
+    obj = copy.deepcopy(obj)
+    _types.clean_up_falsy_vault_config_values(obj)
+    if comment:
+        with pytest.raises((TypeError, ValueError)):
+            _types.validate_vault_config(
+                obj,
+                allow_unknown_settings=allow_unknown_settings,
+                allow_derivepassphrase_extensions=allow_derivepassphrase_extensions,
+            )
+    else:
+        try:
+            _types.validate_vault_config(
+                obj,
+                allow_unknown_settings=allow_unknown_settings,
+                allow_derivepassphrase_extensions=allow_derivepassphrase_extensions,
+            )
+        except (TypeError, ValueError) as exc:  # pragma: no cover
+            assert not exc, 'failed to validate valid example'  # noqa: PT017
+
+
+@hypothesis.given(
+    test_config=tests.smudged_vault_test_config(
+        config=strategies.sampled_from(tests.TEST_CONFIGS).filter(
+            tests.is_smudgable_vault_test_config
         )
+    )
+)
+def test_400a_validate_vault_config_smudged(
+    test_config: tests.VaultTestConfig,
+) -> None:
+    obj, comment, validation_settings = test_config
+    allow_unknown_settings, allow_derivepassphrase_extensions = (
+        validation_settings or (True, True)
+    )
+    obj = copy.deepcopy(obj)
+    _types.clean_up_falsy_vault_config_values(obj)
+    if comment:
+        with pytest.raises((TypeError, ValueError)):
+            _types.validate_vault_config(
+                obj,
+                allow_unknown_settings=allow_unknown_settings,
+                allow_derivepassphrase_extensions=allow_derivepassphrase_extensions,
+            )
+    else:
+        try:
+            _types.validate_vault_config(
+                obj,
+                allow_unknown_settings=allow_unknown_settings,
+                allow_derivepassphrase_extensions=allow_derivepassphrase_extensions,
+            )
+        except (TypeError, ValueError) as exc:  # pragma: no cover
+            assert not exc, 'failed to validate valid example'  # noqa: PT017
