@@ -13,6 +13,7 @@ import json
 import os
 import shlex
 import stat
+import sys
 import tempfile
 import zipfile
 from typing import TYPE_CHECKING
@@ -1077,6 +1078,22 @@ skip_if_cryptography_support = pytest.mark.skipif(
 skip_if_no_cryptography_support = pytest.mark.skipif(
     importlib.util.find_spec('cryptography') is None,
     reason='no "cryptography" support',
+)
+
+hypothesis_settings_coverage_compatible = (
+    hypothesis.settings(
+        # Running under coverage with the Python tracer increases
+        # running times 40-fold, on my machines.  Sadly, not every
+        # Python version offers the C tracer, so sometimes the Python
+        # tracer is used anyway.
+        deadline=(
+            40 * deadline
+            if (deadline := hypothesis.settings().deadline) is not None
+            else None
+        ),
+    )
+    if sys.gettrace() is not None
+    else hypothesis.settings()
 )
 
 

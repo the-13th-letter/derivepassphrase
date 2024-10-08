@@ -15,6 +15,7 @@ import tests
 from derivepassphrase import _types
 
 
+@tests.hypothesis_settings_coverage_compatible
 @hypothesis.given(
     value=strategies.one_of(
         strategies.recursive(
