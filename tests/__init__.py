@@ -1091,6 +1091,7 @@ hypothesis_settings_coverage_compatible = (
             if (deadline := hypothesis.settings().deadline) is not None
             else None
         ),
+        suppress_health_check=(hypothesis.HealthCheck.too_slow,),
     )
     if sys.gettrace() is not None
     else hypothesis.settings()
