@@ -99,14 +99,17 @@ def test_200_is_vault_config(test_config: tests.VaultTestConfig) -> None:
 def test_200a_is_vault_config_smudged(
     test_config: tests.VaultTestConfig,
 ) -> None:
-    obj, comment, _ = test_config
-    obj = copy.deepcopy(obj)
-    _types.clean_up_falsy_vault_config_values(obj)
+    _obj, comment, _ = test_config
+    obj = copy.deepcopy(_obj)
+    did_cleanup = _types.clean_up_falsy_vault_config_values(obj)
     assert _types.is_vault_config(obj) == (not comment), (
         'failed to complain about: ' + comment
         if comment
         else 'failed on valid example'
     )
+    assert did_cleanup is None or bool(did_cleanup) == (
+        obj != _obj
+    ), 'mismatched report on cleanup work'
 
 
 @pytest.mark.parametrize(
@@ -148,12 +151,12 @@ def test_400_validate_vault_config(test_config: tests.VaultTestConfig) -> None:
 def test_400a_validate_vault_config_smudged(
     test_config: tests.VaultTestConfig,
 ) -> None:
-    obj, comment, validation_settings = test_config
+    _obj, comment, validation_settings = test_config
     allow_unknown_settings, allow_derivepassphrase_extensions = (
         validation_settings or (True, True)
     )
-    obj = copy.deepcopy(obj)
-    _types.clean_up_falsy_vault_config_values(obj)
+    obj = copy.deepcopy(_obj)
+    did_cleanup = _types.clean_up_falsy_vault_config_values(obj)
     if comment:
         with pytest.raises((TypeError, ValueError)):
             _types.validate_vault_config(
@@ -170,3 +173,6 @@ def test_400a_validate_vault_config_smudged(
             )
         except (TypeError, ValueError) as exc:  # pragma: no cover
             assert not exc, 'failed to validate valid example'  # noqa: PT017
+    assert did_cleanup is None or bool(did_cleanup) == (
+        obj != _obj
+    ), 'mismatched report on cleanup work'

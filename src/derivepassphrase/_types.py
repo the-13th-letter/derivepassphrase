@@ -6,7 +6,9 @@
 
 from __future__ import annotations
 
+import collections
 import enum
+import json
 import math
 from typing import TYPE_CHECKING
 
@@ -17,7 +19,7 @@ from typing_extensions import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import MutableSequence, Sequence
     from typing import Literal
 
     from typing_extensions import (
@@ -136,6 +138,58 @@ class VaultConfig(TypedDict, _VaultConfig, total=False):
     services: Required[dict[str, VaultConfigServicesSettings]]
 
 
+def json_path(path: Sequence[str | int], /) -> str:
+    r"""Transform a series of keys and indices into a JSONPath selector.
+
+    The resulting JSONPath selector conforms to RFC 9535, is always
+    rooted at the JSON root node (i.e., starts with `$`), and only
+    contains name and index selectors (in shorthand dot notation, where
+    possible).
+
+    Args:
+        path:
+            A sequence of object keys or array indices to navigate to
+            the desired JSON value, starting from the root node.
+
+    Returns:
+        A valid JSONPath selector (a string) identifying the desired
+        JSON value.
+
+    Examples:
+        >>> json_path(['global', 'phrase'])
+        '$.global.phrase'
+        >>> json_path(['services', 'service name with spaces', 'length'])
+        '$.services["service name with spaces"].length'
+        >>> json_path(['services', 'special\u000acharacters', 'notes'])
+        '$.services["special\\ncharacters"].notes'
+        >>> print(json_path(['services', 'special\u000acharacters', 'notes']))
+        $.services["special\ncharacters"].notes
+        >>> json_path(['custom_array', 2, 0])
+        '$.custom_array[2][0]'
+
+    """
+
+    def needs_longhand(x: str | int) -> bool:
+        initial = (
+            frozenset('abcdefghijklmnopqrstuvwxyz')
+            | frozenset('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+            | frozenset('_')
+        )
+        chars = initial | frozenset('0123456789')
+        return not (
+            isinstance(x, str)
+            and x
+            and set(x).issubset(chars)
+            and x[:1] in initial
+        )
+
+    chunks = ['$']
+    chunks.extend(
+        f'[{json.dumps(x)}]' if needs_longhand(x) else f'.{x}' for x in path
+    )
+    return ''.join(chunks)
+
+
 def validate_vault_config(  # noqa: C901,PLR0912,PLR0915
     obj: Any,  # noqa: ANN401
     /,
@@ -162,54 +216,34 @@ def validate_vault_config(  # noqa: C901,PLR0912,PLR0915
             disallowed value.
 
     """
-
-    def maybe_quote(x: str) -> str:
-        chars = (
-            frozenset('abcdefghijklmnopqrstuvwxyz')
-            | frozenset('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-            | frozenset('0123456789')
-            | frozenset('_')
-        )
-        initial = (
-            frozenset('abcdefghijklmnopqrstuvwxyz')
-            | frozenset('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-            | frozenset('_')
-        )
-        return (
-            x if x and set(x).issubset(chars) and x[:1] in initial else repr(x)
-        )
-
-    def as_json_path_string(json_path: Sequence[str], /) -> str:
-        return ''.join('.' + maybe_quote(x) for x in json_path)
-
     err_obj_not_a_dict = 'vault config is not a dict'
     err_non_str_service_name = (
         'vault config contains non-string service name {!r}'
     )
 
-    def err_not_a_dict(json_path: Sequence[str], /) -> str:
-        json_path_str = as_json_path_string(json_path)
+    def err_not_a_dict(path: Sequence[str], /) -> str:
+        json_path_str = json_path(path)
         return f'vault config entry {json_path_str} is not a dict'
 
-    def err_not_a_string(json_path: Sequence[str], /) -> str:
-        json_path_str = as_json_path_string(json_path)
+    def err_not_a_string(path: Sequence[str], /) -> str:
+        json_path_str = json_path(path)
         return f'vault config entry {json_path_str} is not a string'
 
-    def err_not_an_int(json_path: Sequence[str], /) -> str:
-        json_path_str = as_json_path_string(json_path)
+    def err_not_an_int(path: Sequence[str], /) -> str:
+        json_path_str = json_path(path)
         return f'vault config entry {json_path_str} is not an integer'
 
     def err_derivepassphrase_extension(
-        key: str, json_path: Sequence[str], /
+        key: str, path: Sequence[str], /
     ) -> str:
-        json_path_str = as_json_path_string(json_path)
+        json_path_str = json_path(path)
         return (
             f'vault config entry {json_path_str} uses '
             f'`derivepassphrase` extension {key!r}'
         )
 
-    def err_unknown_setting(key: str, json_path: Sequence[str], /) -> str:
-        json_path_str = as_json_path_string(json_path)
+    def err_unknown_setting(key: str, path: Sequence[str], /) -> str:
+        json_path_str = json_path(path)
         return (
             f'vault config entry {json_path_str} uses '
             f'unknown setting {key!r}'
@@ -217,12 +251,12 @@ def validate_vault_config(  # noqa: C901,PLR0912,PLR0915
 
     def err_bad_number(
         key: str,
-        json_path: Sequence[str],
+        path: Sequence[str],
         /,
         *,
         strictly_positive: bool = False,
     ) -> str:
-        json_path_str = as_json_path_string((*json_path, key))
+        json_path_str = json_path((*path, key))
         return f'vault config entry {json_path_str} is ' + (
             'not positive' if strictly_positive else 'negative'
         )
@@ -344,7 +378,36 @@ def js_truthiness(value: Any, /) -> bool:  # noqa: ANN401
     return not (isinstance(value, float) and math.isnan(value))
 
 
-def clean_up_falsy_vault_config_values(obj: Any) -> None:  # noqa: ANN401,C901,PLR0912
+class CleanupStep(NamedTuple):
+    """A single executed step during vault config cleanup.
+
+    Attributes:
+        path:
+            A sequence of object keys or array indices to navigate to
+            the JSON value that was cleaned up.
+        old_value:
+            The old value.
+        action:
+            Either `'replace'` if `old_value` was replaced with
+            `new_value`, or `'remove'` if `old_value` was removed.
+        new_value:
+            The new value.
+
+    """
+
+    path: Sequence[str | int]
+    """"""
+    old_value: Any
+    """"""
+    action: Literal['replace', 'remove']
+    """"""
+    new_value: Any
+    """"""
+
+
+def clean_up_falsy_vault_config_values(  # noqa: C901,PLR0912
+    obj: Any,  # noqa: ANN401
+) -> Sequence[CleanupStep] | None:
     """Convert falsy values in a vault config to correct types, in-place.
 
     Needed for compatibility with vault(1), which sometimes uses only
@@ -358,6 +421,19 @@ def clean_up_falsy_vault_config_values(obj: Any) -> None:  # noqa: ANN401,C901,P
             A presumed valid vault configuration save for using falsy
             values of the wrong type.
 
+    Returns:
+        A list of 4-tuples `(key_tup, old_value, action, new_value)`,
+        indicating the cleanup actions performed.  `key_tup` is
+        a sequence of object keys and/or array indices indicating the
+        JSON path to the leaf value that was cleaned up, `old_value` is
+        the old value, `new_value` is the new value, and `action` is
+        either `replace` (`old_value` was replaced with `new_value`) or
+        `remove` (`old_value` was removed, and `new_value` is
+        meaningless).
+
+        If cleanup was never attempted because of an obviously invalid
+        vault configuration, then `None` is returned, directly.
+
     """
     if (  # pragma: no cover
         not isinstance(obj, dict)
@@ -365,27 +441,43 @@ def clean_up_falsy_vault_config_values(obj: Any) -> None:  # noqa: ANN401,C901,P
         or not isinstance(obj['services'], dict)
     ):
         # config is invalid
-        return
-    service_objects = list(obj['services'].values())
-    if not all(  # pragma: no cover
-        isinstance(service_obj, dict) for service_obj in service_objects
-    ):
-        # config is invalid
-        return
+        return None
+    service_objects: MutableSequence[
+        tuple[Sequence[str | int], dict[str, Any]]
+    ] = collections.deque()
     if 'global' in obj:
         if isinstance(obj['global'], dict):
-            service_objects.append(obj['global'])
+            service_objects.append((['global'], obj['global']))
         else:  # pragma: no cover
             # config is invalid
-            return
-    for service_obj in service_objects:
+            return None
+    service_objects.extend(
+        (['services', sv], val) for sv, val in obj['services'].items()
+    )
+    if not all(  # pragma: no cover
+        isinstance(service_obj, dict) for _, service_obj in service_objects
+    ):
+        # config is invalid
+        return None
+    cleanup_completed: MutableSequence[CleanupStep] = collections.deque()
+    for path, service_obj in service_objects:
         for key, value in list(service_obj.items()):
             # Use match/case here once Python 3.9 becomes unsupported.
             if key == 'phrase':
-                if not js_truthiness(value):
+                if not js_truthiness(value) and value != '':  # noqa: PLC1901
+                    cleanup_completed.append(
+                        CleanupStep(
+                            (*path, key), service_obj[key], 'replace', ''
+                        )
+                    )
                     service_obj[key] = ''
             elif key in {'notes', 'key', 'length', 'repeat'}:
                 if not js_truthiness(value):
+                    cleanup_completed.append(
+                        CleanupStep(
+                            (*path, key), service_obj[key], 'remove', None
+                        )
+                    )
                     service_obj.pop(key)
             elif key in {  # noqa: SIM102
                 'lower',
@@ -396,7 +488,13 @@ def clean_up_falsy_vault_config_values(obj: Any) -> None:  # noqa: ANN401,C901,P
                 'symbol',
             }:
                 if not js_truthiness(value) and value != 0:
+                    cleanup_completed.append(
+                        CleanupStep(
+                            (*path, key), service_obj[key], 'replace', 0
+                        )
+                    )
                     service_obj.pop(key)
+    return cleanup_completed
 
 
 class KeyCommentPair(NamedTuple):

@@ -642,8 +642,19 @@ class TestCLI:
             ) as infile:
                 config3 = json.load(infile)
         result = tests.ReadableResult.parse(_result)
-        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+
+        def expected_warning_line(line: str) -> bool:
+            return (
+                ' Warning: Replacing invalid value ' in line
+                or ' Warning: Removing ineffective setting ' in line
+            )
+
+        assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert config3 == config2, 'config not imported correctly'
+        assert not result.stderr or all(
+            expected_warning_line(line)
+            for line in result.stderr.splitlines(True)
+        ), 'unexpected error output'
 
     def test_213b_import_bad_config_not_vault_config(
         self,
@@ -1277,7 +1288,7 @@ contents go here
                     'global': {'phrase': 'Du\u0308sseldorf'},
                     'services': {},
                 }),
-                'the global passphrase is not NFC-normalized',
+                'the $.global passphrase is not NFC-normalized',
                 id='global-NFC',
             ),
             pytest.param(
@@ -1289,7 +1300,7 @@ contents go here
                     }
                 }),
                 (
-                    "the services.'weird entry name' passphrase "
+                    'the $.services["weird entry name"] passphrase '
                     'is not NFC-normalized'
                 ),
                 id='service-weird-name-NFC',
@@ -1298,7 +1309,7 @@ contents go here
                 ['--config', '-p', DUMMY_SERVICE],
                 'Du\u0308sseldorf',
                 (
-                    f'the services.{DUMMY_SERVICE} passphrase '
+                    f'the $.services.{DUMMY_SERVICE} passphrase '
                     f'is not NFC-normalized'
                 ),
                 id='config-NFC',
@@ -1318,7 +1329,7 @@ contents go here
                     },
                     'services': {},
                 }),
-                'the global passphrase is not NFD-normalized',
+                'the $.global passphrase is not NFD-normalized',
                 id='global-NFD',
             ),
             pytest.param(
@@ -1333,7 +1344,7 @@ contents go here
                     },
                 }),
                 (
-                    "the services.'weird entry name' passphrase "
+                    'the $.services["weird entry name"] passphrase '
                     'is not NFD-normalized'
                 ),
                 id='service-weird-name-NFD',
