@@ -408,9 +408,9 @@ def _load_config() -> _types.VaultConfig:
     return data
 
 
-def _migrate_and_load_old_config() -> (
-    tuple[_types.VaultConfig, OSError | None]
-):
+def _migrate_and_load_old_config() -> tuple[
+    _types.VaultConfig, OSError | None
+]:
     """Load and migrate a vault(1)-compatible config.
 
     The (old) filename is obtained via [`_config_filename`][].  This

@@ -611,6 +611,7 @@ class TestCLI:
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
         assert config2 == config, 'config not imported correctly'
 
+    @tests.hypothesis_settings_coverage_compatible
     @hypothesis.given(
         conf=tests.smudged_vault_test_config(
             strategies.sampled_from(TEST_CONFIGS).filter(
