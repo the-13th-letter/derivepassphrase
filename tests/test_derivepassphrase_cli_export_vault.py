@@ -17,6 +17,17 @@ from derivepassphrase.exporter import storeroom, vault_native
 
 cryptography = pytest.importorskip('cryptography', minversion='38.0')
 
+from cryptography.hazmat.primitives import (  # noqa: E402
+    ciphers,
+    hashes,
+    hmac,
+    padding,
+)
+from cryptography.hazmat.primitives.ciphers import (  # noqa: E402
+    algorithms,
+    modes,
+)
+
 if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any
@@ -284,21 +295,92 @@ class TestStoreroom:
             with pytest.raises(RuntimeError, match=err_msg):
                 storeroom.export_storeroom_data()
 
+    @pytest.mark.parametrize(
+        ['zipped_config', 'error_text'],
+        [
+            pytest.param(
+                tests.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED,
+                'Object key mismatch',
+                id='VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED',
+            ),
+            pytest.param(
+                tests.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED2,
+                'Directory index is not actually an index',
+                id='VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED2',
+            ),
+            pytest.param(
+                tests.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED3,
+                'Directory index is not actually an index',
+                id='VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED3',
+            ),
+            pytest.param(
+                tests.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED4,
+                'Object key mismatch',
+                id='VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED4',
+            ),
+        ],
+    )
     def test_403_export_storeroom_data_bad_directory_listing(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        zipped_config: bytes,
+        error_text: str,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with (
             tests.isolated_vault_exporter_config(
                 monkeypatch=monkeypatch,
                 runner=runner,
-                vault_config=tests.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED,
+                vault_config=zipped_config,
                 vault_key=tests.VAULT_MASTER_KEY,
             ),
-            pytest.raises(RuntimeError, match='Object key mismatch'),
+            pytest.raises(RuntimeError, match=error_text),
         ):
             storeroom.export_storeroom_data()
+
+    def test_404_decrypt_keys_wrong_data_length(self) -> None:
+        payload = (
+            b"Any text here, as long as it isn't "
+            b'exactly 64 or 96 bytes long.'
+        )
+        assert len(payload) not in frozenset({
+            2 * storeroom.KEY_SIZE,
+            3 * storeroom.KEY_SIZE,
+        })
+        key = b'DEADBEEFdeadbeefDeAdBeEfdEaDbEeF'
+        padder = padding.PKCS7(storeroom.IV_SIZE * 8).padder()
+        plaintext = bytearray(padder.update(payload))
+        plaintext.extend(padder.finalize())
+        iv = b'deadbeefDEADBEEF'
+        assert len(iv) == storeroom.IV_SIZE
+        encryptor = ciphers.Cipher(
+            algorithms.AES256(key), modes.CBC(iv)
+        ).encryptor()
+        ciphertext = bytearray(encryptor.update(plaintext))
+        ciphertext.extend(encryptor.finalize())
+        mac_obj = hmac.HMAC(key, hashes.SHA256())
+        mac_obj.update(iv)
+        mac_obj.update(ciphertext)
+        data = iv + bytes(ciphertext) + mac_obj.finalize()
+        with pytest.raises(
+            ValueError,
+            match=r'Invalid encrypted master keys payload',
+        ):
+            storeroom.decrypt_master_keys_data(
+                data, {'encryption_key': key, 'signing_key': key}
+            )
+        with pytest.raises(
+            ValueError,
+            match=r'Invalid encrypted session keys payload',
+        ):
+            storeroom.decrypt_session_keys(
+                data,
+                {
+                    'hashing_key': key,
+                    'encryption_key': key,
+                    'signing_key': key,
+                },
+            )
 
 
 class TestVaultNativeConfig:
