@@ -182,14 +182,14 @@ def derive_master_keys_keys(password: str | bytes, iterations: int) -> KeyPair:
 
 
 def decrypt_master_keys_data(data: bytes, keys: KeyPair) -> MasterKeys:
-    """Decrypt the master keys data.
+    r"""Decrypt the master keys data.
 
     The master keys data contains:
 
     - a 16-byte IV,
-    - a 96-byte AES256-CBC-encrypted payload (using PKCS7 padding on the
-      inside), and
-    - a 32-byte MAC of the preceding 112 bytes.
+    - a 96-byte AES256-CBC-encrypted payload, plus 16 further bytes of
+      PKCS7 padding, and
+    - a 32-byte MAC of the preceding 128 bytes.
 
     The decrypted payload itself consists of three 32-byte keys: the
     hashing, encryption and signing keys, in that order.
@@ -199,8 +199,8 @@ def decrypt_master_keys_data(data: bytes, keys: KeyPair) -> MasterKeys:
     cryptographic procedure, the MAC can be verified before attempting
     to decrypt the payload.
 
-    Because the payload size is both fixed and a multiple of the
-    cipher blocksize, in this case, the PKCS7 padding is a no-op.
+    Because the payload size is both fixed and a multiple of the cipher
+    blocksize, in this case, the PKCS7 padding always is `b'\x10' * 16`.
 
     Args:
         data:
@@ -247,28 +247,26 @@ def decrypt_master_keys_data(data: bytes, keys: KeyPair) -> MasterKeys:
     )
     actual_mac.verify(claimed_mac)
 
-    iv, payload = struct.unpack(
-        f'{IV_SIZE}s {len(ciphertext) - IV_SIZE}s', ciphertext
-    )
-    decryptor = ciphers.Cipher(
-        algorithms.AES256(keys['encryption_key']), modes.CBC(iv)
-    ).decryptor()
-    padded_plaintext = bytearray()
-    padded_plaintext.extend(decryptor.update(payload))
-    padded_plaintext.extend(decryptor.finalize())
-    unpadder = padding.PKCS7(IV_SIZE * 8).unpadder()
-    plaintext = bytearray()
-    plaintext.extend(unpadder.update(padded_plaintext))
-    plaintext.extend(unpadder.finalize())
-    if len(plaintext) != 3 * KEY_SIZE:
-        msg = (
-            f'Expecting 3 encrypted keys at {3 * KEY_SIZE} bytes total, '
-            f'but found {len(plaintext)} instead'
+    try:
+        iv, payload = struct.unpack(
+            f'{IV_SIZE}s {len(ciphertext) - IV_SIZE}s', ciphertext
         )
-        raise ValueError(msg)
-    hashing_key, encryption_key, signing_key = struct.unpack(
-        f'{KEY_SIZE}s {KEY_SIZE}s {KEY_SIZE}s', plaintext
-    )
+        decryptor = ciphers.Cipher(
+            algorithms.AES256(keys['encryption_key']), modes.CBC(iv)
+        ).decryptor()
+        padded_plaintext = bytearray()
+        padded_plaintext.extend(decryptor.update(payload))
+        padded_plaintext.extend(decryptor.finalize())
+        unpadder = padding.PKCS7(IV_SIZE * 8).unpadder()
+        plaintext = bytearray()
+        plaintext.extend(unpadder.update(padded_plaintext))
+        plaintext.extend(unpadder.finalize())
+        hashing_key, encryption_key, signing_key = struct.unpack(
+            f'{KEY_SIZE}s {KEY_SIZE}s {KEY_SIZE}s', plaintext
+        )
+    except (ValueError, struct.error) as exc:
+        msg = 'Invalid encrypted master keys payload'
+        raise ValueError(msg) from exc
     return {
         'hashing_key': hashing_key,
         'encryption_key': encryption_key,
@@ -277,24 +275,24 @@ def decrypt_master_keys_data(data: bytes, keys: KeyPair) -> MasterKeys:
 
 
 def decrypt_session_keys(data: bytes, master_keys: MasterKeys) -> KeyPair:
-    """Decrypt the bucket item's session keys.
+    r"""Decrypt the bucket item's session keys.
 
     The bucket item's session keys are single-use keys for encrypting
     and signing a single item in the storage bucket.  The encrypted
     session key data consists of:
 
     - a 16-byte IV,
-    - a 64-byte AES256-CBC-encrypted payload (using PKCS7 padding on the
-      inside), and
-    - a 32-byte MAC of the preceding 80 bytes.
+    - a 64-byte AES256-CBC-encrypted payload, plus 16 further bytes of
+      PKCS7 padding, and
+    - a 32-byte MAC of the preceding 96 bytes.
 
     The encrypted payload is encrypted with the master encryption key,
     and the MAC is created with the master signing key.  As per standard
     cryptographic procedure, the MAC can be verified before attempting
     to decrypt the payload.
 
-    Because the payload size is both fixed and a multiple of the
-    cipher blocksize, in this case, the PKCS7 padding is a no-op.
+    Because the payload size is both fixed and a multiple of the cipher
+    blocksize, in this case, the PKCS7 padding always is `b'\x10' * 16`.
 
     Args:
         data:
@@ -341,24 +339,27 @@ def decrypt_session_keys(data: bytes, master_keys: MasterKeys) -> KeyPair:
     )
     actual_mac.verify(claimed_mac)
 
-    iv, payload = struct.unpack(
-        f'{IV_SIZE}s {len(ciphertext) - IV_SIZE}s', ciphertext
-    )
-    decryptor = ciphers.Cipher(
-        algorithms.AES256(master_keys['encryption_key']), modes.CBC(iv)
-    ).decryptor()
-    padded_plaintext = bytearray()
-    padded_plaintext.extend(decryptor.update(payload))
-    padded_plaintext.extend(decryptor.finalize())
-    unpadder = padding.PKCS7(IV_SIZE * 8).unpadder()
-    plaintext = bytearray()
-    plaintext.extend(unpadder.update(padded_plaintext))
-    plaintext.extend(unpadder.finalize())
+    try:
+        iv, payload = struct.unpack(
+            f'{IV_SIZE}s {len(ciphertext) - IV_SIZE}s', ciphertext
+        )
+        decryptor = ciphers.Cipher(
+            algorithms.AES256(master_keys['encryption_key']), modes.CBC(iv)
+        ).decryptor()
+        padded_plaintext = bytearray()
+        padded_plaintext.extend(decryptor.update(payload))
+        padded_plaintext.extend(decryptor.finalize())
+        unpadder = padding.PKCS7(IV_SIZE * 8).unpadder()
+        plaintext = bytearray()
+        plaintext.extend(unpadder.update(padded_plaintext))
+        plaintext.extend(unpadder.finalize())
+        session_encryption_key, session_signing_key = struct.unpack(
+            f'{KEY_SIZE}s {KEY_SIZE}s', plaintext
+        )
+    except (ValueError, struct.error) as exc:
+        msg = 'Invalid encrypted session keys payload'
+        raise ValueError(msg) from exc
 
-    session_encryption_key, session_signing_key, inner_payload = struct.unpack(
-        f'{KEY_SIZE}s {KEY_SIZE}s {len(plaintext) - 2 * KEY_SIZE}s',
-        plaintext,
-    )
     session_keys: KeyPair = {
         'encryption_key': session_encryption_key,
         'signing_key': session_signing_key,
@@ -381,12 +382,6 @@ def decrypt_session_keys(data: bytes, master_keys: MasterKeys) -> KeyPair:
         repr(session_keys['signing_key'].hex(' ')),
     )
 
-    if inner_payload:
-        logger.debug(
-            'ignoring misplaced inner payload bytes.fromhex(%s)',
-            repr(inner_payload.hex(' ')),
-        )
-
     return session_keys
 
 
@@ -398,7 +393,7 @@ def decrypt_contents(data: bytes, session_keys: KeyPair) -> bytes:
     - a 16-byte IV,
     - a variable-sized AES256-CBC-encrypted payload (using PKCS7 padding
       on the inside), and
-    - a 32-byte MAC of the preceding 80 bytes.
+    - a 32-byte MAC of the preceding bytes.
 
     The encrypted payload is encrypted with the bucket item's session
     encryption key, and the MAC is created with the bucket item's
@@ -726,16 +721,24 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
                 json_content.decode('utf-8'),
             )
             _store(config_structure, path, json_content)
-    for _dir, namelist in dirs_to_check.items():
+    # Sorted order is important; see `mabye_obj` below.
+    for _dir, namelist in sorted(dirs_to_check.items()):
         namelist = [x.rstrip('/') for x in namelist]  # noqa: PLW2901
-        try:
-            obj = config_structure
-            for part in _dir.split('/'):
-                if part:
-                    obj = obj[part]
-        except KeyError as exc:
-            msg = f'Cannot traverse storage path: {_dir!r}'
-            raise RuntimeError(msg) from exc
+        obj: dict[Any, Any] = config_structure
+        for part in _dir.split('/'):
+            if part:
+                # Because we iterate paths in sorted order, parent
+                # directories are encountered before child directories.
+                # So parent directories always exist (lest we would have
+                # aborted earlier).
+                #
+                # Of course, the type checker doesn't necessarily know
+                # this, so we need to use assertions anyway.
+                maybe_obj = obj.get(part)
+                assert isinstance(
+                    maybe_obj, dict
+                ), f'Cannot traverse storage path {_dir!r}'
+                obj = maybe_obj
         if set(obj.keys()) != set(namelist):
             msg = f'Object key mismatch for path {_dir!r}'
             raise RuntimeError(msg)
