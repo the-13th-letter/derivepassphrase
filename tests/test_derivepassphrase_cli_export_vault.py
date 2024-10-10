@@ -9,7 +9,9 @@ import json
 from typing import TYPE_CHECKING
 
 import click.testing
+import hypothesis
 import pytest
+from hypothesis import strategies
 
 import tests
 from derivepassphrase import cli
@@ -373,6 +375,32 @@ class TestStoreroom:
             ValueError,
             match=r'Invalid encrypted session keys payload',
         ):
+            storeroom.decrypt_session_keys(
+                data,
+                {
+                    'hashing_key': key,
+                    'encryption_key': key,
+                    'signing_key': key,
+                },
+            )
+
+    @tests.hypothesis_settings_coverage_compatible
+    @hypothesis.given(
+        data=strategies.binary(
+            min_size=storeroom.MAC_SIZE, max_size=storeroom.MAC_SIZE
+        ),
+    )
+    def test_405_decrypt_keys_invalid_signature(self, data: bytes) -> None:
+        key = b'DEADBEEFdeadbeefDeAdBeEfdEaDbEeF'
+        # Guessing a correct payload plus MAC would be a pre-image
+        # attack on the underlying hash function (SHA-256), i.e. is
+        # computationally infeasible, and the chance of finding one by
+        # such random sampling is astronomically tiny.
+        with pytest.raises(cryptography.exceptions.InvalidSignature):
+            storeroom.decrypt_master_keys_data(
+                data, {'encryption_key': key, 'signing_key': key}
+            )
+        with pytest.raises(cryptography.exceptions.InvalidSignature):
             storeroom.decrypt_session_keys(
                 data,
                 {
