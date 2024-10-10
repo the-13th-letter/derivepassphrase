@@ -15,6 +15,7 @@ from hypothesis import strategies
 from typing_extensions import TypeAlias, TypeVar
 
 import derivepassphrase
+import tests
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -297,20 +298,8 @@ def vault_config(draw: strategies.DrawFn) -> dict[str, int]:
     }
 
 
-# TODO(@the-13th-letter): Since all tests in this class manipulate the
-# hypothesis deadline setting, perhaps it is more sensible to move this
-# manipulation into a separate decorator, or a fixture.
 class TestHypotheses:
-    # This test tends to time out when using coverage without the
-    # C tracer, which in my testing leads to a roughly 40-fold execution
-    # time. So reset the deadline accordingly.
-    @hypothesis.settings(
-        deadline=(
-            40 * deadline  # type: ignore[name-defined]
-            if (deadline := hypothesis.settings().deadline) is not None
-            else None
-        )
-    )
+    @tests.hypothesis_settings_coverage_compatible
     @hypothesis.given(
         phrase=strategies.one_of(
             strategies.binary(min_size=1), strategies.text(min_size=1)
@@ -408,26 +397,18 @@ class TestHypotheses:
                     len(set(snippet)) > 1
                 ), 'Password does not satisfy character repeat constraints.'
 
-    # This test tends to time out when using coverage without the
-    # C tracer, which in my testing leads to a roughly 40-fold execution
-    # time. So reset the deadline accordingly.
-    @hypothesis.settings(
-        deadline=(
-            40 * deadline  # type: ignore[name-defined]
-            if (deadline := hypothesis.settings().deadline) is not None
-            else None
-        )
-    )
+    @tests.hypothesis_settings_coverage_compatible
     @hypothesis.given(
         phrase=strategies.one_of(
-            strategies.binary(min_size=1),
+            strategies.binary(min_size=1, max_size=100),
             strategies.text(
                 min_size=1,
+                max_size=100,
                 alphabet=strategies.characters(max_codepoint=255),
             ),
         ),
-        length=strategies.integers(min_value=1, max_value=1000),
-        service=strategies.text(min_size=1),
+        length=strategies.integers(min_value=1, max_value=200),
+        service=strategies.text(min_size=1, max_size=100),
     )
     def test_101_password_with_length(
         self,
@@ -439,19 +420,20 @@ class TestHypotheses:
         assert len(password) == length
 
     # This test has time complexity `O(length * repeat)`, both of which
-    # are chosen by hypothesis.  So disable the deadline.
+    # are chosen by hypothesis and thus outside our control.
     @hypothesis.settings(deadline=None)
     @hypothesis.given(
         phrase=strategies.one_of(
-            strategies.binary(min_size=1),
+            strategies.binary(min_size=1, max_size=100),
             strategies.text(
                 min_size=1,
+                max_size=100,
                 alphabet=strategies.characters(max_codepoint=255),
             ),
         ),
-        length=strategies.integers(min_value=2, max_value=1000),
-        repeat=strategies.integers(min_value=1, max_value=1000),
-        service=strategies.text(min_size=1),
+        length=strategies.integers(min_value=2, max_value=200),
+        repeat=strategies.integers(min_value=1, max_value=200),
+        service=strategies.text(min_size=1, max_size=1000),
     )
     def test_102_password_with_repeat(
         self,

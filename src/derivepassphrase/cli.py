@@ -10,6 +10,7 @@ import base64
 import collections
 import contextlib
 import copy
+import enum
 import importlib
 import inspect
 import json
@@ -716,29 +717,29 @@ def _prompt_for_passphrase() -> str:
     )
 
 
+class _ORIGIN(enum.Enum):
+    INTERACTIVE: str = 'interactive'
+
+
 def _check_for_misleading_passphrase(
-    key: tuple[str, ...],
+    key: tuple[str, ...] | _ORIGIN,
     value: dict[str, Any],
     *,
     form: Literal['NFC', 'NFD', 'NFKC', 'NFKD'] = 'NFC',
 ) -> None:
-    def is_json_identifier(x: str) -> bool:
-        return not x.startswith(tuple('0123456789')) and not any(
-            c.lower() not in set('0123456789abcdefghijklmnopqrstuvwxyz_')
-            for c in x
-        )
-
     if 'phrase' in value:
         phrase = value['phrase']
         if not unicodedata.is_normalized(form, phrase):
-            key_path = '.'.join(
-                x if is_json_identifier(x) else repr(x) for x in key
+            formatted_key = (
+                key.value
+                if isinstance(key, _ORIGIN)
+                else _types.json_path(key)
             )
             click.echo(
                 (
-                    f'{PROG_NAME}: Warning: the {key_path} passphrase '
-                    f'is not {form}-normalized. Make sure to double-check '
-                    f'this is really the passphrase you want.'
+                    f'{PROG_NAME}: Warning: the {formatted_key} '
+                    f'passphrase is not {form}-normalized. Make sure to '
+                    f'double-check this is really the passphrase you want.'
                 ),
                 err=True,
             )
@@ -1410,28 +1411,47 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             err(f'Cannot load config: cannot decode JSON: {e}')
         except OSError as e:
             err(f'Cannot load config: {e.strerror}: {e.filename!r}')
-        if _types.is_vault_config(maybe_config):
-            form = cast(
-                Literal['NFC', 'NFD', 'NFKC', 'NFKD'],
-                maybe_config.get('global', {}).get(
-                    'unicode_normalization_form', 'NFC'
-                ),
-            )
-            assert form in {'NFC', 'NFD', 'NFKC', 'NFKD'}
+        cleaned = _types.clean_up_falsy_vault_config_values(maybe_config)
+        if not _types.is_vault_config(maybe_config):
+            err(f'Cannot load config: {_INVALID_VAULT_CONFIG}')
+        assert cleaned is not None
+        for step in cleaned:
+            # These are never fatal errors, because the semantics of
+            # vault upon encountering these settings are ill-specified,
+            # but not ill-defined.
+            if step.action == 'replace':
+                err_msg = (
+                    f'{PROG_NAME}: Warning: Replacing invalid value '
+                    f'{json.dumps(step.old_value)} for key '
+                    f'{_types.json_path(step.path)} with '
+                    f'{json.dumps(step.new_value)}.'
+                )
+            else:
+                err_msg = (
+                    f'{PROG_NAME}: Warning: Removing ineffective setting '
+                    f'{_types.json_path(step.path)} = '
+                    f'{json.dumps(step.old_value)}.'
+                )
+            click.echo(err_msg, err=True)
+        form = cast(
+            Literal['NFC', 'NFD', 'NFKC', 'NFKD'],
+            maybe_config.get('global', {}).get(
+                'unicode_normalization_form', 'NFC'
+            ),
+        )
+        assert form in {'NFC', 'NFD', 'NFKC', 'NFKD'}
+        _check_for_misleading_passphrase(
+            ('global',),
+            cast(dict[str, Any], maybe_config.get('global', {})),
+            form=form,
+        )
+        for key, value in maybe_config['services'].items():
             _check_for_misleading_passphrase(
-                ('global',),
-                cast(dict[str, Any], maybe_config.get('global', {})),
+                ('services', key),
+                cast(dict[str, Any], value),
                 form=form,
             )
-            for key, value in maybe_config['services'].items():
-                _check_for_misleading_passphrase(
-                    ('services', key),
-                    cast(dict[str, Any], value),
-                    form=form,
-                )
-            put_config(maybe_config)
-        else:
-            err(f'Cannot load config: {_INVALID_VAULT_CONFIG}')
+        put_config(maybe_config)
     elif export_settings:
         configuration = get_config()
         try:
@@ -1569,22 +1589,17 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 )
                 assert form in {'NFC', 'NFD', 'NFKC', 'NFKD'}
                 _check_for_misleading_passphrase(
-                    ('interactive',), {'phrase': phrase}, form=form
+                    _ORIGIN.INTERACTIVE, {'phrase': phrase}, form=form
                 )
 
             # If either --key or --phrase are given, use that setting.
             # Otherwise, if both key and phrase are set in the config,
-            # one must be global (ignore it) and one must be
-            # service-specific (use that one). Otherwise, if only one of
-            # key and phrase is set in the config, use that one.  In all
-            # these above cases, set the phrase via
-            # derivepassphrase.vault.Vault.phrase_from_key if a key is
-            # given. Finally, if nothing is set, error out.
+            # use the key.  Otherwise, if only one of key and phrase is
+            # set in the config, use that one.  In all these above
+            # cases, set the phrase via vault.Vault.phrase_from_key if
+            # a key is given.  Finally, if nothing is set, error out.
             if use_key or use_phrase:
                 kwargs['phrase'] = key_to_phrase(key) if use_key else phrase
-            elif kwargs.get('phrase') and kwargs.get('key'):
-                if any('key' in m for m in settings.maps[:2]):
-                    kwargs['phrase'] = key_to_phrase(kwargs['key'])
             elif kwargs.get('key'):
                 kwargs['phrase'] = key_to_phrase(kwargs['key'])
             elif kwargs.get('phrase'):

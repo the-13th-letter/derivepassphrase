@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import contextlib
+import copy
 import errno
 import json
 import os
@@ -13,12 +14,13 @@ import socket
 from typing import TYPE_CHECKING
 
 import click.testing
+import hypothesis
 import pytest
+from hypothesis import strategies
 from typing_extensions import NamedTuple
 
-import derivepassphrase as dpp
 import tests
-from derivepassphrase import _types, cli, ssh_agent
+from derivepassphrase import _types, cli, ssh_agent, vault
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -39,6 +41,8 @@ DUMMY_KEY2 = tests.DUMMY_KEY2
 DUMMY_KEY2_B64 = tests.DUMMY_KEY2_B64
 DUMMY_KEY3 = tests.DUMMY_KEY3
 DUMMY_KEY3_B64 = tests.DUMMY_KEY3_B64
+
+TEST_CONFIGS = tests.TEST_CONFIGS
 
 
 class IncompatibleConfiguration(NamedTuple):
@@ -225,7 +229,7 @@ class TestCLI:
     ) -> None:
         monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
         option = f'--{charset_name}'
-        charset = dpp.vault.Vault._CHARSETS[charset_name].decode('ascii')
+        charset = vault.Vault._CHARSETS[charset_name].decode('ascii')
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -304,7 +308,7 @@ class TestCLI:
             monkeypatch=monkeypatch, runner=runner, config=config
         ):
             monkeypatch.setattr(
-                dpp.vault.Vault, 'phrase_from_key', tests.phrase_from_key
+                vault.Vault, 'phrase_from_key', tests.phrase_from_key
             )
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -336,7 +340,7 @@ class TestCLI:
                 cli, '_get_suitable_ssh_keys', tests.suitable_ssh_keys
             )
             monkeypatch.setattr(
-                dpp.vault.Vault, 'phrase_from_key', tests.phrase_from_key
+                vault.Vault, 'phrase_from_key', tests.phrase_from_key
             )
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -386,22 +390,12 @@ class TestCLI:
         config: dict[str, Any],
         key_index: int,
     ) -> None:
-        def sign(
-            _: Any, key: bytes | bytearray, message: bytes | bytearray
-        ) -> bytes:
-            del message  # Unused.
-            for value in tests.SUPPORTED_KEYS.values():
-                if value['public_key_data'] == key:
-                    assert value['expected_signature'] is not None
-                    return value['expected_signature']
-            raise AssertionError
-
         with monkeypatch.context():
             monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent)
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
-            monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', sign)
+            monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', tests.sign)
             runner = click.testing.CliRunner(mix_stderr=False)
             with tests.isolated_vault_config(
                 monkeypatch=monkeypatch, runner=runner, config=config
@@ -422,35 +416,42 @@ class TestCLI:
     def test_205_service_phrase_if_key_in_global_config(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        running_ssh_agent: str,
     ) -> None:
-        runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            config={
-                'global': {'key': DUMMY_KEY1_B64},
-                'services': {
-                    DUMMY_SERVICE: {
-                        'phrase': DUMMY_PASSPHRASE.rstrip('\n'),
-                        **DUMMY_CONFIG_SETTINGS,
-                    }
-                },
-            },
-        ):
-            _result = runner.invoke(
-                cli.derivepassphrase_vault,
-                [DUMMY_SERVICE],
-                catch_exceptions=False,
+        with monkeypatch.context():
+            monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent)
+            monkeypatch.setattr(
+                ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
+            monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', tests.sign)
+            runner = click.testing.CliRunner(mix_stderr=False)
+            with tests.isolated_vault_config(
+                monkeypatch=monkeypatch,
+                runner=runner,
+                config={
+                    'global': {'key': DUMMY_KEY1_B64},
+                    'services': {
+                        DUMMY_SERVICE: {
+                            'phrase': DUMMY_PASSPHRASE.rstrip('\n'),
+                            **DUMMY_CONFIG_SETTINGS,
+                        }
+                    },
+                },
+            ):
+                _result = runner.invoke(
+                    cli.derivepassphrase_vault,
+                    [DUMMY_SERVICE],
+                    catch_exceptions=False,
+                )
         result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(), 'expected clean exit'
         assert _result.stdout_bytes, 'expected program output'
         last_line = _result.stdout_bytes.splitlines(True)[-1]
         assert (
-            last_line.rstrip(b'\n') != DUMMY_RESULT_KEY1
-        ), 'known false output: key-based instead of phrase-based'
+            last_line.rstrip(b'\n') != DUMMY_RESULT_PASSPHRASE
+        ), 'known false output: phrase-based instead of key-based'
         assert (
-            last_line.rstrip(b'\n') == DUMMY_RESULT_PASSPHRASE
+            last_line.rstrip(b'\n') == DUMMY_RESULT_KEY1
         ), 'expected known output'
 
     @pytest.mark.parametrize(
@@ -577,7 +578,85 @@ class TestCLI:
             error='mutually exclusive with '
         ), 'expected error exit and known error message'
 
-    def test_213_import_bad_config_not_vault_config(
+    @pytest.mark.parametrize(
+        'config',
+        [
+            conf.config
+            for conf in tests.TEST_CONFIGS
+            if tests.is_valid_test_config(conf)
+        ],
+    )
+    def test_213_import_config_success(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        config: Any,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'services': {}},
+        ):
+            _result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--import', '-'],
+                input=json.dumps(config),
+                catch_exceptions=False,
+            )
+            with open(
+                cli._config_filename(subsystem='vault'), encoding='UTF-8'
+            ) as infile:
+                config2 = json.load(infile)
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+        assert config2 == config, 'config not imported correctly'
+
+    @hypothesis.given(
+        conf=tests.smudged_vault_test_config(
+            strategies.sampled_from(TEST_CONFIGS).filter(
+                tests.is_valid_test_config
+            )
+        )
+    )
+    def test_213a_import_config_success(
+        self,
+        conf: tests.VaultTestConfig,
+    ) -> None:
+        config = conf.config
+        config2 = copy.deepcopy(config)
+        _types.clean_up_falsy_vault_config_values(config2)
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_config(
+            monkeypatch=pytest.MonkeyPatch(),
+            runner=runner,
+            config={'services': {}},
+        ):
+            _result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--import', '-'],
+                input=json.dumps(config),
+                catch_exceptions=False,
+            )
+            with open(
+                cli._config_filename(subsystem='vault'), encoding='UTF-8'
+            ) as infile:
+                config3 = json.load(infile)
+        result = tests.ReadableResult.parse(_result)
+
+        def expected_warning_line(line: str) -> bool:
+            return (
+                ' Warning: Replacing invalid value ' in line
+                or ' Warning: Removing ineffective setting ' in line
+            )
+
+        assert result.clean_exit(empty_stderr=False), 'expected clean exit'
+        assert config3 == config2, 'config not imported correctly'
+        assert not result.stderr or all(
+            expected_warning_line(line)
+            for line in result.stderr.splitlines(True)
+        ), 'unexpected error output'
+
+    def test_213b_import_bad_config_not_vault_config(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
@@ -594,7 +673,7 @@ class TestCLI:
             error='Invalid vault config'
         ), 'expected error exit and known error message'
 
-    def test_213a_import_bad_config_not_json_data(
+    def test_213c_import_bad_config_not_json_data(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
@@ -611,7 +690,7 @@ class TestCLI:
             error='cannot decode JSON'
         ), 'expected error exit and known error message'
 
-    def test_213b_import_bad_config_not_a_file(
+    def test_213d_import_bad_config_not_a_file(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
@@ -1209,7 +1288,7 @@ contents go here
                     'global': {'phrase': 'Du\u0308sseldorf'},
                     'services': {},
                 }),
-                'the global passphrase is not NFC-normalized',
+                'the $.global passphrase is not NFC-normalized',
                 id='global-NFC',
             ),
             pytest.param(
@@ -1221,7 +1300,7 @@ contents go here
                     }
                 }),
                 (
-                    "the services.'weird entry name' passphrase "
+                    'the $.services["weird entry name"] passphrase '
                     'is not NFC-normalized'
                 ),
                 id='service-weird-name-NFC',
@@ -1230,7 +1309,7 @@ contents go here
                 ['--config', '-p', DUMMY_SERVICE],
                 'Du\u0308sseldorf',
                 (
-                    f'the services.{DUMMY_SERVICE} passphrase '
+                    f'the $.services.{DUMMY_SERVICE} passphrase '
                     f'is not NFC-normalized'
                 ),
                 id='config-NFC',
@@ -1250,7 +1329,7 @@ contents go here
                     },
                     'services': {},
                 }),
-                'the global passphrase is not NFD-normalized',
+                'the $.global passphrase is not NFD-normalized',
                 id='global-NFD',
             ),
             pytest.param(
@@ -1265,7 +1344,7 @@ contents go here
                     },
                 }),
                 (
-                    "the services.'weird entry name' passphrase "
+                    'the $.services["weird entry name"] passphrase '
                     'is not NFD-normalized'
                 ),
                 id='service-weird-name-NFD',
@@ -1559,7 +1638,7 @@ Boo.
 
     def test_204_phrase_from_key_manually(self) -> None:
         assert (
-            dpp.vault.Vault(
+            vault.Vault(
                 phrase=DUMMY_PHRASE_FROM_KEY1, **DUMMY_CONFIG_SETTINGS
             ).generate(DUMMY_SERVICE)
             == DUMMY_RESULT_KEY1
@@ -1844,7 +1923,7 @@ class TestCLITransition:
     ) -> None:
         monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
         option = f'--{charset_name}'
-        charset = dpp.vault.Vault._CHARSETS[charset_name].decode('ascii')
+        charset = vault.Vault._CHARSETS[charset_name].decode('ascii')
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
