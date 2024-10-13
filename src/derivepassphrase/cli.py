@@ -1451,7 +1451,27 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 cast(dict[str, Any], value),
                 form=form,
             )
-        put_config(maybe_config)
+        configuration = get_config()
+        merged_config: collections.ChainMap[str, Any] = collections.ChainMap(
+            {
+                'services': collections.ChainMap(
+                    maybe_config['services'],
+                    configuration['services'],
+                ),
+            },
+            {'global': maybe_config['global']}
+            if 'global' in maybe_config
+            else {},
+            {'global': configuration['global']}
+            if 'global' in configuration
+            else {},
+        )
+        new_config = {
+            k: dict(v) if isinstance(v, collections.ChainMap) else v
+            for k, v in sorted(merged_config.items())
+        }
+        assert _types.is_vault_config(new_config)
+        put_config(new_config)
     elif export_settings:
         configuration = get_config()
         try:
