@@ -50,26 +50,6 @@ class VaultConfigGlobalSettings(TypedDict, total=False):
             The preferred Unicode normalization form; we warn the user
             if textual passphrases do not match their normalized forms.
             Optional, and a `derivepassphrase` extension.
-
-    """
-
-    key: NotRequired[str]
-    """"""
-    phrase: NotRequired[str]
-    """"""
-    unicode_normalization_form: NotRequired[
-        Literal['NFC', 'NFD', 'NFKC', 'NFKD']
-    ]
-    """"""
-
-
-class VaultConfigServicesSettings(VaultConfigGlobalSettings, total=False):
-    r"""Configuration for vault: services settings.
-
-    Attributes:
-        notes:
-            Optional notes for this service, to display to the user when
-            generating the passphrase.
         length:
             Desired passphrase length.
         repeat:
@@ -95,7 +75,13 @@ class VaultConfigServicesSettings(VaultConfigGlobalSettings, total=False):
 
     """
 
-    notes: NotRequired[str]
+    key: NotRequired[str]
+    """"""
+    phrase: NotRequired[str]
+    """"""
+    unicode_normalization_form: NotRequired[
+        Literal['NFC', 'NFD', 'NFKC', 'NFKD']
+    ]
     """"""
     length: NotRequired[int]
     """"""
@@ -112,6 +98,42 @@ class VaultConfigServicesSettings(VaultConfigGlobalSettings, total=False):
     dash: NotRequired[int]
     """"""
     symbol: NotRequired[int]
+    """"""
+
+
+class VaultConfigServicesSettings(VaultConfigGlobalSettings, total=False):
+    r"""Configuration for vault: services settings.
+
+    Attributes:
+        notes:
+            Optional notes for this service, to display to the user when
+            generating the passphrase.
+        key:
+            As per the global settings.
+        phrase:
+            As per the global settings.
+        unicode_normalization_form:
+            As per the global settings.
+        length:
+            As per the global settings.
+        repeat:
+            As per the global settings.
+        lower:
+            As per the global settings.
+        upper:
+            As per the global settings.
+        number:
+            As per the global settings.
+        space:
+            As per the global settings.
+        dash:
+            As per the global settings.
+        symbol:
+            As per the global settings.
+
+    """
+
+    notes: NotRequired[str]
     """"""
 
 

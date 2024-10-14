@@ -1333,23 +1333,19 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 *options_in_group[ConfigurationOption],
                 *options_in_group[StorageManagementOption],
             )
-    sv_options = options_in_group[PasswordGenerationOption] + [
-        params_by_str['--notes'],
-        params_by_str['--delete'],
-    ]
-    sv_options.remove(params_by_str['--key'])
-    sv_options.remove(params_by_str['--phrase'])
-    for param in sv_options:
-        if is_param_set(param) and not service:
-            opt_str = param.opts[0]
-            msg = f'{opt_str} requires a SERVICE'
-            raise click.UsageError(msg)  # noqa: DOC501
-    for param in [params_by_str['--key'], params_by_str['--phrase']]:
+    sv_or_global_options = options_in_group[PasswordGenerationOption]
+    for param in sv_or_global_options:
         if is_param_set(param) and not (
             service or is_param_set(params_by_str['--config'])
         ):
             opt_str = param.opts[0]
             msg = f'{opt_str} requires a SERVICE or --config'
+            raise click.UsageError(msg)  # noqa: DOC501
+    sv_options = [params_by_str['--notes'], params_by_str['--delete']]
+    for param in sv_options:
+        if is_param_set(param) and not service:
+            opt_str = param.opts[0]
+            msg = f'{opt_str} requires a SERVICE'
             raise click.UsageError(msg)
     no_sv_options = [
         params_by_str['--delete-globals'],
