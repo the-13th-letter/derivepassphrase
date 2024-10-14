@@ -493,7 +493,7 @@ def clean_up_falsy_vault_config_values(  # noqa: C901,PLR0912
                         )
                     )
                     service_obj[key] = ''
-            elif key in {'notes', 'key', 'length', 'repeat'}:
+            elif key in {'notes', 'key'}:
                 if not js_truthiness(value):
                     cleanup_completed.append(
                         CleanupStep(
@@ -501,6 +501,24 @@ def clean_up_falsy_vault_config_values(  # noqa: C901,PLR0912
                         )
                     )
                     service_obj.pop(key)
+            elif key == 'length':
+                if not js_truthiness(value):
+                    cleanup_completed.append(
+                        CleanupStep(
+                            (*path, key), service_obj[key], 'replace', 20
+                        )
+                    )
+                    service_obj[key] = 20
+            elif key == 'repeat':
+                if not js_truthiness(value) and not (
+                    isinstance(value, int) and value == 0
+                ):
+                    cleanup_completed.append(
+                        CleanupStep(
+                            (*path, key), service_obj[key], 'replace', 0
+                        )
+                    )
+                    service_obj[key] = 0
             elif key in {  # noqa: SIM102
                 'lower',
                 'upper',
@@ -509,10 +527,12 @@ def clean_up_falsy_vault_config_values(  # noqa: C901,PLR0912
                 'dash',
                 'symbol',
             }:
-                if not js_truthiness(value) and value != 0:
+                if not js_truthiness(value) and not (
+                    isinstance(value, int) and value == 0
+                ):
                     cleanup_completed.append(
                         CleanupStep(
-                            (*path, key), service_obj[key], 'replace', 0
+                            (*path, key), service_obj[key], 'remove', None
                         )
                     )
                     service_obj.pop(key)
