@@ -1511,7 +1511,6 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 dict[str, Any],
                 configuration['services'].get(service or '', {}),
             ),
-            {},
             cast(dict[str, Any], configuration.get('global', {})),
         )
         if use_key:
@@ -1550,20 +1549,24 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             view = (
                 collections.ChainMap(*settings.maps[:2])
                 if service
-                else settings.parents.parents
+                else collections.ChainMap(settings.maps[0], settings.maps[2])
             )
             if use_key:
                 view['key'] = key
-                for m in view.maps:
-                    m.pop('phrase', '')
             elif use_phrase:
+                view['phrase'] = phrase
+                settings_type = 'service' if service else 'global'
                 _check_for_misleading_passphrase(
                     ('services', service) if service else ('global',),
                     {'phrase': phrase},
                 )
-                view['phrase'] = phrase
-                for m in view.maps:
-                    m.pop('key', '')
+                if 'key' in settings:
+                    err_msg = (
+                        f'{PROG_NAME}: Warning: Setting a {settings_type} '
+                        f'passphrase is ineffective because a key is also '
+                        f'set.'
+                    )
+                    click.echo(err_msg, err=True)
             if not view.maps[0]:
                 settings_type = 'service' if service else 'global'
                 msg = (

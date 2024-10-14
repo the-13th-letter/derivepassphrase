@@ -158,6 +158,14 @@ TEST_CONFIGS: list[VaultTestConfig] = [
     VaultTestConfig(
         {
             'global': {'key': '...'},
+            'services': {'sv': {'phrase': 'abc', 'key': '...', 'length': 10}},
+        },
+        '',
+        None,
+    ),
+    VaultTestConfig(
+        {
+            'global': {'key': '...'},
             'services': {
                 'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
                 'sv2': {'length': 10, 'repeat': 1, 'lower': 1},

@@ -203,6 +203,25 @@ for opt, config in SINGLES.items():
     )
 
 
+def is_harmless_config_import_warning_line(line: str) -> bool:
+    """Return true if the warning line is harmless, during config import."""
+    possible_warnings = [
+        'Replacing invalid value ',
+        'Removing ineffective setting ',
+        (
+            'Setting a global passphrase is ineffective '
+            'because a key is also set.'
+        ),
+        (
+            'Setting a service passphrase is ineffective '
+            'because a key is also set.'
+        ),
+    ]
+    return any(  # pragma: no branch
+        (' Warning: ' + w) in line for w in possible_warnings
+    )
+
+
 class TestCLI:
     def test_200_help_output(self, monkeypatch: pytest.MonkeyPatch) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
@@ -455,6 +474,64 @@ class TestCLI:
         ), 'expected known output'
 
     @pytest.mark.parametrize(
+        'config',
+        [
+            {
+                'services': {
+                    DUMMY_SERVICE: {
+                        'key': DUMMY_KEY1_B64,
+                        **DUMMY_CONFIG_SETTINGS,
+                    },
+                },
+            },
+            {
+                'global': {'key': DUMMY_KEY1_B64},
+                'services': {
+                    DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()
+                },
+            },
+        ],
+    )
+    def test_206_setting_service_phrase_thus_overriding_key_in_config(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        running_ssh_agent: str,
+        config: _types.VaultConfig,
+    ) -> None:
+        with monkeypatch.context():
+            monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent)
+            monkeypatch.setattr(
+                ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
+            )
+            monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', tests.sign)
+            runner = click.testing.CliRunner(mix_stderr=False)
+            with tests.isolated_vault_config(
+                monkeypatch=monkeypatch,
+                runner=runner,
+                config=config,
+            ):
+                _result = runner.invoke(
+                    cli.derivepassphrase_vault,
+                    ['--config', '-p', '--', DUMMY_SERVICE],
+                    input=DUMMY_PASSPHRASE,
+                    catch_exceptions=False,
+                )
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(), 'expected clean exit'
+        assert not result.output.strip(), 'expected no program output'
+        assert result.stderr, 'expected known error output'
+        err_lines = result.stderr.splitlines(False)
+        assert err_lines[0].startswith('Passphrase:')
+        assert any(  # pragma: no branch
+            ' Warning: Setting a service passphrase is ineffective ' in line
+            for line in err_lines
+        ), 'expected known warning message'
+        assert all(  # pragma: no branch
+            is_harmless_config_import_warning_line(line)
+            for line in result.stderr.splitlines(True)
+        ), 'unexpected error output'
+
+    @pytest.mark.parametrize(
         'option',
         [
             '--lower',
@@ -582,7 +659,7 @@ class TestCLI:
         'config',
         [
             conf.config
-            for conf in tests.TEST_CONFIGS
+            for conf in TEST_CONFIGS
             if tests.is_valid_test_config(conf)
         ],
     )
@@ -608,8 +685,12 @@ class TestCLI:
             ) as infile:
                 config2 = json.load(infile)
         result = tests.ReadableResult.parse(_result)
-        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+        assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert config2 == config, 'config not imported correctly'
+        assert not result.stderr or all(  # pragma: no branch
+            is_harmless_config_import_warning_line(line)
+            for line in result.stderr.splitlines(True)
+        ), 'unexpected error output'
 
     @hypothesis.given(
         conf=tests.smudged_vault_test_config(
@@ -642,17 +723,10 @@ class TestCLI:
             ) as infile:
                 config3 = json.load(infile)
         result = tests.ReadableResult.parse(_result)
-
-        def expected_warning_line(line: str) -> bool:
-            return (
-                ' Warning: Replacing invalid value ' in line
-                or ' Warning: Removing ineffective setting ' in line
-            )
-
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert config3 == config2, 'config not imported correctly'
         assert not result.stderr or all(
-            expected_warning_line(line)
+            is_harmless_config_import_warning_line(line)
             for line in result.stderr.splitlines(True)
         ), 'unexpected error output'
 
@@ -925,7 +999,10 @@ contents go here
             (
                 ['--key'],
                 '1\n',
-                {'global': {'key': DUMMY_KEY1_B64}, 'services': {}},
+                {
+                    'global': {'key': DUMMY_KEY1_B64, 'phrase': 'abc'},
+                    'services': {},
+                },
             ),
             (
                 ['--phrase', 'sv'],
