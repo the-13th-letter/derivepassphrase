@@ -30,6 +30,105 @@ effectively constitute a new <q>major</q> release.)
 
 <!-- scriv changelog start -->
 
+## 0.3.0 (2024-10-15)
+
+### Added
+
+  - Convert changelog management from towncrier to [scriv][].
+  - Add SSH agent spawning support to the test suite.  Use this support to
+    test the agent functionality on all known major SSH agent
+    implementations automatically. ([#12])
+  - Add [hypothesis][]-based tests to the test suite.
+  - Update README to add explanations for virtual environments and package
+    extras.
+  - Update README to demonstrate configuration storing and SSH agent use.
+    Include comments on Windows support for SSH agents.
+  - Use cross-references in the documentation of function signatures.
+  - Add proper support for Buffer types in the SSH agent client.  Any
+    Python object supporting the buffer protocol can be used as input to
+    a function of the client, and any output from the client is returned
+    as bytes objects.  Because of the zero-copy semantics of the
+    underlying data/memory block, this should stay relatively time- and
+    space-efficient.
+  - Add [hypothesis][]-based tests for serialization to and
+    deserialization from the SSH agent wire format.
+  - Support Python 3.9 and 3.13.
+
+[#12]: https://github.com/the-13th-letter/derivepassphrase/issues/12
+[hypothesis]: https://pypi.org/project/hypothesis/
+[scriv]: https://pypi.org/project/scriv
+
+### Changed
+
+  - Change links to point to public project repositories, if possible.  For
+    legal reasons.
+
+  - Use the same filename/URL convention for API reference as the Python
+    standard library does.
+
+  - Rewrite functionality for checking for valid vault(1) configurations:
+    include an actual validation function which throws errors upon
+    encountering format violations, and which allows specifying which types
+    of extensions (unknown settings, `derivepassphrase`-only settings) to
+    tolerate during validation.
+
+    This is a **breaking API change** because the function return annotation
+    changed, from [`typing.TypeGuard`][] to [`typing_extensions.TypeIs`][].
+    These were the originally intended semantics, but when
+    `derivepassphrase` was first designed, the Python type system did not
+    support this kind of partial type narrowing.
+
+  - Fail earlier, and more gracefully/specifically, when we cannot talk to
+    the SSH agent because Python does not support UNIX domain sockets on
+    this system.  In particular, this is the current situation on Windows.
+
+    This adds another failure case to the `SSHAgentClient` constructor, and
+    therefore constitutes a **breaking API change**.
+
+  - In `derivepassphrase vault`, accept `key` and `phrase` entries just like
+    vault(1) does: `key` always overrides `phrase` in the configuration, no
+    matter the level.
+
+    This is a command-line only change.
+
+  - In `derivepassphrase vault`, when importing settings, accept falsy values
+    everywhere `vault` does, with a warning.  Depending on the setting, they
+    are equivalent to zero, the empty string, or "not set".  ([#17])
+
+    This is a command-line only change, and only affects importing.  The API
+    provides a new function to normalize falsy settings, but still otherwise
+    requires settings to be of the correct type.  Storing a malformed
+    configuration with such falsy values will still generate errors when
+    `derivepassphrase vault` loads the settings from disk.
+
+  - In `derivepassphrase vault`, when importing configurations,
+    correctly merge them with the existing one, same as vault(1): keep
+    all named services and their settings (and the global settings if
+    applicable) that are not mentioned in the imported configuration.
+    The import procedure is thus more akin to a section-wise import of
+    the configurations, instead of a "full" import, and the resulting
+    configuration generally is a merge of both inputs.  ([#16])
+
+  - The following operations or configuration settings now raise
+    warnings:
+
+      * in imported configurations: using falsy values of the wrong type
+      * in imported configurations: using falsy values with no practical
+        effect
+      * setting a passphrase in the configuration if a key is already
+        set
+      * using an empty service name on the command-line or in an
+        imported configuration
+
+[#16]: https://github.com/the-13th-letter/derivepassphrase/issues/16
+[#17]: https://github.com/the-13th-letter/derivepassphrase/issues/17
+
+### Fixed
+
+  - Fixed the textual description of the return value for
+    [`SSHAgentClient.request`][derivepassphrase.ssh_agent.SSHAgentClient.request],
+    which didn't match the declared type annotation.
+
 ## 0.2.0 (2024-09-12)
 
 ### Added
