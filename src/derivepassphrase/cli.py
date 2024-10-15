@@ -1358,6 +1358,17 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             msg = f'{opt_str} does not take a SERVICE argument'
             raise click.UsageError(msg)
 
+    if service == '':  # noqa: PLC1901
+        click.echo(
+            (
+                f'{PROG_NAME}: Warning: An empty SERVICE is not '
+                f'supported by vault(1).  For compatibility, this will be '
+                f'treated as if SERVICE was not supplied, i.e., it will '
+                f'error out, or operate on global settings.'
+            ),
+            err=True,
+        )
+
     if edit_notes:
         assert service is not None
         configuration = get_config()
@@ -1428,6 +1439,15 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     f'{_types.json_path(step.path)} = '
                     f'{json.dumps(step.old_value)}.'
                 )
+            click.echo(err_msg, err=True)
+        if '' in maybe_config['services']:
+            err_msg = (
+                f'{PROG_NAME}: Warning: An empty SERVICE is not '
+                f'supported by vault(1), and the empty-string service '
+                f'settings will be inaccessible and ineffective.  '
+                f'To ensure that vault(1) and {PROG_NAME} see the settings, '
+                f'move them into the "global" section.'
+            )
             click.echo(err_msg, err=True)
         form = cast(
             Literal['NFC', 'NFD', 'NFKC', 'NFKD'],

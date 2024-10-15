@@ -621,6 +621,57 @@ class TestCLI:
                 result = tests.ReadableResult.parse(_result)
             assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
+    def test_211a_empty_service_name_causes_warning(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        def expected_warning_line(line: str) -> bool:
+            return is_harmless_config_import_warning_line(line) or (
+                ' Warning: An empty SERVICE is not supported by vault(1)'
+                in line
+            )
+
+        monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'services': {}},
+        ):
+            _result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--config', '--length=30', '--', ''],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(_result)
+            assert result.clean_exit(empty_stderr=False), 'expected clean exit'
+            assert result.stderr is not None, 'expected known error output'
+            assert all(
+                expected_warning_line(line)
+                for line in result.stderr.splitlines(False)
+            ), 'expected known error output'
+            assert cli._load_config() == {
+                'global': {'length': 30},
+                'services': {},
+            }, 'requested configuration change was not applied'
+            _result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--import', '-'],
+                input=json.dumps({'services': {'': {'length': 40}}}),
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(_result)
+            assert result.clean_exit(empty_stderr=False), 'expected clean exit'
+            assert result.stderr is not None, 'expected known error output'
+            assert all(
+                expected_warning_line(line)
+                for line in result.stderr.splitlines(False)
+            ), 'expected known error output'
+            assert cli._load_config() == {
+                'global': {'length': 30},
+                'services': {'': {'length': 40}},
+            }, 'requested configuration change was not applied'
+
     @pytest.mark.parametrize(
         ['options', 'service'],
         [
