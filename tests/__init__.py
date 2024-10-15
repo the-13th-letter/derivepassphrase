@@ -158,6 +158,14 @@ TEST_CONFIGS: list[VaultTestConfig] = [
     VaultTestConfig(
         {
             'global': {'key': '...'},
+            'services': {'sv': {'phrase': 'abc', 'key': '...', 'length': 10}},
+        },
+        '',
+        None,
+    ),
+    VaultTestConfig(
+        {
+            'global': {'key': '...'},
             'services': {
                 'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
                 'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
@@ -319,6 +327,36 @@ def _test_config_ids(val: VaultTestConfig) -> Any:  # pragma: no cover
     """pytest id function for VaultTestConfig objects."""
     assert isinstance(val, VaultTestConfig)
     return val[1] or (val[0], val[1], val[2])
+
+
+@strategies.composite
+def vault_full_service_config(draw: strategies.DrawFn) -> dict[str, int]:
+    lower = draw(strategies.integers(min_value=0, max_value=10))
+    upper = draw(strategies.integers(min_value=0, max_value=10))
+    number = draw(strategies.integers(min_value=0, max_value=10))
+    space = draw(strategies.integers(min_value=0, max_value=10))
+    dash = draw(strategies.integers(min_value=0, max_value=10))
+    symbol = draw(strategies.integers(min_value=0, max_value=10))
+    repeat = draw(strategies.integers(min_value=0, max_value=10))
+    length = draw(
+        strategies.integers(
+            min_value=max(1, lower + upper + number + space + dash + symbol),
+            max_value=70,
+        )
+    )
+    hypothesis.assume(lower + upper + number + dash + symbol > 0)
+    hypothesis.assume(lower + upper + number + space + symbol > 0)
+    hypothesis.assume(repeat >= space)
+    return {
+        'lower': lower,
+        'upper': upper,
+        'number': number,
+        'space': space,
+        'dash': dash,
+        'symbol': symbol,
+        'repeat': repeat,
+        'length': length,
+    }
 
 
 def is_smudgable_vault_test_config(conf: VaultTestConfig) -> bool:

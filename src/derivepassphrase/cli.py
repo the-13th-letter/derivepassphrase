@@ -1333,23 +1333,19 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 *options_in_group[ConfigurationOption],
                 *options_in_group[StorageManagementOption],
             )
-    sv_options = options_in_group[PasswordGenerationOption] + [
-        params_by_str['--notes'],
-        params_by_str['--delete'],
-    ]
-    sv_options.remove(params_by_str['--key'])
-    sv_options.remove(params_by_str['--phrase'])
-    for param in sv_options:
-        if is_param_set(param) and not service:
-            opt_str = param.opts[0]
-            msg = f'{opt_str} requires a SERVICE'
-            raise click.UsageError(msg)  # noqa: DOC501
-    for param in [params_by_str['--key'], params_by_str['--phrase']]:
+    sv_or_global_options = options_in_group[PasswordGenerationOption]
+    for param in sv_or_global_options:
         if is_param_set(param) and not (
             service or is_param_set(params_by_str['--config'])
         ):
             opt_str = param.opts[0]
             msg = f'{opt_str} requires a SERVICE or --config'
+            raise click.UsageError(msg)  # noqa: DOC501
+    sv_options = [params_by_str['--notes'], params_by_str['--delete']]
+    for param in sv_options:
+        if is_param_set(param) and not service:
+            opt_str = param.opts[0]
+            msg = f'{opt_str} requires a SERVICE'
             raise click.UsageError(msg)
     no_sv_options = [
         params_by_str['--delete-globals'],
@@ -1361,6 +1357,17 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             opt_str = param.opts[0]
             msg = f'{opt_str} does not take a SERVICE argument'
             raise click.UsageError(msg)
+
+    if service == '':  # noqa: PLC1901
+        click.echo(
+            (
+                f'{PROG_NAME}: Warning: An empty SERVICE is not '
+                f'supported by vault(1).  For compatibility, this will be '
+                f'treated as if SERVICE was not supplied, i.e., it will '
+                f'error out, or operate on global settings.'
+            ),
+            err=True,
+        )
 
     if edit_notes:
         assert service is not None
@@ -1433,6 +1440,15 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     f'{json.dumps(step.old_value)}.'
                 )
             click.echo(err_msg, err=True)
+        if '' in maybe_config['services']:
+            err_msg = (
+                f'{PROG_NAME}: Warning: An empty SERVICE is not '
+                f'supported by vault(1), and the empty-string service '
+                f'settings will be inaccessible and ineffective.  '
+                f'To ensure that vault(1) and {PROG_NAME} see the settings, '
+                f'move them into the "global" section.'
+            )
+            click.echo(err_msg, err=True)
         form = cast(
             Literal['NFC', 'NFD', 'NFKC', 'NFKD'],
             maybe_config.get('global', {}).get(
@@ -1451,7 +1467,27 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 cast(dict[str, Any], value),
                 form=form,
             )
-        put_config(maybe_config)
+        configuration = get_config()
+        merged_config: collections.ChainMap[str, Any] = collections.ChainMap(
+            {
+                'services': collections.ChainMap(
+                    maybe_config['services'],
+                    configuration['services'],
+                ),
+            },
+            {'global': maybe_config['global']}
+            if 'global' in maybe_config
+            else {},
+            {'global': configuration['global']}
+            if 'global' in configuration
+            else {},
+        )
+        new_config = {
+            k: dict(v) if isinstance(v, collections.ChainMap) else v
+            for k, v in sorted(merged_config.items())
+        }
+        assert _types.is_vault_config(new_config)
+        put_config(new_config)
     elif export_settings:
         configuration = get_config()
         try:
@@ -1495,7 +1531,6 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 dict[str, Any],
                 configuration['services'].get(service or '', {}),
             ),
-            {},
             cast(dict[str, Any], configuration.get('global', {})),
         )
         if use_key:
@@ -1534,20 +1569,24 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             view = (
                 collections.ChainMap(*settings.maps[:2])
                 if service
-                else settings.parents.parents
+                else collections.ChainMap(settings.maps[0], settings.maps[2])
             )
             if use_key:
                 view['key'] = key
-                for m in view.maps:
-                    m.pop('phrase', '')
             elif use_phrase:
+                view['phrase'] = phrase
+                settings_type = 'service' if service else 'global'
                 _check_for_misleading_passphrase(
                     ('services', service) if service else ('global',),
                     {'phrase': phrase},
                 )
-                view['phrase'] = phrase
-                for m in view.maps:
-                    m.pop('key', '')
+                if 'key' in settings:
+                    err_msg = (
+                        f'{PROG_NAME}: Warning: Setting a {settings_type} '
+                        f'passphrase is ineffective because a key is also '
+                        f'set.'
+                    )
+                    click.echo(err_msg, err=True)
             if not view.maps[0]:
                 settings_type = 'service' if service else 'global'
                 msg = (

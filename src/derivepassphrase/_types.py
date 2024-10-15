@@ -50,26 +50,6 @@ class VaultConfigGlobalSettings(TypedDict, total=False):
             The preferred Unicode normalization form; we warn the user
             if textual passphrases do not match their normalized forms.
             Optional, and a `derivepassphrase` extension.
-
-    """
-
-    key: NotRequired[str]
-    """"""
-    phrase: NotRequired[str]
-    """"""
-    unicode_normalization_form: NotRequired[
-        Literal['NFC', 'NFD', 'NFKC', 'NFKD']
-    ]
-    """"""
-
-
-class VaultConfigServicesSettings(VaultConfigGlobalSettings, total=False):
-    r"""Configuration for vault: services settings.
-
-    Attributes:
-        notes:
-            Optional notes for this service, to display to the user when
-            generating the passphrase.
         length:
             Desired passphrase length.
         repeat:
@@ -95,7 +75,13 @@ class VaultConfigServicesSettings(VaultConfigGlobalSettings, total=False):
 
     """
 
-    notes: NotRequired[str]
+    key: NotRequired[str]
+    """"""
+    phrase: NotRequired[str]
+    """"""
+    unicode_normalization_form: NotRequired[
+        Literal['NFC', 'NFD', 'NFKC', 'NFKD']
+    ]
     """"""
     length: NotRequired[int]
     """"""
@@ -112,6 +98,42 @@ class VaultConfigServicesSettings(VaultConfigGlobalSettings, total=False):
     dash: NotRequired[int]
     """"""
     symbol: NotRequired[int]
+    """"""
+
+
+class VaultConfigServicesSettings(VaultConfigGlobalSettings, total=False):
+    r"""Configuration for vault: services settings.
+
+    Attributes:
+        notes:
+            Optional notes for this service, to display to the user when
+            generating the passphrase.
+        key:
+            As per the global settings.
+        phrase:
+            As per the global settings.
+        unicode_normalization_form:
+            As per the global settings.
+        length:
+            As per the global settings.
+        repeat:
+            As per the global settings.
+        lower:
+            As per the global settings.
+        upper:
+            As per the global settings.
+        number:
+            As per the global settings.
+        space:
+            As per the global settings.
+        dash:
+            As per the global settings.
+        symbol:
+            As per the global settings.
+
+    """
+
+    notes: NotRequired[str]
     """"""
 
 
@@ -471,7 +493,7 @@ def clean_up_falsy_vault_config_values(  # noqa: C901,PLR0912
                         )
                     )
                     service_obj[key] = ''
-            elif key in {'notes', 'key', 'length', 'repeat'}:
+            elif key in {'notes', 'key'}:
                 if not js_truthiness(value):
                     cleanup_completed.append(
                         CleanupStep(
@@ -479,6 +501,24 @@ def clean_up_falsy_vault_config_values(  # noqa: C901,PLR0912
                         )
                     )
                     service_obj.pop(key)
+            elif key == 'length':
+                if not js_truthiness(value):
+                    cleanup_completed.append(
+                        CleanupStep(
+                            (*path, key), service_obj[key], 'replace', 20
+                        )
+                    )
+                    service_obj[key] = 20
+            elif key == 'repeat':
+                if not js_truthiness(value) and not (
+                    isinstance(value, int) and value == 0
+                ):
+                    cleanup_completed.append(
+                        CleanupStep(
+                            (*path, key), service_obj[key], 'replace', 0
+                        )
+                    )
+                    service_obj[key] = 0
             elif key in {  # noqa: SIM102
                 'lower',
                 'upper',
@@ -487,10 +527,12 @@ def clean_up_falsy_vault_config_values(  # noqa: C901,PLR0912
                 'dash',
                 'symbol',
             }:
-                if not js_truthiness(value) and value != 0:
+                if not js_truthiness(value) and not (
+                    isinstance(value, int) and value == 0
+                ):
                     cleanup_completed.append(
                         CleanupStep(
-                            (*path, key), service_obj[key], 'replace', 0
+                            (*path, key), service_obj[key], 'remove', None
                         )
                     )
                     service_obj.pop(key)

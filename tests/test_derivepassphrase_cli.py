@@ -11,21 +11,19 @@ import json
 import os
 import shutil
 import socket
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import click.testing
 import hypothesis
 import pytest
-from hypothesis import strategies
-from typing_extensions import NamedTuple
+from hypothesis import stateful, strategies
+from typing_extensions import Any, NamedTuple
 
 import tests
 from derivepassphrase import _types, cli, ssh_agent, vault
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
-    from typing_extensions import Any
+    from collections.abc import Callable, Iterable
 
 DUMMY_SERVICE = tests.DUMMY_SERVICE
 DUMMY_PASSPHRASE = tests.DUMMY_PASSPHRASE
@@ -200,6 +198,25 @@ for opt, config in SINGLES.items():
             input=config.input,
             check_success=config.check_success,
         )
+    )
+
+
+def is_harmless_config_import_warning_line(line: str) -> bool:
+    """Return true if the warning line is harmless, during config import."""
+    possible_warnings = [
+        'Replacing invalid value ',
+        'Removing ineffective setting ',
+        (
+            'Setting a global passphrase is ineffective '
+            'because a key is also set.'
+        ),
+        (
+            'Setting a service passphrase is ineffective '
+            'because a key is also set.'
+        ),
+    ]
+    return any(  # pragma: no branch
+        (' Warning: ' + w) in line for w in possible_warnings
     )
 
 
@@ -455,6 +472,62 @@ class TestCLI:
         ), 'expected known output'
 
     @pytest.mark.parametrize(
+        'config',
+        [
+            {
+                'services': {
+                    DUMMY_SERVICE: {
+                        'key': DUMMY_KEY1_B64,
+                        **DUMMY_CONFIG_SETTINGS,
+                    },
+                },
+            },
+            {
+                'global': {'key': DUMMY_KEY1_B64},
+                'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()},
+            },
+        ],
+    )
+    def test_206_setting_service_phrase_thus_overriding_key_in_config(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        running_ssh_agent: str,
+        config: _types.VaultConfig,
+    ) -> None:
+        with monkeypatch.context():
+            monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent)
+            monkeypatch.setattr(
+                ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
+            )
+            monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', tests.sign)
+            runner = click.testing.CliRunner(mix_stderr=False)
+            with tests.isolated_vault_config(
+                monkeypatch=monkeypatch,
+                runner=runner,
+                config=config,
+            ):
+                _result = runner.invoke(
+                    cli.derivepassphrase_vault,
+                    ['--config', '-p', '--', DUMMY_SERVICE],
+                    input=DUMMY_PASSPHRASE,
+                    catch_exceptions=False,
+                )
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(), 'expected clean exit'
+        assert not result.output.strip(), 'expected no program output'
+        assert result.stderr, 'expected known error output'
+        err_lines = result.stderr.splitlines(False)
+        assert err_lines[0].startswith('Passphrase:')
+        assert any(  # pragma: no branch
+            ' Warning: Setting a service passphrase is ineffective ' in line
+            for line in err_lines
+        ), 'expected known warning message'
+        assert all(  # pragma: no branch
+            is_harmless_config_import_warning_line(line)
+            for line in result.stderr.splitlines(True)
+        ), 'unexpected error output'
+
+    @pytest.mark.parametrize(
         'option',
         [
             '--lower',
@@ -548,6 +621,57 @@ class TestCLI:
                 result = tests.ReadableResult.parse(_result)
             assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
+    def test_211a_empty_service_name_causes_warning(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        def expected_warning_line(line: str) -> bool:
+            return is_harmless_config_import_warning_line(line) or (
+                ' Warning: An empty SERVICE is not supported by vault(1)'
+                in line
+            )
+
+        monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            config={'services': {}},
+        ):
+            _result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--config', '--length=30', '--', ''],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(_result)
+            assert result.clean_exit(empty_stderr=False), 'expected clean exit'
+            assert result.stderr is not None, 'expected known error output'
+            assert all(
+                expected_warning_line(line)
+                for line in result.stderr.splitlines(False)
+            ), 'expected known error output'
+            assert cli._load_config() == {
+                'global': {'length': 30},
+                'services': {},
+            }, 'requested configuration change was not applied'
+            _result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--import', '-'],
+                input=json.dumps({'services': {'': {'length': 40}}}),
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(_result)
+            assert result.clean_exit(empty_stderr=False), 'expected clean exit'
+            assert result.stderr is not None, 'expected known error output'
+            assert all(
+                expected_warning_line(line)
+                for line in result.stderr.splitlines(False)
+            ), 'expected known error output'
+            assert cli._load_config() == {
+                'global': {'length': 30},
+                'services': {'': {'length': 40}},
+            }, 'requested configuration change was not applied'
+
     @pytest.mark.parametrize(
         ['options', 'service'],
         [
@@ -582,7 +706,7 @@ class TestCLI:
         'config',
         [
             conf.config
-            for conf in tests.TEST_CONFIGS
+            for conf in TEST_CONFIGS
             if tests.is_valid_test_config(conf)
         ],
     )
@@ -608,8 +732,12 @@ class TestCLI:
             ) as infile:
                 config2 = json.load(infile)
         result = tests.ReadableResult.parse(_result)
-        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+        assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert config2 == config, 'config not imported correctly'
+        assert not result.stderr or all(  # pragma: no branch
+            is_harmless_config_import_warning_line(line)
+            for line in result.stderr.splitlines(True)
+        ), 'unexpected error output'
 
     @tests.hypothesis_settings_coverage_compatible
     @hypothesis.given(
@@ -643,17 +771,10 @@ class TestCLI:
             ) as infile:
                 config3 = json.load(infile)
         result = tests.ReadableResult.parse(_result)
-
-        def expected_warning_line(line: str) -> bool:
-            return (
-                ' Warning: Replacing invalid value ' in line
-                or ' Warning: Removing ineffective setting ' in line
-            )
-
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert config3 == config2, 'config not imported correctly'
         assert not result.stderr or all(
-            expected_warning_line(line)
+            is_harmless_config_import_warning_line(line)
             for line in result.stderr.splitlines(True)
         ), 'unexpected error output'
 
@@ -926,7 +1047,10 @@ contents go here
             (
                 ['--key'],
                 '1\n',
-                {'global': {'key': DUMMY_KEY1_B64}, 'services': {}},
+                {
+                    'global': {'key': DUMMY_KEY1_B64, 'phrase': 'abc'},
+                    'services': {},
+                },
             ),
             (
                 ['--phrase', 'sv'],
@@ -2024,3 +2148,283 @@ class TestCLITransition:
         assert (
             'Warning: Failed to migrate to ' in result.stderr
         ), 'expected known warning message in stderr'
+
+
+class ConfigMergingStateMachine(stateful.RuleBasedStateMachine):
+    def __init__(self) -> None:
+        super().__init__()
+        self.runner = click.testing.CliRunner(mix_stderr=False)
+        self.exit_stack = contextlib.ExitStack().__enter__()
+        self.monkeypatch = self.exit_stack.enter_context(
+            pytest.MonkeyPatch().context()
+        )
+        self.isolated_config = self.exit_stack.enter_context(
+            tests.isolated_vault_config(
+                monkeypatch=self.monkeypatch,
+                runner=self.runner,
+                config={'services': {}},
+            )
+        )
+        self.current_config = cli._load_config()
+
+    known_services = stateful.Bundle('known_services')
+    settings = stateful.Bundle('settings')
+    configurations = stateful.Bundle('configurations')
+
+    @stateful.initialize(target=configurations)
+    def init_empty_configuration(self) -> _types.VaultConfig:
+        return copy.deepcopy(self.current_config)
+
+    @stateful.initialize(target=configurations)
+    def init_standard_testing_configuration(self) -> _types.VaultConfig:
+        return cast(
+            _types.VaultConfig,
+            {
+                'services': {
+                    DUMMY_SERVICE: copy.deepcopy(DUMMY_CONFIG_SETTINGS)
+                }
+            },
+        )
+
+    @stateful.initialize(
+        target=known_services,
+        service_names=strategies.lists(
+            strategies.text(
+                strategies.characters(min_codepoint=32, max_codepoint=126),
+                min_size=1,
+                max_size=50,
+            ),
+            min_size=10,
+            max_size=10,
+            unique=True,
+        ),
+    )
+    def init_random_service_names(
+        self, service_names: list[str]
+    ) -> Iterable[str]:
+        return stateful.multiple(*service_names)
+
+    # Don't include key or phrase settings here.  While easy to
+    # implement when manipulating the stored config directly, the
+    # command-line interface for changing the passphrase and key values
+    # is not straight-forward, and key values require a running SSH
+    # agent and the key to be loaded.
+    @stateful.initialize(
+        target=settings,
+        settings_list=strategies.lists(
+            tests.vault_full_service_config(),
+            min_size=10,
+            max_size=10,
+            unique_by=lambda obj: json.dumps(obj, sort_keys=True),
+        ),
+    )
+    def init_random_settings(
+        self, settings_list: list[_types.VaultConfigGlobalSettings]
+    ) -> Iterable[_types.VaultConfigGlobalSettings]:
+        return stateful.multiple(*settings_list)
+
+    @stateful.invariant()
+    def check_consistency_of_configs(self) -> None:
+        _types.clean_up_falsy_vault_config_values(self.current_config)
+        assert self.current_config == cli._load_config()
+
+    @stateful.rule(
+        target=settings,
+        settings_obj=tests.vault_full_service_config(),
+    )
+    def prepare_settings(
+        self, settings_obj: dict[str, int]
+    ) -> _types.VaultConfigGlobalSettings:
+        return cast(_types.VaultConfigGlobalSettings, settings_obj.copy())
+
+    @stateful.rule(
+        target=known_services,
+        name=strategies.text(
+            strategies.characters(min_codepoint=32, max_codepoint=126),
+            min_size=1,
+            max_size=50,
+        ),
+    )
+    def prepare_service_name(self, name: str) -> str:
+        return name
+
+    @stateful.rule(
+        target=configurations,
+        settings_obj=stateful.consumes(settings),
+    )
+    def prepare_global_config(
+        self,
+        settings_obj: dict[str, int],
+    ) -> _types.VaultConfig:
+        return {
+            'global': cast(_types.VaultConfigGlobalSettings, settings_obj),
+            'services': {},
+        }
+
+    @stateful.rule(
+        target=configurations,
+        service=known_services,
+        settings_obj=stateful.consumes(settings),
+    )
+    def prepare_service_config(
+        self,
+        service: str,
+        settings_obj: dict[str, int],
+    ) -> _types.VaultConfig:
+        return {
+            'services': {
+                service: cast(
+                    _types.VaultConfigServicesSettings, settings_obj
+                ),
+            },
+        }
+
+    @staticmethod
+    def fold_configs(
+        c1: _types.VaultConfig, c2: _types.VaultConfig
+    ) -> _types.VaultConfig:
+        new_global_dict = c1.get('global', c2.get('global'))
+        if new_global_dict is not None:
+            return {
+                'global': new_global_dict,
+                'services': {**c2['services'], **c1['services']},
+            }
+        return {
+            'services': {**c2['services'], **c1['services']},
+        }
+
+    @stateful.rule(
+        target=configurations,
+        config_base=stateful.consumes(configurations),
+        config_folded=stateful.consumes(configurations),
+    )
+    def fold_configuration_into(
+        self,
+        config_base: _types.VaultConfig,
+        config_folded: _types.VaultConfig,
+    ) -> _types.VaultConfig:
+        return self.fold_configs(config_folded, config_base)
+
+    @stateful.rule(
+        settings_obj=stateful.consumes(settings),
+    )
+    def set_globals(
+        self,
+        settings_obj: _types.VaultConfigGlobalSettings,
+    ) -> None:
+        self.current_config['global'] = settings_obj
+        assert _types.is_vault_config(self.current_config)
+        # NOTE: This relies on settings_obj containing only the keys
+        # "length", "repeat", "upper", "lower", "number", "space",
+        # "dash" and "symbol".
+        _result = self.runner.invoke(
+            cli.derivepassphrase_vault,
+            ['--config']
+            + [f'--{key}={value}' for key, value in settings_obj.items()],
+            catch_exceptions=False,
+        )
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(empty_stderr=False)
+
+    # No check for whether the service settings currently exist.  This
+    # may therefore actually "create" the settings, not merely "modify"
+    # them.
+    #
+    # (There is no check because this appears to be hard or impossible
+    # to express as a hypothesis strategy: it would depend on the
+    # current state of the state machine instance.  This could be
+    # circumvented with `hypothesis.assume`, but that may likely trigger
+    # health check errors.)
+    @stateful.rule(
+        service=known_services,
+        settings_obj=stateful.consumes(settings),
+    )
+    def set_service(
+        self,
+        service: str,
+        settings_obj: _types.VaultConfigServicesSettings,
+    ) -> None:
+        self.current_config['services'][service] = settings_obj
+        assert _types.is_vault_config(self.current_config)
+        # NOTE: This relies on settings_obj containing only the keys
+        # "length", "repeat", "upper", "lower", "number", "space",
+        # "dash" and "symbol".
+        _result = self.runner.invoke(
+            cli.derivepassphrase_vault,
+            ['--config']
+            + [f'--{key}={value}' for key, value in settings_obj.items()]
+            + ['--', service],
+            catch_exceptions=False,
+        )
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(empty_stderr=False)
+
+    @stateful.precondition(lambda self: 'global' in self.current_config)
+    @stateful.rule()
+    def purge_global(self) -> None:
+        self.current_config.pop('global')
+        _result = self.runner.invoke(
+            cli.derivepassphrase_vault,
+            ['--delete-globals'],
+            input='y',
+            catch_exceptions=False,
+        )
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(empty_stderr=False)
+
+    # No check for whether the service settings currently exist.  This
+    # may therefore actually be almost a no-op, purging settings that
+    # aren't set in the first place.
+    #
+    # (There is no check because this appears to be hard or impossible
+    # to express as a hypothesis strategy: it would depend on the
+    # current state of the state machine instance.  This could be
+    # circumvented with `hypothesis.assume`, but that may likely trigger
+    # health check errors.)
+    @stateful.precondition(lambda self: bool(self.current_config['services']))
+    @stateful.rule(service=stateful.consumes(known_services))
+    def purge_service(self, service: str) -> None:
+        ret = self.current_config['services'].pop(service, None)
+        if ret is not None:
+            _result = self.runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--delete', service],
+                input='y',
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(_result)
+            assert result.clean_exit(empty_stderr=False)
+
+    @stateful.rule()
+    def purge_all(self) -> None:
+        self.current_config = {'services': {}}
+        _result = self.runner.invoke(
+            cli.derivepassphrase_vault,
+            ['--clear'],
+            input='y',
+            catch_exceptions=False,
+        )
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(empty_stderr=False)
+
+    @stateful.rule(
+        config=stateful.consumes(configurations),
+    )
+    def import_configuraton(self, config: _types.VaultConfig) -> None:
+        self.current_config = self.fold_configs(config, self.current_config)
+        assert _types.is_vault_config(self.current_config)
+        _result = self.runner.invoke(
+            cli.derivepassphrase_vault,
+            ['--import', '-'],
+            input=json.dumps(config),
+            catch_exceptions=False,
+        )
+        assert tests.ReadableResult.parse(_result).clean_exit(
+            empty_stderr=False
+        )
+
+    def teardown(self) -> None:
+        self.exit_stack.close()
+
+
+TestConfigMerging = ConfigMergingStateMachine.TestCase

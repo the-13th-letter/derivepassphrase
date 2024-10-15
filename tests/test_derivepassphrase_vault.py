@@ -268,43 +268,13 @@ class TestVault:
             assert v._estimate_sufficient_hash_length(None)  # type: ignore[arg-type]
 
 
-@strategies.composite
-def vault_config(draw: strategies.DrawFn) -> dict[str, int]:
-    lower = draw(strategies.integers(min_value=0, max_value=10))
-    upper = draw(strategies.integers(min_value=0, max_value=10))
-    number = draw(strategies.integers(min_value=0, max_value=10))
-    space = draw(strategies.integers(min_value=0, max_value=10))
-    dash = draw(strategies.integers(min_value=0, max_value=10))
-    symbol = draw(strategies.integers(min_value=0, max_value=10))
-    repeat = draw(strategies.integers(min_value=0, max_value=10))
-    length = draw(
-        strategies.integers(
-            min_value=max(1, lower + upper + number + space + dash + symbol),
-            max_value=70,
-        )
-    )
-    hypothesis.assume(lower + upper + number + dash + symbol > 0)
-    hypothesis.assume(lower + upper + number + space + symbol > 0)
-    hypothesis.assume(repeat >= space)
-    return {
-        'lower': lower,
-        'upper': upper,
-        'number': number,
-        'space': space,
-        'dash': dash,
-        'symbol': symbol,
-        'repeat': repeat,
-        'length': length,
-    }
-
-
 class TestHypotheses:
     @tests.hypothesis_settings_coverage_compatible
     @hypothesis.given(
         phrase=strategies.one_of(
             strategies.binary(min_size=1), strategies.text(min_size=1)
         ),
-        config=vault_config(),
+        config=tests.vault_full_service_config(),
         service=strategies.text(min_size=1),
     )
     # regression test
