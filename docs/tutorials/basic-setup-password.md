@@ -14,7 +14,7 @@ We will assume the following three services with the following passphrase polici
     - between 12 and 20 characters
     - no spaces
     - 1 upper case letter, 1 lower case letter, 1 digit
-    * no character immediately repeated more than 3 times
+    * no character may appear 3 times (or more) in a row
 
 -   __bank account__
 
@@ -59,7 +59,7 @@ Check that the installation was successful.
 
 ~~~~ shell-session
 $ devirepassphrase --version
-derivepassphrase, version 0.2.0
+derivepassphrase, version 0.3.0
 ~~~~
 
 (…or similar output.)
@@ -77,14 +77,29 @@ For our email account, we choose the straightforward service name `email`.
 
 We need to translate the passphrase policy into options for `derivepassphrase`:
 
-- A policy "(at least) `n` upper case letters" translates to the option `--lower n`, for any `n` greater than 0.
-  Lower case letters (`--upper`), digits (`--number`), symbols (`--symbol`), spaces (`--space`) and dashes (`--dash`) work similarly.
+- A policy "(at least) `n` lower case letters" translates to the option `--lower n`, for any `n` greater than 0.
+  Upper case letters (`--upper`), digits (`--number`), symbols (`--symbol`), spaces (`--space`) and dashes (`--dash`) work similarly.
 - A policy "spaces *forbidden*" translates to the option `--space 0`.
   Again, other character classes behave similarly.
-- A policy "no character immediately repeated more than `n` times" translates to the option `--repeat n`, for any `n` greater than 0.
+- A policy "no character may appear `n` times (or more) in a row" translates to the option `--repeat n-1`, for any `n` greater than 1.
   In particular, `--repeat 1` means no character may be immediately repeated.
+  (See the mnemonic below.)
 * A policy "between `n` and `m` characters long" translates to `--length k`, for any `k` between `n` and `m` which you choose.
   (`derivepassphrase` does not explicitly choose a passphrase length for you.)
+
+??? note "Mnemonic: the `--repeat` option"
+
+    The `--repeat` option denotes the *total* number of consecutive occurrences of the same character.
+    Or alternatively: if you request `--repeat n`, then `derivepassphrase` will *avoid* deriving any passphrase that repeats a character *another `n` times*.
+
+    Examples:
+
+    | option        | valid examples         | invalid examples          |
+    |:--------------|:-----------------------|:--------------------------|
+    | `--repeat 1`  | `abc`, `aba`, `abcabc` | `aa`, `abba`, `ababb`     |
+    | `--repeat 4`  | `122333111123`, `4444` | `55555`, `67788888999996` |
+    | `--repeat 11` | `01234567899999999999` | `$$$$$$$$$$$$$$$$$$$$$$$` |
+
 
 For the `email` service, we choose passphrase length 12.
 This leads to the command-line options `--length 12 --space 0 --upper 1 --lower 1 --number 1 --repeat 3`.
@@ -126,7 +141,7 @@ $ derivepassphrase vault --config --length 12 --space 0 --upper 1 --lower 1 \
 !!! warning "Warning: `-p` and `--config`"
 
     Do **not** use the `-p` and the `--config` options together to store the master passphrase!
-    The configuration is assumed to *not contain sensitive contents* and is *not encrypted*, so your master passphrase is then visible to *anyone* with appropriate priviledges!
+    The configuration is assumed to *not contain sensitive contents* and is *not encrypted*, so your master passphrase is then visible to *anyone* with appropriate privileges!
 
 Check that the settings are stored correctly:
 
