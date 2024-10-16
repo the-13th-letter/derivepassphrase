@@ -77,20 +77,20 @@ For our email account, we choose the straightforward service name `email`.
 
 We need to translate the passphrase policy into options for `derivepassphrase`:
 
-- A policy "(at least) `n` lower case letters" translates to the option `--lower n`, for any `n` greater than 0.
+- A policy "(at least) <var>n</var> lower case letters" translates to the option <code>-<span/>-lower <var>n</var></code>, for any <var>n</var> > 0.
   Upper case letters (`--upper`), digits (`--number`), symbols (`--symbol`), spaces (`--space`) and dashes (`--dash`) work similarly.
 - A policy "spaces *forbidden*" translates to the option `--space 0`.
   Again, other character classes behave similarly.
-- A policy "no character may appear `n` times (or more) in a row" translates to the option `--repeat n-1`, for any `n` greater than 1.
+- A policy "no character may appear <var>n</var> times (or more) in a row" translates to the option <code>-<span/>-repeat (<var>n</var> − 1)</code>, for any <var>n</var> > 1.
   In particular, `--repeat 1` means no character may be immediately repeated.
   (See the mnemonic below.)
-* A policy "between `n` and `m` characters long" translates to `--length k`, for any `k` between `n` and `m` which you choose.
-  (`derivepassphrase` does not explicitly choose a passphrase length for you.)
+* A policy "between <var>n</var> and <var>m</var> characters long" translates to <code>-<span/>-length <var>k</var></code>, for any choice of <var>k</var> which satisfies <var>n</var> ≤ <var>k</var> ≤ <var>m</var>.
+  (`derivepassphrase` does not explicitly choose <var>k</var> for you.)
 
 ??? note "Mnemonic: the `--repeat` option"
 
     The `--repeat` option denotes the *total* number of consecutive occurrences of the same character.
-    Or alternatively: if you request `--repeat n`, then `derivepassphrase` will *avoid* deriving any passphrase that repeats a character *another `n` times*.
+    Or alternatively: if you request <code>-<span/>-repeat <var>n</var></code>, then `derivepassphrase` will *avoid* deriving any passphrase that repeats a character *another <var>n</var> times*.
 
     Examples:
 
