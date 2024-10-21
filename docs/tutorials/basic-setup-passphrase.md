@@ -84,7 +84,7 @@ derivepassphrase, version 0.3.0
 
 ## Choosing a master passphrase
 
-`derivepassphrase` uses a master passphrase `MP`, and derives all other passphrases `P` from `MP`.
+`derivepassphrase` uses a master passphrase <var>MP</var>, and derives all other passphrases <var>P</var> from <var>MP</var>.
 We shall choose the master passphrase: `I am an insecure master passphrase, but easy to type.`
 
 ## Setting up the email account
