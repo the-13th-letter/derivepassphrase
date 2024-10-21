@@ -90,7 +90,7 @@ nav:
   - Overview: index.md
   #- Tutorials & Examples: tutorials.md
   - Tutorials & Examples:
-    - tutorials/basic-setup-password.md
+    - tutorials/basic-setup-passphrase.md
   #- How-Tos: how-tos.md
   - Reference:
     - reference/index.md

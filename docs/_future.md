@@ -47,7 +47,7 @@
 
 ### Tutorials
 
-* [Setting up `derivepassphrase` from scratch for three existing accounts, with a master passphrase](tutorials/basic-setup-password.md)
+* [Setting up `derivepassphrase` from scratch for three existing accounts, with a master passphrase](tutorials/basic-setup-passphrase.md)
 * Setting up `derivepassphrase` from scratch for three existing accounts, with a new SSH key
 
 ### How-tos
