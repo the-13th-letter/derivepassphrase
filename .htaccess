@@ -7,3 +7,4 @@ RewriteRule ^(0.x|latest)/reference/(exporter)(?:_vault)?/(.*)$ $1/reference/der
 RewriteRule ^(0.x|latest)/reference/(ssh_agent)(?:_client)?/(.*)$ $1/reference/derivepassphrase.$2/$3 [R=301,L]
 RewriteRule ^(0.x|latest)/reference/(sequin|vault)/(.*)$ $1/reference/derivepassphrase.$2/$3 [R=301,L]
 RewriteRule ^(0.x|latest)/reference/(types)/(.*)$ $1/reference/derivepassphrase._$2/$3 [R=301,L]
+RewriteRule ^(0.x|latest)/tutorials/basic-setup-password/(.*)$ $1/tutorials/basic-setup-passphrase/$2 [R=301,L]
