@@ -40,7 +40,11 @@ We will assume the following three services with the following passphrase polici
 
 ## Installing `derivepassphrase`
 
-You will need Python 3.9 or later, and a package installer such as `pip` (bundled with Python), `pipx` or similar.
+You will need Python 3, and a package installer such as `pip` (bundled with Python), `pipx` or similar.
+
+??? info "Info: Current supported Python versions"
+
+    ![See PyPI.][CURRENT_PYTHON]
 
 ---
 
@@ -70,6 +74,13 @@ derivepassphrase, version 0.3.0
 ~~~~
 
 (…or similar output.)
+
+??? info "Info: Current `derivepassphrase` version"
+
+    ![See PyPI.][CURRENT_VERSIONS]
+
+[CURRENT_VERSIONS]: https://img.shields.io/pypi/v/derivepassphrase.svg?label=derivepassphrase
+[CURRENT_PYTHON]: https://img.shields.io/pypi/pyversions/derivepassphrase.svg
 
 ## Choosing a master passphrase
 
