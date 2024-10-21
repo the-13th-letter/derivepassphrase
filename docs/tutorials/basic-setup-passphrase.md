@@ -14,7 +14,7 @@ We will assume the following three services with the following passphrase polici
     - between 12 and 20 characters
     - no spaces
     - 1 upper case letter, 1 lower case letter, 1 digit
-    * no character immediately repeated more than 3 times
+    * no character may appear 3 times (or more) in a row
 
 -   __bank account__
 
@@ -40,33 +40,51 @@ We will assume the following three services with the following passphrase polici
 
 ## Installing `derivepassphrase`
 
-Install `pipx`:
+You will need Python 3, and a package installer such as `pip` (bundled with Python), `pipx` or similar.
 
-~~~~ shell-session
-$ cd ~
-$ python3 -m venv .venv
-$ . .venv/bin/activate
-$ pip install pipx
-~~~~
+??? info "Info: Current supported Python versions"
 
-Install `derivepassphrase`:
+    ![See PyPI.][CURRENT_PYTHON]
 
-~~~~ shell-session
-$ pipx install derivepassphrase
-~~~~
+---
+
+=== "pip"
+
+    With `pip`, using a "virtual enviroment" at `~/.venv` to avoid clobbering our system configuration:
+
+    ~~~~ shell-session
+    $ python3 -m venv ~/.venv
+    $ . ~/.venv/bin/activate
+    $ pip install derivepassphrase
+    ~~~~
+
+=== "pipx"
+
+    ~~~~ shell-session
+    $ pipx install derivepassphrase
+    ~~~~
+
+---
 
 Check that the installation was successful.
 
 ~~~~ shell-session
 $ devirepassphrase --version
-derivepassphrase, version 0.2.0
+derivepassphrase, version 0.3.0
 ~~~~
 
 (…or similar output.)
 
+??? info "Info: Current `derivepassphrase` version"
+
+    ![See PyPI.][CURRENT_VERSIONS]
+
+[CURRENT_VERSIONS]: https://img.shields.io/pypi/v/derivepassphrase.svg?label=derivepassphrase
+[CURRENT_PYTHON]: https://img.shields.io/pypi/pyversions/derivepassphrase.svg
+
 ## Choosing a master passphrase
 
-`derivepassphrase` uses a master passphrase `MP`, and derives all other passphrases `P` from `MP`.
+`derivepassphrase` uses a master passphrase <var>MP</var>, and derives all other passphrases <var>P</var> from <var>MP</var>.
 We shall choose the master passphrase: `I am an insecure master passphrase, but easy to type.`
 
 ## Setting up the email account
@@ -77,14 +95,29 @@ For our email account, we choose the straightforward service name `email`.
 
 We need to translate the passphrase policy into options for `derivepassphrase`:
 
-- A policy "(at least) `n` upper case letters" translates to the option `--lower n`, for any `n` greater than 0.
-  Lower case letters (`--upper`), digits (`--number`), symbols (`--symbol`), spaces (`--space`) and dashes (`--dash`) work similarly.
-- A policy "spaces *forbidden*" translates to the option `--space 0`.
+- A policy "(at least) <var>n</var> lower case letters" translates to the option <code>-<span/>-lower <var>n</var></code>, for any <var>n</var> > 0.
+  Upper case letters (`--upper`), digits (`--number`), symbols (`--symbol`), spaces (`--space`) and dashes (`--dash`) work similarly.
+- A policy "spaces *forbidden*" translates to the option `--space 0`.
   Again, other character classes behave similarly.
-- A policy "no character immediately repeated more than `n` times" translates to the option `--repeat n`, for any `n` greater than 0.
-  In particular, `--repeat 1` means no character may be immediately repeated.
-* A policy "between `n` and `m` characters long" translates to `--length k`, for any `k` between `n` and `m` which you choose.
-  (`derivepassphrase` does not explicitly choose a passphrase length for you.)
+- A policy "no character may appear <var>n</var> times (or more) in a row" translates to the option <code>-<span/>-repeat (<var>n</var> − 1)</code>, for any <var>n</var> > 1.
+  In particular, `--repeat 1` means no character may be immediately repeated.
+  (See the mnemonic below.)
+* A policy "between <var>n</var> and <var>m</var> characters long" translates to <code>-<span/>-length <var>k</var></code>, for any choice of <var>k</var> which satisfies <var>n</var> ≤ <var>k</var> ≤ <var>m</var>.
+  (`derivepassphrase` does not explicitly choose <var>k</var> for you.)
+
+??? note "Mnemonic: the `--repeat` option"
+
+    The `--repeat` option denotes the *total* number of consecutive occurrences of the same character.
+    Or alternatively: if you request <code>-<span/>-repeat <var>n</var></code>, then `derivepassphrase` will *avoid* deriving any passphrase that repeats a character *another <var>n</var> times*.
+
+    Examples:
+
+    | option        | valid examples         | invalid examples          |
+    |:--------------|:-----------------------|:--------------------------|
+    | `--repeat 1`  | `abc`, `aba`, `abcabc` | `aa`, `abba`, `ababb`     |
+    | `--repeat 4`  | `122333111123`, `4444` | `55555`, `67788888999996` |
+    | `--repeat 11` | `01234567899999999999` | `$$$$$$$$$$$$$$$$$$$$$$$` |
+
 
 For the `email` service, we choose passphrase length 12.
 This leads to the command-line options `--length 12 --space 0 --upper 1 --lower 1 --number 1 --repeat 3`.
@@ -126,7 +159,7 @@ $ derivepassphrase vault --config --length 12 --space 0 --upper 1 --lower 1 \
 !!! warning "Warning: `-p` and `--config`"
 
     Do **not** use the `-p` and the `--config` options together to store the master passphrase!
-    The configuration is assumed to *not contain sensitive contents* and is *not encrypted*, so your master passphrase is then visible to *anyone* with appropriate priviledges!
+    The configuration is assumed to *not contain sensitive contents* and is *not encrypted*, so your master passphrase is then visible to *anyone* with appropriate privileges!
 
 Check that the settings are stored correctly:
 
