@@ -22,7 +22,7 @@
     
     
       
-        <title>Some ideas for documentation that might be missing, or nice to have - derivepassphrase</title>
+        <title>Some ideas for future work - derivepassphrase</title>
       
     
     
@@ -61,7 +61,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#some-ideas-for-documentation-that-might-be-missing-or-nice-to-have" class="md-skip">
+        <a href="#some-ideas-for-future-work" class="md-skip">
           Skip to content
         </a>
       
@@ -111,7 +111,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../tutorials/basic-setup-password/" class="md-tabs__link">
+        <a href="../tutorials/basic-setup-passphrase/" class="md-tabs__link">
           
   
     
@@ -277,7 +277,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../tutorials/basic-setup-password/" class="md-nav__link">
+      <a href="../tutorials/basic-setup-passphrase/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -690,6 +690,49 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#subcommands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Subcommands
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Subcommands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#derivation-schemes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Derivation schemes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-functionality" class="md-nav__link">
+    <span class="md-ellipsis">
+      Other functionality
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Documentation
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Documentation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#tutorials" class="md-nav__link">
     <span class="md-ellipsis">
       Tutorials
@@ -697,8 +740,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#how-tos" class="md-nav__link">
     <span class="md-ellipsis">
       How-tos
@@ -706,8 +749,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#reference" class="md-nav__link">
     <span class="md-ellipsis">
       Reference
@@ -715,13 +758,18 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#explanation" class="md-nav__link">
     <span class="md-ellipsis">
       Explanation
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -751,27 +799,71 @@
   
 
 
-<h1 id="some-ideas-for-documentation-that-might-be-missing-or-nice-to-have">Some ideas for documentation that might be missing, or nice to have<a class="headerlink" href="#some-ideas-for-documentation-that-might-be-missing-or-nice-to-have" title="Permanent link">&para;</a></h1>
-<p>(Categorized as per <a href="https://diataxis.fr">the diataxis framework</a>, but otherwise in no particular order.)</p>
-<h2 id="tutorials">Tutorials<a class="headerlink" href="#tutorials" title="Permanent link">&para;</a></h2>
+<h1 id="some-ideas-for-future-work">Some ideas for future work<a class="headerlink" href="#some-ideas-for-future-work" title="Permanent link">&para;</a></h1>
+<h2 id="subcommands">Subcommands<a class="headerlink" href="#subcommands" title="Permanent link">&para;</a></h2>
+<p>(In no particular order.)</p>
+<h3 id="derivation-schemes">Derivation schemes<a class="headerlink" href="#derivation-schemes" title="Permanent link">&para;</a></h3>
 <ul>
-<li><a href="../tutorials/basic-setup-password/">Setting up <code>derivepassphrase</code> from scratch for three existing accounts, with a master passphrase</a></li>
+<li><code>spectre</code> (<code>master-password</code>): derive passphrases according to the &ldquo;Master Password&rdquo; scheme as used by the Spectre app. (<a href="https://github.com/the-13th-letter/derivepassphrase/issues/2">#2</a>)</li>
+</ul>
+<h3 id="other-functionality">Other functionality<a class="headerlink" href="#other-functionality" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>explore-permitted-special-characters</code>: generate new configurations starting from a base configuration until one of them passes the &ldquo;special characters&rdquo; constraints.</li>
+<li><code>rotate</code>: generate a new configuration suitable for passphrase rotation, compatible with the base configuration&rsquo;s constraints.</li>
+<li>
+<p><code>service-plugins</code>: manage plugins that automate certain tasks, as outlined in the notes of the queried service.</p>
+<ul>
+<li>
+<p><code>load-ssh-key</code>: if the service uses an SSH key, autoload the key from a well-known location into the SSH agent if it isn&rsquo;t already loaded.</p>
+<p><code>vault</code>-specific.</p>
+</li>
+<li>
+<p><code>decrypt-notes</code>: decrypt OpenPGP-encrypted notes with GnuPG or Sequoia <code>sq</code>.</p>
+<p>Open questions:</p>
+<ul>
+<li>Use an automatic, symmetric encryption key, or rely on the standard OpenPGP key store?  (Do <em>not</em> use the derived service passphrase for this: the quality may be arbitrarily bad due to the passphrase constaints, and the service itself could compromise that passphrase.)</li>
+</ul>
+</li>
+<li>
+<p><code>generate-otp</code>: if the service uses two-factor authentication and the configuration contains one-time password settings, call <code>oathtool</code> to obtain one or more OTPs.</p>
+<p>May require the <code>decrypt-notes</code> plugin first.</p>
+</li>
+<li>
+<p><code>manage-runit-services</code>: if the service contains <code>runit</code> service configuration, ensure the specified <code>runit</code> services are running concurrently, and stopped after signalling.</p>
+<p>Typical use case is a service only accessible via VPN or SSH proxy, where the VPN/proxy would run as a <code>runit</code> service.</p>
+<p>Open questions:</p>
+<ul>
+<li>Interface with <code>inotifywait</code> to wait for SSH control socket?</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
+<p>(Categorized as per <a href="https://diataxis.fr">the diataxis framework</a>, but otherwise in no particular order.)</p>
+<h3 id="tutorials">Tutorials<a class="headerlink" href="#tutorials" title="Permanent link">&para;</a></h3>
+<ul>
+<li><a href="../tutorials/basic-setup-passphrase/">Setting up <code>derivepassphrase</code> from scratch for three existing accounts, with a master passphrase</a></li>
 <li>Setting up <code>derivepassphrase</code> from scratch for three existing accounts, with a new SSH key</li>
 </ul>
-<h2 id="how-tos">How-tos<a class="headerlink" href="#how-tos" title="Permanent link">&para;</a></h2>
+<h3 id="how-tos">How-tos<a class="headerlink" href="#how-tos" title="Permanent link">&para;</a></h3>
 <ul>
 <li>How to set up <code>derivepassphrase</code> with an SSH key</li>
 <li>How to choose a good service name</li>
 <li>How to edit a saved <code>derivepassphrase vault</code> configuration correctly</li>
+<li>How to deal with &ldquo;supported&rdquo; and &ldquo;unsupported&rdquo; special characters</li>
+<li>How to deal with regular passphrase rotation/rollover</li>
 </ul>
-<h2 id="reference">Reference<a class="headerlink" href="#reference" title="Permanent link">&para;</a></h2>
+<h3 id="reference">Reference<a class="headerlink" href="#reference" title="Permanent link">&para;</a></h3>
 <ul>
-<li><code>derivepassphrase-vault.conf</code>(<b>5</b>)</li>
+<li><code>derivepassphrase-vault.json</code>(<b>5</b>)</li>
 </ul>
-<h2 id="explanation">Explanation<a class="headerlink" href="#explanation" title="Permanent link">&para;</a></h2>
+<h3 id="explanation">Explanation<a class="headerlink" href="#explanation" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Security aspects and other tradeoffs when using deterministic password generators</li>
 <li>Tradeoffs between a master passphrase and a master SSH key</li>
+<li>Why is <code>vault</code>&rsquo;s <code>--repeat</code> option named this way if it counts occurrences, not repetitions?</li>
+<li>Why are master SSH keys not supported under Windows?</li>
 </ul>
 
 
