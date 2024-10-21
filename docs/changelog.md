@@ -30,6 +30,15 @@ effectively constitute a new <q>major</q> release.)
 
 <!-- scriv changelog start -->
 
+## 0.3.2 (2024-10-21)
+
+### Fixed
+
+  - _*Actually* actually_ remove the `derivepassphrase_export` program, which was
+    turned into a subcommand in v0.2.0 and supposed to have been removed in
+    v0.3.1 already.  Removed on disk is not the same as removed in
+    version control.
+
 ## 0.3.1 (2024-10-21)
 
 ### Fixed
