@@ -40,20 +40,27 @@ We will assume the following three services with the following passphrase polici
 
 ## Installing `derivepassphrase`
 
-Install `pipx`:
+You will need Python 3.9 or later, and a package installer such as `pip` (bundled with Python), `pipx` or similar.
 
-~~~~ shell-session
-$ cd ~
-$ python3 -m venv .venv
-$ . .venv/bin/activate
-$ pip install pipx
-~~~~
+---
 
-Install `derivepassphrase`:
+=== "pip"
 
-~~~~ shell-session
-$ pipx install derivepassphrase
-~~~~
+    With `pip`, using a "virtual enviroment" at `~/.venv` to avoid clobbering our system configuration:
+
+    ~~~~ shell-session
+    $ python3 -m venv ~/.venv
+    $ . ~/.venv/bin/activate
+    $ pip install derivepassphrase
+    ~~~~
+
+=== "pipx"
+
+    ~~~~ shell-session
+    $ pipx install derivepassphrase
+    ~~~~
+
+---
 
 Check that the installation was successful.
 
