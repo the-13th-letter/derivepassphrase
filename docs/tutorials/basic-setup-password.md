@@ -84,14 +84,14 @@ For our email account, we choose the straightforward service name `email`.
 
 We need to translate the passphrase policy into options for `derivepassphrase`:
 
-- A policy "(at least) <var>n</var> lower case letters" translates to the option <code>-<span/>-lower <var>n</var></code>, for any <var>n</var> > 0.
+- A policy "(at least) <var>n</var> lower case letters" translates to the option <code>-<span/>-lower <var>n</var></code>, for any <var>n</var> > 0.
   Upper case letters (`--upper`), digits (`--number`), symbols (`--symbol`), spaces (`--space`) and dashes (`--dash`) work similarly.
-- A policy "spaces *forbidden*" translates to the option `--space 0`.
+- A policy "spaces *forbidden*" translates to the option `--space 0`.
   Again, other character classes behave similarly.
-- A policy "no character may appear <var>n</var> times (or more) in a row" translates to the option <code>-<span/>-repeat (<var>n</var> − 1)</code>, for any <var>n</var> > 1.
-  In particular, `--repeat 1` means no character may be immediately repeated.
+- A policy "no character may appear <var>n</var> times (or more) in a row" translates to the option <code>-<span/>-repeat (<var>n</var> − 1)</code>, for any <var>n</var> > 1.
+  In particular, `--repeat 1` means no character may be immediately repeated.
   (See the mnemonic below.)
-* A policy "between <var>n</var> and <var>m</var> characters long" translates to <code>-<span/>-length <var>k</var></code>, for any choice of <var>k</var> which satisfies <var>n</var> ≤ <var>k</var> ≤ <var>m</var>.
+* A policy "between <var>n</var> and <var>m</var> characters long" translates to <code>-<span/>-length <var>k</var></code>, for any choice of <var>k</var> which satisfies <var>n</var> ≤ <var>k</var> ≤ <var>m</var>.
   (`derivepassphrase` does not explicitly choose <var>k</var> for you.)
 
 ??? note "Mnemonic: the `--repeat` option"
