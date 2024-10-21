@@ -51,7 +51,6 @@ export = [
 
 [project.scripts]
 derivepassphrase = "derivepassphrase.cli:derivepassphrase"
-derivepassphrase_export = "derivepassphrase.exporter:derivepassphrase_export"
 
 [project.urls]
 Documentation = "https://the13thletter.info/derivepassphrase/"
