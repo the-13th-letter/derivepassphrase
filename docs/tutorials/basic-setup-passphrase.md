@@ -14,22 +14,22 @@ We will assume the following three services with the following passphrase polici
     - between 12 and 20 characters
     - no spaces
     - 1 upper case letter, 1 lower case letter, 1 digit
-    * no character may appear 3 times (or more) in a row
+    - no character may appear 3 times (or more) in a row
 
 -   __bank account__
 
     ---
 
     - only digits
-    * exactly 5 digits
-    * an additional one-time password via a hardware token ("[two-factor authentication][2FA]")
+    - exactly 5 digits
+    - an additional one-time password via a hardware token ("[two-factor authentication][2FA]")
 
 -   __work account__
 
     ---
 
     - exactly 8 characters
-    * no spaces
+    - no spaces
     - 1 special character, 1 letter, 1 digit
     - must be changed every quarter (January, April, July and October) to a different value ("passphrase rotation" or "rollover")
     - must actually be different from the previous *two* passphrases
@@ -41,10 +41,6 @@ We will assume the following three services with the following passphrase polici
 ## Installing `derivepassphrase`
 
 You will need Python 3, and a package installer such as `pip` (bundled with Python), `pipx` or similar.
-
-??? info "Info: Current supported Python versions"
-
-    ![See PyPI.][CURRENT_PYTHON]
 
 ---
 
@@ -74,13 +70,6 @@ derivepassphrase, version 0.3.0
 ~~~~
 
 (…or similar output.)
-
-??? info "Info: Current `derivepassphrase` version"
-
-    ![See PyPI.][CURRENT_VERSIONS]
-
-[CURRENT_VERSIONS]: https://img.shields.io/pypi/v/derivepassphrase.svg?label=derivepassphrase
-[CURRENT_PYTHON]: https://img.shields.io/pypi/pyversions/derivepassphrase.svg
 
 ## Choosing a master passphrase
 
