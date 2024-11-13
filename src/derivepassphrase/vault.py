@@ -522,10 +522,10 @@ class Vault:
                 'signature not deterministic'
             )
             raise ValueError(msg)
-        with ssh_agent.SSHAgentClient() as client:
+        with ssh_agent.SSHAgentClient.ensure_agent_subcontext() as client:
             raw_sig = client.sign(key, cls._UUID)
-        _keytype, trailer = client.unstring_prefix(raw_sig)
-        signature_blob = client.unstring(trailer)
+        _keytype, trailer = ssh_agent.SSHAgentClient.unstring_prefix(raw_sig)
+        signature_blob = ssh_agent.SSHAgentClient.unstring(trailer)
         return bytes(base64.standard_b64encode(signature_blob))
 
     @staticmethod
