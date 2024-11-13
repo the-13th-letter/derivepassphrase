@@ -1482,7 +1482,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             if 'global' in configuration
             else {},
         )
-        new_config = {
+        new_config: Any = {
             k: dict(v) if isinstance(v, collections.ChainMap) else v
             for k, v in sorted(merged_config.items())
         }
