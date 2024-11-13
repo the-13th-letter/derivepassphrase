@@ -254,7 +254,7 @@ class TestCLI:
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                [option, '0', '-p', DUMMY_SERVICE],
+                [option, '0', '-p', '--', DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
@@ -276,7 +276,7 @@ class TestCLI:
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--repeat', '0', '-p', DUMMY_SERVICE],
+                ['--repeat', '0', '-p', '--', DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
@@ -329,7 +329,7 @@ class TestCLI:
             )
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                [DUMMY_SERVICE],
+                ['--', DUMMY_SERVICE],
                 catch_exceptions=False,
             )
         result = tests.ReadableResult.parse(_result)
@@ -361,7 +361,7 @@ class TestCLI:
             )
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['-k', DUMMY_SERVICE],
+                ['-k', '--', DUMMY_SERVICE],
                 input='1\n',
                 catch_exceptions=False,
             )
@@ -419,7 +419,7 @@ class TestCLI:
             ):
                 _result = runner.invoke(
                     cli.derivepassphrase_vault,
-                    ['-k', DUMMY_SERVICE],
+                    ['-k', '--', DUMMY_SERVICE],
                     input=f'{key_index}\n',
                 )
         result = tests.ReadableResult.parse(_result)
@@ -457,7 +457,7 @@ class TestCLI:
             ):
                 _result = runner.invoke(
                     cli.derivepassphrase_vault,
-                    [DUMMY_SERVICE],
+                    ['--', DUMMY_SERVICE],
                     catch_exceptions=False,
                 )
         result = tests.ReadableResult.parse(_result)
@@ -551,7 +551,7 @@ class TestCLI:
             for value in '-42', 'invalid':
                 _result = runner.invoke(
                     cli.derivepassphrase_vault,
-                    [option, value, '-p', DUMMY_SERVICE],
+                    [option, value, '-p', '--', DUMMY_SERVICE],
                     input=DUMMY_PASSPHRASE,
                     catch_exceptions=False,
                 )
@@ -585,7 +585,7 @@ class TestCLI:
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                options if service else [*options, DUMMY_SERVICE],
+                options if service else [*options, '--', DUMMY_SERVICE],
                 input=input,
                 catch_exceptions=False,
             )
@@ -614,7 +614,7 @@ class TestCLI:
                 )
                 _result = runner.invoke(
                     cli.derivepassphrase_vault,
-                    [*options, DUMMY_SERVICE] if service else options,
+                    [*options, '--', DUMMY_SERVICE] if service else options,
                     input=input,
                     catch_exceptions=False,
                 )
@@ -693,7 +693,7 @@ class TestCLI:
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                [*options, DUMMY_SERVICE] if service else options,
+                [*options, '--', DUMMY_SERVICE] if service else options,
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
@@ -948,7 +948,7 @@ contents go here
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: edit_result)  # noqa: ARG005
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--notes', 'sv'],
+                ['--notes', '--', 'sv'],
                 catch_exceptions=False,
             )
             result = tests.ReadableResult.parse(_result)
@@ -974,7 +974,7 @@ contents go here
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: None)  # noqa: ARG005
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--notes', 'sv'],
+                ['--notes', '--', 'sv'],
                 catch_exceptions=False,
             )
             result = tests.ReadableResult.parse(_result)
@@ -997,7 +997,7 @@ contents go here
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: 'long\ntext')  # noqa: ARG005
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--notes', 'sv'],
+                ['--notes', '--', 'sv'],
                 catch_exceptions=False,
             )
             result = tests.ReadableResult.parse(_result)
@@ -1023,7 +1023,7 @@ contents go here
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: '\n\n')  # noqa: ARG005
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--notes', 'sv'],
+                ['--notes', '--', 'sv'],
                 catch_exceptions=False,
             )
             result = tests.ReadableResult.parse(_result)
@@ -1053,7 +1053,7 @@ contents go here
                 },
             ),
             (
-                ['--phrase', 'sv'],
+                ['--phrase', '--', 'sv'],
                 'my passphrase\n',
                 {
                     'global': {'phrase': 'abc'},
@@ -1061,7 +1061,7 @@ contents go here
                 },
             ),
             (
-                ['--key', 'sv'],
+                ['--key', '--', 'sv'],
                 '1\n',
                 {
                     'global': {'phrase': 'abc'},
@@ -1069,7 +1069,7 @@ contents go here
                 },
             ),
             (
-                ['--key', '--length', '15', 'sv'],
+                ['--key', '--length', '15', '--', 'sv'],
                 '1\n',
                 {
                     'global': {'phrase': 'abc'},
@@ -1115,11 +1115,11 @@ contents go here
         [
             ([], '', 'Cannot update global settings without actual settings'),
             (
-                ['sv'],
+                ['--', 'sv'],
                 '',
                 'Cannot update service settings without actual settings',
             ),
-            (['--phrase', 'sv'], '', 'No passphrase given'),
+            (['--phrase', '--', 'sv'], '', 'No passphrase given'),
             (['--key'], '', 'No valid SSH key selected'),
         ],
     )
@@ -1238,7 +1238,7 @@ contents go here
             )
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--config', '--length=15', DUMMY_SERVICE],
+                ['--config', '--length=15', '--', DUMMY_SERVICE],
                 catch_exceptions=False,
             )
         result = tests.ReadableResult.parse(_result)
@@ -1265,7 +1265,7 @@ contents go here
             monkeypatch.setattr(cli, '_save_config', raiser)
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--config', '--length=15', DUMMY_SERVICE],
+                ['--config', '--length=15', '--', DUMMY_SERVICE],
                 catch_exceptions=False,
             )
         result = tests.ReadableResult.parse(_result)
@@ -1297,7 +1297,7 @@ contents go here
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                [DUMMY_SERVICE],
+                ['--', DUMMY_SERVICE],
                 catch_exceptions=False,
             )
         result = tests.ReadableResult.parse(_result)
@@ -1431,7 +1431,7 @@ contents go here
                 id='service-weird-name-NFC',
             ),
             pytest.param(
-                ['--config', '-p', DUMMY_SERVICE],
+                ['--config', '-p', '--', DUMMY_SERVICE],
                 'Du\u0308sseldorf',
                 (
                     f'the $.services.{DUMMY_SERVICE} passphrase '
@@ -1440,7 +1440,7 @@ contents go here
                 id='config-NFC',
             ),
             pytest.param(
-                ['-p', DUMMY_SERVICE],
+                ['-p', '--', DUMMY_SERVICE],
                 'Du\u0308sseldorf',
                 'the interactive passphrase is not NFC-normalized',
                 id='direct-input-NFC',
@@ -1674,7 +1674,7 @@ Great!
         ), 'expected clean exit'
         _result = runner.invoke(
             driver,
-            ['Will replace with spam, okay? ' '(Please say "y" or "n".)'],
+            ['Will replace with spam, okay? (Please say "y" or "n".)'],
             input='',
         )
         result = tests.ReadableResult.parse(_result)
@@ -1717,7 +1717,7 @@ Boo.
                 {'services': {}},
             ),
             (
-                ['--delete', DUMMY_SERVICE],
+                ['--delete', '--', DUMMY_SERVICE],
                 {
                     'global': {'phrase': 'abc'},
                     'services': {DUMMY_SERVICE: {'notes': '...'}},
@@ -2056,7 +2056,7 @@ class TestCLITransition:
         ):
             _result = runner.invoke(
                 cli.derivepassphrase,
-                [option, '0', '-p', DUMMY_SERVICE],
+                [option, '0', '-p', '--', DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
@@ -2388,7 +2388,7 @@ class ConfigMergingStateMachine(stateful.RuleBasedStateMachine):
         if ret is not None:
             _result = self.runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--delete', service],
+                ['--delete', '--', service],
                 input='y',
                 catch_exceptions=False,
             )
