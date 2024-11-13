@@ -338,6 +338,25 @@ class SSHAgentClient:
             msg = f'invalid connection hint: {conn!r}'
             raise TypeError(msg)  # noqa: DOC501
 
+    def has_deterministic_signatures(self) -> bool:
+        """Check whether the agent returns deterministic signatures.
+
+        Returns:
+            True if a known agent was detected where signatures are
+            deterministic for all SSH key types, false otherwise.
+
+        Note: Known agents with deterministic signatures
+            | agent           | detected via                                                  |
+            |:----------------|:--------------------------------------------------------------|
+            | Pageant (PuTTY) | `list-extended@putty.projects.tartarus.org` extension request |
+
+        """  # noqa: E501
+        returncode, _payload = self.request(
+            _types.SSH_AGENTC.EXTENSION,
+            self.string(b'list-extended@putty.projects.tartarus.org'),
+        )
+        return returncode == _types.SSH_AGENT.SUCCESS.value
+
     @overload
     def request(  # pragma: no cover
         self,

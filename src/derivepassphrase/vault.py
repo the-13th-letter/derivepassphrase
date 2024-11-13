@@ -18,6 +18,7 @@ from typing_extensions import TypeAlias, assert_type
 from derivepassphrase import sequin, ssh_agent
 
 if TYPE_CHECKING:
+    import socket
     from collections.abc import Callable
 
 __author__ = 'Marco Ricci <software@the13thletter.info>'
@@ -449,15 +450,20 @@ class Vault:
     def _is_suitable_ssh_key(key: bytes | bytearray, /) -> bool:
         """Check whether the key is suitable for passphrase derivation.
 
-        Currently, this only checks whether signatures with this key
-        type are deterministic.
+        Currently, this only statically checks whether signatures with
+        this key type are guaranteed to be deterministic.
 
         Args:
             key: SSH public key to check.
 
         Returns:
-            True if and only if the key is suitable for use in deriving
-            a passphrase deterministically.
+            True if and only if the key is guaranteed suitable for use in
+            deriving a passphrase deterministically.
+
+        Note:
+            Some SSH agents additionally guarantee that all signatures
+            are deterministic and thus *all* keys are suitable; see
+            [`ssh_agent.SSHAgentClient.has_deterministic_signatures`][].
 
         """
         TestFunc: TypeAlias = 'Callable[[bytes | bytearray], bool]'
@@ -472,21 +478,42 @@ class Vault:
         return any(v(key) for v in deterministic_signature_types.values())
 
     @classmethod
-    def phrase_from_key(cls, key: bytes | bytearray, /) -> bytes:
+    def phrase_from_key(
+        cls,
+        key: bytes | bytearray,
+        /,
+        *,
+        conn: ssh_agent.SSHAgentClient | socket.socket | None = None,
+    ) -> bytes:
         """Obtain the master passphrase from a configured SSH key.
 
         vault allows the usage of certain SSH keys to derive a master
         passphrase, by signing the vault UUID with the SSH key.  The key
-        type must ensure that signatures are deterministic.
+        type or the SSH agent must ensure that signatures are
+        deterministic.
 
         Args:
-            key: The (public) SSH key to use for signing.
+            key:
+                The (public) SSH key to use for signing.
+            conn:
+                An optional connection hint to the SSH agent.  See
+                [`ssh_agent.SSHAgentClient.ensure_agent_subcontext`][].
 
         Returns:
             The signature of the vault UUID under this key, unframed but
             encoded in base64.
 
         Raises:
+            KeyError:
+                `conn` was `None`, and the `SSH_AUTH_SOCK` environment
+                variable was not found.
+            NotImplementedError:
+                `conn` was `None`, and this Python does not support
+                [`socket.AF_UNIX`][], so the SSH agent client cannot be
+                automatically set up.
+            OSError:
+                `conn` was a socket or `None`, and there was an error
+                setting up a socket connection to the agent.
             ValueError:
                 The SSH key is principally unsuitable for this use case.
                 Usually this means that the signature is not
@@ -516,13 +543,16 @@ class Vault:
             True
 
         """
-        if not cls._is_suitable_ssh_key(key):
-            msg = (
-                'unsuitable SSH key: bad key, or '
-                'signature not deterministic'
-            )
-            raise ValueError(msg)
-        with ssh_agent.SSHAgentClient.ensure_agent_subcontext() as client:
+        with ssh_agent.SSHAgentClient.ensure_agent_subcontext(conn) as client:
+            if not (
+                client.has_deterministic_signatures()
+                or cls._is_suitable_ssh_key(key)
+            ):
+                msg = (
+                    'unsuitable SSH key: bad key, or '
+                    'signature not deterministic under this agent'
+                )
+                raise ValueError(msg)
             raw_sig = client.sign(key, cls._UUID)
         _keytype, trailer = ssh_agent.SSHAgentClient.unstring_prefix(raw_sig)
         signature_blob = ssh_agent.SSHAgentClient.unstring(trailer)
