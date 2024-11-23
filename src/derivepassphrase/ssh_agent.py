@@ -7,16 +7,17 @@
 from __future__ import annotations
 
 import collections
+import contextlib
 import os
 import socket
 from typing import TYPE_CHECKING, overload
 
-from typing_extensions import Self
+from typing_extensions import Self, assert_never
 
 from derivepassphrase import _types
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Iterable, Iterator, Sequence
     from types import TracebackType
 
     from typing_extensions import Buffer
@@ -281,6 +282,80 @@ class SSHAgentClient:
             bytes(bytestring[HEAD_LEN : m + HEAD_LEN]),
             bytes(bytestring[m + HEAD_LEN :]),
         )
+
+    @classmethod
+    @contextlib.contextmanager
+    def ensure_agent_subcontext(
+        cls,
+        conn: SSHAgentClient | socket.socket | None = None,
+    ) -> Iterator[SSHAgentClient]:
+        """Return an SSH agent client subcontext.
+
+        If necessary, construct an SSH agent client first using the
+        connection hint.
+
+        Args:
+            conn:
+                If an existing SSH agent client, then enter a context
+                within this client's scope.  After exiting the context,
+                the client persists, including its socket.
+
+                If a socket, then construct a client using this socket,
+                then enter a context within this client's scope.  After
+                exiting the context, the client is destroyed and the
+                socket is closed.
+
+                If `None`, construct a client using agent
+                auto-discovery, then enter a context within this
+                client's scope.  After exiting the context, both the
+                client and its socket are destroyed.
+
+        Yields:
+            When entering this context, return the SSH agent client.
+
+        Raises:
+            KeyError:
+                `conn` was `None`, and the `SSH_AUTH_SOCK` environment
+                variable was not found.
+            NotImplementedError:
+                `conn` was `None`, and this Python does not support
+                [`socket.AF_UNIX`][], so the SSH agent client cannot be
+                automatically set up.
+            OSError:
+                `conn` was a socket or `None`, and there was an error
+                setting up a socket connection to the agent.
+
+        """
+        # Use match/case here once Python 3.9 becomes unsupported.
+        if isinstance(conn, SSHAgentClient):
+            with contextlib.nullcontext():
+                yield conn
+        elif isinstance(conn, socket.socket) or conn is None:
+            with SSHAgentClient(socket=conn) as client:
+                yield client
+        else:  # pragma: no cover
+            assert_never(conn)
+            msg = f'invalid connection hint: {conn!r}'
+            raise TypeError(msg)  # noqa: DOC501
+
+    def has_deterministic_signatures(self) -> bool:
+        """Check whether the agent returns deterministic signatures.
+
+        Returns:
+            True if a known agent was detected where signatures are
+            deterministic for all SSH key types, false otherwise.
+
+        Note: Known agents with deterministic signatures
+            | agent           | detected via                                                  |
+            |:----------------|:--------------------------------------------------------------|
+            | Pageant (PuTTY) | `list-extended@putty.projects.tartarus.org` extension request |
+
+        """  # noqa: E501
+        returncode, _payload = self.request(
+            _types.SSH_AGENTC.EXTENSION,
+            self.string(b'list-extended@putty.projects.tartarus.org'),
+        )
+        return returncode == _types.SSH_AGENT.SUCCESS.value
 
     @overload
     def request(  # pragma: no cover
