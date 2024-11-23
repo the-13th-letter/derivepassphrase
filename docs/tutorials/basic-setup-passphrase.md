@@ -94,7 +94,7 @@ We need to translate the passphrase policy into options for `derivepassphrase`:
 * A policy "between <var>n</var> and <var>m</var> characters long" translates to <code>-<span/>-length <var>k</var></code>, for any choice of <var>k</var> which satisfies <var>n</var> ≤ <var>k</var> ≤ <var>m</var>.
   (`derivepassphrase` does not explicitly choose <var>k</var> for you.)
 
-??? note "Mnemonic: the `--repeat` option"
+??? info "Mnemonic: the `--repeat` option"
 
     The `--repeat` option denotes the *total* number of consecutive occurrences of the same character.
     Or alternatively: if you request <code>-<span/>-repeat <var>n</var></code>, then `derivepassphrase` will *avoid* deriving any passphrase that repeats a character *another <var>n</var> times*.

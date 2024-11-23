@@ -88,10 +88,10 @@ plugins:
 
 nav:
   - Overview: index.md
-  #- Tutorials & Examples: tutorials.md
   - Tutorials & Examples:
     - tutorials/basic-setup-passphrase.md
-  #- How-Tos: how-tos.md
+  - How-Tos:
+    - how-tos/ssh-key.md
   - Reference:
     - reference/index.md
     - 'Man page: derivepassphrase': reference/derivepassphrase.1.md
