@@ -48,7 +48,7 @@ __version__ = dpp.__version__
 __all__ = ('derivepassphrase',)
 
 PROG_NAME = 'derivepassphrase'
-KEY_DISPLAY_LENGTH = 30
+KEY_DISPLAY_LENGTH = 50
 
 # Error messages
 _INVALID_VAULT_CONFIG = 'Invalid vault config'
@@ -640,13 +640,14 @@ def _select_ssh_key(
     for key, comment in suitable_keys:
         keytype = unstring_prefix(key)[0].decode('ASCII')
         key_str = base64.standard_b64encode(key).decode('ASCII')
-        key_prefix = (
-            key_str
-            if len(key_str) < KEY_DISPLAY_LENGTH + len('...')
-            else key_str[:KEY_DISPLAY_LENGTH] + '...'
+        remaining_key_display_length = KEY_DISPLAY_LENGTH - 1 - len(keytype)
+        key_extract = min(
+            key_str,
+            '...' + key_str[-remaining_key_display_length:],
+            key=len,
         )
         comment_str = comment.decode('UTF-8', errors='replace')
-        key_listing.append(f'{keytype} {key_prefix} {comment_str}')
+        key_listing.append(f'{keytype} {key_extract}  {comment_str}')
     choice = _prompt_for_selection(
         key_listing,
         heading='Suitable SSH keys:',
