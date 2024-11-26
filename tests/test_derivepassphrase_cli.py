@@ -403,12 +403,12 @@ class TestCLI:
     def test_204c_key_override_on_command_line(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        running_ssh_agent: str,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
         config: dict[str, Any],
         key_index: int,
     ) -> None:
         with monkeypatch.context():
-            monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent)
+            monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket)
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
@@ -433,10 +433,10 @@ class TestCLI:
     def test_205_service_phrase_if_key_in_global_config(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        running_ssh_agent: str,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
         with monkeypatch.context():
-            monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent)
+            monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket)
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
@@ -491,11 +491,11 @@ class TestCLI:
     def test_206_setting_service_phrase_thus_overriding_key_in_config(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        running_ssh_agent: str,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
         config: _types.VaultConfig,
     ) -> None:
         with monkeypatch.context():
-            monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent)
+            monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket)
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
@@ -1789,11 +1789,11 @@ Boo.
     def test_227_get_suitable_ssh_keys(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        running_ssh_agent: str,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
         conn_hint: str,
     ) -> None:
         with monkeypatch.context():
-            monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent)
+            monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket)
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
@@ -1803,7 +1803,7 @@ Boo.
                 hint = ssh_agent.SSHAgentClient()
             elif conn_hint == 'socket':
                 hint = socket.socket(family=socket.AF_UNIX)
-                hint.connect(running_ssh_agent)
+                hint.connect(running_ssh_agent.socket)
             else:
                 assert conn_hint == 'none'
                 hint = None

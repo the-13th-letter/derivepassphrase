@@ -462,6 +462,11 @@ class SpawnedSSHAgentInfo(NamedTuple):
     isolated: bool
 
 
+class RunningSSHAgentInfo(NamedTuple):
+    socket: str
+    agent_type: KnownSSHAgent
+
+
 SUPPORTED_KEYS: Mapping[str, SSHTestKey] = {
     'ed25519': {
         'private_key': rb"""-----BEGIN OPENSSH PRIVATE KEY-----

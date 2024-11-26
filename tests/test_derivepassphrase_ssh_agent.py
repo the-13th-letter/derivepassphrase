@@ -348,10 +348,12 @@ class TestAgentInteraction:
     def test_300_constructor_bad_running_agent(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        running_ssh_agent: str,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
         with monkeypatch.context() as monkeypatch2:
-            monkeypatch2.setenv('SSH_AUTH_SOCK', running_ssh_agent + '~')
+            monkeypatch2.setenv(
+                'SSH_AUTH_SOCK', running_ssh_agent.socket + '~'
+            )
             sock = socket.socket(family=socket.AF_UNIX)
             with pytest.raises(OSError):  # noqa: PT011
                 ssh_agent.SSHAgentClient(socket=sock)
@@ -379,7 +381,7 @@ class TestAgentInteraction:
     def test_310_truncated_server_response(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        running_ssh_agent: str,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
         response: bytes,
     ) -> None:
         del running_ssh_agent
@@ -424,7 +426,7 @@ class TestAgentInteraction:
     def test_320_list_keys_error_responses(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        running_ssh_agent: str,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
         response_code: _types.SSH_AGENT,
         response: bytes | bytearray,
         exc_type: type[Exception],
@@ -500,7 +502,7 @@ class TestAgentInteraction:
     def test_330_sign_error_responses(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        running_ssh_agent: str,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
         key: bytes | bytearray,
         check: bool,
         response_code: _types.SSH_AGENT,
@@ -567,7 +569,7 @@ class TestAgentInteraction:
     )
     def test_340_request_error_responses(
         self,
-        running_ssh_agent: str,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
         request_code: _types.SSH_AGENTC,
         response_code: _types.SSH_AGENT,
         exc_type: type[Exception],
