@@ -275,6 +275,8 @@ class TestAgentInteraction:
         _ = data_dict['expected_signature']
         if public_key_data not in key_comment_pairs:  # pragma: no cover
             pytest.skip('prerequisite SSH key not loaded')
+        if client.has_deterministic_signatures():
+            pytest.skip('agent ensures all keys are suitable')
         with pytest.raises(ValueError, match='unsuitable SSH key'):
             vault.Vault.phrase_from_key(public_key_data)
 
@@ -289,14 +291,14 @@ class TestAgentInteraction:
     def test_210_ssh_key_selector(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        running_ssh_agent: str,
+        ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
         key: bytes,
         single: bool,
     ) -> None:
-        del running_ssh_agent
+        client = ssh_agent_client_with_test_keys_loaded
 
         def key_is_suitable(key: bytes) -> bool:
-            return key in {
+            return client.has_deterministic_signatures() or key in {
                 v['public_key_data'] for v in tests.SUPPORTED_KEYS.values()
             }
 

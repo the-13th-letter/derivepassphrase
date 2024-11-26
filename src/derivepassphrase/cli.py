@@ -511,6 +511,7 @@ def _get_suitable_ssh_keys(
 
     """
     with ssh_agent.SSHAgentClient.ensure_agent_subcontext(conn) as client:
+        has_deterministic_signatures = client.has_deterministic_signatures()
         try:
             all_key_comment_pairs = list(client.list_keys())
         except EOFError as e:  # pragma: no cover
@@ -518,7 +519,10 @@ def _get_suitable_ssh_keys(
     suitable_keys = copy.copy(all_key_comment_pairs)
     for pair in all_key_comment_pairs:
         key, _comment = pair
-        if vault.Vault._is_suitable_ssh_key(key):  # noqa: SLF001
+        if (
+            has_deterministic_signatures
+            or vault.Vault._is_suitable_ssh_key(key)  # noqa: SLF001
+        ):
             yield pair
     if not suitable_keys:  # pragma: no cover
         raise LookupError(_NO_USABLE_KEYS)
