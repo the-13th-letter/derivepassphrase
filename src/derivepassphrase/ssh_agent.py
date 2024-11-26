@@ -377,7 +377,7 @@ class SSHAgentClient:
         response_code: Iterable[_types.SSH_AGENT | int] = frozenset({
             _types.SSH_AGENT.SUCCESS
         }),
-    ) -> tuple[int, bytes]: ...
+    ) -> bytes: ...
 
     @overload
     def request(  # pragma: no cover
