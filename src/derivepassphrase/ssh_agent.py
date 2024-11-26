@@ -18,6 +18,7 @@ from derivepassphrase import _types
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Sequence
+    from collections.abc import Set as AbstractSet
     from types import TracebackType
 
     from typing_extensions import Buffer
@@ -338,6 +339,18 @@ class SSHAgentClient:
             msg = f'invalid connection hint: {conn!r}'
             raise TypeError(msg)  # noqa: DOC501
 
+    def _agent_is_pageant(self) -> bool:
+        """Return True if we are connected to Pageant.
+
+        Warning:
+            This is a heuristic, not a verified query or computation.
+
+        """
+        return (
+            b'list-extended@putty.projects.tartarus.org'
+            in self.query_extensions()
+        )
+
     def has_deterministic_signatures(self) -> bool:
         """Check whether the agent returns deterministic signatures.
 
@@ -351,11 +364,12 @@ class SSHAgentClient:
             | Pageant (PuTTY) | `list-extended@putty.projects.tartarus.org` extension request |
 
         """  # noqa: E501
-        returncode, _payload = self.request(
-            _types.SSH_AGENTC.EXTENSION,
-            self.string(b'list-extended@putty.projects.tartarus.org'),
+        known_good_agents = {
+            'Pageant': self._agent_is_pageant,
+        }
+        return any(  # pragma: no branch
+            v() for v in known_good_agents.values()
         )
-        return returncode == _types.SSH_AGENT.SUCCESS.value
 
     @overload
     def request(  # pragma: no cover
@@ -578,3 +592,45 @@ class SSHAgentClient:
                 )
             )
         )
+
+    def query_extensions(self) -> AbstractSet[bytes]:
+        """Request a list of extensions supported by the SSH agent.
+
+        Args:
+            raise_if_no_extension_support:
+                If true, and if the agent does not support querying
+                extensions, then raise an error.  If false, silently
+                return an empty result.
+
+        Returns:
+            A read-only sequence of extension names.
+
+        Raises:
+            EOFError:
+                The response from the SSH agent is truncated or missing.
+            OSError:
+                There was a communication error with the SSH agent.
+            SSHAgentFailedError:
+                The agent failed to complete the request.
+
+        """
+        try:
+            response_data = self.request(
+                _types.SSH_AGENTC.EXTENSION,
+                self.string(b'query'),
+                response_code={
+                    _types.SSH_AGENT.EXTENSION_RESPONSE,
+                    _types.SSH_AGENT.SUCCESS,
+                },
+            )
+        except SSHAgentFailedError:
+            # Cannot query extension support.  Assume no extensions.
+            # This isn't necessarily true, e.g. for OpenSSH's ssh-agent.
+            return frozenset()
+        extensions: set[bytes] = set()
+        _query, response_data = self.unstring_prefix(response_data)
+        assert bytes(_query) == b'query'
+        while response_data:
+            extension, response_data = self.unstring_prefix(response_data)
+            extensions.add(bytes(extension))
+        return frozenset(extensions)
