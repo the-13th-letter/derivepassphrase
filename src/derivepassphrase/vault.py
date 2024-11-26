@@ -447,23 +447,30 @@ class Vault:
                 return bytes(result)
 
     @staticmethod
-    def _is_suitable_ssh_key(key: bytes | bytearray, /) -> bool:
+    def is_suitable_ssh_key(
+        key: bytes | bytearray,
+        /,
+        *,
+        client: ssh_agent.SSHAgentClient | None = None,
+    ) -> bool:
         """Check whether the key is suitable for passphrase derivation.
 
-        Currently, this only statically checks whether signatures with
-        this key type are guaranteed to be deterministic.
+        Some key types are guaranteed to be deterministic.  Other keys
+        types are only deterministic if the SSH agent supports this
+        feature.
 
         Args:
-            key: SSH public key to check.
+            key:
+                SSH public key to check.
+            client:
+                An optional SSH agent client to check for additional
+                deterministic key types.  If not given, assume no such
+                types.
 
         Returns:
-            True if and only if the key is guaranteed suitable for use in
-            deriving a passphrase deterministically.
-
-        Note:
-            Some SSH agents additionally guarantee that all signatures
-            are deterministic and thus *all* keys are suitable; see
-            [`ssh_agent.SSHAgentClient.has_deterministic_signatures`][].
+            True if and only if the key is guaranteed suitable for use
+            in deriving a passphrase deterministically (perhaps
+            restricted to the indicated SSH agent).
 
         """
         TestFunc: TypeAlias = 'Callable[[bytes | bytearray], bool]'
@@ -475,7 +482,31 @@ class Vault:
             'ssh-ed448': lambda k: k.startswith(b'\x00\x00\x00\x09ssh-ed448'),
             'ssh-rsa': lambda k: k.startswith(b'\x00\x00\x00\x07ssh-rsa'),
         }
-        return any(v(key) for v in deterministic_signature_types.values())
+        dsa_signature_types = {
+            'ssh-dss': lambda k: k.startswith(b'\x00\x00\x00\x07ssh-dss'),
+            'ecdsa-sha2-nistp256': lambda k: k.startswith(
+                b'\x00\x00\x00\x13ecdsa-sha2-nistp256'
+            ),
+            'ecdsa-sha2-nistp384': lambda k: k.startswith(
+                b'\x00\x00\x00\x13ecdsa-sha2-nistp384'
+            ),
+            'ecdsa-sha2-nistp521': lambda k: k.startswith(
+                b'\x00\x00\x00\x13ecdsa-sha2-nistp521'
+            ),
+        }
+        criteria = [
+            lambda: any(
+                v(key) for v in deterministic_signature_types.values()
+            ),
+        ]
+        if client is not None:
+            criteria.append(
+                lambda: (
+                    client.has_deterministic_dsa_signatures()
+                    and any(v(key) for v in dsa_signature_types.values())
+                )
+            )
+        return any(crit() for crit in criteria)
 
     @classmethod
     def phrase_from_key(
@@ -489,8 +520,8 @@ class Vault:
 
         vault allows the usage of certain SSH keys to derive a master
         passphrase, by signing the vault UUID with the SSH key.  The key
-        type or the SSH agent must ensure that signatures are
-        deterministic.
+        type must ensure that signatures are deterministic (perhaps only
+        in conjunction with the given SSH agent).
 
         Args:
             key:
@@ -544,10 +575,7 @@ class Vault:
 
         """
         with ssh_agent.SSHAgentClient.ensure_agent_subcontext(conn) as client:
-            if not (
-                client.has_deterministic_signatures()
-                or cls._is_suitable_ssh_key(key)
-            ):
+            if not cls.is_suitable_ssh_key(key, client=client):
                 msg = (
                     'unsuitable SSH key: bad key, or '
                     'signature not deterministic under this agent'

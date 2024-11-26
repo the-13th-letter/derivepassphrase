@@ -256,7 +256,8 @@ class TestAgentInteraction:
         )
         assert signature2 == expected_signature, 'SSH signature mismatch'
         assert (
-            vault.Vault.phrase_from_key(public_key_data) == derived_passphrase
+            vault.Vault.phrase_from_key(public_key_data, conn=client)
+            == derived_passphrase
         ), 'SSH signature mismatch'
 
     @pytest.mark.parametrize(
@@ -275,10 +276,13 @@ class TestAgentInteraction:
         _ = data_dict['expected_signature']
         if public_key_data not in key_comment_pairs:  # pragma: no cover
             pytest.skip('prerequisite SSH key not loaded')
-        if client.has_deterministic_signatures():
-            pytest.skip('agent ensures all keys are suitable')
+        assert not vault.Vault.is_suitable_ssh_key(
+            public_key_data, client=None
+        ), 'Expected key to be unsuitable in general'
+        if vault.Vault.is_suitable_ssh_key(public_key_data, client=client):
+            pytest.skip('agent automatically ensures key is suitable')
         with pytest.raises(ValueError, match='unsuitable SSH key'):
-            vault.Vault.phrase_from_key(public_key_data)
+            vault.Vault.phrase_from_key(public_key_data, conn=client)
 
     @pytest.mark.parametrize(
         ['key', 'single'],
@@ -298,9 +302,17 @@ class TestAgentInteraction:
         client = ssh_agent_client_with_test_keys_loaded
 
         def key_is_suitable(key: bytes) -> bool:
-            return client.has_deterministic_signatures() or key in {
+            always = {
                 v['public_key_data'] for v in tests.SUPPORTED_KEYS.values()
             }
+            dsa = {
+                v['public_key_data']
+                for k, v in tests.UNSUITABLE_KEYS.items()
+                if k.startswith(('dsa', 'ecdsa'))
+            }
+            return key in always or (
+                client.has_deterministic_dsa_signatures() and key in dsa
+            )
 
         if single:
             monkeypatch.setattr(

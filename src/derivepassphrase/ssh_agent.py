@@ -351,12 +351,19 @@ class SSHAgentClient:
             in self.query_extensions()
         )
 
-    def has_deterministic_signatures(self) -> bool:
-        """Check whether the agent returns deterministic signatures.
+    def has_deterministic_dsa_signatures(self) -> bool:
+        """Check whether the agent returns deterministic DSA signatures.
+
+        This includes ECDSA signatures.
+
+        Generally, this means that the SSH agent implements [RFC 6979][]
+        or a similar system.
+
+        [RFC 6979]: https://www.rfc-editor.org/rfc/rfc6979
 
         Returns:
             True if a known agent was detected where signatures are
-            deterministic for all SSH key types, false otherwise.
+            deterministic for all DSA key types, false otherwise.
 
         Note: Known agents with deterministic signatures
             | agent           | detected via                                                  |
@@ -594,24 +601,27 @@ class SSHAgentClient:
         )
 
     def query_extensions(self) -> AbstractSet[bytes]:
-        """Request a list of extensions supported by the SSH agent.
-
-        Args:
-            raise_if_no_extension_support:
-                If true, and if the agent does not support querying
-                extensions, then raise an error.  If false, silently
-                return an empty result.
+        """Request a listing of extensions supported by the SSH agent.
 
         Returns:
-            A read-only sequence of extension names.
+            A read-only set of extension names the SSH agent says it
+            supports.
 
         Raises:
             EOFError:
                 The response from the SSH agent is truncated or missing.
             OSError:
                 There was a communication error with the SSH agent.
-            SSHAgentFailedError:
-                The agent failed to complete the request.
+            RuntimeError:
+                The response from the SSH agent is malformed.
+
+        Note:
+            The set of supported extensions is queried via the `query`
+            extension request.  If the agent does not support the query
+            extension request, or extension requests in general, then an
+            empty set is returned.  This does not however imply that the
+            agent doesn't support *any* extension request... merely that
+            it doesn't support extension autodiscovery.
 
         """
         try:
@@ -628,9 +638,19 @@ class SSHAgentClient:
             # This isn't necessarily true, e.g. for OpenSSH's ssh-agent.
             return frozenset()
         extensions: set[bytes] = set()
-        _query, response_data = self.unstring_prefix(response_data)
-        assert bytes(_query) == b'query'
+        msg = 'Malformed response from SSH agent'
+        msg2 = 'Extension response message does not match request'
+        try:
+            _query, response_data = self.unstring_prefix(response_data)
+        except ValueError as e:
+            raise RuntimeError(msg) from e
+        if bytes(_query) != b'query':
+            raise RuntimeError(msg2)
         while response_data:
-            extension, response_data = self.unstring_prefix(response_data)
-            extensions.add(bytes(extension))
+            try:
+                extension, response_data = self.unstring_prefix(response_data)
+            except ValueError as e:
+                raise RuntimeError(msg) from e
+            else:
+                extensions.add(bytes(extension))
         return frozenset(extensions)
