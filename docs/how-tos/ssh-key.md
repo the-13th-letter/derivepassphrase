@@ -80,9 +80,9 @@ Next, configure `derivepassphrase vault` to use the loaded SSH key.
     ~~~~ console
     $ derivepassphrase vault --config -k
     Suitable SSH keys:
-    [1] ssh-ed25519 ...n6tMofjJyWHLyjEXfXsJhBt+OuheHzPA/xRUqw  developer key
-    [2] ssh-rsa ...Cr5XE5ZbIjm1NYmxZ81G5IJkMgF3JTSE1PfQgbVHE=  my key comment
-    [3] ssh-ed25519 ...iimqEbE9kUM+G+g12hhuDNfsI/S02xtaphIOOH  vault key
+    [1] ssh-rsa ...feXycsvJZ2uaYRjMdZeJGNAnHLUGLkBscw5aI8=  test key without passphrase
+    [2] ssh-ed448 ...BQ72ZgtPMckdzabiz7JbM/b0JzcRzGLMsbwA=  test key without passphrase
+    [3] ssh-ed25519 ...gJIXw//Mkhv5MEwidwcakUGCekJD/vCEml2  test key without passphrase
     Your selection? (1-3, leave empty to abort): 3
     ~~~~
 
@@ -97,9 +97,9 @@ Next, configure `derivepassphrase vault` to use the loaded SSH key.
     ~~~~ console
     $ derivepassphrase vault --config -k SERVICE
     Suitable SSH keys:
-    [1] ssh-ed25519 ...n6tMofjJyWHLyjEXfXsJhBt+OuheHzPA/xRUqw  developer key
-    [2] ssh-rsa ...Cr5XE5ZbIjm1NYmxZ81G5IJkMgF3JTSE1PfQgbVHE=  my key comment
-    [3] ssh-ed25519 ...iimqEbE9kUM+G+g12hhuDNfsI/S02xtaphIOOH  vault key
+    [1] ssh-rsa ...feXycsvJZ2uaYRjMdZeJGNAnHLUGLkBscw5aI8=  test key without passphrase
+    [2] ssh-ed448 ...BQ72ZgtPMckdzabiz7JbM/b0JzcRzGLMsbwA=  test key without passphrase
+    [3] ssh-ed25519 ...gJIXw//Mkhv5MEwidwcakUGCekJD/vCEml2  test key without passphrase
     Your selection? (1-3, leave empty to abort): 3
     ~~~~
 

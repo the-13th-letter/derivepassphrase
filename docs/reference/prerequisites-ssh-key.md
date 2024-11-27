@@ -163,18 +163,18 @@ widely implemented.
         Your identification has been saved in .../.ssh/my-vault-ed25519-key
         Your public key has been saved in .../.ssh/my-vault-ed25519-key.pub
         The key fingerprint is:
-        SHA256:BKD43lBB7qh4VvZxq6xSYDXUUbXF6snrRF7qUnOx1PA vault key
+        SHA256:0h+WAokssfhzfzVyuMLJlIcWyCtk5WiXI8BHyhXYxC0 vault key
         The key's randomart image is:
         +--[ED25519 256]--+
-        |   o=ooo.....    |
-        | . oo...   oo    |
-        |. ..o.  . .. +   |
-        | .o+   .  . o E  |
-        | .+.+ . So.o.o   |
-        |.o =.. o +*oo    |
-        |o +.. . ..++     |
-        | o.  . ..o.      |
-        |   ...o  oo      |
+        |o B=+            |
+        |.=oE = .         |
+        |.oX @ +          |
+        | = + o * . .     |
+        |  + o * S B      |
+        |   + * + O o     |
+        |      * o .      |
+        |       o         |
+        |                 |
         +----[SHA256]-----+
         ~~~~
 
@@ -197,7 +197,7 @@ widely implemented.
     === "GnuPG"
 
         Not supported natively.  An alternative SSH client distribution
-        such as OpenSSH or PuTTY is necessary
+        such as OpenSSH or PuTTY is necessary.
 
         Alternatively, GnuPG supports reusing keys in its native OpenPGP
         format for SSH as long as the underlying key type is compatible.

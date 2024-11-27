@@ -81,9 +81,9 @@ On UNIX-like systems with OpenSSH or PuTTY installed, you can use an Ed25519, Ed
 ```` shell-session
 $ derivepassphrase vault -k my-email-account
 Suitable SSH keys:
-[1] ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQ... test key
-[2] ssh-ed448 AAAACXNzaC1lZDQ0OAAAADni9nLTT1... test key
-[3] ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIF4gW... test key
+[1] ssh-rsa ...feXycsvJZ2uaYRjMdZeJGNAnHLUGLkBscw5aI8=  test key without passphrase
+[2] ssh-ed448 ...BQ72ZgtPMckdzabiz7JbM/b0JzcRzGLMsbwA=  test key without passphrase
+[3] ssh-ed25519 ...gJIXw//Mkhv5MEwidwcakUGCekJD/vCEml2  test key without passphrase
 Your selection? (1-3, leave empty to abort): 1
 oXDGCvMhLWPQyCzYtaobOq2Wh9olYj
 ````
@@ -94,9 +94,9 @@ This choice can be made either specifically for the service (in this case, `my-e
 ```` shell-session
 $ derivepassphrase vault --config -k  # global setting
 Suitable SSH keys:
-[1] ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQ... test key
-[2] ssh-ed448 AAAACXNzaC1lZDQ0OAAAADni9nLTT1... test key
-[3] ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIF4gW... test key
+[1] ssh-rsa ...feXycsvJZ2uaYRjMdZeJGNAnHLUGLkBscw5aI8=  test key without passphrase
+[2] ssh-ed448 ...BQ72ZgtPMckdzabiz7JbM/b0JzcRzGLMsbwA=  test key without passphrase
+[3] ssh-ed25519 ...gJIXw//Mkhv5MEwidwcakUGCekJD/vCEml2  test key without passphrase
 Your selection? (1-3, leave empty to abort): 1
 $ derivepassphrase vault my-email-account
 oXDGCvMhLWPQyCzYtaobOq2Wh9olYj
