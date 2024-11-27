@@ -23,7 +23,7 @@ from derivepassphrase import _types, cli, ssh_agent, vault
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from typing_extensions import Any
+    from typing_extensions import Any, Buffer
 
 
 class TestStaticFunctionality:
@@ -594,6 +594,72 @@ class TestAgentInteraction:
             ssh_agent.SSHAgentClient() as client,
         ):
             client.request(request_code, b'', response_code=response_code)
+
+    @pytest.mark.parametrize(
+        'response_data',
+        [
+            b'\xde\xad\xbe\xef',
+            b'\x00\x00\x00\x0fwrong extension',
+            b'\x00\x00\x00\x05query\xde\xad\xbe\xef',
+            b'\x00\x00\x00\x05query\x00\x00\x00\x04ext1\x00\x00',
+        ],
+    )
+    def test_350_query_extensions_malformed_responses(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
+        response_data: bytes,
+    ) -> None:
+        del running_ssh_agent
+
+        def request(
+            code: int | _types.SSH_AGENTC,
+            payload: Buffer,
+            /,
+            *,
+            response_code: (
+                Iterable[_types.SSH_AGENT | int]
+                | _types.SSH_AGENT
+                | int
+                | None
+            ) = None,
+        ) -> tuple[int, bytes] | bytes:
+            request_codes = {
+                _types.SSH_AGENTC.EXTENSION,
+                _types.SSH_AGENTC.EXTENSION.value,
+            }
+            assert code in request_codes
+            response_codes = {
+                _types.SSH_AGENT.EXTENSION_RESPONSE,
+                _types.SSH_AGENT.EXTENSION_RESPONSE.value,
+                _types.SSH_AGENT.SUCCESS,
+                _types.SSH_AGENT.SUCCESS.value,
+            }
+            assert payload == b'\x00\x00\x00\x05query'
+            if response_code is None:  # pragma: no cover
+                return (
+                    _types.SSH_AGENT.EXTENSION_RESPONSE.value,
+                    response_data,
+                )
+            if isinstance(  # pragma: no cover
+                response_code, (_types.SSH_AGENT, int)
+            ):
+                assert response_code in response_codes
+                return response_data
+            for single_code in response_code:  # pragma: no cover
+                assert single_code in response_codes
+            return response_data  # pragma: no cover
+
+        with (
+            monkeypatch.context() as monkeypatch2,
+            ssh_agent.SSHAgentClient() as client,
+        ):
+            monkeypatch2.setattr(client, 'request', request)
+            with pytest.raises(
+                RuntimeError,
+                match='Malformed response|does not match request'
+            ):
+                client.query_extensions()
 
 
 class TestHypotheses:
