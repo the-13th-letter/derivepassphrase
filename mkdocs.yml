@@ -88,10 +88,10 @@ plugins:
 
 nav:
   - Overview: index.md
-  #- Tutorials & Examples: tutorials.md
   - Tutorials & Examples:
     - tutorials/basic-setup-passphrase.md
-  #- How-Tos: how-tos.md
+  - How-Tos:
+    - how-tos/ssh-key.md
   - Reference:
     - reference/index.md
     - 'Man page: derivepassphrase': reference/derivepassphrase.1.md
@@ -105,6 +105,8 @@ nav:
       - Submodule ssh_agent: reference/derivepassphrase.ssh_agent.md
       - Submodule _types: reference/derivepassphrase._types.md
       - Submodule vault: reference/derivepassphrase.vault.md
+    - Prerequisites:
+      - 'Using derivepassphrase vault with an SSH key': reference/prerequisites-ssh-key.md
   #- Design & Background: explanation.md
   - Changelog: changelog.md
 exclude_docs: |
@@ -123,6 +125,11 @@ markdown_extensions:
   - toc:
       permalink: true
   - pymdownx.details
+  - pymdownx.snippets:
+      base_path:
+        - 'docs'
+        - '.'
+      check_paths: true
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true

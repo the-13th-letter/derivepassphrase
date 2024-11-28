@@ -7,16 +7,18 @@
 from __future__ import annotations
 
 import collections
+import contextlib
 import os
 import socket
 from typing import TYPE_CHECKING, overload
 
-from typing_extensions import Self
+from typing_extensions import Self, assert_never
 
 from derivepassphrase import _types
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Iterable, Iterator, Sequence
+    from collections.abc import Set as AbstractSet
     from types import TracebackType
 
     from typing_extensions import Buffer
@@ -282,6 +284,100 @@ class SSHAgentClient:
             bytes(bytestring[m + HEAD_LEN :]),
         )
 
+    @classmethod
+    @contextlib.contextmanager
+    def ensure_agent_subcontext(
+        cls,
+        conn: SSHAgentClient | socket.socket | None = None,
+    ) -> Iterator[SSHAgentClient]:
+        """Return an SSH agent client subcontext.
+
+        If necessary, construct an SSH agent client first using the
+        connection hint.
+
+        Args:
+            conn:
+                If an existing SSH agent client, then enter a context
+                within this client's scope.  After exiting the context,
+                the client persists, including its socket.
+
+                If a socket, then construct a client using this socket,
+                then enter a context within this client's scope.  After
+                exiting the context, the client is destroyed and the
+                socket is closed.
+
+                If `None`, construct a client using agent
+                auto-discovery, then enter a context within this
+                client's scope.  After exiting the context, both the
+                client and its socket are destroyed.
+
+        Yields:
+            When entering this context, return the SSH agent client.
+
+        Raises:
+            KeyError:
+                `conn` was `None`, and the `SSH_AUTH_SOCK` environment
+                variable was not found.
+            NotImplementedError:
+                `conn` was `None`, and this Python does not support
+                [`socket.AF_UNIX`][], so the SSH agent client cannot be
+                automatically set up.
+            OSError:
+                `conn` was a socket or `None`, and there was an error
+                setting up a socket connection to the agent.
+
+        """
+        # Use match/case here once Python 3.9 becomes unsupported.
+        if isinstance(conn, SSHAgentClient):
+            with contextlib.nullcontext():
+                yield conn
+        elif isinstance(conn, socket.socket) or conn is None:
+            with SSHAgentClient(socket=conn) as client:
+                yield client
+        else:  # pragma: no cover
+            assert_never(conn)
+            msg = f'invalid connection hint: {conn!r}'
+            raise TypeError(msg)  # noqa: DOC501
+
+    def _agent_is_pageant(self) -> bool:
+        """Return True if we are connected to Pageant.
+
+        Warning:
+            This is a heuristic, not a verified query or computation.
+
+        """
+        return (
+            b'list-extended@putty.projects.tartarus.org'
+            in self.query_extensions()
+        )
+
+    def has_deterministic_dsa_signatures(self) -> bool:
+        """Check whether the agent returns deterministic DSA signatures.
+
+        This includes ECDSA signatures.
+
+        Generally, this means that the SSH agent implements [RFC 6979][]
+        or a similar system.
+
+        [RFC 6979]: https://www.rfc-editor.org/rfc/rfc6979
+
+        Returns:
+            True if a known agent was detected where signatures are
+            deterministic for all DSA key types, false otherwise.
+
+        Note: Known agents with deterministic signatures
+            | agent           | detected via                                                  |
+            |:----------------|:--------------------------------------------------------------|
+            | Pageant (PuTTY) | `list-extended@putty.projects.tartarus.org` extension request |
+
+        """  # noqa: E501
+        known_good_agents = {
+            'Pageant': self._agent_is_pageant,
+        }
+        return any(  # pragma: no branch
+            v() for v in known_good_agents.values()
+        )
+
     @overload
     def request(  # pragma: no cover
         self,
@@ -302,7 +398,7 @@ class SSHAgentClient:
         response_code: Iterable[_types.SSH_AGENT | int] = frozenset({
             _types.SSH_AGENT.SUCCESS
         }),
-    ) -> tuple[int, bytes]: ...
+    ) -> bytes: ...
 
     @overload
     def request(  # pragma: no cover
@@ -503,3 +599,58 @@ class SSHAgentClient:
                 )
             )
         )
+
+    def query_extensions(self) -> AbstractSet[bytes]:
+        """Request a listing of extensions supported by the SSH agent.
+
+        Returns:
+            A read-only set of extension names the SSH agent says it
+            supports.
+
+        Raises:
+            EOFError:
+                The response from the SSH agent is truncated or missing.
+            OSError:
+                There was a communication error with the SSH agent.
+            RuntimeError:
+                The response from the SSH agent is malformed.
+
+        Note:
+            The set of supported extensions is queried via the `query`
+            extension request.  If the agent does not support the query
+            extension request, or extension requests in general, then an
+            empty set is returned.  This does not however imply that the
+            agent doesn't support *any* extension request... merely that
+            it doesn't support extension autodiscovery.
+
+        """
+        try:
+            response_data = self.request(
+                _types.SSH_AGENTC.EXTENSION,
+                self.string(b'query'),
+                response_code={
+                    _types.SSH_AGENT.EXTENSION_RESPONSE,
+                    _types.SSH_AGENT.SUCCESS,
+                },
+            )
+        except SSHAgentFailedError:
+            # Cannot query extension support.  Assume no extensions.
+            # This isn't necessarily true, e.g. for OpenSSH's ssh-agent.
+            return frozenset()
+        extensions: set[bytes] = set()
+        msg = 'Malformed response from SSH agent'
+        msg2 = 'Extension response message does not match request'
+        try:
+            _query, response_data = self.unstring_prefix(response_data)
+        except ValueError as e:
+            raise RuntimeError(msg) from e
+        if bytes(_query) != b'query':
+            raise RuntimeError(msg2)
+        while response_data:
+            try:
+                extension, response_data = self.unstring_prefix(response_data)
+            except ValueError as e:
+                raise RuntimeError(msg) from e
+            else:
+                extensions.add(bytes(extension))
+        return frozenset(extensions)

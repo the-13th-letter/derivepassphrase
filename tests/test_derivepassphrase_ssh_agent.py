@@ -23,7 +23,7 @@ from derivepassphrase import _types, cli, ssh_agent, vault
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from typing_extensions import Any
+    from typing_extensions import Any, Buffer
 
 
 class TestStaticFunctionality:
@@ -256,7 +256,8 @@ class TestAgentInteraction:
         )
         assert signature2 == expected_signature, 'SSH signature mismatch'
         assert (
-            vault.Vault.phrase_from_key(public_key_data) == derived_passphrase
+            vault.Vault.phrase_from_key(public_key_data, conn=client)
+            == derived_passphrase
         ), 'SSH signature mismatch'
 
     @pytest.mark.parametrize(
@@ -275,8 +276,13 @@ class TestAgentInteraction:
         _ = data_dict['expected_signature']
         if public_key_data not in key_comment_pairs:  # pragma: no cover
             pytest.skip('prerequisite SSH key not loaded')
+        assert not vault.Vault.is_suitable_ssh_key(
+            public_key_data, client=None
+        ), 'Expected key to be unsuitable in general'
+        if vault.Vault.is_suitable_ssh_key(public_key_data, client=client):
+            pytest.skip('agent automatically ensures key is suitable')
         with pytest.raises(ValueError, match='unsuitable SSH key'):
-            vault.Vault.phrase_from_key(public_key_data)
+            vault.Vault.phrase_from_key(public_key_data, conn=client)
 
     @pytest.mark.parametrize(
         ['key', 'single'],
@@ -289,16 +295,24 @@ class TestAgentInteraction:
     def test_210_ssh_key_selector(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        running_ssh_agent: str,
+        ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
         key: bytes,
         single: bool,
     ) -> None:
-        del running_ssh_agent
+        client = ssh_agent_client_with_test_keys_loaded
 
         def key_is_suitable(key: bytes) -> bool:
-            return key in {
+            always = {
                 v['public_key_data'] for v in tests.SUPPORTED_KEYS.values()
             }
+            dsa = {
+                v['public_key_data']
+                for k, v in tests.UNSUITABLE_KEYS.items()
+                if k.startswith(('dsa', 'ecdsa'))
+            }
+            return key in always or (
+                client.has_deterministic_dsa_signatures() and key in dsa
+            )
 
         if single:
             monkeypatch.setattr(
@@ -346,10 +360,12 @@ class TestAgentInteraction:
     def test_300_constructor_bad_running_agent(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        running_ssh_agent: str,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
         with monkeypatch.context() as monkeypatch2:
-            monkeypatch2.setenv('SSH_AUTH_SOCK', running_ssh_agent + '~')
+            monkeypatch2.setenv(
+                'SSH_AUTH_SOCK', running_ssh_agent.socket + '~'
+            )
             sock = socket.socket(family=socket.AF_UNIX)
             with pytest.raises(OSError):  # noqa: PT011
                 ssh_agent.SSHAgentClient(socket=sock)
@@ -377,7 +393,7 @@ class TestAgentInteraction:
     def test_310_truncated_server_response(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        running_ssh_agent: str,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
         response: bytes,
     ) -> None:
         del running_ssh_agent
@@ -422,7 +438,7 @@ class TestAgentInteraction:
     def test_320_list_keys_error_responses(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        running_ssh_agent: str,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
         response_code: _types.SSH_AGENT,
         response: bytes | bytearray,
         exc_type: type[Exception],
@@ -498,7 +514,7 @@ class TestAgentInteraction:
     def test_330_sign_error_responses(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        running_ssh_agent: str,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
         key: bytes | bytearray,
         check: bool,
         response_code: _types.SSH_AGENT,
@@ -565,7 +581,7 @@ class TestAgentInteraction:
     )
     def test_340_request_error_responses(
         self,
-        running_ssh_agent: str,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
         request_code: _types.SSH_AGENTC,
         response_code: _types.SSH_AGENT,
         exc_type: type[Exception],
@@ -578,6 +594,72 @@ class TestAgentInteraction:
             ssh_agent.SSHAgentClient() as client,
         ):
             client.request(request_code, b'', response_code=response_code)
+
+    @pytest.mark.parametrize(
+        'response_data',
+        [
+            b'\xde\xad\xbe\xef',
+            b'\x00\x00\x00\x0fwrong extension',
+            b'\x00\x00\x00\x05query\xde\xad\xbe\xef',
+            b'\x00\x00\x00\x05query\x00\x00\x00\x04ext1\x00\x00',
+        ],
+    )
+    def test_350_query_extensions_malformed_responses(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
+        response_data: bytes,
+    ) -> None:
+        del running_ssh_agent
+
+        def request(
+            code: int | _types.SSH_AGENTC,
+            payload: Buffer,
+            /,
+            *,
+            response_code: (
+                Iterable[_types.SSH_AGENT | int]
+                | _types.SSH_AGENT
+                | int
+                | None
+            ) = None,
+        ) -> tuple[int, bytes] | bytes:
+            request_codes = {
+                _types.SSH_AGENTC.EXTENSION,
+                _types.SSH_AGENTC.EXTENSION.value,
+            }
+            assert code in request_codes
+            response_codes = {
+                _types.SSH_AGENT.EXTENSION_RESPONSE,
+                _types.SSH_AGENT.EXTENSION_RESPONSE.value,
+                _types.SSH_AGENT.SUCCESS,
+                _types.SSH_AGENT.SUCCESS.value,
+            }
+            assert payload == b'\x00\x00\x00\x05query'
+            if response_code is None:  # pragma: no cover
+                return (
+                    _types.SSH_AGENT.EXTENSION_RESPONSE.value,
+                    response_data,
+                )
+            if isinstance(  # pragma: no cover
+                response_code, (_types.SSH_AGENT, int)
+            ):
+                assert response_code in response_codes
+                return response_data
+            for single_code in response_code:  # pragma: no cover
+                assert single_code in response_codes
+            return response_data  # pragma: no cover
+
+        with (
+            monkeypatch.context() as monkeypatch2,
+            ssh_agent.SSHAgentClient() as client,
+        ):
+            monkeypatch2.setattr(client, 'request', request)
+            with pytest.raises(
+                RuntimeError,
+                match='Malformed response|does not match request'
+            ):
+                client.query_extensions()
 
 
 class TestHypotheses:

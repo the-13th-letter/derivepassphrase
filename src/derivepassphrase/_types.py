@@ -569,6 +569,11 @@ class SSH_AGENTC(enum.Enum):  # noqa: N801
             Remove an (SSH2) identity.
         ADD_ID_CONSTRAINED:
             Add an (SSH2) identity, including key constraints.
+        EXTENSION:
+            Issue a named request that isn't part of the core agent
+            protocol.  Expecting [`SSH_AGENT.EXTENSION_RESPONSE`][] or
+            [`SSH_AGENT.EXTENSION_FAILURE`][] if the named request is
+            supported, [`SSH_AGENT.FAILURE`][] otherwise.
 
     """
 
@@ -581,6 +586,8 @@ class SSH_AGENTC(enum.Enum):  # noqa: N801
     REMOVE_IDENTITY: int = 18
     """"""
     ADD_ID_CONSTRAINED: int = 25
+    """"""
+    EXTENSION: int = 27
     """"""
 
 
@@ -596,6 +603,10 @@ class SSH_AGENT(enum.Enum):  # noqa: N801
             Successful answer to [`SSH_AGENTC.REQUEST_IDENTITIES`][].
         SIGN_RESPONSE:
             Successful answer to [`SSH_AGENTC.SIGN_REQUEST`][].
+        EXTENSION_FAILURE:
+            Unsuccessful answer to [`SSH_AGENTC.EXTENSION`][].
+        EXTENSION_RESPONSE:
+            Successful answer to [`SSH_AGENTC.EXTENSION`][].
 
     """
 
@@ -606,4 +617,8 @@ class SSH_AGENT(enum.Enum):  # noqa: N801
     IDENTITIES_ANSWER: int = 12
     """"""
     SIGN_RESPONSE: int = 14
+    """"""
+    EXTENSION_FAILURE: int = 28
+    """"""
+    EXTENSION_RESPONSE: int = 29
     """"""

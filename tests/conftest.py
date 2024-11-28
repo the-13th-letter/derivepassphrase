@@ -234,7 +234,7 @@ _spawn_handlers = [
 @pytest.fixture
 def running_ssh_agent(  # pragma: no cover
     skip_if_no_af_unix_support: None,
-) -> Iterator[str]:
+) -> Iterator[tests.RunningSSHAgentInfo]:
     """Ensure a running SSH agent, if possible, as a pytest fixture.
 
     Check for a running SSH agent, or spawn a new one if possible.  We
@@ -245,9 +245,11 @@ def running_ssh_agent(  # pragma: no cover
     can it guarantee a particular set of loaded keys.
 
     Yields:
-        str:
-            The value of the SSH_AUTH_SOCK environment variable, to be
-            used to connect to the running agent.
+        :
+            A 2-tuple `(ssh_auth_sock, agent_type)`, where
+            `ssh_auth_sock` is the value of the `SSH_AUTH_SOCK`
+            environment variable, to be used to connect to the running
+            agent, and `agent_type` is the agent type.
 
     Raises:
         pytest.skip.Exception:
@@ -279,7 +281,7 @@ def running_ssh_agent(  # pragma: no cover
             monkeypatch.setenv('SSH_AUTH_SOCK', startup_ssh_auth_sock)
         else:  # pragma: no cover
             monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
-        for exec_name, spawn_func, _ in _spawn_handlers:
+        for exec_name, spawn_func, agent_type in _spawn_handlers:
             # Use match/case here once Python 3.9 becomes unsupported.
             if exec_name == '(system)':
                 assert (
@@ -291,7 +293,9 @@ def running_ssh_agent(  # pragma: no cover
                         client.list_keys()
                 except (KeyError, OSError):
                     continue
-                yield os.environ['SSH_AUTH_SOCK']
+                yield tests.RunningSSHAgentInfo(
+                    os.environ['SSH_AUTH_SOCK'], agent_type
+                )
                 assert (
                     os.environ.get('SSH_AUTH_SOCK', None)
                     == startup_ssh_auth_sock
@@ -342,7 +346,7 @@ def running_ssh_agent(  # pragma: no cover
                         pytest.MonkeyPatch.context()
                     )
                     monkeypatch2.setenv('SSH_AUTH_SOCK', ssh_auth_sock)
-                    yield ssh_auth_sock
+                    yield tests.RunningSSHAgentInfo(ssh_auth_sock, agent_type)
                 assert (
                     os.environ.get('SSH_AUTH_SOCK', None)
                     == startup_ssh_auth_sock

@@ -462,6 +462,11 @@ class SpawnedSSHAgentInfo(NamedTuple):
     isolated: bool
 
 
+class RunningSSHAgentInfo(NamedTuple):
+    socket: str
+    agent_type: KnownSSHAgent
+
+
 SUPPORTED_KEYS: Mapping[str, SSHTestKey] = {
     'ed25519': {
         'private_key': rb"""-----BEGIN OPENSSH PRIVATE KEY-----
@@ -880,8 +885,8 @@ dGhvdXQgcGFzc3BocmFzZQECAwQ=
         'public_key': rb"""ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMttTTMPCyTYO+n5Vgiuw1V/mBbDPZLdJnxNvGJBGSmcZJWrIigck4lz41Ai0BrvGUn/xnqB/PntndqlSRowmbo= test key without passphrase
 """,  # noqa: E501
         'public_key_data': bytes.fromhex("""
-            00 00 00 13 65 63 64 73 61 2d 73 68 61 32 2d 6e
-            69 73 74 70 32 35 36
+            00 00 00 13 65 63 64
+            73 61 2d 73 68 61 32 2d 6e 69 73 74 70 32 35 36
             00 00 00 08 6e 69 73 74 70 32 35 36
             00 00 00 41 04
             cb 6d 4d 33 0f 0b 24 d8 3b e9 f9 56 08 ae c3 55
@@ -925,9 +930,8 @@ JAu0J3Q+cypZuKQVAAAAMQD5sTy8p+B1cn/DhOmXquui1BcxvASqzzevkBlbQoBa73y04B
         'public_key': rb"""ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBKCQ6OQC+ru/m8e6PcoEvj8QBZyfmFkPIpxvJXR4EwYWruEpdCVmohqEtWp4xHRCqaTE0nauXLZUdxed6re9n718ixYI51iTlY/c1k/O/3XVefvBsSQLtCd0PnMqWbikFQ== test key without passphrase
 """,  # noqa: E501
         'public_key_data': bytes.fromhex("""
-            00 00 00 13
-            65 63 64 73 61 2d 73 68 61 32 2d 6e 69 73 74 70
-            33 38 34
+            00 00 00 13 65 63 64
+            73 61 2d 73 68 61 32 2d 6e 69 73 74 70 33 38 34
             00 00 00 08 6e 69 73 74 70 33 38 34
             00 00 00 61 04
             a0 90 e8 e4 02 fa bb bf 9b c7 ba 3d ca 04 be 3f
@@ -936,6 +940,60 @@ JAu0J3Q+cypZuKQVAAAAMQD5sTy8p+B1cn/DhOmXquui1BcxvASqzzevkBlbQoBa73y04B
             a4 c4 d2 76 ae 5c b6 54 77 17 9d ea b7 bd 9f bd
             7c 8b 16 08 e7 58 93 95 8f dc d6 4f ce ff 75 d5
             79 fb c1 b1 24 0b b4 27 74 3e 73 2a 59 b8 a4 15
+"""),
+        'expected_signature': None,
+        'derived_passphrase': None,
+    },
+    'ecdsa521': {
+        'private_key': rb"""-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAArAAAABNlY2RzYS
+1zaGEyLW5pc3RwNTIxAAAACG5pc3RwNTIxAAAAhQQASVOdwDznmlcGqiLvFtYeVtrAEiVz
+iIfsL7jEM8Utu/m8WSkPFQtjwqdFw+WfZ0mi6qMbEFgi/ELzZSKVteCSbcMAhqAkOMFKiD
+u4bxvsM6bT02Ru7q2yT41ySyGhUD0QySBnI6Ckt/wnQ1TEpj8zDKiRErxs9e6QLGElNRkz
+LPMs+mMAAAEY2FXeh9hV3ocAAAATZWNkc2Etc2hhMi1uaXN0cDUyMQAAAAhuaXN0cDUyMQ
+AAAIUEAElTncA855pXBqoi7xbWHlbawBIlc4iH7C+4xDPFLbv5vFkpDxULY8KnRcPln2dJ
+ouqjGxBYIvxC82UilbXgkm3DAIagJDjBSog7uG8b7DOm09Nkbu6tsk+NckshoVA9EMkgZy
+OgpLf8J0NUxKY/MwyokRK8bPXukCxhJTUZMyzzLPpjAAAAQSFqUmKK7lGQzxT6GKZSLDju
+U3otwLYnuj+/5AdzuB/zotu95UdFv9I2DNXzd9E4WAyz6IqBBNcsMkxrzHAdqsYDAAAAG3
+Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQ==
+-----END OPENSSH PRIVATE KEY-----
+""",
+        'private_key_blob': bytes.fromhex("""
+            00 00 00 13 65 63 64
+            73 61 2d 73 68 61 32 2d 6e 69 73 74 70 35 32 31
+            00 00 00 08 6e 69 73 74 70 35 32 31
+            00 00 00 85 04 00 49 53 9d
+            c0 3c e7 9a 57 06 aa 22 ef 16 d6 1e 56 da c0 12
+            25 73 88 87 ec 2f b8 c4 33 c5 2d bb f9 bc 59 29
+            0f 15 0b 63 c2 a7 45 c3 e5 9f 67 49 a2 ea a3 1b
+            10 58 22 fc 42 f3 65 22 95 b5 e0 92 6d c3 00 86
+            a0 24 38 c1 4a 88 3b b8 6f 1b ec 33 a6 d3 d3 64
+            6e ee ad b2 4f 8d 72 4b 21 a1 50 3d 10 c9 20 67
+            23 a0 a4 b7 fc 27 43 54 c4 a6 3f 33 0c a8 91 12
+            bc 6c f5 ee 90 2c 61 25 35 19 33 2c f3 2c fa 63
+            00 00 00 41 21
+            6a 52 62 8a ee 51 90 cf 14 fa 18 a6 52 2c 38 ee
+            53 7a 2d c0 b6 27 ba 3f bf e4 07 73 b8 1f f3 a2
+            db bd e5 47 45 bf d2 36 0c d5 f3 77 d1 38 58 0c
+            b3 e8 8a 81 04 d7 2c 32 4c 6b cc 70 1d aa c6 03
+            00 00 00 1b 74 65 73 74 20 6b 65 79 20 77 69
+            74 68 6f 75 74 20 70 61 73 73 70 68 72 61 73 65
+"""),
+        'public_key': rb"""ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1MjEAAACFBABJU53APOeaVwaqIu8W1h5W2sASJXOIh+wvuMQzxS27+bxZKQ8VC2PCp0XD5Z9nSaLqoxsQWCL8QvNlIpW14JJtwwCGoCQ4wUqIO7hvG+wzptPTZG7urbJPjXJLIaFQPRDJIGcjoKS3/CdDVMSmPzMMqJESvGz17pAsYSU1GTMs8yz6Yw== test key without passphrase
+""",  # noqa: E501
+        'public_key_data': bytes.fromhex("""
+            00 00 00 13 65 63 64
+            73 61 2d 73 68 61 32 2d 6e 69 73 74 70 32 35 36
+            00 00 00 08 6e 69 73 74 70 35 32 31
+            00 00 00 85 04 00 49 53 9d
+            c0 3c e7 9a 57 06 aa 22 ef 16 d6 1e 56 da c0 12
+            25 73 88 87 ec 2f b8 c4 33 c5 2d bb f9 bc 59 29
+            0f 15 0b 63 c2 a7 45 c3 e5 9f 67 49 a2 ea a3 1b
+            10 58 22 fc 42 f3 65 22 95 b5 e0 92 6d c3 00 86
+            a0 24 38 c1 4a 88 3b b8 6f 1b ec 33 a6 d3 d3 64
+            6e ee ad b2 4f 8d 72 4b 21 a1 50 3d 10 c9 20 67
+            23 a0 a4 b7 fc 27 43 54 c4 a6 3f 33 0c a8 91 12
+            bc 6c f5 ee 90 2c 61 25 35 19 33 2c f3 2c fa 63
 """),
         'expected_signature': None,
         'derived_passphrase': None,

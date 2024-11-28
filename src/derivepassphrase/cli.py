@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import base64
 import collections
-import contextlib
 import copy
 import enum
 import importlib
@@ -16,7 +15,6 @@ import inspect
 import json
 import logging
 import os
-import socket
 import unicodedata
 from typing import (
     TYPE_CHECKING,
@@ -37,6 +35,7 @@ from derivepassphrase import _types, exporter, ssh_agent, vault
 
 if TYPE_CHECKING:
     import pathlib
+    import socket
     import types
     from collections.abc import (
         Iterator,
@@ -49,7 +48,7 @@ __version__ = dpp.__version__
 __all__ = ('derivepassphrase',)
 
 PROG_NAME = 'derivepassphrase'
-KEY_DISPLAY_LENGTH = 30
+KEY_DISPLAY_LENGTH = 50
 
 # Error messages
 _INVALID_VAULT_CONFIG = 'Invalid vault config'
@@ -484,21 +483,8 @@ def _get_suitable_ssh_keys(
 
     Args:
         conn:
-            An optional connection hint to the SSH agent; specifically,
-            an SSH agent client, or a socket connected to an SSH agent.
-
-            If an existing SSH agent client, then this client will be
-            queried for the SSH keys, and otherwise left intact.
-
-            If a socket, then a one-shot client will be constructed
-            based on the socket to query the agent, and deconstructed
-            afterwards.
-
-            If neither are given, then the agent's socket location is
-            looked up in the `SSH_AUTH_SOCK` environment variable, and
-            used to construct/deconstruct a one-shot client, as in the
-            previous case.  This requires the [`socket.AF_UNIX`][]
-            symbol to exist.
+            An optional connection hint to the SSH agent.  See
+            [`ssh_agent.SSHAgentClient.ensure_agent_subcontext`][].
 
     Yields:
         Every SSH key from the SSH agent that is suitable for passphrase
@@ -524,29 +510,16 @@ def _get_suitable_ssh_keys(
             The agent failed to supply a list of loaded keys.
 
     """
-    client: ssh_agent.SSHAgentClient
-    client_context: contextlib.AbstractContextManager[Any]
-    # Use match/case here once Python 3.9 becomes unsupported.
-    if isinstance(conn, ssh_agent.SSHAgentClient):
-        client = conn
-        client_context = contextlib.nullcontext()
-    elif isinstance(conn, socket.socket) or conn is None:
-        client = ssh_agent.SSHAgentClient(socket=conn)
-        client_context = client
-    else:  # pragma: no cover
-        assert_never(conn)
-        msg = f'invalid connection hint: {conn!r}'
-        raise TypeError(msg)  # noqa: DOC501
-    with client_context:
+    with ssh_agent.SSHAgentClient.ensure_agent_subcontext(conn) as client:
         try:
             all_key_comment_pairs = list(client.list_keys())
         except EOFError as e:  # pragma: no cover
             raise RuntimeError(_AGENT_COMMUNICATION_ERROR) from e
-    suitable_keys = copy.copy(all_key_comment_pairs)
-    for pair in all_key_comment_pairs:
-        key, _comment = pair
-        if vault.Vault._is_suitable_ssh_key(key):  # noqa: SLF001
-            yield pair
+        suitable_keys = copy.copy(all_key_comment_pairs)
+        for pair in all_key_comment_pairs:
+            key, _comment = pair
+            if vault.Vault.is_suitable_ssh_key(key, client=client):
+                yield pair
     if not suitable_keys:  # pragma: no cover
         raise LookupError(_NO_USABLE_KEYS)
 
@@ -633,21 +606,8 @@ def _select_ssh_key(
 
     Args:
         conn:
-            An optional connection hint to the SSH agent; specifically,
-            an SSH agent client, or a socket connected to an SSH agent.
-
-            If an existing SSH agent client, then this client will be
-            queried for the SSH keys, and otherwise left intact.
-
-            If a socket, then a one-shot client will be constructed
-            based on the socket to query the agent, and deconstructed
-            afterwards.
-
-            If neither are given, then the agent's socket location is
-            looked up in the `SSH_AUTH_SOCK` environment variable, and
-            used to construct/deconstruct a one-shot client, as in the
-            previous case.  This requires the [`socket.AF_UNIX`][]
-            symbol to exist.
+            An optional connection hint to the SSH agent.  See
+            [`ssh_agent.SSHAgentClient.ensure_agent_subcontext`][].
 
     Returns:
         The selected SSH key.
@@ -680,13 +640,14 @@ def _select_ssh_key(
     for key, comment in suitable_keys:
         keytype = unstring_prefix(key)[0].decode('ASCII')
         key_str = base64.standard_b64encode(key).decode('ASCII')
-        key_prefix = (
-            key_str
-            if len(key_str) < KEY_DISPLAY_LENGTH + len('...')
-            else key_str[:KEY_DISPLAY_LENGTH] + '...'
+        remaining_key_display_length = KEY_DISPLAY_LENGTH - 1 - len(keytype)
+        key_extract = min(
+            key_str,
+            '...' + key_str[-remaining_key_display_length:],
+            key=len,
         )
         comment_str = comment.decode('UTF-8', errors='replace')
-        key_listing.append(f'{keytype} {key_prefix} {comment_str}')
+        key_listing.append(f'{keytype} {key_extract}  {comment_str}')
     choice = _prompt_for_selection(
         key_listing,
         heading='Suitable SSH keys:',

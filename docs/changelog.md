@@ -43,13 +43,9 @@ effectively constitute a new <q>major</q> release.)
 
 ### Fixed
 
-  - Improve the [basic setup (passphrase)][TUTORIAL_BASIC_PASSPHRASE]
-    tutorial.  Also incorporate feedback.
   - Fix PyPI classification: Python 3.9 is supported.
   - *Actually* remove the `derivepassphrase_export` program, which was
     turned into a subcommand in v0.2.0.
-
-[TUTORIAL_BASIC_PASSPHRASE]: tutorials/basic-setup-passphrase.md
 
 ## 0.3.0 (2024-10-15)
 

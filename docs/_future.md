@@ -47,12 +47,11 @@
 
 ### Tutorials
 
-* [Setting up `derivepassphrase` from scratch for three existing accounts, with a master passphrase](tutorials/basic-setup-passphrase.md)
-* Setting up `derivepassphrase` from scratch for three existing accounts, with a new SSH key
+* [Setting up `derivepassphrase vault` from scratch for three existing accounts, with a master passphrase](tutorials/basic-setup-passphrase.md)
 
 ### How-tos
 
-* How to set up `derivepassphrase` with an SSH key
+* [How to set up `derivepassphrase vault` with an SSH key](how-tos/ssh-key.md)
 * How to choose a good service name
 * How to edit a saved `derivepassphrase vault` configuration correctly
 * How to deal with "supported" and "unsupported" special characters
@@ -67,4 +66,3 @@
 * Security aspects and other tradeoffs when using deterministic password generators
 * Tradeoffs between a master passphrase and a master SSH key
 * Why is `vault`'s `--repeat` option named this way if it counts occurrences, not repetitions?
-* Why are master SSH keys not supported under Windows?
