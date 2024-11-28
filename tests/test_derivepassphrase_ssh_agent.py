@@ -656,8 +656,7 @@ class TestAgentInteraction:
         ):
             monkeypatch2.setattr(client, 'request', request)
             with pytest.raises(
-                RuntimeError,
-                match='Malformed response|does not match request'
+                RuntimeError, match='Malformed response|does not match request'
             ):
                 client.query_extensions()
 
