@@ -23,7 +23,7 @@ a.autorefs-external::after {
 }
 
 /* ... but don't mark badges as external */
-div[data-md-component="content"] a:not(.md-icon):is([href^="https://"], [href^="http://"], [href^="//"]):has(img[src^="https://img.shields.io/"], img[src="Keep_a_changelog-E05735.svg"], img[src="SemVer-3F4551.svg"])::after {
+div[data-md-component="content"] a:not(.md-icon):is([href^="https://"], [href^="http://"], [href^="//"]):has(img[src^="https://img.shields.io/"], img[src="Keep_a_changelog-E05735.svg"], img[src="../Keep_a_changelog-E05735.svg"], img[src="SemVer-3F4551.svg"], img[src="../SemVer-3F4551.svg"])::after {
     content: '';
     width: 0em;
     height: 0em;
