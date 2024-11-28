@@ -89,23 +89,26 @@ plugins:
 nav:
   - Overview: index.md
   - Tutorials & Examples:
+    - tutorials/index.md
     - tutorials/basic-setup-passphrase.md
   - How-Tos:
+    - how-tos/index.md
     - how-tos/ssh-key.md
   - Reference:
     - reference/index.md
-    - 'Man page: derivepassphrase': reference/derivepassphrase.1.md
-    - 'Man page: derivepassphrase-vault': reference/derivepassphrase-vault.1.md
-    - 'Man page: derivepassphrase-export': reference/derivepassphrase-export.1.md
-    - 'Man page: derivepassphrase-export-vault': reference/derivepassphrase-export-vault.1.md
-    - Module derivepassphrase:
+    - Man pages:
+      - 'derivepassphrase(1)': reference/derivepassphrase.1.md
+      - 'derivepassphrase-vault(1)': reference/derivepassphrase-vault.1.md
+      - 'derivepassphrase-export(1)': reference/derivepassphrase-export.1.md
+      - 'derivepassphrase-export-vault(1)': reference/derivepassphrase-export-vault.1.md
+    - 'API docs: Module derivepassphrase':
       - Submodule cli: reference/derivepassphrase.cli.md
       - Subpackage exporter: reference/derivepassphrase.exporter.md
       - Submodule sequin: reference/derivepassphrase.sequin.md
       - Submodule ssh_agent: reference/derivepassphrase.ssh_agent.md
       - Submodule _types: reference/derivepassphrase._types.md
       - Submodule vault: reference/derivepassphrase.vault.md
-    - Prerequisites:
+    - Technical prerequisites:
       - 'Using derivepassphrase vault with an SSH key': reference/prerequisites-ssh-key.md
   #- Design & Background: explanation.md
   - Changelog: changelog.md

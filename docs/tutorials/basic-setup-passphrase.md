@@ -1,4 +1,4 @@
-# Tutorial: setting up `derivepassphrase vault` for three accounts, with a master passphrase
+# Setting up `derivepassphrase vault` for three accounts, with a master passphrase
 
 ## The scenario
 

@@ -9,7 +9,7 @@ title: Reference overview
     * [`derivepassphrase-export(1)`][export_man]: Export a foreign configuration to standard output.
         * [`derivepassphrase-export-vault(1)`][export_man]: Export a vault-native configuration to standard output.
 
-## Modules and packages
+## Modules and packages (API docs)
 
 * `derivepassphrase`: Work-alike for vault(1) – deterministic, stateless password manager.
     * [`derivepassphrase.cli`][]: Command-line interface for `derivepassphrase`.
@@ -21,7 +21,13 @@ title: Reference overview
     * [`derivepassphrase._types`][]: Types used by `derivepassphrase`.
     * [`derivepassphrase.vault`][]: Python port of the vault(1) password generation scheme.
 
+## Technical prerequisites
+
+* Prerequisites for [using `derivepassphrase vault` with an SSH key][PREREQ_SSH_KEY]
+
   [top_man]: derivepassphrase.1.md
   [vault_man]: derivepassphrase-vault.1.md
   [export_man]: derivepassphrase-export.1.md
   [export_vault_man]: derivepassphrase-export-vault.1.md
+
+  [PREREQ_SSH_KEY]: prerequisites-ssh-key.md
