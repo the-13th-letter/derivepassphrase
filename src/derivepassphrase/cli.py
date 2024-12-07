@@ -57,6 +57,105 @@ _NO_USABLE_KEYS = 'No usable SSH keys were found'
 _EMPTY_SELECTION = 'Empty selection'
 
 
+# Option parsing and grouping
+# ===========================
+
+
+class OptionGroupOption(click.Option):
+    """A [`click.Option`][] with an associated group name and group epilog.
+
+    Used by [`CommandWithHelpGroups`][] to print help sections.  Each
+    subclass contains its own group name and epilog.
+
+    Attributes:
+        option_group_name:
+            The name of the option group.  Used as a heading on the help
+            text for options in this section.
+        epilog:
+            An epilog to print after listing the options in this
+            section.
+
+    """
+
+    option_group_name: str = ''
+    """"""
+    epilog: str = ''
+    """"""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
+        if self.__class__ == __class__:  # type: ignore[name-defined]
+            raise NotImplementedError
+        super().__init__(*args, **kwargs)
+
+
+class CommandWithHelpGroups(click.Command):
+    """A [`click.Command`][] with support for help/option groups.
+
+    Inspired by [a comment on `pallets/click#373`][CLICK_ISSUE], and
+    further modified to support group epilogs.
+
+    [CLICK_ISSUE]: https://github.com/pallets/click/issues/373#issuecomment-515293746
+
+    """
+
+    def format_options(
+        self,
+        ctx: click.Context,
+        formatter: click.HelpFormatter,
+    ) -> None:
+        r"""Format options on the help listing, grouped into sections.
+
+        This is a callback for [`click.Command.get_help`][] that
+        implements the `--help` listing, by calling appropriate methods
+        of the `formatter`.  We list all options (like the base
+        implementation), but grouped into sections according to the
+        concrete [`click.Option`][] subclass being used.  If the option
+        is an instance of some subclass of [`OptionGroupOption`][], then
+        the section heading and the epilog are taken from the
+        [`option_group_name`] [OptionGroupOption.option_group_name] and
+        [`epilog`] [OptionGroupOption.epilog] attributes; otherwise, the
+        section heading is "Options" (or "Other options" if there are
+        other option groups) and the epilog is empty.
+
+        Args:
+            ctx:
+                The click context.
+            formatter:
+                The formatter for the `--help` listing.
+
+        """
+        help_records: dict[str, list[tuple[str, str]]] = {}
+        epilogs: dict[str, str] = {}
+        params = self.params[:]
+        if (  # pragma: no branch
+            (help_opt := self.get_help_option(ctx)) is not None
+            and help_opt not in params
+        ):
+            params.append(help_opt)
+        for param in params:
+            rec = param.get_help_record(ctx)
+            if rec is not None:
+                if isinstance(param, OptionGroupOption):
+                    group_name = param.option_group_name
+                    epilogs.setdefault(group_name, param.epilog)
+                else:
+                    group_name = ''
+                help_records.setdefault(group_name, []).append(rec)
+        default_group = help_records.pop('')
+        default_group_name = (
+            'Other Options' if len(default_group) > 1 else 'Options'
+        )
+        help_records[default_group_name] = default_group
+        for group_name, records in help_records.items():
+            with formatter.section(group_name):
+                formatter.write_dl(records)
+            epilog = inspect.cleandoc(epilogs.get(group_name, ''))
+            if epilog:
+                formatter.write_paragraph()
+                with formatter.indentation():
+                    formatter.write_text(epilog)
+
+
 # Top-level
 # =========
 
@@ -765,101 +864,6 @@ def _check_for_misleading_passphrase(
                 ),
                 err=True,
             )
-
-
-class OptionGroupOption(click.Option):
-    """A [`click.Option`][] with an associated group name and group epilog.
-
-    Used by [`CommandWithHelpGroups`][] to print help sections.  Each
-    subclass contains its own group name and epilog.
-
-    Attributes:
-        option_group_name:
-            The name of the option group.  Used as a heading on the help
-            text for options in this section.
-        epilog:
-            An epilog to print after listing the options in this
-            section.
-
-    """
-
-    option_group_name: str = ''
-    """"""
-    epilog: str = ''
-    """"""
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
-        if self.__class__ == __class__:  # type: ignore[name-defined]
-            raise NotImplementedError
-        super().__init__(*args, **kwargs)
-
-
-class CommandWithHelpGroups(click.Command):
-    """A [`click.Command`][] with support for help/option groups.
-
-    Inspired by [a comment on `pallets/click#373`][CLICK_ISSUE], and
-    further modified to support group epilogs.
-
-    [CLICK_ISSUE]: https://github.com/pallets/click/issues/373#issuecomment-515293746
-
-    """
-
-    def format_options(
-        self,
-        ctx: click.Context,
-        formatter: click.HelpFormatter,
-    ) -> None:
-        r"""Format options on the help listing, grouped into sections.
-
-        This is a callback for [`click.Command.get_help`][] that
-        implements the `--help` listing, by calling appropriate methods
-        of the `formatter`.  We list all options (like the base
-        implementation), but grouped into sections according to the
-        concrete [`click.Option`][] subclass being used.  If the option
-        is an instance of some subclass of [`OptionGroupOption`][], then
-        the section heading and the epilog are taken from the
-        [`option_group_name`] [OptionGroupOption.option_group_name] and
-        [`epilog`] [OptionGroupOption.epilog] attributes; otherwise, the
-        section heading is "Options" (or "Other options" if there are
-        other option groups) and the epilog is empty.
-
-        Args:
-            ctx:
-                The click context.
-            formatter:
-                The formatter for the `--help` listing.
-
-        """
-        help_records: dict[str, list[tuple[str, str]]] = {}
-        epilogs: dict[str, str] = {}
-        params = self.params[:]
-        if (  # pragma: no branch
-            (help_opt := self.get_help_option(ctx)) is not None
-            and help_opt not in params
-        ):
-            params.append(help_opt)
-        for param in params:
-            rec = param.get_help_record(ctx)
-            if rec is not None:
-                if isinstance(param, OptionGroupOption):
-                    group_name = param.option_group_name
-                    epilogs.setdefault(group_name, param.epilog)
-                else:
-                    group_name = ''
-                help_records.setdefault(group_name, []).append(rec)
-        default_group = help_records.pop('')
-        default_group_name = (
-            'Other Options' if len(default_group) > 1 else 'Options'
-        )
-        help_records[default_group_name] = default_group
-        for group_name, records in help_records.items():
-            with formatter.section(group_name):
-                formatter.write_dl(records)
-            epilog = inspect.cleandoc(epilogs.get(group_name, ''))
-            if epilog:
-                formatter.write_paragraph()
-                with formatter.indentation():
-                    formatter.write_text(epilog)
 
 
 # Concrete option groups used by this command-line interface.
