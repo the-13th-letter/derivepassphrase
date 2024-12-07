@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: MIT
 
+# ruff: noqa: TRY400
+
 """Command-line interface for derivepassphrase."""
 
 from __future__ import annotations
@@ -16,17 +18,22 @@ import json
 import logging
 import os
 import unicodedata
+import warnings
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Literal,
     NoReturn,
     TextIO,
+    TypeVar,
     cast,
 )
 
 import click
 from typing_extensions import (
     Any,
+    ParamSpec,
+    Self,
     assert_never,
 )
 
@@ -39,6 +46,7 @@ if TYPE_CHECKING:
     import types
     from collections.abc import (
         Iterator,
+        MutableSequence,
         Sequence,
     )
 
@@ -55,6 +63,333 @@ _INVALID_VAULT_CONFIG = 'Invalid vault config'
 _AGENT_COMMUNICATION_ERROR = 'Error communicating with the SSH agent'
 _NO_USABLE_KEYS = 'No usable SSH keys were found'
 _EMPTY_SELECTION = 'Empty selection'
+
+
+# Logging
+# =======
+
+
+class ClickEchoStderrHandler(logging.Handler):
+    """A [`logging.Handler`][] for `click` applications.
+
+    Outputs log messages to [`sys.stderr`][] via [`click.echo`][].
+
+    """
+
+    def emit(self, record: logging.LogRecord) -> None:
+        """Emit a log record.
+
+        Format the log record, then emit it via [`click.echo`][] to
+        [`sys.stderr`][].
+
+        """
+        click.echo(self.format(record), err=True)
+
+
+class CLIofPackageFormatter(logging.Formatter):
+    """A [`logging.LogRecord`][] formatter for the CLI of a Python package.
+
+    Assuming a package `PKG` and loggers within the same hierarchy
+    `PKG`, format all log records from that hierarchy for proper user
+    feedback on the console.  Intended for use with [`click`][CLICK] and
+    when `PKG` provides a command-line tool `PKG` and when logs from
+    that package should show up as output of the command-line tool.
+
+    Essentially, this prepends certain short strings to the log message
+    lines to make them readable as standard error output.
+
+    Because this log output is intended to be displayed on standard
+    error as high-level diagnostic output, you are strongly discouraged
+    from changing the output format to include more tokens besides the
+    log message.  Use a dedicated log file handler instead, without this
+    formatter.
+
+    [CLICK]: https://pypi.org/projects/click/
+
+    """
+
+    def __init__(
+        self,
+        *,
+        prog_name: str = PROG_NAME,
+        package_name: str | None = None,
+    ) -> None:
+        self.prog_name = prog_name
+        self.package_name = (
+            package_name
+            if package_name is not None
+            else prog_name.lower().replace(' ', '_').replace('-', '_')
+        )
+
+    def format(self, record: logging.LogRecord) -> str:
+        """Format a log record suitably for standard error console output.
+
+        Prepend the formatted string `"PROG_NAME: LABEL"` to each line
+        of the message, where `PROG_NAME` is the program name, and
+        `LABEL` depends on the record's level and on the logger name as
+        follows:
+
+          * For records at level [`logging.DEBUG`][], `LABEL` is
+            `"Debug: "`.
+          * For records at level [`logging.INFO`][], `LABEL` is the
+            empty string.
+          * For records at level [`logging.WARNING`][], `LABEL` is
+            `"Deprecation warning: "` if the logger is named
+            `PKG.deprecation` (where `PKG` is the package name), else
+            `"Warning: "`.
+          * For records at level [`logging.ERROR`][] and
+            [`logging.CRITICAL`][] `"Error: "`, `LABEL` is `"ERROR: "`.
+
+        The level indication strings at level `WARNING` or above are
+        highlighted.  Use [`click.echo`][] to output them and remove
+        color output if necessary.
+
+        Args:
+            record: A log record.
+
+        Returns:
+            A formatted log record.
+
+        Raises:
+            AssertionError:
+                The log level is not supported.
+
+        """
+        preliminary_result = record.getMessage()
+        prefix = f'{self.prog_name}: '
+        if record.levelname == 'DEBUG':  # pragma: no cover
+            level_indicator = 'Debug: '
+        elif record.levelname == 'INFO':
+            level_indicator = ''
+        elif record.levelname == 'WARNING':
+            level_indicator = (
+                f'{click.style("Deprecation warning", bold=True)}: '
+                if record.name.endswith('.deprecation')
+                else f'{click.style("Warning", bold=True)}: '
+            )
+        elif record.levelname in {'ERROR', 'CRITICAL'}:
+            level_indicator = ''
+        else:  # pragma: no cover
+            msg = f'Unsupported logging level: {record.levelname}'
+            raise AssertionError(msg)
+        return ''.join(
+            prefix + level_indicator + line
+            for line in preliminary_result.splitlines(True)  # noqa: FBT003
+        )
+
+
+class StandardCLILogging:
+    """Set up CLI logging handlers upon instantiation."""
+
+    prog_name = PROG_NAME
+    package_name = PROG_NAME.lower().replace(' ', '_').replace('-', '_')
+    cli_formatter = CLIofPackageFormatter(
+        prog_name=prog_name, package_name=package_name
+    )
+    cli_handler = ClickEchoStderrHandler()
+    cli_handler.addFilter(logging.Filter(name=package_name))
+    cli_handler.setFormatter(cli_formatter)
+    cli_handler.setLevel(logging.WARNING)
+    warnings_handler = ClickEchoStderrHandler()
+    warnings_handler.addFilter(logging.Filter(name='py.warnings'))
+    warnings_handler.setFormatter(cli_formatter)
+    warnings_handler.setLevel(logging.WARNING)
+
+    @classmethod
+    def ensure_standard_logging(cls) -> StandardLoggingContextManager:
+        """Return a context manager to ensure standard logging is set up."""
+        return StandardLoggingContextManager(
+            handler=cls.cli_handler,
+            root_logger=cls.package_name,
+        )
+
+    @classmethod
+    def ensure_standard_warnings_logging(
+        cls,
+    ) -> StandardWarningsLoggingContextManager:
+        """Return a context manager to ensure warnings logging is set up."""
+        return StandardWarningsLoggingContextManager(
+            handler=cls.warnings_handler,
+        )
+
+
+class StandardLoggingContextManager:
+    """A reentrant context manager setting up standard CLI logging.
+
+    Ensures that the given handler (defaulting to the CLI logging
+    handler) is added to the named logger (defaulting to the root
+    logger), and if it had to be added, then that it will be removed
+    upon exiting the context.
+
+    Reentrant, but not thread safe, because it temporarily modifies
+    global state.
+
+    """
+
+    def __init__(
+        self,
+        handler: logging.Handler,
+        root_logger: str | None = None,
+    ) -> None:
+        self.handler = handler
+        self.root_logger_name = root_logger
+        self.base_logger = logging.getLogger(self.root_logger_name)
+        self.action_required: MutableSequence[bool] = collections.deque()
+
+    def __enter__(self) -> Self:
+        self.action_required.append(
+            self.handler not in self.base_logger.handlers
+        )
+        if self.action_required[-1]:
+            self.base_logger.addHandler(self.handler)
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> Literal[False]:
+        if self.action_required[-1]:
+            self.base_logger.removeHandler(self.handler)
+        self.action_required.pop()
+        return False
+
+
+class StandardWarningsLoggingContextManager(StandardLoggingContextManager):
+    """A reentrant context manager setting up standard warnings logging.
+
+    Ensures that warnings are being diverted to the logging system, and
+    that the given handler (defaulting to the CLI logging handler) is
+    added to the warnings logger. If the handler had to be added, then
+    it will be removed upon exiting the context.
+
+    Reentrant, but not thread safe, because it temporarily modifies
+    global state.
+
+    """
+
+    def __init__(
+        self,
+        handler: logging.Handler,
+    ) -> None:
+        super().__init__(handler=handler, root_logger='py.warnings')
+        self.stack: MutableSequence[
+            tuple[
+                Callable[
+                    [
+                        type[BaseException] | None,
+                        BaseException | None,
+                        types.TracebackType | None,
+                    ],
+                    None,
+                ],
+                Callable[
+                    [
+                        str | Warning,
+                        type[Warning],
+                        str,
+                        int,
+                        TextIO | None,
+                        str | None,
+                    ],
+                    None,
+                ],
+            ]
+        ] = collections.deque()
+
+    def __enter__(self) -> Self:
+        def showwarning(  # noqa: PLR0913,PLR0917
+            message: str | Warning,
+            category: type[Warning],
+            filename: str,
+            lineno: int,
+            file: TextIO | None = None,
+            line: str | None = None,
+        ) -> None:
+            if file is not None:  # pragma: no cover
+                self.stack[0][1](
+                    message, category, filename, lineno, file, line
+                )
+            else:
+                logging.getLogger('py.warnings').warning(
+                    str(
+                        warnings.formatwarning(
+                            message, category, filename, lineno, line
+                        )
+                    )
+                )
+
+        ctx = warnings.catch_warnings()
+        exit_func = ctx.__exit__
+        ctx.__enter__()
+        self.stack.append((exit_func, warnings.showwarning))
+        warnings.showwarning = showwarning
+        return super().__enter__()
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> Literal[False]:
+        ret = super().__exit__(exc_type, exc_value, exc_tb)
+        val = self.stack.pop()[0](exc_type, exc_value, exc_tb)
+        assert not val
+        return ret
+
+
+P = ParamSpec('P')
+R = TypeVar('R')
+
+
+def log_debug(
+    ctx: click.Context,
+    /,
+    param: click.Parameter | None = None,
+    value: Any = None,  # noqa: ANN401
+) -> None:
+    """Request that DEBUG-level logs be emitted to standard error.
+
+    This modifies the [`StandardCLILogging`][] settings such that log
+    records at level [`logging.DEBUG`][] and [`logging.INFO`][] are
+    emitted as well.
+
+    """
+    del ctx, param, value
+    StandardCLILogging.cli_handler.setLevel(logging.DEBUG)
+
+
+def log_info(
+    ctx: click.Context,
+    /,
+    param: click.Parameter | None = None,
+    value: Any = None,  # noqa: ANN401
+) -> None:
+    """Request that INFO-level logs be emitted to standard error.
+
+    This modifies the [`StandardCLILogging`][] settings such that log
+    records at level [`logging.INFO`][] are emitted as well.
+
+    """
+    del ctx, param, value
+    StandardCLILogging.cli_handler.setLevel(logging.INFO)
+
+
+def silence_warnings(
+    ctx: click.Context,
+    /,
+    param: click.Parameter | None = None,
+    value: Any = None,  # noqa: ANN401
+) -> None:
+    """Request that WARNING-level logs not be emitted to standard error.
+
+    This modifies the [`StandardCLILogging`][] settings such that log
+    records at level [`logging.WARNING`][] and below are *not* emitted.
+
+    """
+    del ctx, param, value
+    StandardCLILogging.cli_handler.setLevel(logging.ERROR)
 
 
 # Option parsing and grouping
@@ -156,6 +491,59 @@ class CommandWithHelpGroups(click.Command):
                     formatter.write_text(epilog)
 
 
+class LoggingOption(OptionGroupOption):
+    """Logging options for the CLI."""
+
+    option_group_name = 'Logging'
+    epilog = ''
+
+
+def standard_logging_options(f: Callable[P, R]) -> Callable[P, R]:
+    """Decorate the function with standard logging click options.
+
+    Adds the three click options `-v`/`--verbose`, `-q`/`--quiet` and
+    `--debug`, which issue callbacks to the [`log_info`][],
+    [`silence_warnings`][] and [`log_debug`][] functions, respectively.
+
+    Args:
+        f: A callable to decorate.
+
+    Returns:
+        The decorated callable.
+
+    """
+    dec1 = click.option(
+        '-q',
+        '--quiet',
+        is_flag=True,
+        is_eager=True,
+        expose_value=False,
+        callback=silence_warnings,
+        help='suppress even warnings, emit only errors',
+        cls=LoggingOption,
+    )
+    dec2 = click.option(
+        '-v',
+        '--verbose',
+        is_flag=True,
+        is_eager=True,
+        expose_value=False,
+        callback=log_info,
+        help='emit extra/progress information to standard error',
+        cls=LoggingOption,
+    )
+    dec3 = click.option(
+        '--debug',
+        is_flag=True,
+        is_eager=True,
+        expose_value=False,
+        callback=log_debug,
+        help='also emit debug information (implies --verbose)',
+        cls=LoggingOption,
+    )
+    return dec1(dec2(dec3(f)))
+
+
 # Top-level
 # =========
 
@@ -204,22 +592,48 @@ class _DefaultToVaultGroup(click.Group):
                 self.parse_args(ctx, ctx.args)
             # Instead of calling ctx.fail here, default to "vault", and
             # issue a deprecation warning.
-            click.echo(
-                (
-                    f'{PROG_NAME}: Deprecation warning: A subcommand will be '
-                    f'required in v1.0. See --help for available subcommands.'
-                ),
-                err=True,
+            logger = logging.getLogger(PROG_NAME)
+            deprecation = logging.getLogger(f'{PROG_NAME}.deprecation')
+            deprecation.warning(
+                'A subcommand will be required in v1.0. '
+                'See --help for available subcommands.'
             )
-            click.echo(
-                f'{PROG_NAME}: Warning: Defaulting to subcommand "vault".',
-                err=True,
-            )
+            logger.warning('Defaulting to subcommand "vault".')
             cmd_name = 'vault'
             cmd = self.get_command(ctx, cmd_name)
             assert cmd is not None, 'Mandatory subcommand "vault" missing!'
             args = [cmd_name, *args]
         return cmd_name if cmd else None, cmd, args[1:]  # noqa: DOC201
+
+
+class _TopLevelCLIEntryPoint(_DefaultToVaultGroup):
+    """A minor variation of _DefaultToVaultGroup for the top-level command.
+
+    When called as a function, this sets up the environment properly
+    before invoking the actual callbacks.  Currently, this means setting
+    up the logging subsystem and the delegation of Python warnings to
+    the logging subsystem.
+
+    The environment setup can be bypassed by calling the `.main` method
+    directly.
+
+    """
+
+    def __call__(  # pragma: no cover
+        self,
+        *args: Any,  # noqa: ANN401
+        **kwargs: Any,  # noqa: ANN401
+    ) -> Any:  # noqa: ANN401
+        """"""  # noqa: D419
+        # Coverage testing is done with the `click.testing` module,
+        # which does not use the `__call__` shortcut.  So it is normal
+        # that this function is never called, and thus should be
+        # excluded from coverage.
+        with (
+            StandardCLILogging.ensure_standard_logging(),
+            StandardCLILogging.ensure_standard_warnings_logging(),
+        ):
+            return self.main(*args, **kwargs)
 
 
 @click.group(
@@ -235,9 +649,10 @@ class _DefaultToVaultGroup(click.Group):
         `C:\Users\<user>\AppData\Roaming\Derivepassphrase` on Windows.
     """,
     invoke_without_command=True,
-    cls=_DefaultToVaultGroup,
+    cls=_TopLevelCLIEntryPoint,
 )
 @click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
+@standard_logging_options
 @click.pass_context
 def derivepassphrase(ctx: click.Context, /) -> None:
     """Derive a strong passphrase, deterministically, from a master secret.
@@ -269,18 +684,14 @@ def derivepassphrase(ctx: click.Context, /) -> None:
     [CLICK]: https://pypi.org/package/click/
 
     """  # noqa: D301
+    logger = logging.getLogger(PROG_NAME)
+    deprecation = logging.getLogger(f'{PROG_NAME}.deprecation')
     if ctx.invoked_subcommand is None:
-        click.echo(
-            (
-                f'{PROG_NAME}: Deprecation warning: A subcommand will be '
-                f'required in v1.0. See --help for available subcommands.'
-            ),
-            err=True,
+        deprecation.warning(
+            'A subcommand will be required in v1.0. '
+            'See --help for available subcommands.'
         )
-        click.echo(
-            f'{PROG_NAME}: Warning: Defaulting to subcommand "vault".',
-            err=True,
-        )
+        logger.warning('Defaulting to subcommand "vault".')
         # See definition of click.Group.invoke, non-chained case.
         with ctx:
             sub_ctx = derivepassphrase_vault.make_context(
@@ -306,6 +717,7 @@ def derivepassphrase(ctx: click.Context, /) -> None:
     cls=_DefaultToVaultGroup,
 )
 @click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
+@standard_logging_options
 @click.pass_context
 def derivepassphrase_export(ctx: click.Context, /) -> None:
     """Export a foreign configuration to standard output.
@@ -329,18 +741,14 @@ def derivepassphrase_export(ctx: click.Context, /) -> None:
     [CLICK]: https://pypi.org/package/click/
 
     """  # noqa: D301
+    logger = logging.getLogger(PROG_NAME)
+    deprecation = logging.getLogger(f'{PROG_NAME}.deprecation')
     if ctx.invoked_subcommand is None:
-        click.echo(
-            (
-                f'{PROG_NAME}: Deprecation warning: A subcommand will be '
-                f'required in v1.0. See --help for available subcommands.'
-            ),
-            err=True,
+        deprecation.warning(
+            'A subcommand will be required in v1.0. '
+            'See --help for available subcommands.'
         )
-        click.echo(
-            f'{PROG_NAME}: Warning: Defaulting to subcommand "vault".',
-            err=True,
-        )
+        logger.warning('Defaulting to subcommand "vault".')
         # See definition of click.Group.invoke, non-chained case.
         with ctx:
             sub_ctx = derivepassphrase_export_vault.make_context(
@@ -397,6 +805,7 @@ def _load_data(
     'vault',
     context_settings={'help_option_names': ['-h', '--help']},
 )
+@standard_logging_options
 @click.option(
     '-f',
     '--format',
@@ -441,7 +850,7 @@ def derivepassphrase_export_vault(
     named `VAULT_PATH`.)
 
     """
-    logging.basicConfig()
+    logger = logging.getLogger(PROG_NAME)
     if path in {'VAULT_PATH', b'VAULT_PATH'}:
         path = exporter.get_vault_path()
     if key is None:
@@ -457,40 +866,32 @@ def derivepassphrase_export_vault(
             ValueError,
             RuntimeError,
         ):
-            logging.info('Cannot load as %s: %s', fmt, path)
+            logger.info('Cannot load as %s: %s', fmt, path)
             continue
         except OSError as exc:
-            click.echo(
-                (
-                    f'{PROG_NAME}: ERROR: Cannot parse {path!r} as '
-                    f'a valid config: {exc.strerror}: {exc.filename!r}'
-                ),
-                err=True,
+            logger.error(
+                'Cannot parse %r as a valid config: %s: %r',
+                path,
+                exc.strerror,
+                exc.filename,
             )
             ctx.exit(1)
         except ModuleNotFoundError:
             # TODO(the-13th-letter): Use backslash continuation.
             # https://github.com/nedbat/coveragepy/issues/1836
-            msg = f"""
-{PROG_NAME}: ERROR: Cannot load the required Python module "cryptography".
-{PROG_NAME}: INFO: pip users: see the "export" extra.
-""".lstrip('\n')
-            click.echo(msg, nl=False, err=True)
+            logger.error(
+                'Cannot load the required Python module "cryptography".'
+            )
+            logger.info('pip users: see the "export" extra.')
             ctx.exit(1)
         else:
             if not _types.is_vault_config(config):
-                click.echo(
-                    f'{PROG_NAME}: ERROR: Invalid vault config: {config!r}',
-                    err=True,
-                )
+                logger.error('Invalid vault config: %r', config)
                 ctx.exit(1)
             click.echo(json.dumps(config, indent=2, sort_keys=True))
             break
     else:
-        click.echo(
-            f'{PROG_NAME}: ERROR: Cannot parse {path!r} as a valid config.',
-            err=True,
-        )
+        logger.error('Cannot parse %r as a valid config.', path)
         ctx.exit(1)
 
 
@@ -848,6 +1249,7 @@ def _check_for_misleading_passphrase(
     *,
     form: Literal['NFC', 'NFD', 'NFKC', 'NFKD'] = 'NFC',
 ) -> None:
+    logger = logging.getLogger(PROG_NAME)
     if 'phrase' in value:
         phrase = value['phrase']
         if not unicodedata.is_normalized(form, phrase):
@@ -856,13 +1258,14 @@ def _check_for_misleading_passphrase(
                 if isinstance(key, _ORIGIN)
                 else _types.json_path(key)
             )
-            click.echo(
+            logger.warning(
                 (
-                    f'{PROG_NAME}: Warning: the {formatted_key} '
-                    f'passphrase is not {form}-normalized. Make sure to '
-                    f'double-check this is really the passphrase you want.'
+                    'the %s passphrase is not %s-normalized. '
+                    'Make sure to double-check this is really the '
+                    'passphrase you want.'
                 ),
-                err=True,
+                formatted_key,
+                form,
             )
 
 
@@ -1128,6 +1531,7 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
     cls=StorageManagementOption,
 )
 @click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
+@standard_logging_options
 @click.argument('service', required=False)
 @click.pass_context
 def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
@@ -1245,6 +1649,8 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             input is supported.
 
     """  # noqa: D301
+    logger = logging.getLogger(PROG_NAME)
+    deprecation = logging.getLogger(PROG_NAME + '.deprecation')
     options_in_group: dict[type[click.Option], list[click.Option]] = {}
     params_by_str: dict[str, click.Parameter] = {}
     for param in ctx.command.params:
@@ -1257,6 +1663,8 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 group = ConfigurationOption
             elif isinstance(param, StorageManagementOption):
                 group = StorageManagementOption
+            elif isinstance(param, LoggingOption):
+                group = LoggingOption
             elif isinstance(param, OptionGroupOption):
                 raise AssertionError(  # noqa: DOC501,TRY003,TRY004
                     f'Unknown option group for {param!r}'  # noqa: EM102
@@ -1291,8 +1699,10 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     opt_str, f'mutually exclusive with {other_str}', ctx=ctx
                 )
 
-    def err(msg: str) -> NoReturn:
-        click.echo(f'{PROG_NAME}: {msg}', err=True)
+    def err(msg: Any, *args: Any, **kwargs: Any) -> NoReturn:  # noqa: ANN401
+        stacklevel = kwargs.pop('stacklevel', 1)
+        stacklevel += 1
+        logger.error(msg, *args, stacklevel=stacklevel, **kwargs)
         ctx.exit(1)
 
     def get_config() -> _types.VaultConfig:
@@ -1305,41 +1715,38 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 return {'services': {}}
             old_name = os.path.basename(_config_filename())
             new_name = os.path.basename(_config_filename(subsystem='vault'))
-            click.echo(
+            deprecation.warning(
                 (
-                    f'{PROG_NAME}: Using deprecated v0.1-style config file '
-                    f'{old_name!r}, instead of v0.2-style {new_name!r}.  '
-                    f'Support for v0.1-style config filenames will be '
-                    f'removed in v1.0.'
+                    'Using deprecated v0.1-style config file %r, '
+                    'instead of v0.2-style %r.  '
+                    'Support for v0.1-style config filenames will be '
+                    'removed in v1.0.'
                 ),
-                err=True,
+                old_name,
+                new_name,
             )
             if isinstance(exc, OSError):
-                click.echo(
-                    (
-                        f'{PROG_NAME}: Warning: Failed to migrate to '
-                        f'{new_name!r}: {exc.strerror}: {exc.filename!r}'
-                    ),
-                    err=True,
+                logger.warning(
+                    'Failed to migrate to %r: %s: %r',
+                    new_name,
+                    exc.strerror,
+                    exc.filename,
                 )
             else:
-                click.echo(
-                    f'{PROG_NAME}: Successfully migrated to {new_name!r}.',
-                    err=True,
-                )
+                logger.info('Successfully migrated to %r.', new_name)
             return backup_config
         except OSError as e:
-            err(f'Cannot load config: {e.strerror}: {e.filename!r}')
+            err('Cannot load config: %s: %r', e.strerror, e.filename)
         except Exception as e:  # noqa: BLE001
-            err(f'Cannot load config: {e}')
+            err('Cannot load config: %s', str(e), exc_info=e)
 
     def put_config(config: _types.VaultConfig, /) -> None:
         try:
             _save_config(config)
         except OSError as exc:
-            err(f'Cannot store config: {exc.strerror}: {exc.filename!r}')
+            err('Cannot store config: %s: %r', exc.strerror, exc.filename)
         except Exception as exc:  # noqa: BLE001
-            err(f'Cannot store config: {exc}')
+            err('Cannot store config: %s', str(exc), exc_info=exc)
 
     configuration: _types.VaultConfig
 
@@ -1384,14 +1791,11 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             raise click.UsageError(msg)
 
     if service == '':  # noqa: PLC1901
-        click.echo(
-            (
-                f'{PROG_NAME}: Warning: An empty SERVICE is not '
-                f'supported by vault(1).  For compatibility, this will be '
-                f'treated as if SERVICE was not supplied, i.e., it will '
-                f'error out, or operate on global settings.'
-            ),
-            err=True,
+        logger.warning(
+            'An empty SERVICE is not supported by vault(1).  '
+            'For compatibility, this will be treated as if SERVICE '
+            'was not supplied, i.e., it will error out, or '
+            'operate on global settings.'
         )
 
     if edit_notes:
@@ -1440,40 +1844,41 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             with infile:
                 maybe_config = json.load(infile)
         except json.JSONDecodeError as e:
-            err(f'Cannot load config: cannot decode JSON: {e}')
+            err('Cannot load config: cannot decode JSON: %s', e)
         except OSError as e:
-            err(f'Cannot load config: {e.strerror}: {e.filename!r}')
+            err('Cannot load config: %s: %r', e.strerror, e.filename)
         cleaned = _types.clean_up_falsy_vault_config_values(maybe_config)
         if not _types.is_vault_config(maybe_config):
-            err(f'Cannot load config: {_INVALID_VAULT_CONFIG}')
+            err('Cannot load config: %s', _INVALID_VAULT_CONFIG)
         assert cleaned is not None
         for step in cleaned:
             # These are never fatal errors, because the semantics of
             # vault upon encountering these settings are ill-specified,
             # but not ill-defined.
             if step.action == 'replace':
-                err_msg = (
-                    f'{PROG_NAME}: Warning: Replacing invalid value '
-                    f'{json.dumps(step.old_value)} for key '
-                    f'{_types.json_path(step.path)} with '
-                    f'{json.dumps(step.new_value)}.'
+                logger.warning(
+                    'Replacing invalid value %s for key %s with %s.',
+                    json.dumps(step.old_value),
+                    _types.json_path(step.path),
+                    json.dumps(step.new_value),
                 )
             else:
-                err_msg = (
-                    f'{PROG_NAME}: Warning: Removing ineffective setting '
-                    f'{_types.json_path(step.path)} = '
-                    f'{json.dumps(step.old_value)}.'
+                logger.warning(
+                    'Removing ineffective setting %s = %s.',
+                    _types.json_path(step.path),
+                    json.dumps(step.old_value),
                 )
-            click.echo(err_msg, err=True)
         if '' in maybe_config['services']:
-            err_msg = (
-                f'{PROG_NAME}: Warning: An empty SERVICE is not '
-                f'supported by vault(1), and the empty-string service '
-                f'settings will be inaccessible and ineffective.  '
-                f'To ensure that vault(1) and {PROG_NAME} see the settings, '
-                f'move them into the "global" section.'
+            logger.warning(
+                (
+                    'An empty SERVICE is not supported by vault(1), '
+                    'and the empty-string service settings will be '
+                    'inaccessible and ineffective.  To ensure that '
+                    'vault(1) and %s see the settings, move them '
+                    'into the "global" section.'
+                ),
+                PROG_NAME,
             )
-            click.echo(err_msg, err=True)
         form = cast(
             Literal['NFC', 'NFD', 'NFKC', 'NFKD'],
             maybe_config.get('global', {}).get(
@@ -1526,7 +1931,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             with outfile:
                 json.dump(configuration, outfile)
         except OSError as e:
-            err(f'Cannot store config: {e.strerror}: {e.filename!r}')
+            err('Cannot store config: %s: %r', e.strerror, e.filename)
     else:
         configuration = get_config()
         # This block could be type checked more stringently, but this
@@ -1573,10 +1978,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     'this Python version does not support UNIX domain sockets'
                 )
             except OSError as e:
-                err(
-                    f'Cannot connect to SSH agent: {e.strerror}: '
-                    f'{e.filename!r}'
-                )
+                err('Cannot connect to SSH agent: %s', e.strerror)
             except (
                 LookupError,
                 RuntimeError,
@@ -1606,12 +2008,13 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     {'phrase': phrase},
                 )
                 if 'key' in settings:
-                    err_msg = (
-                        f'{PROG_NAME}: Warning: Setting a {settings_type} '
-                        f'passphrase is ineffective because a key is also '
-                        f'set.'
+                    logger.warning(
+                        (
+                            'Setting a %s passphrase is ineffective '
+                            'because a key is also set.'
+                        ),
+                        settings_type,
                     )
-                    click.echo(err_msg, err=True)
             if not view.maps[0]:
                 settings_type = 'service' if service else 'global'
                 msg = (
