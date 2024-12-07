@@ -118,6 +118,7 @@ class TestCLI:
     def test_301_vault_config_not_found(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
@@ -132,13 +133,15 @@ class TestCLI:
             )
         result = tests.ReadableResult.parse(_result)
         assert result.error_exit(
-            error="Cannot parse 'does-not-exist.txt' as a valid config"
+            error="Cannot parse 'does-not-exist.txt' as a valid config",
+            record_tuples=caplog.record_tuples,
         ), 'expected error exit and known error message'
         assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
     def test_302_vault_config_invalid(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
@@ -153,13 +156,15 @@ class TestCLI:
             )
         result = tests.ReadableResult.parse(_result)
         assert result.error_exit(
-            error="Cannot parse '.vault' as a valid config"
+            error="Cannot parse '.vault' as a valid config",
+            record_tuples=caplog.record_tuples,
         ), 'expected error exit and known error message'
         assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
     def test_403_invalid_vault_config_bad_signature(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
@@ -174,13 +179,15 @@ class TestCLI:
             )
         result = tests.ReadableResult.parse(_result)
         assert result.error_exit(
-            error="Cannot parse '.vault' as a valid config"
+            error="Cannot parse '.vault' as a valid config",
+            record_tuples=caplog.record_tuples,
         ), 'expected error exit and known error message'
         assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
     def test_500_vault_config_invalid_internal(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
@@ -200,7 +207,8 @@ class TestCLI:
             )
         result = tests.ReadableResult.parse(_result)
         assert result.error_exit(
-            error='Invalid vault config: '
+            error='Invalid vault config: ',
+            record_tuples=caplog.record_tuples,
         ), 'expected error exit and known error message'
         assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 

@@ -152,6 +152,7 @@ class Test002CLI:
     def test_999_no_cryptography_error_message(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
         format: str,
         config: str | bytes,
         key: str,
@@ -170,5 +171,6 @@ class Test002CLI:
             )
         result = tests.ReadableResult.parse(_result)
         assert result.error_exit(
-            error=tests.CANNOT_LOAD_CRYPTOGRAPHY
+            error=tests.CANNOT_LOAD_CRYPTOGRAPHY,
+            record_tuples=caplog.record_tuples,
         ), 'expected error exit and known error message'

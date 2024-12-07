@@ -10,7 +10,9 @@ import copy
 import enum
 import importlib.util
 import json
+import logging
 import os
+import re
 import shlex
 import stat
 import sys
@@ -28,7 +30,7 @@ from derivepassphrase import _types, cli, ssh_agent, vault
 __all__ = ()
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Mapping
+    from collections.abc import Callable, Iterator, Mapping, Sequence
 
     import click.testing
     from typing_extensions import Any, NotRequired, TypedDict
@@ -1344,6 +1346,14 @@ hypothesis_settings_coverage_compatible = (
     else hypothesis.settings()
 )
 
+hypothesis_settings_coverage_compatible_with_caplog = hypothesis.settings(
+    parent=hypothesis_settings_coverage_compatible,
+    suppress_health_check={
+        hypothesis.HealthCheck.function_scoped_fixture,
+    }
+    | set(hypothesis_settings_coverage_compatible.suppress_health_check),
+)
+
 
 def list_keys(self: Any = None) -> list[_types.KeyCommentPair]:
     del self  # Unused.
@@ -1403,7 +1413,11 @@ def isolated_config(
 ) -> Iterator[None]:
     prog_name = cli.PROG_NAME
     env_name = prog_name.replace(' ', '_').upper() + '_PATH'
-    with runner.isolated_filesystem():
+    with (
+        runner.isolated_filesystem(),
+        cli.StandardCLILogging.ensure_standard_logging(),
+        cli.StandardCLILogging.ensure_standard_warnings_logging(),
+    ):
         monkeypatch.setenv('HOME', os.getcwd())
         monkeypatch.setenv('USERPROFILE', os.getcwd())
         monkeypatch.delenv(env_name, raising=False)
@@ -1575,7 +1589,10 @@ class ReadableResult(NamedTuple):
         )
 
     def error_exit(
-        self, *, error: str | type[BaseException] = BaseException
+        self,
+        *,
+        error: str | re.Pattern[str] | type[BaseException] = BaseException,
+        record_tuples: Sequence[tuple[str, int, str]] = (),
     ) -> bool:
         """Return whether the invocation exited uncleanly.
 
@@ -1585,15 +1602,31 @@ class ReadableResult(NamedTuple):
                 code, or an expected exception type.
 
         """
+
+        def error_match(error: str | re.Pattern[str], line: str) -> bool:
+            return (
+                error in line
+                if isinstance(error, str)
+                else error.match(line) is not None
+            )
+
         # Use match/case here once Python 3.9 becomes unsupported.
-        if isinstance(error, str):
+        if isinstance(error, type):
+            return isinstance(self.exception, error)
+        else:  # noqa: RET505
+            assert isinstance(error, (str, re.Pattern))
             return (
                 isinstance(self.exception, SystemExit)
                 and self.exit_code > 0
-                and (not error or error in self.stderr)
+                and (
+                    not error
+                    or any(
+                        error_match(error, line)
+                        for line in self.stderr.splitlines(True)
+                    )
+                    or error_emitted(error, record_tuples)
+                )
             )
-        else:  # noqa: RET505
-            return isinstance(self.exception, error)
 
 
 def parse_sh_export_line(line: str, *, env_name: str) -> str:
@@ -1617,3 +1650,49 @@ def parse_sh_export_line(line: str, *, env_name: str) -> str:
         msg = f'Cannot parse sh line: {orig_tokens!r} -> {tokens!r}'
         raise ValueError(msg)
     return tokens[1].split('=', 1)[1]
+
+
+def message_emitted_factory(
+    level: int,
+    *,
+    logger_name: str = cli.PROG_NAME,
+) -> Callable[[str | re.Pattern[str], Sequence[tuple[str, int, str]]], bool]:
+    """Return a function to test if a matching message was emitted.
+
+    Args:
+        level: The level to match messages at.
+        logger_name: The name of the logger to match against.
+
+    """
+
+    def message_emitted(
+        text: str | re.Pattern[str],
+        record_tuples: Sequence[tuple[str, int, str]],
+    ) -> bool:
+        """Return true if a matching message was emitted.
+
+        Args:
+            text: Substring or pattern to match against.
+            record_tuples: Items to match.
+
+        """
+
+        def check_record(record: tuple[str, int, str]) -> bool:
+            if record[:2] != (logger_name, level):
+                return False
+            if isinstance(text, str):
+                return text in record[2]
+            return text.match(record[2]) is not None  # pragma: no cover
+
+        return any(map(check_record, record_tuples))
+
+    return message_emitted
+
+
+# No need to assert debug messages as of yet.
+info_emitted = message_emitted_factory(logging.INFO)
+warning_emitted = message_emitted_factory(logging.WARNING)
+deprecation_warning_emitted = message_emitted_factory(
+    logging.WARNING, logger_name=f'{cli.PROG_NAME}.deprecation'
+)
+error_emitted = message_emitted_factory(logging.ERROR)
