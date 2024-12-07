@@ -2040,6 +2040,30 @@ class TestCLITransition:
         )
         assert json.loads(result.output) == tests.VAULT_V03_CONFIG_DATA
 
+    def test_201_forward_export_vault_empty_commandline(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        pytest.importorskip('cryptography', minversion='38.0')
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+        ):
+            _result = runner.invoke(
+                cli.derivepassphrase,
+                ['export'],
+            )
+        result = tests.ReadableResult.parse(_result)
+        assert result.stderr.startswith(f"""\
+{cli.PROG_NAME}: Deprecation warning: A subcommand will be required in v1.0. See --help for available subcommands.
+{cli.PROG_NAME}: Warning: Defaulting to subcommand "vault".
+""")  # noqa: E501
+        assert result.error_exit(
+            error="Missing argument 'PATH'"
+        ), 'expected error exit and known error type'
+
     @pytest.mark.parametrize(
         'charset_name', ['lower', 'upper', 'number', 'space', 'dash', 'symbol']
     )
@@ -2073,6 +2097,31 @@ class TestCLITransition:
             assert (
                 c not in result.output
             ), f'derived password contains forbidden character {c!r}'
+
+    def test_211_forward_vault_empty_command_line(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+        ):
+            _result = runner.invoke(
+                cli.derivepassphrase,
+                [],
+                input=DUMMY_PASSPHRASE,
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(_result)
+        assert result.stderr.startswith(f"""\
+{cli.PROG_NAME}: Deprecation warning: A subcommand will be required in v1.0. See --help for available subcommands.
+{cli.PROG_NAME}: Warning: Defaulting to subcommand "vault".
+""")  # noqa: E501
+        assert result.error_exit(
+            error='SERVICE is required'
+        ), 'expected error exit and known error type'
 
     def test_300_export_using_old_config_file(
         self,

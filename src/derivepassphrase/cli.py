@@ -61,7 +61,69 @@ _EMPTY_SELECTION = 'Empty selection'
 # =========
 
 
-@click.command(
+class _DefaultToVaultGroup(click.Group):
+    """A helper class to implement the default-to-"vault"-subcommand behavior.
+
+    Modifies internal [`click.MultiCommand`][] methods, and thus is both
+    an implementation detail and a kludge.
+
+    """
+
+    def resolve_command(
+        self, ctx: click.Context, args: list[str]
+    ) -> tuple[str | None, click.Command | None, list[str]]:
+        """Resolve a command, but default to "vault" instead of erroring out.
+
+        Based on code from click 8.1, which appears to be essentially
+        untouched since at least click 3.2.
+
+        """
+        cmd_name = click.utils.make_str(args[0])
+
+        # ORIGINAL COMMENT
+        # Get the command
+        cmd = self.get_command(ctx, cmd_name)
+
+        # ORIGINAL COMMENT
+        # If we can't find the command but there is a normalization
+        # function available, we try with that one.
+        if (  # pragma: no cover
+            cmd is None and ctx.token_normalize_func is not None
+        ):
+            cmd_name = ctx.token_normalize_func(cmd_name)
+            cmd = self.get_command(ctx, cmd_name)
+
+        # ORIGINAL COMMENT
+        # If we don't find the command we want to show an error message
+        # to the user that it was not provided.  However, there is
+        # something else we should do: if the first argument looks like
+        # an option we want to kick off parsing again for arguments to
+        # resolve things like --help which now should go to the main
+        # place.
+        if cmd is None and not ctx.resilient_parsing:
+            if click.parser.split_opt(cmd_name)[0]:
+                self.parse_args(ctx, ctx.args)
+            # Instead of calling ctx.fail here, default to "vault", and
+            # issue a deprecation warning.
+            click.echo(
+                (
+                    f'{PROG_NAME}: Deprecation warning: A subcommand will be '
+                    f'required in v1.0. See --help for available subcommands.'
+                ),
+                err=True,
+            )
+            click.echo(
+                f'{PROG_NAME}: Warning: Defaulting to subcommand "vault".',
+                err=True,
+            )
+            cmd_name = 'vault'
+            cmd = self.get_command(ctx, cmd_name)
+            assert cmd is not None, 'Mandatory subcommand "vault" missing!'
+            args = [cmd_name, *args]
+        return cmd_name if cmd else None, cmd, args[1:]  # noqa: DOC201
+
+
+@click.group(
     context_settings={
         'help_option_names': ['-h', '--help'],
         'ignore_unknown_options': True,
@@ -73,13 +135,12 @@ _EMPTY_SELECTION = 'Empty selection'
         `~/.derivepassphrase` on UNIX-like systems and
         `C:\Users\<user>\AppData\Roaming\Derivepassphrase` on Windows.
     """,
+    invoke_without_command=True,
+    cls=_DefaultToVaultGroup,
 )
 @click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
-@click.argument('subcommand_args', nargs=-1, type=click.UNPROCESSED)
-def derivepassphrase(
-    *,
-    subcommand_args: list[str],
-) -> None:
+@click.pass_context
+def derivepassphrase(ctx: click.Context, /) -> None:
     """Derive a strong passphrase, deterministically, from a master secret.
 
     Using a master secret, derive a passphrase for a named service,
@@ -109,13 +170,7 @@ def derivepassphrase(
     [CLICK]: https://pypi.org/package/click/
 
     """  # noqa: D301
-    if subcommand_args and subcommand_args[0] == 'export':
-        return derivepassphrase_export.main(
-            args=subcommand_args[1:],
-            prog_name=f'{PROG_NAME} export',
-            standalone_mode=False,
-        )
-    if not (subcommand_args and subcommand_args[0] == 'vault'):
+    if ctx.invoked_subcommand is None:
         click.echo(
             (
                 f'{PROG_NAME}: Deprecation warning: A subcommand will be '
@@ -127,32 +182,33 @@ def derivepassphrase(
             f'{PROG_NAME}: Warning: Defaulting to subcommand "vault".',
             err=True,
         )
-    else:
-        subcommand_args = subcommand_args[1:]
-    return derivepassphrase_vault.main(
-        args=subcommand_args,
-        prog_name=f'{PROG_NAME} vault',
-        standalone_mode=False,
-    )
+        # See definition of click.Group.invoke, non-chained case.
+        with ctx:
+            sub_ctx = derivepassphrase_vault.make_context(
+                'vault', ctx.args, parent=ctx
+            )
+            with sub_ctx:
+                return derivepassphrase_vault.invoke(sub_ctx)
+    return None
 
 
 # Exporter
 # ========
 
 
-@click.command(
+@derivepassphrase.group(
+    'export',
     context_settings={
         'help_option_names': ['-h', '--help'],
         'ignore_unknown_options': True,
         'allow_interspersed_args': False,
-    }
+    },
+    invoke_without_command=True,
+    cls=_DefaultToVaultGroup,
 )
 @click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
-@click.argument('subcommand_args', nargs=-1, type=click.UNPROCESSED)
-def derivepassphrase_export(
-    *,
-    subcommand_args: list[str],
-) -> None:
+@click.pass_context
+def derivepassphrase_export(ctx: click.Context, /) -> None:
     """Export a foreign configuration to standard output.
 
     Read a foreign system configuration, extract all information from
@@ -174,7 +230,7 @@ def derivepassphrase_export(
     [CLICK]: https://pypi.org/package/click/
 
     """  # noqa: D301
-    if not (subcommand_args and subcommand_args[0] == 'vault'):
+    if ctx.invoked_subcommand is None:
         click.echo(
             (
                 f'{PROG_NAME}: Deprecation warning: A subcommand will be '
@@ -186,13 +242,17 @@ def derivepassphrase_export(
             f'{PROG_NAME}: Warning: Defaulting to subcommand "vault".',
             err=True,
         )
-    else:
-        subcommand_args = subcommand_args[1:]
-    return derivepassphrase_export_vault.main(
-        args=subcommand_args,
-        prog_name=f'{PROG_NAME} export vault',
-        standalone_mode=False,
-    )
+        # See definition of click.Group.invoke, non-chained case.
+        with ctx:
+            sub_ctx = derivepassphrase_export_vault.make_context(
+                'vault', ctx.args, parent=ctx
+            )
+            # Constructing the subcontext above will usually already
+            # lead to a click.UsageError, so this block typically won't
+            # actually be called.
+            with sub_ctx:  # pragma: no cover
+                return derivepassphrase_export_vault.invoke(sub_ctx)
+    return None
 
 
 def _load_data(
@@ -234,7 +294,8 @@ def _load_data(
         assert_never(fmt)
 
 
-@click.command(
+@derivepassphrase_export.command(
+    'vault',
     context_settings={'help_option_names': ['-h', '--help']},
 )
 @click.option(
@@ -919,9 +980,8 @@ DEFAULT_NOTES_TEMPLATE = """\
 DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
 
 
-@click.command(
-    # 'vault',
-    # help="derivation scheme compatible with James Coglan's vault(1)",
+@derivepassphrase.command(
+    'vault',
     context_settings={'help_option_names': ['-h', '--help']},
     cls=CommandWithHelpGroups,
     epilog=r"""
