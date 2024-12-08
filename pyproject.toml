@@ -106,17 +106,12 @@ path = "mkdocs.yml"
 
 [tool.hatch.envs.docs]
 extra-dependencies = [
-  # Our documentation uses the Material theme.  It also uses
-  # `mkdocstrings[python]`, but `hatch-mkdocs` is apparently smart
-  # enough to pick *that* one up from the MkDocs configuration, but not
-  # the selected theme...
-  "mkdocs-material",
   # Our documentation uses formatted function signatures (i.e. with
   # formatted type annotations), which requires `black`.
   "black",
-  # Our documentation is generated in multiple versions, orchestrated by
-  # `mike`.
-  "mike",
+  # Our changelog is assembled from singular entries, orchestrated by
+  # `scriv`.
+  "scriv >= 1.4"
 ]
 detached = false
 
@@ -165,13 +160,6 @@ run = "pytest --hypothesis-profile={env:HYPOTHESIS_PROFILE:default}{env:HATCH_TE
 run-cov = "coverage run -m pytest --hypothesis-profile={env:HYPOTHESIS_PROFILE:default}{env:HATCH_TEST_ARGS:} {args}"
 cov-combine = "coverage combine"
 cov-report = "coverage report"
-
-[tool.hatch.envs.release]
-extra-dependencies = [
-  "scriv >= 1.4"
-]
-
-[tool.hatch.envs.release.scripts]
 
 [tool.hatch.envs.types]
 extra-dependencies = [
