@@ -1413,11 +1413,14 @@ def isolated_config(
 ) -> Iterator[None]:
     prog_name = cli.PROG_NAME
     env_name = prog_name.replace(' ', '_').upper() + '_PATH'
-    with (
-        runner.isolated_filesystem(),
-        cli.StandardCLILogging.ensure_standard_logging(),
-        cli.StandardCLILogging.ensure_standard_warnings_logging(),
-    ):
+    # Use parenthesized context manager expressions once Python 3.9
+    # becomes unsupported.
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(runner.isolated_filesystem())
+        stack.enter_context(cli.StandardCLILogging.ensure_standard_logging())
+        stack.enter_context(
+            cli.StandardCLILogging.ensure_standard_warnings_logging()
+        )
         monkeypatch.setenv('HOME', os.getcwd())
         monkeypatch.setenv('USERPROFILE', os.getcwd())
         monkeypatch.delenv(env_name, raising=False)
@@ -1476,10 +1479,13 @@ def isolated_vault_exporter_config(
                 print(vault_config, file=outfile)
         elif isinstance(vault_config, bytes):
             os.makedirs('.vault', mode=0o700, exist_ok=True)
-            with (
-                chdir('.vault'),
-                tempfile.NamedTemporaryFile(suffix='.zip') as tmpzipfile,
-            ):
+            # Use parenthesized context manager expressions here once
+            # Python 3.9 becomes unsupported.
+            with contextlib.ExitStack() as stack:
+                stack.enter_context(chdir('.vault'))
+                tmpzipfile = stack.enter_context(
+                    tempfile.NamedTemporaryFile(suffix='.zip')
+                )
                 for line in vault_config.splitlines():
                     tmpzipfile.write(base64.standard_b64decode(line))
                 tmpzipfile.flush()

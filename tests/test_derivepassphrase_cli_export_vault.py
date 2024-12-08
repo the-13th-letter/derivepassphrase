@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import base64
+import contextlib
 import json
 from typing import TYPE_CHECKING
 
@@ -265,12 +266,10 @@ class TestStoreroom:
             'signing_key': bytes(storeroom.KEY_SIZE),
             'hashing_key': bytes(storeroom.KEY_SIZE),
         }
-        with (
-            tests.isolated_vault_exporter_config(
-                monkeypatch=monkeypatch,
-                runner=runner,
-                vault_config=tests.VAULT_STOREROOM_CONFIG_ZIPPED,
-            ),
+        with tests.isolated_vault_exporter_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            vault_config=tests.VAULT_STOREROOM_CONFIG_ZIPPED,
         ):
             with open('.vault/20', 'w', encoding='UTF-8') as outfile:
                 print(config, file=outfile)
@@ -292,13 +291,11 @@ class TestStoreroom:
         err_msg: str,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with (
-            tests.isolated_vault_exporter_config(
-                monkeypatch=monkeypatch,
-                runner=runner,
-                vault_config=tests.VAULT_STOREROOM_CONFIG_ZIPPED,
-                vault_key=tests.VAULT_MASTER_KEY,
-            ),
+        with tests.isolated_vault_exporter_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            vault_config=tests.VAULT_STOREROOM_CONFIG_ZIPPED,
+            vault_key=tests.VAULT_MASTER_KEY,
         ):
             with open('.vault/.keys', 'w', encoding='UTF-8') as outfile:
                 print(data, file=outfile)
@@ -337,15 +334,18 @@ class TestStoreroom:
         error_text: str,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        with (
-            tests.isolated_vault_exporter_config(
-                monkeypatch=monkeypatch,
-                runner=runner,
-                vault_config=zipped_config,
-                vault_key=tests.VAULT_MASTER_KEY,
-            ),
-            pytest.raises(RuntimeError, match=error_text),
-        ):
+        # Use parenthesized context manager expressions once Python 3.9
+        # becomes unsupported.
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(
+                tests.isolated_vault_exporter_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config=zipped_config,
+                    vault_key=tests.VAULT_MASTER_KEY,
+                )
+            )
+            stack.enter_context(pytest.raises(RuntimeError, match=error_text))
             storeroom.export_storeroom_data()
 
     def test_404_decrypt_keys_wrong_data_length(self) -> None:

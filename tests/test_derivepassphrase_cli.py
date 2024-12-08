@@ -1570,12 +1570,17 @@ class TestCLIUtils:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         runner = click.testing.CliRunner()
-        with (
-            tests.isolated_vault_config(
-                monkeypatch=monkeypatch, runner=runner, config={}
-            ),
-            pytest.raises(ValueError, match='Invalid vault config'),
-        ):
+        # Use parenthesized context manager expressions here once Python
+        # 3.9 becomes unsupported.
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch, runner=runner, config={}
+                )
+            )
+            stack.enter_context(
+                pytest.raises(ValueError, match='Invalid vault config')
+            )
             cli._save_config(None)  # type: ignore[arg-type]
 
     def test_111_prompt_for_selection_multiple(self) -> None:

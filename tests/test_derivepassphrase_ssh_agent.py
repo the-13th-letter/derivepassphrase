@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import base64
+import contextlib
 import io
 import socket
 from typing import TYPE_CHECKING
@@ -589,10 +590,11 @@ class TestAgentInteraction:
     ) -> None:
         del running_ssh_agent
 
-        with (
-            pytest.raises(exc_type, match=exc_pattern),
-            ssh_agent.SSHAgentClient() as client,
-        ):
+        # Use parenthesized context manager expressions once Python 3.9
+        # becomes unsupported.
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(pytest.raises(exc_type, match=exc_pattern))
+            client = stack.enter_context(ssh_agent.SSHAgentClient())
             client.request(request_code, b'', response_code=response_code)
 
     @pytest.mark.parametrize(
@@ -650,10 +652,11 @@ class TestAgentInteraction:
                 assert single_code in response_codes
             return response_data  # pragma: no cover
 
-        with (
-            monkeypatch.context() as monkeypatch2,
-            ssh_agent.SSHAgentClient() as client,
-        ):
+        # Use parenthesized context manager expressions once Python 3.9
+        # becomes unsupported.
+        with contextlib.ExitStack() as stack:
+            monkeypatch2 = stack.enter_context(monkeypatch.context())
+            client = stack.enter_context(ssh_agent.SSHAgentClient())
             monkeypatch2.setattr(client, 'request', request)
             with pytest.raises(
                 RuntimeError, match='Malformed response|does not match request'
