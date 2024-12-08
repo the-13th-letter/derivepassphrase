@@ -168,6 +168,7 @@ class VaultNativeConfigParser(abc.ABC):
             salt=vault.Vault._UUID,  # noqa: SLF001
             iterations=iterations,
         ).derive(bytes(password))
+        result_key = raw_key.hex().lower().encode('ASCII')
         logger.debug(
             'binary = pbkdf2(%s, %s, %s, %s, %s) = %s -> %s',
             repr(password),
@@ -176,9 +177,9 @@ class VaultNativeConfigParser(abc.ABC):
             key_size // 2,
             repr('sha1'),
             _h(raw_key),
-            _h(raw_key.hex().lower().encode('ASCII')),
+            _h(result_key),
         )
-        return raw_key.hex().lower().encode('ASCII')
+        return result_key
 
     def _parse_contents(self) -> None:
         logger.info('Parsing IV, payload and signature from the file contents')

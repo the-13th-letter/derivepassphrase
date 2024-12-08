@@ -8,9 +8,11 @@ import contextlib
 import copy
 import errno
 import json
+import logging
 import os
 import shutil
 import socket
+import warnings
 from typing import TYPE_CHECKING, cast
 
 import click.testing
@@ -201,8 +203,13 @@ for opt, config in SINGLES.items():
     )
 
 
-def is_harmless_config_import_warning_line(line: str) -> bool:
-    """Return true if the warning line is harmless, during config import."""
+def is_warning_line(line: str) -> bool:
+    """Return true if the line is a warning line."""
+    return ' Warning: ' in line or ' Deprecation warning: ' in line
+
+
+def is_harmless_config_import_warning(record: tuple[str, int, str]) -> bool:
+    """Return true if the warning is harmless, during config import."""
     possible_warnings = [
         'Replacing invalid value ',
         'Removing ineffective setting ',
@@ -215,9 +222,7 @@ def is_harmless_config_import_warning_line(line: str) -> bool:
             'because a key is also set.'
         ),
     ]
-    return any(  # pragma: no branch
-        (' Warning: ' + w) in line for w in possible_warnings
-    )
+    return any(tests.warning_emitted(w, [record]) for w in possible_warnings)
 
 
 class TestCLI:
@@ -492,6 +497,7 @@ class TestCLI:
         self,
         monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: tests.RunningSSHAgentInfo,
+        caplog: pytest.LogCaptureFixture,
         config: _types.VaultConfig,
     ) -> None:
         with monkeypatch.context():
@@ -518,13 +524,13 @@ class TestCLI:
         assert result.stderr, 'expected known error output'
         err_lines = result.stderr.splitlines(False)
         assert err_lines[0].startswith('Passphrase:')
-        assert any(  # pragma: no branch
-            ' Warning: Setting a service passphrase is ineffective ' in line
-            for line in err_lines
+        assert tests.warning_emitted(
+            'Setting a service passphrase is ineffective ',
+            caplog.record_tuples,
         ), 'expected known warning message'
-        assert all(  # pragma: no branch
-            is_harmless_config_import_warning_line(line)
-            for line in result.stderr.splitlines(True)
+        assert all(map(is_warning_line, result.stderr.splitlines(True)))
+        assert all(
+            map(is_harmless_config_import_warning, caplog.record_tuples)
         ), 'unexpected error output'
 
     @pytest.mark.parametrize(
@@ -557,7 +563,7 @@ class TestCLI:
                 )
                 result = tests.ReadableResult.parse(_result)
                 assert result.error_exit(
-                    error='Error: Invalid value'
+                    error='Invalid value'
                 ), 'expected error exit and known error message'
 
     @pytest.mark.parametrize(
@@ -624,11 +630,13 @@ class TestCLI:
     def test_211a_empty_service_name_causes_warning(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
-        def expected_warning_line(line: str) -> bool:
-            return is_harmless_config_import_warning_line(line) or (
-                ' Warning: An empty SERVICE is not supported by vault(1)'
-                in line
+        def is_expected_warning(record: tuple[str, int, str]) -> bool:
+            return is_harmless_config_import_warning(
+                record
+            ) or tests.warning_emitted(
+                'An empty SERVICE is not supported by vault(1)', [record]
             )
 
         monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
@@ -647,13 +655,13 @@ class TestCLI:
             assert result.clean_exit(empty_stderr=False), 'expected clean exit'
             assert result.stderr is not None, 'expected known error output'
             assert all(
-                expected_warning_line(line)
-                for line in result.stderr.splitlines(False)
+                map(is_expected_warning, caplog.record_tuples)
             ), 'expected known error output'
             assert cli._load_config() == {
                 'global': {'length': 30},
                 'services': {},
             }, 'requested configuration change was not applied'
+            caplog.clear()
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', '-'],
@@ -664,8 +672,7 @@ class TestCLI:
             assert result.clean_exit(empty_stderr=False), 'expected clean exit'
             assert result.stderr is not None, 'expected known error output'
             assert all(
-                expected_warning_line(line)
-                for line in result.stderr.splitlines(False)
+                map(is_expected_warning, caplog.record_tuples)
             ), 'expected known error output'
             assert cli._load_config() == {
                 'global': {'length': 30},
@@ -713,6 +720,7 @@ class TestCLI:
     def test_213_import_config_success(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
         config: Any,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
@@ -735,11 +743,10 @@ class TestCLI:
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert config2 == config, 'config not imported correctly'
         assert not result.stderr or all(  # pragma: no branch
-            is_harmless_config_import_warning_line(line)
-            for line in result.stderr.splitlines(True)
+            map(is_harmless_config_import_warning, caplog.record_tuples)
         ), 'unexpected error output'
 
-    @tests.hypothesis_settings_coverage_compatible
+    @tests.hypothesis_settings_coverage_compatible_with_caplog
     @hypothesis.given(
         conf=tests.smudged_vault_test_config(
             strategies.sampled_from(TEST_CONFIGS).filter(
@@ -749,6 +756,7 @@ class TestCLI:
     )
     def test_213a_import_config_success(
         self,
+        caplog: pytest.LogCaptureFixture,
         conf: tests.VaultTestConfig,
     ) -> None:
         config = conf.config
@@ -774,8 +782,7 @@ class TestCLI:
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert config3 == config2, 'config not imported correctly'
         assert not result.stderr or all(
-            is_harmless_config_import_warning_line(line)
-            for line in result.stderr.splitlines(True)
+            map(is_harmless_config_import_warning, caplog.record_tuples)
         ), 'unexpected error output'
 
     def test_213b_import_bad_config_not_vault_config(
@@ -1479,6 +1486,7 @@ contents go here
     def test_300_unicode_normalization_form_warning(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
         command_line: list[str],
         input: str | None,
         warning_message: str,
@@ -1497,8 +1505,8 @@ contents go here
             )
         result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(), 'expected clean exit'
-        assert (
-            warning_message in result.stderr
+        assert tests.warning_emitted(
+            warning_message, caplog.record_tuples
         ), 'expected known warning message in stderr'
 
     def test_400_missing_af_unix_support(
@@ -1707,6 +1715,111 @@ Boo.
         assert not res['kwargs'].get('show_default', True), err_msg
         assert res['kwargs'].get('err'), err_msg
         assert res['kwargs'].get('hide_input'), err_msg
+
+    def test_120_standard_logging_context_manager(
+        self,
+        caplog: pytest.LogCaptureFixture,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        prog_name = cli.StandardCLILogging.prog_name
+        package_name = cli.StandardCLILogging.package_name
+        logger = logging.getLogger(package_name)
+        deprecation_logger = logging.getLogger(f'{package_name}.deprecation')
+        logging_cm = cli.StandardCLILogging.ensure_standard_logging()
+        with logging_cm:
+            assert (
+                sum(
+                    1
+                    for h in logger.handlers
+                    if h is cli.StandardCLILogging.cli_handler
+                )
+                == 1
+            )
+            logger.warning('message 1')
+            with logging_cm:
+                deprecation_logger.warning('message 2')
+                assert (
+                    sum(
+                        1
+                        for h in logger.handlers
+                        if h is cli.StandardCLILogging.cli_handler
+                    )
+                    == 1
+                )
+                assert capsys.readouterr() == (
+                    '',
+                    (
+                        f'{prog_name}: Warning: message 1\n'
+                        f'{prog_name}: Deprecation warning: message 2\n'
+                    ),
+                )
+            logger.warning('message 3')
+            assert (
+                sum(
+                    1
+                    for h in logger.handlers
+                    if h is cli.StandardCLILogging.cli_handler
+                )
+                == 1
+            )
+            assert capsys.readouterr() == (
+                '',
+                f'{prog_name}: Warning: message 3\n',
+            )
+            assert caplog.record_tuples == [
+                (package_name, logging.WARNING, 'message 1'),
+                (f'{package_name}.deprecation', logging.WARNING, 'message 2'),
+                (package_name, logging.WARNING, 'message 3'),
+            ]
+
+    def test_121_standard_logging_warnings_context_manager(
+        self,
+        caplog: pytest.LogCaptureFixture,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        warnings_cm = cli.StandardCLILogging.ensure_standard_warnings_logging()
+        THE_FUTURE = 'the future will be here sooner than you think'  # noqa: N806
+        JUST_TESTING = 'just testing whether warnings work'  # noqa: N806
+        with warnings_cm:
+            assert (
+                sum(
+                    1
+                    for h in logging.getLogger('py.warnings').handlers
+                    if h is cli.StandardCLILogging.warnings_handler
+                )
+                == 1
+            )
+            warnings.warn(UserWarning(JUST_TESTING), stacklevel=1)
+            with warnings_cm:
+                warnings.warn(FutureWarning(THE_FUTURE), stacklevel=1)
+                _out, err = capsys.readouterr()
+                err_lines = err.splitlines(True)
+                assert any(
+                    f'UserWarning: {JUST_TESTING}' in line
+                    for line in err_lines
+                )
+                assert any(
+                    f'FutureWarning: {THE_FUTURE}' in line
+                    for line in err_lines
+                )
+            warnings.warn(UserWarning(JUST_TESTING), stacklevel=1)
+            _out, err = capsys.readouterr()
+            err_lines = err.splitlines(True)
+            assert any(
+                f'UserWarning: {JUST_TESTING}' in line for line in err_lines
+            )
+            assert not any(
+                f'FutureWarning: {THE_FUTURE}' in line for line in err_lines
+            )
+            record_tuples = caplog.record_tuples
+            assert [tup[:2] for tup in record_tuples] == [
+                ('py.warnings', logging.WARNING),
+                ('py.warnings', logging.WARNING),
+                ('py.warnings', logging.WARNING),
+            ]
+            assert f'UserWarning: {JUST_TESTING}' in record_tuples[0][2]
+            assert f'FutureWarning: {THE_FUTURE}' in record_tuples[1][2]
+            assert f'UserWarning: {JUST_TESTING}' in record_tuples[2][2]
 
     @pytest.mark.parametrize(
         ['command_line', 'config', 'result_config'],
@@ -2014,7 +2127,9 @@ class TestCLITransition:
                 cli._migrate_and_load_old_config()
 
     def test_200_forward_export_vault_path_parameter(
-        self, monkeypatch: pytest.MonkeyPatch
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         pytest.importorskip('cryptography', minversion='38.0')
         runner = click.testing.CliRunner(mix_stderr=False)
@@ -2031,20 +2146,48 @@ class TestCLITransition:
             )
         result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
-        assert (
-            result.stderr
-            == f"""\
-{cli.PROG_NAME}: Deprecation warning: A subcommand will be required in v1.0. See --help for available subcommands.
-{cli.PROG_NAME}: Warning: Defaulting to subcommand "vault".
-"""  # noqa: E501
+        assert tests.deprecation_warning_emitted(
+            'A subcommand will be required in v1.0', caplog.record_tuples
+        )
+        assert tests.warning_emitted(
+            'Defaulting to subcommand "vault"', caplog.record_tuples
         )
         assert json.loads(result.output) == tests.VAULT_V03_CONFIG_DATA
+
+    def test_201_forward_export_vault_empty_commandline(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        pytest.importorskip('cryptography', minversion='38.0')
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+        ):
+            _result = runner.invoke(
+                cli.derivepassphrase,
+                ['export'],
+            )
+        result = tests.ReadableResult.parse(_result)
+        assert tests.deprecation_warning_emitted(
+            'A subcommand will be required in v1.0', caplog.record_tuples
+        )
+        assert tests.warning_emitted(
+            'Defaulting to subcommand "vault"', caplog.record_tuples
+        )
+        assert result.error_exit(
+            error="Missing argument 'PATH'"
+        ), 'expected error exit and known error type'
 
     @pytest.mark.parametrize(
         'charset_name', ['lower', 'upper', 'number', 'space', 'dash', 'symbol']
     )
     def test_210_forward_vault_disable_character_set(
-        self, monkeypatch: pytest.MonkeyPatch, charset_name: str
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+        charset_name: str,
     ) -> None:
         monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
         option = f'--{charset_name}'
@@ -2062,22 +2205,50 @@ class TestCLITransition:
             )
             result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
-        assert (
-            result.stderr
-            == f"""\
-{cli.PROG_NAME}: Deprecation warning: A subcommand will be required in v1.0. See --help for available subcommands.
-{cli.PROG_NAME}: Warning: Defaulting to subcommand "vault".
-"""  # noqa: E501
+        assert tests.deprecation_warning_emitted(
+            'A subcommand will be required in v1.0', caplog.record_tuples
+        )
+        assert tests.warning_emitted(
+            'Defaulting to subcommand "vault"', caplog.record_tuples
         )
         for c in charset:
             assert (
                 c not in result.output
             ), f'derived password contains forbidden character {c!r}'
 
+    def test_211_forward_vault_empty_command_line(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+        ):
+            _result = runner.invoke(
+                cli.derivepassphrase,
+                [],
+                input=DUMMY_PASSPHRASE,
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(_result)
+        assert tests.deprecation_warning_emitted(
+            'A subcommand will be required in v1.0', caplog.record_tuples
+        )
+        assert tests.warning_emitted(
+            'Defaulting to subcommand "vault"', caplog.record_tuples
+        )
+        assert result.error_exit(
+            error='SERVICE is required'
+        ), 'expected error exit and known error type'
+
     def test_300_export_using_old_config_file(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
+        caplog.set_level(logging.INFO)
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -2100,16 +2271,17 @@ class TestCLITransition:
             )
         result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(), 'expected clean exit'
-        assert (
-            'v0.1-style config file' in result.stderr
+        assert tests.deprecation_warning_emitted(
+            'v0.1-style config file', caplog.record_tuples
         ), 'expected known warning message in stderr'
-        assert (
-            'Successfully migrated to ' in result.stderr
+        assert tests.info_emitted(
+            'Successfully migrated to ', caplog.record_tuples
         ), 'expected known warning message in stderr'
 
     def test_300a_export_using_old_config_file_migration_error(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -2142,11 +2314,11 @@ class TestCLITransition:
             )
         result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(), 'expected clean exit'
-        assert (
-            'v0.1-style config file' in result.stderr
+        assert tests.deprecation_warning_emitted(
+            'v0.1-style config file', caplog.record_tuples
         ), 'expected known warning message in stderr'
-        assert (
-            'Warning: Failed to migrate to ' in result.stderr
+        assert tests.warning_emitted(
+            'Failed to migrate to ', caplog.record_tuples
         ), 'expected known warning message in stderr'
 
 

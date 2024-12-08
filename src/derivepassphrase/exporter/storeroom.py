@@ -665,6 +665,7 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
     if encrypted_keys_version != 1:
         msg = f'cannot handle version {encrypted_keys_version} encrypted keys'
         raise RuntimeError(msg)
+    logger.info('Parsing master keys data from .keys')
     encrypted_keys_iterations = 2 ** (10 + (encrypted_keys_params & 0x0F))
     master_keys_keys = derive_master_keys_keys(
         master_keys_key, encrypted_keys_iterations
@@ -682,6 +683,7 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
         if fnmatch.fnmatch(hashdir_name, '[01][0-9a-f]')
     ]
     for file in valid_hashdirs:
+        logger.info('Decrypting bucket %s', file)
         bucket_contents = list(
             decrypt_bucket_file(file, master_keys, root_dir=storeroom_path)
         )
@@ -693,6 +695,7 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
             )
     dirs_to_check: dict[str, list[str]] = {}
     json_payload: Any
+    logger.info('Assembling config structure')
     for path, json_content in sorted(json_contents.items()):
         if path.endswith('/'):
             logger.debug(
@@ -721,7 +724,8 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
                 json_content.decode('utf-8'),
             )
             _store(config_structure, path, json_content)
-    # Sorted order is important; see `mabye_obj` below.
+    logger.info('Checking structure consistency')
+    # Sorted order is important; see `maybe_obj` below.
     for _dir, namelist in sorted(dirs_to_check.items()):
         namelist = [x.rstrip('/') for x in namelist]  # noqa: PLW2901
         obj: dict[Any, Any] = config_structure
