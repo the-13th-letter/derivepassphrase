@@ -11,8 +11,6 @@ import os
 import shutil
 import socket
 import subprocess
-import sys
-import textwrap
 from typing import TYPE_CHECKING, TypeVar
 
 import hypothesis
@@ -24,7 +22,6 @@ from derivepassphrase import _types, ssh_agent
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
-    from typing import Literal
 
 startup_ssh_auth_sock = os.environ.get('SSH_AUTH_SOCK', None)
 
@@ -68,12 +65,12 @@ def skip_if_no_af_unix_support() -> None:  # pragma: no cover
 
 def _spawn_pageant(  # pragma: no cover
     executable: str | None, env: dict[str, str]
-) -> tuple[subprocess.Popen[str], bool] | None:
+) -> subprocess.Popen[str] | None:
     """Spawn an isolated Pageant, if possible.
 
     We attempt to detect whether Pageant is usable, i.e. whether Pageant
     has output buffering problems when announcing its authentication
-    socket.
+    socket.  This is the case for Pageant 0.81 and earlier.
 
     Args:
         executable:
@@ -83,36 +80,29 @@ def _spawn_pageant(  # pragma: no cover
             include an SSH_AUTH_SOCK variable.
 
     Returns:
-        (tuple[subprocess.Popen, bool] | None):
-        A 2-tuple `(proc, debug_output)`, where `proc` is the spawned
-        Pageant subprocess, and `debug_output` indicates whether Pageant
-        will continue to emit debug output (that needs to be actively
-        read) or not.
+        The spawned Pageant subprocess.  If the executable is `None`, or
+        if we detect that Pageant cannot be sensibly controlled as
+        a subprocess, then return `None` directly.
 
         It is the caller's responsibility to clean up the spawned
         subprocess.
 
-        If the executable is `None`, or if we detect that Pageant is too
-        old to properly flush its output, which prevents readers from
-        learning the SSH_AUTH_SOCK setting needed to connect to Pageant
-        in the first place, then return `None` directly.
-
     """
     if executable is None:  # pragma: no cover
         return None
-
-    pageant_features = {'flush': False, 'foreground': False}
 
     # Apparently, Pageant 0.81 and lower running in debug mode does
     # not actively flush its output.  As a result, the first two
     # lines, which set the SSH_AUTH_SOCK and the SSH_AGENT_PID, only
     # print once the output buffer is flushed, whenever that is.
     #
-    # This has been reported to the PuTTY developers.
-    #
-    # For testing purposes, I currently build a version of Pageant with
-    # output flushing fixed and with a `--foreground` option.  This is
-    # detected here.
+    # This has been reported to the PuTTY developers.  It is fixed in
+    # version 0.82, though the PuTTY developers consider this to be an
+    # abuse of debug mode.  A new foreground mode (`--foreground`), also
+    # introduced in 0.82, provides the desired behavior: no forking, and
+    # immediately parsable instructions for SSH_AUTH_SOCK and
+    # SSH_AGENT_PID.
+
     help_output = subprocess.run(
         ['pageant', '--help'],
         executable=executable,
@@ -127,44 +117,14 @@ def _spawn_pageant(  # pragma: no cover
         if len(help_lines) >= 2
         else ''
     )
-    v0_81 = packaging.version.Version('0.81')
-    if pageant_version_string not in {'', 'Unidentified build'}:
-        # TODO(the-13th-letter): Once a fixed Pageant is released,
-        # remove the check for build information in the version string.
-        # https://github.com/the-13th-letter/derivepassphrase/issues/14
-        pageant_version_string_numeric, local_segment_list = (
-            pageant_version_string.split('+', 1)
-            if '+' in pageant_version_string
-            else (pageant_version_string, '')
-        )
-        local_segments = frozenset(local_segment_list.split('+'))
-        pageant_version = packaging.version.Version(
-            pageant_version_string_numeric
-        )
-        for key in pageant_features:
-            pageant_features[key] = pageant_version > v0_81 or (
-                pageant_version == v0_81 and key in local_segments
-            )
+    v0_82 = packaging.version.Version('0.82')
+    pageant_version = packaging.version.Version(pageant_version_string)
 
-    if not pageant_features['flush']:  # pragma: no cover
+    if pageant_version < v0_82:  # pragma: no cover
         return None
 
-    # Because Pageant's debug mode prints debugging information on
-    # standard output, and because we yield control to a different
-    # thread of execution, we cannot read-and-discard Pageant's output
-    # here.  Instead, spawn a consumer process and connect it to
-    # Pageant's standard output; see _spawn_data_sink.
-    #
-    # This will hopefully not be necessary with newer Pageants:
-    # a feature request for a `--foreground` option that just avoids the
-    # forking behavior has been submitted.
-
     return subprocess.Popen(
-        [
-            'pageant',
-            '--foreground' if pageant_features['foreground'] else '--debug',
-            '-s',
-        ],
+        ['pageant', '--foreground', '-s'],
         executable=executable,
         stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
@@ -172,17 +132,13 @@ def _spawn_pageant(  # pragma: no cover
         env=env,
         text=True,
         bufsize=1,
-    ), not pageant_features['foreground']
+    )
 
 
 def _spawn_openssh_agent(  # pragma: no cover
     executable: str | None, env: dict[str, str]
-) -> tuple[subprocess.Popen[str], Literal[False]] | None:
+) -> subprocess.Popen[str] | None:
     """Spawn an isolated OpenSSH agent, if possible.
-
-    We attempt to detect whether Pageant is usable, i.e. whether Pageant
-    has output buffering problems when announcing its authentication
-    socket.
 
     Args:
         executable:
@@ -192,16 +148,11 @@ def _spawn_openssh_agent(  # pragma: no cover
             not include an SSH_AUTH_SOCK variable.
 
     Returns:
-        (tuple[subprocess.Popen, Literal[False]] | None):
-        A 2-tuple `(proc, debug_output)`, where `proc` is the spawned
-        OpenSSH agent subprocess, and `debug_output` indicates whether
-        the OpenSSH agent will continue to emit debug output that needs
-        to be actively read (which it doesn't, so this is always false).
+        The spawned OpenSSH agent subprocess.  If the executable is
+        `None`, then return `None` directly.
 
         It is the caller's responsibility to clean up the spawned
         subprocess.
-
-        If the executable is `None`, then return `None` directly.
 
     """
     if executable is None:
@@ -215,7 +166,7 @@ def _spawn_openssh_agent(  # pragma: no cover
         env=env,
         text=True,
         bufsize=1,
-    ), False
+    )
 
 
 def _spawn_system_agent(  # pragma: no cover
@@ -245,11 +196,10 @@ def running_ssh_agent(  # pragma: no cover
     can it guarantee a particular set of loaded keys.
 
     Yields:
-        :
-            A 2-tuple `(ssh_auth_sock, agent_type)`, where
-            `ssh_auth_sock` is the value of the `SSH_AUTH_SOCK`
-            environment variable, to be used to connect to the running
-            agent, and `agent_type` is the agent type.
+        A 2-tuple `(ssh_auth_sock, agent_type)`, where `ssh_auth_sock`
+        is the value of the `SSH_AUTH_SOCK` environment variable, to be
+        used to connect to the running agent, and `agent_type` is the
+        agent type.
 
     Raises:
         pytest.skip.Exception:
@@ -305,14 +255,9 @@ def running_ssh_agent(  # pragma: no cover
                     os.environ.get('SSH_AUTH_SOCK', None)
                     == startup_ssh_auth_sock
                 ), f'SSH_AUTH_SOCK mismatch when checking for spawnable {exec_name}'  # noqa: E501
-                spawn_data = spawn_func(  # type: ignore[operator]
-                    executable=shutil.which(exec_name), env={}
-                )
-                if spawn_data is None:
+                proc = spawn_func(executable=shutil.which(exec_name), env={})
+                if proc is None:
                     continue
-                proc: subprocess.Popen[str]
-                emits_debug_output: bool
-                proc, emits_debug_output = spawn_data
                 with exit_stack:
                     exit_stack.enter_context(terminate_on_exit(proc))
                     assert (
@@ -333,15 +278,6 @@ def running_ssh_agent(  # pragma: no cover
                         and '_pid' not in pid_line.lower()
                     ):  # pragma: no cover
                         pytest.skip(f'Cannot parse agent output: {pid_line!r}')
-                    proc2 = _spawn_data_sink(
-                        emits_debug_output=emits_debug_output, proc=proc
-                    )
-                    if proc2 is not None:  # pragma: no cover
-                        exit_stack.enter_context(terminate_on_exit(proc2))
-                    assert (
-                        os.environ.get('SSH_AUTH_SOCK', None)
-                        == startup_ssh_auth_sock
-                    ), f'SSH_AUTH_SOCK mismatch after spawning {exec_name} helper'  # noqa: E501
                     monkeypatch2 = exit_stack.enter_context(
                         pytest.MonkeyPatch.context()
                     )
@@ -355,43 +291,8 @@ def running_ssh_agent(  # pragma: no cover
         pytest.skip('No SSH agent running or spawnable')
 
 
-def _spawn_data_sink(  # pragma: no cover
-    emits_debug_output: bool, *, proc: subprocess.Popen[str]
-) -> subprocess.Popen[str] | None:
-    """Spawn a data sink to read and discard standard input.
-
-    Necessary for certain SSH agents that emit copious debugging output.
-
-    On UNIX, we can use `cat`, redirected to `/dev/null`.  Otherwise,
-    the most robust thing to do is to spawn Python and repeatedly call
-    `.read()` on `sys.stdin.buffer`.
-
-    """
-    if not emits_debug_output:
-        return None
-    if proc.stdout is None:
-        return None
-    sink_script = textwrap.dedent("""
-    import sys
-    while sys.stdin.buffer.read(4096):
-        pass
-    """)
-    return subprocess.Popen(
-        (
-            ['cat']
-            if os.name == 'posix'
-            else [sys.executable or 'python3', '-c', sink_script]
-        ),
-        executable=sys.executable or None,
-        stdin=proc.stdout.fileno(),
-        stdout=subprocess.DEVNULL,
-        shell=False,
-        text=True,
-    )
-
-
 @pytest.fixture(params=_spawn_handlers, ids=operator.itemgetter(0))
-def spawn_ssh_agent(  # noqa: C901
+def spawn_ssh_agent(
     request: pytest.FixtureRequest,
     skip_if_no_af_unix_support: None,
 ) -> Iterator[tests.SpawnedSSHAgentInfo]:
@@ -402,11 +303,10 @@ def spawn_ssh_agent(  # noqa: C901
     PuTTY's Pageant, and the "(system)" fallback agent.
 
     Yields:
-        (tests.SpawnedSSHAgentInfo):
-            A [named tuple][collections.namedtuple] containing
-            information about the spawned agent, e.g. the software
-            product, a client connected to the agent, and whether the
-            agent is isolated from other clients.
+        A [named tuple][collections.namedtuple] containing information
+        about the spawned agent, e.g. the software product, a client
+        connected to the agent, and whether the agent is isolated from
+        other clients.
 
     Raises:
         pytest.skip.Exception:
@@ -471,15 +371,14 @@ def spawn_ssh_agent(  # noqa: C901
             assert (
                 os.environ.get('SSH_AUTH_SOCK', None) == startup_ssh_auth_sock
             ), f'SSH_AUTH_SOCK mismatch when checking for spawnable {exec_name}'  # noqa: E501
-            spawn_data = spawn_func(
+            proc = spawn_func(
                 executable=shutil.which(exec_name), env=agent_env
             )
             assert (
                 os.environ.get('SSH_AUTH_SOCK', None) == startup_ssh_auth_sock
             ), f'SSH_AUTH_SOCK mismatch after spawning {exec_name}'
-            if spawn_data is None:  # pragma: no cover
+            if proc is None:  # pragma: no cover
                 pytest.skip(f'Cannot spawn usable {exec_name}')
-            proc, emits_debug_output = spawn_data
             with exit_stack:
                 exit_stack.enter_context(terminate_on_exit(proc))
                 assert proc.stdout is not None
@@ -502,15 +401,6 @@ def spawn_ssh_agent(  # noqa: C901
                     os.environ.get('SSH_AUTH_SOCK', None)
                     == startup_ssh_auth_sock
                 ), f'SSH_AUTH_SOCK mismatch before spawning {exec_name} helper'
-                proc2 = _spawn_data_sink(
-                    emits_debug_output=emits_debug_output, proc=proc
-                )
-                if proc2 is not None:  # pragma: no cover
-                    exit_stack.enter_context(terminate_on_exit(proc2))
-                assert (
-                    os.environ.get('SSH_AUTH_SOCK', None)
-                    == startup_ssh_auth_sock
-                ), f'SSH_AUTH_SOCK mismatch after spawning {exec_name} helper'
                 monkeypatch2 = exit_stack.enter_context(
                     pytest.MonkeyPatch.context()
                 )
@@ -546,11 +436,10 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
     automatically assume any particular key is present in the agent.
 
     Yields:
-        (ssh_agent.SSHAgentClient):
-            A [named tuple][collections.namedtuple] containing
-            information about the spawned agent, e.g. the software
-            product, a client connected to the agent, and whether the
-            agent is isolated from other clients.
+        A [named tuple][collections.namedtuple] containing
+        information about the spawned agent, e.g. the software
+        product, a client connected to the agent, and whether the
+        agent is isolated from other clients.
 
     Raises:
         OSError:
@@ -610,7 +499,7 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
                     # reasons:
                     #
                     # - Pageant refuses to accept a key it already holds
-                    #   in memory.  Verify this by listing key
+                    #   in memory.  Verify this by listing keys.
                     # - Pageant does not support key constraints (see
                     #   references below).
                     #
