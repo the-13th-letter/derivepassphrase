@@ -2399,6 +2399,7 @@ _vault_full_config = strategies.builds(
 )
 
 
+@tests.hypothesis_settings_coverage_compatible
 class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     def __init__(self) -> None:
         super().__init__()

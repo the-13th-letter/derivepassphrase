@@ -1329,30 +1329,42 @@ skip_if_no_cryptography_support = pytest.mark.skipif(
     reason='no "cryptography" support',
 )
 
-hypothesis_settings_coverage_compatible = (
-    hypothesis.settings(
-        # Running under coverage with the Python tracer increases
-        # running times 40-fold, on my machines.  Sadly, not every
-        # Python version offers the C tracer, so sometimes the Python
-        # tracer is used anyway.
-        deadline=(
-            40 * deadline
-            if (deadline := hypothesis.settings().deadline) is not None
-            else None
-        ),
-        suppress_health_check=(hypothesis.HealthCheck.too_slow,),
-    )
-    if sys.gettrace() is not None
-    else hypothesis.settings()
-)
 
-hypothesis_settings_coverage_compatible_with_caplog = hypothesis.settings(
-    parent=hypothesis_settings_coverage_compatible,
-    suppress_health_check={
-        hypothesis.HealthCheck.function_scoped_fixture,
-    }
-    | set(hypothesis_settings_coverage_compatible.suppress_health_check),
-)
+def hypothesis_settings_coverage_compatible(
+    f: Any = None,
+) -> Any:
+    settings = (
+        hypothesis.settings(
+            # Running under coverage with the Python tracer increases
+            # running times 40-fold, on my machines.  Sadly, not every
+            # Python version offers the C tracer, so sometimes the Python
+            # tracer is used anyway.
+            deadline=(
+                40 * deadline
+                if (deadline := hypothesis.settings().deadline) is not None
+                else None
+            ),
+            stateful_step_count=32,
+            suppress_health_check=(hypothesis.HealthCheck.too_slow,),
+        )
+        if sys.gettrace() is not None
+        else hypothesis.settings()
+    )
+    return settings if f is None else settings(f)
+
+
+def hypothesis_settings_coverage_compatible_with_caplog(
+    f: Any = None,
+) -> Any:
+    parent_settings = hypothesis_settings_coverage_compatible()
+    settings = hypothesis.settings(
+        parent=parent_settings,
+        suppress_health_check={
+            hypothesis.HealthCheck.function_scoped_fixture,
+        }
+        | set(parent_settings.suppress_health_check),
+    )
+    return settings if f is None else settings(f)
 
 
 def list_keys(self: Any = None) -> list[_types.KeyCommentPair]:
