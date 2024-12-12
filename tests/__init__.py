@@ -333,13 +333,13 @@ def _test_config_ids(val: VaultTestConfig) -> Any:  # pragma: no cover
 
 @strategies.composite
 def vault_full_service_config(draw: strategies.DrawFn) -> dict[str, int]:
+    repeat = draw(strategies.integers(min_value=0, max_value=10))
     lower = draw(strategies.integers(min_value=0, max_value=10))
     upper = draw(strategies.integers(min_value=0, max_value=10))
     number = draw(strategies.integers(min_value=0, max_value=10))
-    space = draw(strategies.integers(min_value=0, max_value=10))
+    space = draw(strategies.integers(min_value=0, max_value=repeat))
     dash = draw(strategies.integers(min_value=0, max_value=10))
     symbol = draw(strategies.integers(min_value=0, max_value=10))
-    repeat = draw(strategies.integers(min_value=0, max_value=10))
     length = draw(
         strategies.integers(
             min_value=max(1, lower + upper + number + space + dash + symbol),
