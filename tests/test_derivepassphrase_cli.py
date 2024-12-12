@@ -2525,19 +2525,26 @@ class ConfigMergingStateMachine(stateful.RuleBasedStateMachine):
 
     @stateful.rule(
         settings_obj=stateful.consumes(settings),
+        overwrite=strategies.booleans(),
     )
     def set_globals(
         self,
         settings_obj: _types.VaultConfigGlobalSettings,
+        overwrite: bool,
     ) -> None:
-        self.current_config['global'] = settings_obj
+        if overwrite:
+            self.current_config['global'] = {}
+        self.current_config.setdefault('global', {}).update(settings_obj)
         assert _types.is_vault_config(self.current_config)
         # NOTE: This relies on settings_obj containing only the keys
         # "length", "repeat", "upper", "lower", "number", "space",
         # "dash" and "symbol".
         _result = self.runner.invoke(
             cli.derivepassphrase_vault,
-            ['--config']
+            [
+                '--config',
+                '--overwrite-existing' if overwrite else '--merge-existing',
+            ]
             + [f'--{key}={value}' for key, value in settings_obj.items()],
             catch_exceptions=False,
         )
@@ -2556,20 +2563,29 @@ class ConfigMergingStateMachine(stateful.RuleBasedStateMachine):
     @stateful.rule(
         service=known_services,
         settings_obj=stateful.consumes(settings),
+        overwrite=strategies.booleans(),
     )
     def set_service(
         self,
         service: str,
         settings_obj: _types.VaultConfigServicesSettings,
+        overwrite: bool,
     ) -> None:
-        self.current_config['services'][service] = settings_obj
+        if overwrite:
+            self.current_config['services'][service] = {}
+        self.current_config['services'].setdefault(service, {}).update(
+            settings_obj
+        )
         assert _types.is_vault_config(self.current_config)
         # NOTE: This relies on settings_obj containing only the keys
         # "length", "repeat", "upper", "lower", "number", "space",
         # "dash" and "symbol".
         _result = self.runner.invoke(
             cli.derivepassphrase_vault,
-            ['--config']
+            [
+                '--config',
+                '--overwrite-existing' if overwrite else '--merge-existing',
+            ]
             + [f'--{key}={value}' for key, value in settings_obj.items()]
             + ['--', service],
             catch_exceptions=False,
@@ -2627,13 +2643,23 @@ class ConfigMergingStateMachine(stateful.RuleBasedStateMachine):
 
     @stateful.rule(
         config=stateful.consumes(configurations),
+        overwrite=strategies.booleans(),
     )
-    def import_configuraton(self, config: _types.VaultConfig) -> None:
-        self.current_config = self.fold_configs(config, self.current_config)
+    def import_configuraton(
+        self,
+        config: _types.VaultConfig,
+        overwrite: bool,
+    ) -> None:
+        self.current_config = (
+            self.fold_configs(config, self.current_config)
+            if not overwrite
+            else config
+        )
         assert _types.is_vault_config(self.current_config)
         _result = self.runner.invoke(
             cli.derivepassphrase_vault,
-            ['--import', '-'],
+            ['--import', '-']
+            + (['--overwrite-existing'] if overwrite else []),
             input=json.dumps(config),
             catch_exceptions=False,
         )

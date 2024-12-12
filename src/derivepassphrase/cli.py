@@ -1299,6 +1299,12 @@ class StorageManagementOption(OptionGroupOption):
     """
 
 
+class CompatibilityOption(OptionGroupOption):
+    """Compatibility and incompatibility options for the CLI."""
+
+    option_group_name = 'Options concerning compatibility with other tools'
+
+
 def _validate_occurrence_constraint(
     ctx: click.Context,
     param: click.Parameter,
@@ -1530,6 +1536,13 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
     help='import saved settings from file PATH',
     cls=StorageManagementOption,
 )
+@click.option(
+    '--overwrite-existing/--merge-existing',
+    'overwrite_config',
+    default=False,
+    help='overwrite or merge (default) the existing configuration',
+    cls=CompatibilityOption,
+)
 @click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
 @standard_logging_options
 @click.argument('service', required=False)
@@ -1556,6 +1569,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     clear_all_settings: bool = False,
     export_settings: TextIO | pathlib.Path | os.PathLike[str] | None = None,
     import_settings: TextIO | pathlib.Path | os.PathLike[str] | None = None,
+    overwrite_config: bool = False,
 ) -> None:
     """Derive a passphrase using the vault(1) derivation scheme.
 
@@ -1647,6 +1661,11 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             must be open for reading and yield `str` values.  Otherwise,
             a filename to open for reading.  Using `-` for standard
             input is supported.
+        overwrite_config:
+            Command-line arguments `--overwrite-existing` (True) and
+            `--merge-existing` (False).  Controls whether config saving
+            and config importing overwrite existing configurations, or
+            merge them section-wise instead.
 
     """  # noqa: D301
     logger = logging.getLogger(PROG_NAME)
@@ -1665,6 +1684,8 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 group = StorageManagementOption
             elif isinstance(param, LoggingOption):
                 group = LoggingOption
+            elif isinstance(param, CompatibilityOption):
+                group = CompatibilityOption
             elif isinstance(param, OptionGroupOption):
                 raise AssertionError(  # noqa: DOC501,TRY003,TRY004
                     f'Unknown option group for {param!r}'  # noqa: EM102
@@ -1897,27 +1918,32 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 cast(dict[str, Any], value),
                 form=form,
             )
-        configuration = get_config()
-        merged_config: collections.ChainMap[str, Any] = collections.ChainMap(
-            {
-                'services': collections.ChainMap(
-                    maybe_config['services'],
-                    configuration['services'],
-                ),
-            },
-            {'global': maybe_config['global']}
-            if 'global' in maybe_config
-            else {},
-            {'global': configuration['global']}
-            if 'global' in configuration
-            else {},
-        )
-        new_config: Any = {
-            k: dict(v) if isinstance(v, collections.ChainMap) else v
-            for k, v in sorted(merged_config.items())
-        }
-        assert _types.is_vault_config(new_config)
-        put_config(new_config)
+        if overwrite_config:
+            put_config(maybe_config)
+        else:
+            configuration = get_config()
+            merged_config: collections.ChainMap[str, Any] = (
+                collections.ChainMap(
+                    {
+                        'services': collections.ChainMap(
+                            maybe_config['services'],
+                            configuration['services'],
+                        ),
+                    },
+                    {'global': maybe_config['global']}
+                    if 'global' in maybe_config
+                    else {},
+                    {'global': configuration['global']}
+                    if 'global' in configuration
+                    else {},
+                )
+            )
+            new_config: Any = {
+                k: dict(v) if isinstance(v, collections.ChainMap) else v
+                for k, v in sorted(merged_config.items())
+            }
+            assert _types.is_vault_config(new_config)
+            put_config(new_config)
     elif export_settings:
         configuration = get_config()
         try:
@@ -2022,10 +2048,14 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     f'actual settings'
                 )
                 raise click.UsageError(msg)
-            if service:
-                configuration['services'].setdefault(service, {}).update(view)  # type: ignore[typeddict-item]
-            else:
-                configuration.setdefault('global', {}).update(view)  # type: ignore[typeddict-item]
+            subtree: dict[str, Any] = (
+                configuration['services'].setdefault(service, {})  # type: ignore[assignment]
+                if service
+                else configuration.setdefault('global', {})
+            )
+            if overwrite_config:
+                subtree.clear()
+            subtree.update(view)
             assert _types.is_vault_config(
                 configuration
             ), f'Invalid vault configuration: {configuration!r}'
