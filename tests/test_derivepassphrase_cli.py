@@ -13,7 +13,7 @@ import os
 import shutil
 import socket
 import warnings
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import click.testing
 import hypothesis
@@ -2327,7 +2327,80 @@ class TestCLITransition:
         ), 'expected known warning message in stderr'
 
 
-class ConfigMergingStateMachine(stateful.RuleBasedStateMachine):
+_known_services = (DUMMY_SERVICE, 'email', 'bank', 'work')
+_valid_properties = (
+    'length',
+    'repeat',
+    'upper',
+    'lower',
+    'number',
+    'space',
+    'dash',
+    'symbol',
+)
+
+
+def _build_reduced_vault_config_settings(
+    config: _types.VaultConfigServicesSettings,
+    keys_to_purge: frozenset[str],
+) -> _types.VaultConfigServicesSettings:
+    config2 = copy.deepcopy(config)
+    for key in keys_to_purge:
+        config2.pop(key, None)  # type: ignore[misc]
+    return config2
+
+
+_services_strategy = strategies.builds(
+    _build_reduced_vault_config_settings,
+    tests.vault_full_service_config(),
+    strategies.sets(
+        strategies.sampled_from(_valid_properties),
+        max_size=7,
+    ),
+)
+
+
+def _assemble_config(
+    global_data: _types.VaultConfigGlobalSettings,
+    service_data: list[tuple[str, _types.VaultConfigServicesSettings]],
+) -> _types.VaultConfig:
+    services_dict = dict(service_data)
+    return (
+        {'global': global_data, 'services': services_dict}
+        if global_data
+        else {'services': services_dict}
+    )
+
+
+@strategies.composite
+def _draw_service_name_and_data(
+    draw: hypothesis.strategies.DrawFn,
+    num_entries: int,
+) -> tuple[tuple[str, _types.VaultConfigServicesSettings], ...]:
+    possible_services = list(_known_services)
+    selected_services: list[str] = []
+    for _ in range(num_entries):
+        selected_services.append(
+            draw(strategies.sampled_from(possible_services))
+        )
+        possible_services.remove(selected_services[-1])
+    return tuple(
+        (service, draw(_services_strategy)) for service in selected_services
+    )
+
+
+_vault_full_config = strategies.builds(
+    _assemble_config,
+    _services_strategy,
+    strategies.integers(
+        min_value=2,
+        max_value=4,
+    ).flatmap(_draw_service_name_and_data),
+)
+
+
+@tests.hypothesis_settings_coverage_compatible
+class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     def __init__(self) -> None:
         super().__init__()
         self.runner = click.testing.CliRunner(mix_stderr=False)
@@ -2342,165 +2415,63 @@ class ConfigMergingStateMachine(stateful.RuleBasedStateMachine):
                 config={'services': {}},
             )
         )
-        self.current_config = cli._load_config()
 
-    known_services = stateful.Bundle('known_services')
-    settings = stateful.Bundle('settings')
-    configurations = stateful.Bundle('configurations')
+    setting = stateful.Bundle('setting')
+    configuration = stateful.Bundle('configuration')
 
-    @stateful.initialize(target=configurations)
-    def init_empty_configuration(self) -> _types.VaultConfig:
-        return copy.deepcopy(self.current_config)
+    @stateful.initialize(
+        target=configuration,
+        configs=strategies.lists(
+            _vault_full_config,
+            min_size=4,
+            max_size=4,
+        ),
+    )
+    def declare_initial_configs(
+        self,
+        configs: Iterable[_types.VaultConfig],
+    ) -> Iterable[_types.VaultConfig]:
+        return stateful.multiple(*configs)
 
-    @stateful.initialize(target=configurations)
-    def init_standard_testing_configuration(self) -> _types.VaultConfig:
-        return cast(
-            _types.VaultConfig,
-            {
-                'services': {
-                    DUMMY_SERVICE: copy.deepcopy(DUMMY_CONFIG_SETTINGS)
-                }
-            },
+    @stateful.initialize(
+        target=setting,
+        config=_vault_full_config,
+    )
+    def extract_initial_settings(
+        self,
+        config: _types.VaultConfig,
+    ) -> Iterable[_types.VaultConfigServicesSettings]:
+        return stateful.multiple(
+            *map(copy.deepcopy, config['services'].values())
         )
 
-    @stateful.initialize(
-        target=known_services,
-        service_names=strategies.lists(
-            strategies.text(
-                strategies.characters(min_codepoint=32, max_codepoint=126),
-                min_size=1,
-                max_size=50,
-            ),
-            min_size=10,
-            max_size=10,
-            unique=True,
-        ),
-    )
-    def init_random_service_names(
-        self, service_names: list[str]
-    ) -> Iterable[str]:
-        return stateful.multiple(*service_names)
-
-    # Don't include key or phrase settings here.  While easy to
-    # implement when manipulating the stored config directly, the
-    # command-line interface for changing the passphrase and key values
-    # is not straight-forward, and key values require a running SSH
-    # agent and the key to be loaded.
-    @stateful.initialize(
-        target=settings,
-        settings_list=strategies.lists(
-            tests.vault_full_service_config(),
-            min_size=5,
-            max_size=5,
-            unique_by=lambda obj: json.dumps(obj, sort_keys=True),
-        ),
-    )
-    def init_random_full_settings(
-        self, settings_list: list[_types.VaultConfigGlobalSettings]
-    ) -> Iterable[_types.VaultConfigGlobalSettings]:
-        return stateful.multiple(*settings_list)
-
-    @staticmethod
-    def build_reduced_vault_config_settings(
-        config: _types.VaultConfigGlobalSettings,
-        keys_to_purge: frozenset[str],
-    ) -> _types.VaultConfigGlobalSettings:
-        config2 = copy.deepcopy(config)
-        for key in keys_to_purge:
-            config2.pop(key, None)  # type: ignore[misc]
-        return config2
-
-    # See comment on `init_random_full_settings`.
-    @stateful.initialize(
-        target=settings,
-        settings_list=strategies.lists(
-            strategies.builds(
-                build_reduced_vault_config_settings,
-                tests.vault_full_service_config(),
-                strategies.sets(
-                    strategies.sampled_from([
-                        'length',
-                        'repeat',
-                        'upper',
-                        'lower',
-                        'number',
-                        'space',
-                        'dash',
-                        'symbol',
-                    ]),
-                    max_size=7,
-                ),
-            ),
-            min_size=5,
-            max_size=5,
-            unique_by=lambda obj: json.dumps(obj, sort_keys=True),
-        ).filter(bool),
-    )
-    def init_random_partial_settings(
-        self, settings_list: list[_types.VaultConfigGlobalSettings]
-    ) -> Iterable[_types.VaultConfigGlobalSettings]:
-        return stateful.multiple(*settings_list)
-
-    @stateful.invariant()
-    def check_consistency_of_configs(self) -> None:
-        _types.clean_up_falsy_vault_config_values(self.current_config)
-        assert self.current_config == cli._load_config()
-
     @stateful.rule(
-        target=settings,
-        settings_obj=tests.vault_full_service_config(),
+        target=configuration,
+        config=_vault_full_config,
     )
-    def prepare_settings(
-        self, settings_obj: dict[str, int]
-    ) -> _types.VaultConfigGlobalSettings:
-        return cast(_types.VaultConfigGlobalSettings, settings_obj.copy())
-
-    @stateful.rule(
-        target=known_services,
-        name=strategies.text(
-            strategies.characters(min_codepoint=32, max_codepoint=126),
-            min_size=1,
-            max_size=50,
-        ),
-    )
-    def prepare_service_name(self, name: str) -> str:
-        return name
-
-    @stateful.rule(
-        target=configurations,
-        settings_obj=stateful.consumes(settings),
-    )
-    def prepare_global_config(
+    def declare_config(
         self,
-        settings_obj: dict[str, int],
+        config: _types.VaultConfig,
     ) -> _types.VaultConfig:
-        return {
-            'global': cast(_types.VaultConfigGlobalSettings, settings_obj),
-            'services': {},
-        }
+        return config
 
     @stateful.rule(
-        target=configurations,
-        service=known_services,
-        settings_obj=stateful.consumes(settings),
+        target=setting,
+        config=_vault_full_config,
     )
-    def prepare_service_config(
+    def extract_settings(
         self,
-        service: str,
-        settings_obj: dict[str, int],
-    ) -> _types.VaultConfig:
-        return {
-            'services': {
-                service: cast(
-                    _types.VaultConfigServicesSettings, settings_obj
-                ),
-            },
-        }
+        config: _types.VaultConfig,
+    ) -> Iterable[_types.VaultConfigServicesSettings]:
+        return stateful.multiple(
+            *map(copy.deepcopy, config['services'].values())
+        )
 
     @staticmethod
     def fold_configs(
         c1: _types.VaultConfig, c2: _types.VaultConfig
     ) -> _types.VaultConfig:
+        """Fold `c1` into `c2`, overriding the latter."""
         new_global_dict = c1.get('global', c2.get('global'))
         if new_global_dict is not None:
             return {
@@ -2512,30 +2483,22 @@ class ConfigMergingStateMachine(stateful.RuleBasedStateMachine):
         }
 
     @stateful.rule(
-        target=configurations,
-        config_base=stateful.consumes(configurations),
-        config_folded=stateful.consumes(configurations),
-    )
-    def fold_configuration_into(
-        self,
-        config_base: _types.VaultConfig,
-        config_folded: _types.VaultConfig,
-    ) -> _types.VaultConfig:
-        return self.fold_configs(config_folded, config_base)
-
-    @stateful.rule(
-        settings_obj=stateful.consumes(settings),
+        target=configuration,
+        config=configuration,
+        setting=setting.filter(bool),
         overwrite=strategies.booleans(),
     )
     def set_globals(
         self,
-        settings_obj: _types.VaultConfigGlobalSettings,
+        config: _types.VaultConfig,
+        setting: _types.VaultConfigGlobalSettings,
         overwrite: bool,
-    ) -> None:
+    ) -> _types.VaultConfig:
+        cli._save_config(config)
         if overwrite:
-            self.current_config['global'] = {}
-        self.current_config.setdefault('global', {}).update(settings_obj)
-        assert _types.is_vault_config(self.current_config)
+            config['global'] = {}
+        config.setdefault('global', {}).update(setting)
+        assert _types.is_vault_config(config)
         # NOTE: This relies on settings_obj containing only the keys
         # "length", "repeat", "upper", "lower", "number", "space",
         # "dash" and "symbol".
@@ -2545,38 +2508,37 @@ class ConfigMergingStateMachine(stateful.RuleBasedStateMachine):
                 '--config',
                 '--overwrite-existing' if overwrite else '--merge-existing',
             ]
-            + [f'--{key}={value}' for key, value in settings_obj.items()],
+            + [
+                f'--{key}={value}'
+                for key, value in setting.items()
+                if key in _valid_properties
+            ],
             catch_exceptions=False,
         )
         result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(empty_stderr=False)
+        assert cli._load_config() == config
+        return config
 
-    # No check for whether the service settings currently exist.  This
-    # may therefore actually "create" the settings, not merely "modify"
-    # them.
-    #
-    # (There is no check because this appears to be hard or impossible
-    # to express as a hypothesis strategy: it would depend on the
-    # current state of the state machine instance.  This could be
-    # circumvented with `hypothesis.assume`, but that may likely trigger
-    # health check errors.)
     @stateful.rule(
-        service=known_services,
-        settings_obj=stateful.consumes(settings),
+        target=configuration,
+        config=configuration,
+        service=strategies.sampled_from(_known_services),
+        setting=setting.filter(bool),
         overwrite=strategies.booleans(),
     )
     def set_service(
         self,
+        config: _types.VaultConfig,
         service: str,
-        settings_obj: _types.VaultConfigServicesSettings,
+        setting: _types.VaultConfigServicesSettings,
         overwrite: bool,
-    ) -> None:
+    ) -> _types.VaultConfig:
+        cli._save_config(config)
         if overwrite:
-            self.current_config['services'][service] = {}
-        self.current_config['services'].setdefault(service, {}).update(
-            settings_obj
-        )
-        assert _types.is_vault_config(self.current_config)
+            config['services'][service] = {}
+        config['services'].setdefault(service, {}).update(setting)
+        assert _types.is_vault_config(config)
         # NOTE: This relies on settings_obj containing only the keys
         # "length", "repeat", "upper", "lower", "number", "space",
         # "dash" and "symbol".
@@ -2586,17 +2548,29 @@ class ConfigMergingStateMachine(stateful.RuleBasedStateMachine):
                 '--config',
                 '--overwrite-existing' if overwrite else '--merge-existing',
             ]
-            + [f'--{key}={value}' for key, value in settings_obj.items()]
+            + [
+                f'--{key}={value}'
+                for key, value in setting.items()
+                if key in _valid_properties
+            ]
             + ['--', service],
             catch_exceptions=False,
         )
         result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(empty_stderr=False)
+        assert cli._load_config() == config
+        return config
 
-    @stateful.precondition(lambda self: 'global' in self.current_config)
-    @stateful.rule()
-    def purge_global(self) -> None:
-        self.current_config.pop('global')
+    @stateful.rule(
+        target=configuration,
+        config=configuration.filter(lambda c: 'global' in c),
+    )
+    def purge_global(
+        self,
+        config: _types.VaultConfig,
+    ) -> _types.VaultConfig:
+        cli._save_config(config)
+        config.pop('global')
         _result = self.runner.invoke(
             cli.derivepassphrase_vault,
             ['--delete-globals'],
@@ -2605,33 +2579,48 @@ class ConfigMergingStateMachine(stateful.RuleBasedStateMachine):
         )
         result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(empty_stderr=False)
+        assert cli._load_config() == config
+        return config
 
-    # No check for whether the service settings currently exist.  This
-    # may therefore actually be almost a no-op, purging settings that
-    # aren't set in the first place.
-    #
-    # (There is no check because this appears to be hard or impossible
-    # to express as a hypothesis strategy: it would depend on the
-    # current state of the state machine instance.  This could be
-    # circumvented with `hypothesis.assume`, but that may likely trigger
-    # health check errors.)
-    @stateful.precondition(lambda self: bool(self.current_config['services']))
-    @stateful.rule(service=stateful.consumes(known_services))
-    def purge_service(self, service: str) -> None:
-        ret = self.current_config['services'].pop(service, None)
-        if ret is not None:
-            _result = self.runner.invoke(
-                cli.derivepassphrase_vault,
-                ['--delete', '--', service],
-                input='y',
-                catch_exceptions=False,
+    @stateful.rule(
+        target=configuration,
+        config_and_service=configuration.filter(
+            lambda c: len(c['services']) > 1
+        ).flatmap(
+            lambda c: strategies.tuples(
+                strategies.just(c),
+                strategies.sampled_from(tuple(c['services'].keys())),
             )
-            result = tests.ReadableResult.parse(_result)
-            assert result.clean_exit(empty_stderr=False)
+        ),
+    )
+    def purge_service(
+        self,
+        config_and_service: tuple[_types.VaultConfig, str],
+    ) -> _types.VaultConfig:
+        config, service = config_and_service
+        cli._save_config(config)
+        config['services'].pop(service, None)
+        _result = self.runner.invoke(
+            cli.derivepassphrase_vault,
+            ['--delete', '--', service],
+            input='y',
+            catch_exceptions=False,
+        )
+        result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(empty_stderr=False)
+        assert cli._load_config() == config
+        return config
 
-    @stateful.rule()
-    def purge_all(self) -> None:
-        self.current_config = {'services': {}}
+    @stateful.rule(
+        target=configuration,
+        config=configuration.filter(lambda c: 0 < len(c['services']) < 5),
+    )
+    def purge_all(
+        self,
+        config: _types.VaultConfig,
+    ) -> _types.VaultConfig:
+        cli._save_config(config)
+        config = {'services': {}}
         _result = self.runner.invoke(
             cli.derivepassphrase_vault,
             ['--clear'],
@@ -2640,35 +2629,43 @@ class ConfigMergingStateMachine(stateful.RuleBasedStateMachine):
         )
         result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(empty_stderr=False)
+        assert cli._load_config() == config
+        return config
 
     @stateful.rule(
-        config=stateful.consumes(configurations),
+        target=configuration,
+        base_config=configuration,
+        config_to_import=configuration,
         overwrite=strategies.booleans(),
     )
-    def import_configuraton(
+    def import_configuration(
         self,
-        config: _types.VaultConfig,
+        base_config: _types.VaultConfig,
+        config_to_import: _types.VaultConfig,
         overwrite: bool,
-    ) -> None:
-        self.current_config = (
-            self.fold_configs(config, self.current_config)
+    ) -> _types.VaultConfig:
+        cli._save_config(base_config)
+        config = (
+            self.fold_configs(config_to_import, base_config)
             if not overwrite
-            else config
+            else config_to_import
         )
-        assert _types.is_vault_config(self.current_config)
+        assert _types.is_vault_config(config)
         _result = self.runner.invoke(
             cli.derivepassphrase_vault,
             ['--import', '-']
             + (['--overwrite-existing'] if overwrite else []),
-            input=json.dumps(config),
+            input=json.dumps(config_to_import),
             catch_exceptions=False,
         )
         assert tests.ReadableResult.parse(_result).clean_exit(
             empty_stderr=False
         )
+        assert cli._load_config() == config
+        return config
 
     def teardown(self) -> None:
         self.exit_stack.close()
 
 
-TestConfigMerging = ConfigMergingStateMachine.TestCase
+TestConfigManagement = ConfigManagementStateMachine.TestCase
