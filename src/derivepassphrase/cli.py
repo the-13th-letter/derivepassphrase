@@ -343,53 +343,25 @@ P = ParamSpec('P')
 R = TypeVar('R')
 
 
-def log_debug(
+def adjust_logging_level(
     ctx: click.Context,
     /,
     param: click.Parameter | None = None,
-    value: Any = None,  # noqa: ANN401
+    value: int | None = None,
 ) -> None:
-    """Request that DEBUG-level logs be emitted to standard error.
+    """Change the logs that are emitted to standard error.
 
     This modifies the [`StandardCLILogging`][] settings such that log
-    records at level [`logging.DEBUG`][] and [`logging.INFO`][] are
-    emitted as well.
+    records at the respective level are emitted, based on the `param`
+    and the `value`.
 
     """
-    del ctx, param, value
-    StandardCLILogging.cli_handler.setLevel(logging.DEBUG)
-
-
-def log_info(
-    ctx: click.Context,
-    /,
-    param: click.Parameter | None = None,
-    value: Any = None,  # noqa: ANN401
-) -> None:
-    """Request that INFO-level logs be emitted to standard error.
-
-    This modifies the [`StandardCLILogging`][] settings such that log
-    records at level [`logging.INFO`][] are emitted as well.
-
-    """
-    del ctx, param, value
-    StandardCLILogging.cli_handler.setLevel(logging.INFO)
-
-
-def silence_warnings(
-    ctx: click.Context,
-    /,
-    param: click.Parameter | None = None,
-    value: Any = None,  # noqa: ANN401
-) -> None:
-    """Request that WARNING-level logs not be emitted to standard error.
-
-    This modifies the [`StandardCLILogging`][] settings such that log
-    records at level [`logging.WARNING`][] and below are *not* emitted.
-
-    """
-    del ctx, param, value
-    StandardCLILogging.cli_handler.setLevel(logging.ERROR)
+    # Note: If multiple options use this callback, then we will be
+    # called multiple times.  Ensure the runs are idempotent.
+    if param is None or value is None or ctx.resilient_parsing:
+        return
+    StandardCLILogging.cli_handler.setLevel(value)
+    logging.getLogger(StandardCLILogging.package_name).setLevel(value)
 
 
 # Option parsing and grouping
@@ -498,6 +470,40 @@ class LoggingOption(OptionGroupOption):
     epilog = ''
 
 
+debug_option = click.option(
+    '--debug',
+    'logging_level',
+    is_flag=True,
+    flag_value=logging.DEBUG,
+    expose_value=False,
+    callback=adjust_logging_level,
+    help='also emit debug information (implies --verbose)',
+    cls=LoggingOption,
+)
+verbose_option = click.option(
+    '-v',
+    '--verbose',
+    'logging_level',
+    is_flag=True,
+    flag_value=logging.INFO,
+    expose_value=False,
+    callback=adjust_logging_level,
+    help='emit extra/progress information to standard error',
+    cls=LoggingOption,
+)
+quiet_option = click.option(
+    '-q',
+    '--quiet',
+    'logging_level',
+    is_flag=True,
+    flag_value=logging.ERROR,
+    expose_value=False,
+    callback=adjust_logging_level,
+    help='suppress even warnings, emit only errors',
+    cls=LoggingOption,
+)
+
+
 def standard_logging_options(f: Callable[P, R]) -> Callable[P, R]:
     """Decorate the function with standard logging click options.
 
@@ -512,36 +518,7 @@ def standard_logging_options(f: Callable[P, R]) -> Callable[P, R]:
         The decorated callable.
 
     """
-    dec1 = click.option(
-        '-q',
-        '--quiet',
-        is_flag=True,
-        is_eager=True,
-        expose_value=False,
-        callback=silence_warnings,
-        help='suppress even warnings, emit only errors',
-        cls=LoggingOption,
-    )
-    dec2 = click.option(
-        '-v',
-        '--verbose',
-        is_flag=True,
-        is_eager=True,
-        expose_value=False,
-        callback=log_info,
-        help='emit extra/progress information to standard error',
-        cls=LoggingOption,
-    )
-    dec3 = click.option(
-        '--debug',
-        is_flag=True,
-        is_eager=True,
-        expose_value=False,
-        callback=log_debug,
-        help='also emit debug information (implies --verbose)',
-        cls=LoggingOption,
-    )
-    return dec1(dec2(dec3(f)))
+    return debug_option(verbose_option(quiet_option(f)))
 
 
 # Top-level
@@ -1754,7 +1731,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     exc.filename,
                 )
             else:
-                logger.info('Successfully migrated to %r.', new_name)
+                deprecation.info('Successfully migrated to %r.', new_name)
             return backup_config
         except OSError as e:
             err('Cannot load config: %s: %r', e.strerror, e.filename)

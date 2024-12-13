@@ -2279,7 +2279,7 @@ class TestCLITransition:
         assert tests.deprecation_warning_emitted(
             'v0.1-style config file', caplog.record_tuples
         ), 'expected known warning message in stderr'
-        assert tests.info_emitted(
+        assert tests.deprecation_info_emitted(
             'Successfully migrated to ', caplog.record_tuples
         ), 'expected known warning message in stderr'
 

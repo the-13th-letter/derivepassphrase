@@ -1713,4 +1713,7 @@ warning_emitted = message_emitted_factory(logging.WARNING)
 deprecation_warning_emitted = message_emitted_factory(
     logging.WARNING, logger_name=f'{cli.PROG_NAME}.deprecation'
 )
+deprecation_info_emitted = message_emitted_factory(
+    logging.INFO, logger_name=f'{cli.PROG_NAME}.deprecation'
+)
 error_emitted = message_emitted_factory(logging.ERROR)
