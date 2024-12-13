@@ -1703,6 +1703,36 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         logger.error(msg, *args, stacklevel=stacklevel, **kwargs)
         ctx.exit(1)
 
+    def key_to_phrase(key_: str | bytes | bytearray, /) -> bytes | bytearray:
+        key = base64.standard_b64decode(key_)
+        try:
+            with ssh_agent.SSHAgentClient.ensure_agent_subcontext() as client:
+                try:
+                    return vault.Vault.phrase_from_key(key, conn=client)
+                except ssh_agent.SSHAgentFailedError as e:
+                    try:
+                        keylist = client.list_keys()
+                    except ssh_agent.SSHAgentFailedError:
+                        pass
+                    except Exception as e2:  # noqa: BLE001
+                        e.__context__ = e2
+                    else:
+                        if not any(k == key for k, _ in keylist):
+                            err(
+                                'The requested SSH key is not loaded '
+                                'into the agent.'
+                            )
+                    err(e)
+        except KeyError:
+            err('Cannot find running SSH agent; check SSH_AUTH_SOCK')
+        except NotImplementedError:
+            err(
+                'Cannot connect to SSH agent because '
+                'this Python version does not support UNIX domain sockets'
+            )
+        except OSError as e:
+            err('Cannot connect to SSH agent: %s', e.strerror)
+
     def get_config() -> _types.VaultConfig:
         try:
             return _load_config()
@@ -2046,13 +2076,6 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 for k, v in settings.items()
                 if k in service_keys and v is not None
             }
-
-            def key_to_phrase(
-                key: str | bytes | bytearray,
-            ) -> bytes | bytearray:
-                return vault.Vault.phrase_from_key(
-                    base64.standard_b64decode(key)
-                )
 
             if use_phrase:
                 form = cast(
