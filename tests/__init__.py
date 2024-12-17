@@ -30,6 +30,7 @@ from derivepassphrase import _types, cli, ssh_agent, vault
 __all__ = ()
 
 if TYPE_CHECKING:
+    import socket
     from collections.abc import Callable, Iterator, Mapping, Sequence
 
     import click.testing
@@ -1412,7 +1413,13 @@ def suitable_ssh_keys(conn: Any) -> Iterator[_types.KeyCommentPair]:
     ]
 
 
-def phrase_from_key(key: bytes) -> bytes:
+def phrase_from_key(
+    key: bytes,
+    /,
+    *,
+    conn: ssh_agent.SSHAgentClient | socket.socket | None = None,
+) -> bytes:
+    del conn
     if key == DUMMY_KEY1:  # pragma: no branch
         return DUMMY_PHRASE_FROM_KEY1
     raise KeyError(key)  # pragma: no cover
@@ -1712,5 +1719,8 @@ info_emitted = message_emitted_factory(logging.INFO)
 warning_emitted = message_emitted_factory(logging.WARNING)
 deprecation_warning_emitted = message_emitted_factory(
     logging.WARNING, logger_name=f'{cli.PROG_NAME}.deprecation'
+)
+deprecation_info_emitted = message_emitted_factory(
+    logging.INFO, logger_name=f'{cli.PROG_NAME}.deprecation'
 )
 error_emitted = message_emitted_factory(logging.ERROR)
