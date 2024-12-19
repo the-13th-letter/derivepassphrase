@@ -117,9 +117,7 @@ def test_200a_is_vault_config_smudged(
 )
 def test_400_validate_vault_config(test_config: tests.VaultTestConfig) -> None:
     obj, comment, validation_settings = test_config
-    allow_unknown_settings, allow_derivepassphrase_extensions = (
-        validation_settings or (True, True)
-    )
+    (allow_unknown_settings,) = validation_settings or (True,)
     obj = copy.deepcopy(obj)
     _types.clean_up_falsy_vault_config_values(obj)
     if comment:
@@ -127,14 +125,12 @@ def test_400_validate_vault_config(test_config: tests.VaultTestConfig) -> None:
             _types.validate_vault_config(
                 obj,
                 allow_unknown_settings=allow_unknown_settings,
-                allow_derivepassphrase_extensions=allow_derivepassphrase_extensions,
             )
     else:
         try:
             _types.validate_vault_config(
                 obj,
                 allow_unknown_settings=allow_unknown_settings,
-                allow_derivepassphrase_extensions=allow_derivepassphrase_extensions,
             )
         except (TypeError, ValueError) as exc:  # pragma: no cover
             assert not exc, 'failed to validate valid example'  # noqa: PT017
@@ -152,9 +148,7 @@ def test_400a_validate_vault_config_smudged(
     test_config: tests.VaultTestConfig,
 ) -> None:
     _obj, comment, validation_settings = test_config
-    allow_unknown_settings, allow_derivepassphrase_extensions = (
-        validation_settings or (True, True)
-    )
+    (allow_unknown_settings,) = validation_settings or (True,)
     obj = copy.deepcopy(_obj)
     did_cleanup = _types.clean_up_falsy_vault_config_values(obj)
     if comment:
@@ -162,14 +156,12 @@ def test_400a_validate_vault_config_smudged(
             _types.validate_vault_config(
                 obj,
                 allow_unknown_settings=allow_unknown_settings,
-                allow_derivepassphrase_extensions=allow_derivepassphrase_extensions,
             )
     else:
         try:
             _types.validate_vault_config(
                 obj,
                 allow_unknown_settings=allow_unknown_settings,
-                allow_derivepassphrase_extensions=allow_derivepassphrase_extensions,
             )
         except (TypeError, ValueError) as exc:  # pragma: no cover
             assert not exc, 'failed to validate valid example'  # noqa: PT017

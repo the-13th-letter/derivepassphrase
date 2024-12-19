@@ -33,6 +33,9 @@ dependencies = [
   # available in older Pythons (such as typing.Self).  These are loaded from
   # typing_extensions, instead of using explicit version guards.
   "typing_extensions",
+  # We read configuration files in JSON and TOML format.  The latter is
+  # unavailable in the Python standard library until Python 3.11.
+  'tomli; python_version < "3.11"'
 ]
 dynamic = ['version']
 

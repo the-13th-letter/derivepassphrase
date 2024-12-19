@@ -47,7 +47,6 @@ if TYPE_CHECKING:
 
 class ValidationSettings(NamedTuple):
     allow_unknown_settings: bool
-    allow_derivepassphrase_extensions: bool
 
 
 class VaultTestConfig(NamedTuple):
@@ -205,7 +204,7 @@ TEST_CONFIGS: list[VaultTestConfig] = [
             },
         },
         '',
-        ValidationSettings(False, True),
+        ValidationSettings(True),
     ),
     VaultTestConfig(
         {
@@ -215,8 +214,8 @@ TEST_CONFIGS: list[VaultTestConfig] = [
                 'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
             },
         },
-        'extension key: .global.unicode_normalization_form',
-        ValidationSettings(False, False),
+        'extension/unknown key: .global.unicode_normalization_form',
+        ValidationSettings(False),
     ),
     VaultTestConfig(
         {
@@ -227,7 +226,7 @@ TEST_CONFIGS: list[VaultTestConfig] = [
             },
         },
         '',
-        ValidationSettings(True, False),
+        ValidationSettings(True),
     ),
     VaultTestConfig(
         {
@@ -238,7 +237,7 @@ TEST_CONFIGS: list[VaultTestConfig] = [
             },
         },
         'unknown key: .global.unknown_key',
-        ValidationSettings(False, False),
+        ValidationSettings(False),
     ),
     VaultTestConfig(
         {
@@ -253,8 +252,8 @@ TEST_CONFIGS: list[VaultTestConfig] = [
                 },
             },
         },
-        'unknown_key: .services.sv2.unknown_key',
-        ValidationSettings(False, False),
+        'unknown key: .services.sv2.unknown_key',
+        ValidationSettings(False),
     ),
     VaultTestConfig(
         {
@@ -270,7 +269,7 @@ TEST_CONFIGS: list[VaultTestConfig] = [
             },
         },
         '',
-        ValidationSettings(True, True),
+        ValidationSettings(True),
     ),
     VaultTestConfig(
         {
@@ -285,11 +284,8 @@ TEST_CONFIGS: list[VaultTestConfig] = [
                 },
             },
         },
-        (
-            'extension key (permitted): .global.unicode_normalization_form; '
-            'unknown key: .services.sv2.unknown_key'
-        ),
-        ValidationSettings(False, True),
+        '',
+        ValidationSettings(True),
     ),
     VaultTestConfig(
         {
@@ -304,11 +300,8 @@ TEST_CONFIGS: list[VaultTestConfig] = [
                 },
             },
         },
-        (
-            'unknown key (permitted): .services.sv2.unknown_key; '
-            'extension key: .global.unicode_normalization_form'
-        ),
-        ValidationSettings(True, False),
+        '',
+        ValidationSettings(True),
     ),
 ]
 
@@ -1429,6 +1422,7 @@ def phrase_from_key(
 def isolated_config(
     monkeypatch: pytest.MonkeyPatch,
     runner: click.testing.CliRunner,
+    main_config_str: str | None = None,
 ) -> Iterator[None]:
     prog_name = cli.PROG_NAME
     env_name = prog_name.replace(' ', '_').upper() + '_PATH'
@@ -1445,6 +1439,13 @@ def isolated_config(
         monkeypatch.delenv(env_name, raising=False)
         config_dir = cli._config_filename(subsystem=None)
         os.makedirs(config_dir, exist_ok=True)
+        if isinstance(main_config_str, str):
+            with open(
+                cli._config_filename('user configuration'),
+                'w',
+                encoding='UTF-8',
+            ) as outfile:
+                outfile.write(main_config_str)
         yield
 
 
@@ -1452,12 +1453,15 @@ def isolated_config(
 def isolated_vault_config(
     monkeypatch: pytest.MonkeyPatch,
     runner: click.testing.CliRunner,
-    config: Any,
+    vault_config: Any,
+    main_config_str: str | None = None,
 ) -> Iterator[None]:
-    with isolated_config(monkeypatch=monkeypatch, runner=runner):
+    with isolated_config(
+        monkeypatch=monkeypatch, runner=runner, main_config_str=main_config_str
+    ):
         config_filename = cli._config_filename(subsystem='vault')
         with open(config_filename, 'w', encoding='UTF-8') as outfile:
-            json.dump(config, outfile)
+            json.dump(vault_config, outfile)
         yield
 
 
