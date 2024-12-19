@@ -12,6 +12,7 @@ import logging
 import os
 import shutil
 import socket
+import textwrap
 import warnings
 from typing import TYPE_CHECKING
 
@@ -1414,9 +1415,10 @@ contents go here
             ), 'expected error exit and known error message'
 
     @pytest.mark.parametrize(
-        ['command_line', 'input', 'warning_message'],
+        ['main_config', 'command_line', 'input', 'warning_message'],
         [
             pytest.param(
+                '',
                 ['--import', '-'],
                 json.dumps({
                     'global': {'phrase': 'Du\u0308sseldorf'},
@@ -1426,6 +1428,7 @@ contents go here
                 id='global-NFC',
             ),
             pytest.param(
+                '',
                 ['--import', '-'],
                 json.dumps({
                     'services': {
@@ -1440,6 +1443,7 @@ contents go here
                 id='service-weird-name-NFC',
             ),
             pytest.param(
+                '',
                 ['--config', '-p', '--', DUMMY_SERVICE],
                 'Du\u0308sseldorf',
                 (
@@ -1449,16 +1453,20 @@ contents go here
                 id='config-NFC',
             ),
             pytest.param(
+                '',
                 ['-p', '--', DUMMY_SERVICE],
                 'Du\u0308sseldorf',
-                'the interactive passphrase is not NFC-normalized',
+                'the interactive input passphrase is not NFC-normalized',
                 id='direct-input-NFC',
             ),
             pytest.param(
+                textwrap.dedent(r"""
+                [vault]
+                default-unicode-normalization-form = 'NFD'
+                """),
                 ['--import', '-'],
                 json.dumps({
                     'global': {
-                        'unicode_normalization_form': 'NFD',
                         'phrase': 'D\u00fcsseldorf',
                     },
                     'services': {},
@@ -1467,11 +1475,12 @@ contents go here
                 id='global-NFD',
             ),
             pytest.param(
+                textwrap.dedent(r"""
+                [vault]
+                default-unicode-normalization-form = 'NFD'
+                """),
                 ['--import', '-'],
                 json.dumps({
-                    'global': {
-                        'unicode_normalization_form': 'NFD',
-                    },
                     'services': {
                         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
                         'weird entry name': {'phrase': 'D\u00fcsseldorf'},
@@ -1483,12 +1492,32 @@ contents go here
                 ),
                 id='service-weird-name-NFD',
             ),
+            pytest.param(
+                textwrap.dedent(r"""
+                [vault.unicode-normalization-form]
+                'weird entry name 2' = 'NFKD'
+                """),
+                ['--import', '-'],
+                json.dumps({
+                    'services': {
+                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
+                        'weird entry name 1': {'phrase': 'D\u00fcsseldorf'},
+                        'weird entry name 2': {'phrase': 'D\u00fcsseldorf'},
+                    },
+                }),
+                (
+                    'the $.services["weird entry name 2"] passphrase '
+                    'is not NFKD-normalized'
+                ),
+                id='service-weird-name-2-NFKD',
+            ),
         ],
     )
     def test_300_unicode_normalization_form_warning(
         self,
         monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
+        main_config: str,
         command_line: list[str],
         input: str | None,
         warning_message: str,
@@ -1500,10 +1529,11 @@ contents go here
             vault_config={
                 'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}
             },
+            main_config_str=main_config,
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                command_line,
+                ['--debug', *command_line],
                 catch_exceptions=False,
                 input=input,
             )
@@ -1512,6 +1542,149 @@ contents go here
         assert tests.warning_emitted(
             warning_message, caplog.record_tuples
         ), 'expected known warning message in stderr'
+
+    @pytest.mark.parametrize(
+        ['main_config', 'command_line', 'input', 'error_message'],
+        [
+            pytest.param(
+                textwrap.dedent(r"""
+                [vault]
+                default-unicode-normalization-form = 'XXX'
+                """),
+                ['--import', '-'],
+                json.dumps({
+                    'services': {
+                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
+                        'with_normalization': {'phrase': 'D\u00fcsseldorf'},
+                    },
+                }),
+                (
+                    "Invalid value 'XXX' for config key "
+                    "vault.default-unicode-normalization-form"
+                ),
+                id='global',
+            ),
+            pytest.param(
+                textwrap.dedent(r"""
+                [vault.unicode-normalization-form]
+                with_normalization = 'XXX'
+                """),
+                ['--import', '-'],
+                json.dumps({
+                    'services': {
+                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
+                        'with_normalization': {'phrase': 'D\u00fcsseldorf'},
+                    },
+                }),
+                (
+                    "Invalid value 'XXX' for config key "
+                    "vault.with_normalization.unicode-normalization-form"
+                ),
+                id='service',
+            ),
+        ],
+    )
+    def test_301_unicode_normalization_form_error(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        main_config: str,
+        command_line: list[str],
+        input: str | None,
+        error_message: str,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            vault_config={
+                'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}
+            },
+            main_config_str=main_config,
+        ):
+            _result = runner.invoke(
+                cli.derivepassphrase_vault,
+                command_line,
+                catch_exceptions=False,
+                input=input,
+            )
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='The configuration file is invalid.'
+        ), 'expected error exit and known error message'
+        assert result.error_exit(
+            error=error_message
+        ), 'expected error exit and known error message'
+
+    @pytest.mark.parametrize(
+        'command_line',
+        [
+            pytest.param(
+                ['--config', '--phrase'],
+                id='configure global passphrase',
+            ),
+            pytest.param(
+                ['--phrase', '--', DUMMY_SERVICE],
+                id='interactive passphrase',
+            ),
+        ],
+    )
+    def test_301a_unicode_normalization_form_error_from_stored_config(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        command_line: list[str],
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            vault_config={
+                'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}
+            },
+            main_config_str=textwrap.dedent("""
+            [vault]
+            default-unicode-normalization-form = 'XXX'
+            """),
+        ):
+            _result = runner.invoke(
+                cli.derivepassphrase_vault,
+                command_line,
+                input=DUMMY_PASSPHRASE,
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(_result)
+            assert result.error_exit(
+                error='The configuration file is invalid.'
+            ), 'expected error exit and known error message'
+            assert result.error_exit(
+                error=(
+                    "Invalid value 'XXX' for config key "
+                    "vault.default-unicode-normalization-form"
+                ),
+            ), 'expected error exit and known error message'
+
+    def test_310_bad_user_config_file(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            vault_config={'services': {}},
+            main_config_str=textwrap.dedent("""
+            This file is not valid TOML.
+            """),
+        ):
+            _result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--phrase', '--', DUMMY_SERVICE],
+                input=DUMMY_PASSPHRASE,
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(_result)
+            assert result.error_exit(
+                error='Cannot load user config:'
+            ), 'expected error exit and known error message'
 
     def test_400_missing_af_unix_support(
         self,

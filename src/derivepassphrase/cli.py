@@ -1247,33 +1247,78 @@ def _prompt_for_passphrase() -> str:
     )
 
 
+def _toml_key(*parts: str) -> str:
+    """Return a formatted TOML key, given its parts."""
+    def escape(string: str) -> str:
+        translated = string.translate({
+            0: r'\u0000',
+            1: r'\u0001',
+            2: r'\u0002',
+            3: r'\u0003',
+            4: r'\u0004',
+            5: r'\u0005',
+            6: r'\u0006',
+            7: r'\u0007',
+            8: r'\b',
+            9: r'\t',
+            10: r'\n',
+            11: r'\u000B',
+            12: r'\f',
+            13: r'\r',
+            14: r'\u000E',
+            15: r'\u000F',
+            ord('"'): r'\"',
+            ord('\\'): r'\\',
+            127: r'\u007F',
+        })
+        return f'"{translated}"' if translated != string else string
+    return '.'.join(map(escape, parts))
+
+
 class _ORIGIN(enum.Enum):
-    INTERACTIVE: str = 'interactive'
+    INTERACTIVE: str = 'interactive input'
 
 
 def _check_for_misleading_passphrase(
     key: tuple[str, ...] | _ORIGIN,
     value: dict[str, Any],
     *,
-    form: Literal['NFC', 'NFD', 'NFKC', 'NFKD'] = 'NFC',
+    main_config: dict[str, Any],
 ) -> None:
+    form_key = 'unicode-normalization-form'
+    default_form: str = main_config.get('vault', {}).get(
+        f'default-{form_key}', 'NFC'
+    )
+    form_dict: dict[str, dict] = main_config.get('vault', {}).get(form_key, {})
+    form: Any = (
+        default_form
+        if isinstance(key, _ORIGIN) or key == ('global',)
+        else form_dict.get(key[1], default_form)
+    )
+    config_key = (
+        _toml_key('vault', key[1], form_key)
+        if isinstance(key, tuple) and len(key) > 1 and key[1] in form_dict
+        else f'vault.default-{form_key}'
+    )
+    if form not in {'NFC', 'NFD', 'NFKC', 'NFKD'}:
+        msg = f'Invalid value {form!r} for config key {config_key}'
+        raise AssertionError(msg)
     logger = logging.getLogger(PROG_NAME)
+    formatted_key = (
+        key.value if isinstance(key, _ORIGIN) else _types.json_path(key)
+    )
     if 'phrase' in value:
         phrase = value['phrase']
         if not unicodedata.is_normalized(form, phrase):
-            formatted_key = (
-                key.value
-                if isinstance(key, _ORIGIN)
-                else _types.json_path(key)
-            )
             logger.warning(
                 (
-                    'the %s passphrase is not %s-normalized. '
+                    'the %s passphrase is not %s-normalized.  '
                     'Make sure to double-check this is really the '
                     'passphrase you want.'
                 ),
                 formatted_key,
                 form,
+                stacklevel=2,
             )
 
 
@@ -1952,24 +1997,20 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 ),
                 PROG_NAME,
             )
-        form = cast(
-            Literal['NFC', 'NFD', 'NFKC', 'NFKD'],
-            maybe_config.get('global', {}).get(
-                'unicode_normalization_form', 'NFC'
-            ),
-        )
-        assert form in {'NFC', 'NFD', 'NFKC', 'NFKD'}
-        _check_for_misleading_passphrase(
-            ('global',),
-            cast(dict[str, Any], maybe_config.get('global', {})),
-            form=form,
-        )
-        for key, value in maybe_config['services'].items():
+        try:
             _check_for_misleading_passphrase(
-                ('services', key),
-                cast(dict[str, Any], value),
-                form=form,
+                ('global',),
+                cast(dict[str, Any], maybe_config.get('global', {})),
+                main_config=user_config,
             )
+            for key, value in maybe_config['services'].items():
+                _check_for_misleading_passphrase(
+                    ('services', key),
+                    cast(dict[str, Any], value),
+                    main_config=user_config,
+                )
+        except AssertionError as e:
+            err('The configuration file is invalid.  ' + str(e))
         if overwrite_config:
             put_config(maybe_config)
         else:
@@ -2081,10 +2122,14 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             elif use_phrase:
                 view['phrase'] = phrase
                 settings_type = 'service' if service else 'global'
-                _check_for_misleading_passphrase(
-                    ('services', service) if service else ('global',),
-                    {'phrase': phrase},
-                )
+                try:
+                    _check_for_misleading_passphrase(
+                        ('services', service) if service else ('global',),
+                        {'phrase': phrase},
+                        main_config=user_config,
+                    )
+                except AssertionError as e:
+                    err('The configuration file is invalid.  ' + str(e))
                 if 'key' in settings:
                     logger.warning(
                         (
@@ -2123,16 +2168,14 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             }
 
             if use_phrase:
-                form = cast(
-                    Literal['NFC', 'NFD', 'NFKC', 'NFKD'],
-                    configuration.get('global', {}).get(
-                        'unicode_normalization_form', 'NFC'
-                    ),
-                )
-                assert form in {'NFC', 'NFD', 'NFKC', 'NFKD'}
-                _check_for_misleading_passphrase(
-                    _ORIGIN.INTERACTIVE, {'phrase': phrase}, form=form
-                )
+                try:
+                    _check_for_misleading_passphrase(
+                        _ORIGIN.INTERACTIVE,
+                        {'phrase': phrase},
+                        main_config=user_config,
+                    )
+                except AssertionError as e:
+                    err('The configuration file is invalid.  ' + str(e))
 
             # If either --key or --phrase are given, use that setting.
             # Otherwise, if both key and phrase are set in the config,
