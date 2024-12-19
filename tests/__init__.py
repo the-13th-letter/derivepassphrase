@@ -47,7 +47,6 @@ if TYPE_CHECKING:
 
 class ValidationSettings(NamedTuple):
     allow_unknown_settings: bool
-    allow_derivepassphrase_extensions: bool
 
 
 class VaultTestConfig(NamedTuple):
@@ -205,7 +204,7 @@ TEST_CONFIGS: list[VaultTestConfig] = [
             },
         },
         '',
-        ValidationSettings(False, True),
+        ValidationSettings(True),
     ),
     VaultTestConfig(
         {
@@ -215,8 +214,8 @@ TEST_CONFIGS: list[VaultTestConfig] = [
                 'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
             },
         },
-        'extension key: .global.unicode_normalization_form',
-        ValidationSettings(False, False),
+        'extension/unknown key: .global.unicode_normalization_form',
+        ValidationSettings(False),
     ),
     VaultTestConfig(
         {
@@ -227,7 +226,7 @@ TEST_CONFIGS: list[VaultTestConfig] = [
             },
         },
         '',
-        ValidationSettings(True, False),
+        ValidationSettings(True),
     ),
     VaultTestConfig(
         {
@@ -238,7 +237,7 @@ TEST_CONFIGS: list[VaultTestConfig] = [
             },
         },
         'unknown key: .global.unknown_key',
-        ValidationSettings(False, False),
+        ValidationSettings(False),
     ),
     VaultTestConfig(
         {
@@ -253,8 +252,8 @@ TEST_CONFIGS: list[VaultTestConfig] = [
                 },
             },
         },
-        'unknown_key: .services.sv2.unknown_key',
-        ValidationSettings(False, False),
+        'unknown key: .services.sv2.unknown_key',
+        ValidationSettings(False),
     ),
     VaultTestConfig(
         {
@@ -270,7 +269,7 @@ TEST_CONFIGS: list[VaultTestConfig] = [
             },
         },
         '',
-        ValidationSettings(True, True),
+        ValidationSettings(True),
     ),
     VaultTestConfig(
         {
@@ -285,11 +284,8 @@ TEST_CONFIGS: list[VaultTestConfig] = [
                 },
             },
         },
-        (
-            'extension key (permitted): .global.unicode_normalization_form; '
-            'unknown key: .services.sv2.unknown_key'
-        ),
-        ValidationSettings(False, True),
+        '',
+        ValidationSettings(True),
     ),
     VaultTestConfig(
         {
@@ -304,11 +300,8 @@ TEST_CONFIGS: list[VaultTestConfig] = [
                 },
             },
         },
-        (
-            'unknown key (permitted): .services.sv2.unknown_key; '
-            'extension key: .global.unicode_normalization_form'
-        ),
-        ValidationSettings(True, False),
+        '',
+        ValidationSettings(True),
     ),
 ]
 

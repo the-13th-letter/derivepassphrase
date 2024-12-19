@@ -16,6 +16,8 @@ from typing_extensions import (
     NamedTuple,
     NotRequired,
     TypedDict,
+    deprecated,
+    overload,
 )
 
 if TYPE_CHECKING:
@@ -212,8 +214,33 @@ def json_path(path: Sequence[str | int], /) -> str:
     return ''.join(chunks)
 
 
-def validate_vault_config(  # noqa: C901,PLR0912,PLR0915
+@overload
+@deprecated(
+    'allow_derivepassphrase_extensions argument is deprecated since v0.4.0, '
+    'to be removed in v1.0: no extensions are defined'
+)
+def validate_vault_config(
     obj: Any,  # noqa: ANN401
+    /,
+    *,
+    allow_derivepassphrase_extensions: bool,
+    allow_unknown_settings: bool = False,
+) -> None:
+    ...  # pragma: no cover
+
+
+@overload
+def validate_vault_config(
+    obj: Any,  # noqa: ANN401
+    /,
+    *,
+    allow_unknown_settings: bool = False,
+) -> None:
+    ...  # pragma: no cover
+
+
+def validate_vault_config(  # noqa: C901,PLR0912
+    obj: Any,
     /,
     *,
     allow_unknown_settings: bool = False,
@@ -227,7 +254,7 @@ def validate_vault_config(  # noqa: C901,PLR0912,PLR0915
         allow_unknown_settings:
             If false, abort on unknown settings.
         allow_derivepassphrase_extensions:
-            If true, allow `derivepassphrase` extensions.
+            (Deprecated.)  Ignored since v0.4.0.
 
     Raises:
         TypeError:
@@ -236,6 +263,11 @@ def validate_vault_config(  # noqa: C901,PLR0912,PLR0915
         ValueError:
             An entry in the vault config is not allowed, or has a
             disallowed value.
+
+    Deprecated:
+        Since v0.4.0: The `allow_derivepassphrase_extensions` keyword
+        argument is deprecated, and will be removed in v1.0.  There are
+        no specified `derivepassphrase` extensions.
 
     """
     err_obj_not_a_dict = 'vault config is not a dict'
@@ -254,15 +286,6 @@ def validate_vault_config(  # noqa: C901,PLR0912,PLR0915
     def err_not_an_int(path: Sequence[str], /) -> str:
         json_path_str = json_path(path)
         return f'vault config entry {json_path_str} is not an integer'
-
-    def err_derivepassphrase_extension(
-        key: str, path: Sequence[str], /
-    ) -> str:
-        json_path_str = json_path(path)
-        return (
-            f'vault config entry {json_path_str} uses '
-            f'`derivepassphrase` extension {key!r}'
-        )
 
     def err_unknown_setting(key: str, path: Sequence[str], /) -> str:
         json_path_str = json_path(path)
@@ -308,19 +331,16 @@ def validate_vault_config(  # noqa: C901,PLR0912,PLR0915
             elif key == 'unicode_normalization_form' and path == ('global',):
                 if not isinstance(value, str):
                     raise TypeError(err_not_a_string((*path, key)))
-                if not allow_derivepassphrase_extensions:
-                    raise ValueError(err_derivepassphrase_extension(key, path))
+                if (
+                    not allow_derivepassphrase_extensions
+                    and not allow_unknown_settings
+                ):
+                    raise ValueError(err_unknown_setting(key, path))
             elif key == 'notes' and path != ('global',):
                 if not isinstance(value, str):
                     raise TypeError(err_not_a_string((*path, key)))
-            elif key == 'length':
-                if not isinstance(value, int):
-                    raise TypeError(err_not_an_int((*path, key)))
-                if value < 1:
-                    raise ValueError(
-                        err_bad_number(key, path, strictly_positive=True)
-                    )
             elif key in {
+                'length',
                 'repeat',
                 'lower',
                 'upper',
@@ -331,7 +351,11 @@ def validate_vault_config(  # noqa: C901,PLR0912,PLR0915
             }:
                 if not isinstance(value, int):
                     raise TypeError(err_not_an_int((*path, key)))
-                if value < 0:
+                if key == 'length' and value < 1:
+                    raise ValueError(
+                        err_bad_number(key, path, strictly_positive=True)
+                    )
+                if key != 'length' and value < 0:
                     raise ValueError(
                         err_bad_number(key, path, strictly_positive=False)
                     )
