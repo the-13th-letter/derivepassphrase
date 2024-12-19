@@ -1962,11 +1962,19 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         try:
             # TODO(the-13th-letter): keep track of auto-close; try
             # os.dup if feasible
-            infile = (
-                cast(TextIO, import_settings)
-                if hasattr(import_settings, 'close')
-                else click.open_file(os.fspath(import_settings), 'rt')
+            infile = cast(
+                TextIO,
+                (
+                    import_settings
+                    if hasattr(import_settings, 'close')
+                    else click.open_file(os.fspath(import_settings), 'rt')
+                ),
             )
+            # Don't specifically catch TypeError or ValueError here if
+            # the passed-in fileobj is not a readable text stream.  This
+            # will never happen on the command-line (thanks to `click`),
+            # and for programmatic use, our caller may want accurate
+            # error information.
             with infile:
                 maybe_config = json.load(infile)
         except json.JSONDecodeError as e:
@@ -2050,11 +2058,19 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         try:
             # TODO(the-13th-letter): keep track of auto-close; try
             # os.dup if feasible
-            outfile = (
-                cast(TextIO, export_settings)
-                if hasattr(export_settings, 'close')
-                else click.open_file(os.fspath(export_settings), 'wt')
+            outfile = cast(
+                TextIO,
+                (
+                    export_settings
+                    if hasattr(export_settings, 'close')
+                    else click.open_file(os.fspath(export_settings), 'wt')
+                ),
             )
+            # Don't specifically catch TypeError or ValueError here if
+            # the passed-in fileobj is not a writable text stream.  This
+            # will never happen on the command-line (thanks to `click`),
+            # and for programmatic use, our caller may want accurate
+            # error information.
             with outfile:
                 json.dump(configuration, outfile)
         except OSError as e:
