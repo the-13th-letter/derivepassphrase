@@ -2034,7 +2034,9 @@ class TestCLITransition:
     ) -> None:
         runner = click.testing.CliRunner()
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
-            config_filename = cli._config_filename()
+            config_filename = cli._config_filename(
+                subsystem='old settings.json'
+            )
             with open(config_filename, 'w', encoding='UTF-8') as fileobj:
                 print(json.dumps(config, indent=2), file=fileobj)
             assert cli._migrate_and_load_old_config()[0] == config
@@ -2063,7 +2065,9 @@ class TestCLITransition:
     ) -> None:
         runner = click.testing.CliRunner()
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
-            config_filename = cli._config_filename()
+            config_filename = cli._config_filename(
+                subsystem='old settings.json'
+            )
             with open(config_filename, 'w', encoding='UTF-8') as fileobj:
                 print(json.dumps(config, indent=2), file=fileobj)
             assert cli._migrate_and_load_old_config() == (config, None)
@@ -2092,7 +2096,9 @@ class TestCLITransition:
     ) -> None:
         runner = click.testing.CliRunner()
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
-            config_filename = cli._config_filename()
+            config_filename = cli._config_filename(
+                subsystem='old settings.json'
+            )
             with open(config_filename, 'w', encoding='UTF-8') as fileobj:
                 print(json.dumps(config, indent=2), file=fileobj)
             os.mkdir(cli._config_filename(subsystem='vault'))
@@ -2125,7 +2131,9 @@ class TestCLITransition:
     ) -> None:
         runner = click.testing.CliRunner()
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
-            config_filename = cli._config_filename()
+            config_filename = cli._config_filename(
+                subsystem='old settings.json'
+            )
             with open(config_filename, 'w', encoding='UTF-8') as fileobj:
                 print(json.dumps(config, indent=2), file=fileobj)
             with pytest.raises(ValueError, match=cli._INVALID_VAULT_CONFIG):
@@ -2260,7 +2268,9 @@ class TestCLITransition:
             runner=runner,
         ):
             with open(
-                cli._config_filename(), 'w', encoding='UTF-8'
+                cli._config_filename(subsystem='old settings.json'),
+                'w',
+                encoding='UTF-8',
             ) as fileobj:
                 print(
                     json.dumps(
@@ -2294,7 +2304,9 @@ class TestCLITransition:
             runner=runner,
         ):
             with open(
-                cli._config_filename(), 'w', encoding='UTF-8'
+                cli._config_filename(subsystem='old settings.json'),
+                'w',
+                encoding='UTF-8',
             ) as fileobj:
                 print(
                     json.dumps(

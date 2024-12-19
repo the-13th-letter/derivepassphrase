@@ -877,7 +877,7 @@ def derivepassphrase_export_vault(
 
 
 def _config_filename(
-    subsystem: str | None = 'settings',
+    subsystem: str | None = 'old settings.json',
 ) -> str | bytes | pathlib.Path:
     """Return the filename of the configuration file for the subsystem.
 
@@ -912,8 +912,10 @@ def _config_filename(
     # Use match/case here once Python 3.9 becomes unsupported.
     if subsystem is None:
         return path
-    elif subsystem in {'vault', 'settings'}:  # noqa: RET505
+    elif subsystem == 'vault':  # noqa: RET505
         filename = f'{subsystem}.json'
+    elif subsystem == 'old settings.json':
+        filename = 'settings.json'
     else:  # pragma: no cover
         msg = f'Unknown configuration subsystem: {subsystem!r}'
         raise AssertionError(msg)
@@ -968,7 +970,7 @@ def _migrate_and_load_old_config() -> tuple[
 
     """
     new_filename = _config_filename(subsystem='vault')
-    old_filename = _config_filename()
+    old_filename = _config_filename(subsystem='old settings.json')
     with open(old_filename, 'rb') as fileobj:
         data = json.load(fileobj)
     if not _types.is_vault_config(data):
@@ -1741,7 +1743,9 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 backup_config, exc = _migrate_and_load_old_config()
             except FileNotFoundError:
                 return {'services': {}}
-            old_name = os.path.basename(_config_filename())
+            old_name = os.path.basename(
+                _config_filename(subsystem='old settings.json')
+            )
             new_name = os.path.basename(_config_filename(subsystem='vault'))
             deprecation.warning(
                 (
