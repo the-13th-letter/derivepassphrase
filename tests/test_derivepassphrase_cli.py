@@ -327,7 +327,7 @@ class TestCLI:
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
-            monkeypatch=monkeypatch, runner=runner, config=config
+            monkeypatch=monkeypatch, runner=runner, vault_config=config
         ):
             monkeypatch.setattr(
                 vault.Vault, 'phrase_from_key', tests.phrase_from_key
@@ -356,7 +356,7 @@ class TestCLI:
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
+            vault_config={'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
         ):
             monkeypatch.setattr(
                 cli, '_get_suitable_ssh_keys', tests.suitable_ssh_keys
@@ -420,7 +420,7 @@ class TestCLI:
             monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', tests.sign)
             runner = click.testing.CliRunner(mix_stderr=False)
             with tests.isolated_vault_config(
-                monkeypatch=monkeypatch, runner=runner, config=config
+                monkeypatch=monkeypatch, runner=runner, vault_config=config
             ):
                 _result = runner.invoke(
                     cli.derivepassphrase_vault,
@@ -450,7 +450,7 @@ class TestCLI:
             with tests.isolated_vault_config(
                 monkeypatch=monkeypatch,
                 runner=runner,
-                config={
+                vault_config={
                     'global': {'key': DUMMY_KEY1_B64},
                     'services': {
                         DUMMY_SERVICE: {
@@ -510,7 +510,7 @@ class TestCLI:
             with tests.isolated_vault_config(
                 monkeypatch=monkeypatch,
                 runner=runner,
-                config=config,
+                vault_config=config,
             ):
                 _result = runner.invoke(
                     cli.derivepassphrase_vault,
@@ -587,7 +587,7 @@ class TestCLI:
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'global': {'phrase': 'abc'}, 'services': {}},
+            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -613,7 +613,7 @@ class TestCLI:
             with tests.isolated_vault_config(
                 monkeypatch=monkeypatch,
                 runner=runner,
-                config={'global': {'phrase': 'abc'}, 'services': {}},
+                vault_config={'global': {'phrase': 'abc'}, 'services': {}},
             ):
                 monkeypatch.setattr(
                     cli, '_prompt_for_passphrase', tests.auto_prompt
@@ -644,7 +644,7 @@ class TestCLI:
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'services': {}},
+            vault_config={'services': {}},
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -727,7 +727,7 @@ class TestCLI:
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'services': {}},
+            vault_config={'services': {}},
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -766,7 +766,7 @@ class TestCLI:
         with tests.isolated_vault_config(
             monkeypatch=pytest.MonkeyPatch(),
             runner=runner,
-            config={'services': {}},
+            vault_config={'services': {}},
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -866,7 +866,7 @@ class TestCLI:
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
-            monkeypatch=monkeypatch, runner=runner, config={}
+            monkeypatch=monkeypatch, runner=runner, vault_config={}
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -936,6 +936,8 @@ class TestCLI:
         result = tests.ReadableResult.parse(_result)
         assert result.error_exit(
             error='Cannot load config'
+        ) or result.error_exit(
+            error='Cannot load user config'
         ), 'expected error exit and known error message'
 
     def test_220_edit_notes_successfully(
@@ -950,7 +952,7 @@ contents go here
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'global': {'phrase': 'abc'}, 'services': {}},
+            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: edit_result)  # noqa: ARG005
             _result = runner.invoke(
@@ -976,7 +978,7 @@ contents go here
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'global': {'phrase': 'abc'}, 'services': {}},
+            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: None)  # noqa: ARG005
             _result = runner.invoke(
@@ -999,7 +1001,7 @@ contents go here
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'global': {'phrase': 'abc'}, 'services': {}},
+            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: 'long\ntext')  # noqa: ARG005
             _result = runner.invoke(
@@ -1025,7 +1027,7 @@ contents go here
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'global': {'phrase': 'abc'}, 'services': {}},
+            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: '\n\n')  # noqa: ARG005
             _result = runner.invoke(
@@ -1096,7 +1098,7 @@ contents go here
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'global': {'phrase': 'abc'}, 'services': {}},
+            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.setattr(
                 cli, '_get_suitable_ssh_keys', tests.suitable_ssh_keys
@@ -1141,7 +1143,7 @@ contents go here
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'global': {'phrase': 'abc'}, 'services': {}},
+            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.setattr(
                 cli, '_get_suitable_ssh_keys', tests.suitable_ssh_keys
@@ -1165,7 +1167,7 @@ contents go here
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'global': {'phrase': 'abc'}, 'services': {}},
+            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             custom_error = 'custom error message'
 
@@ -1193,7 +1195,7 @@ contents go here
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'global': {'phrase': 'abc'}, 'services': {}},
+            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
             _result = runner.invoke(
@@ -1214,7 +1216,7 @@ contents go here
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'global': {'phrase': 'abc'}, 'services': {}},
+            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.setenv('SSH_AUTH_SOCK', os.getcwd())
             _result = runner.invoke(
@@ -1237,7 +1239,7 @@ contents go here
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'global': {'phrase': 'abc'}, 'services': {}},
+            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             tests.make_file_readonly(
                 cli._config_filename(subsystem='vault'),
@@ -1261,7 +1263,7 @@ contents go here
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'global': {'phrase': 'abc'}, 'services': {}},
+            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             custom_error = 'custom error message'
 
@@ -1495,7 +1497,9 @@ contents go here
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}},
+            vault_config={
+                'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}
+            },
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -1517,7 +1521,7 @@ contents go here
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
             runner=runner,
-            config={'global': {'phrase': 'abc'}, 'services': {}},
+            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.setenv(
                 'SSH_AUTH_SOCK', "the value doesn't even matter"
@@ -1559,7 +1563,7 @@ class TestCLIUtils:
     ) -> None:
         runner = click.testing.CliRunner()
         with tests.isolated_vault_config(
-            monkeypatch=monkeypatch, runner=runner, config=config
+            monkeypatch=monkeypatch, runner=runner, vault_config=config
         ):
             config_filename = cli._config_filename(subsystem='vault')
             with open(config_filename, encoding='UTF-8') as fileobj:
@@ -1575,7 +1579,7 @@ class TestCLIUtils:
         with contextlib.ExitStack() as stack:
             stack.enter_context(
                 tests.isolated_vault_config(
-                    monkeypatch=monkeypatch, runner=runner, config={}
+                    monkeypatch=monkeypatch, runner=runner, vault_config={}
                 )
             )
             stack.enter_context(
@@ -1862,7 +1866,9 @@ Boo.
         runner = click.testing.CliRunner(mix_stderr=False)
         for start_config in [config, result_config]:
             with tests.isolated_vault_config(
-                monkeypatch=monkeypatch, runner=runner, config=start_config
+                monkeypatch=monkeypatch,
+                runner=runner,
+                vault_config=start_config,
             ):
                 _result = runner.invoke(
                     cli.derivepassphrase_vault,
@@ -2424,7 +2430,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             tests.isolated_vault_config(
                 monkeypatch=self.monkeypatch,
                 runner=self.runner,
-                config={'services': {}},
+                vault_config={'services': {}},
             )
         )
 

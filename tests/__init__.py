@@ -1429,6 +1429,7 @@ def phrase_from_key(
 def isolated_config(
     monkeypatch: pytest.MonkeyPatch,
     runner: click.testing.CliRunner,
+    main_config_str: str | None = None,
 ) -> Iterator[None]:
     prog_name = cli.PROG_NAME
     env_name = prog_name.replace(' ', '_').upper() + '_PATH'
@@ -1445,6 +1446,13 @@ def isolated_config(
         monkeypatch.delenv(env_name, raising=False)
         config_dir = cli._config_filename(subsystem=None)
         os.makedirs(config_dir, exist_ok=True)
+        if isinstance(main_config_str, str):
+            with open(
+                cli._config_filename('user configuration'),
+                'w',
+                encoding='UTF-8',
+            ) as outfile:
+                outfile.write(main_config_str)
         yield
 
 
@@ -1452,12 +1460,15 @@ def isolated_config(
 def isolated_vault_config(
     monkeypatch: pytest.MonkeyPatch,
     runner: click.testing.CliRunner,
-    config: Any,
+    vault_config: Any,
+    main_config_str: str | None = None,
 ) -> Iterator[None]:
-    with isolated_config(monkeypatch=monkeypatch, runner=runner):
+    with isolated_config(
+        monkeypatch=monkeypatch, runner=runner, main_config_str=main_config_str
+    ):
         config_filename = cli._config_filename(subsystem='vault')
         with open(config_filename, 'w', encoding='UTF-8') as outfile:
-            json.dump(config, outfile)
+            json.dump(vault_config, outfile)
         yield
 
 

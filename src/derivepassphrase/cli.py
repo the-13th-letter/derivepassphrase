@@ -17,6 +17,7 @@ import inspect
 import json
 import logging
 import os
+import sys
 import unicodedata
 import warnings
 from typing import (
@@ -39,6 +40,11 @@ from typing_extensions import (
 
 import derivepassphrase as dpp
 from derivepassphrase import _types, exporter, ssh_agent, vault
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 if TYPE_CHECKING:
     import pathlib
@@ -914,6 +920,8 @@ def _config_filename(
         return path
     elif subsystem == 'vault':  # noqa: RET505
         filename = f'{subsystem}.json'
+    elif subsystem == 'user configuration':
+        filename = 'config.toml'
     elif subsystem == 'old settings.json':
         filename = 'settings.json'
     else:  # pragma: no cover
@@ -1011,6 +1019,27 @@ def _save_config(config: _types.VaultConfig, /) -> None:
             raise  # noqa: DOC501
     with open(filename, 'w', encoding='UTF-8') as fileobj:
         json.dump(config, fileobj)
+
+
+def _load_user_config() -> dict[str, Any]:
+    """Load the user config from the application directory.
+
+    The filename is obtained via [`_config_filename`][].
+
+    Returns:
+        The user configuration, as a nested `dict`.
+
+    Raises:
+        OSError:
+            There was an OS error accessing the file.
+        ValueError:
+            The data loaded from the file is not a valid configuration
+            file.
+
+    """
+    filename = _config_filename(subsystem='user configuration')
+    with open(filename, 'rb') as fileobj:
+        return tomllib.load(fileobj)
 
 
 def _get_suitable_ssh_keys(
@@ -1780,6 +1809,16 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         except Exception as exc:  # noqa: BLE001
             err('Cannot store config: %s', str(exc), exc_info=exc)
 
+    def get_user_config() -> dict[str, Any]:
+        try:
+            return _load_user_config()
+        except FileNotFoundError:
+            return {}
+        except OSError as e:
+            err('Cannot load user config: %s: %r', e.strerror, e.filename)
+        except Exception as e:  # noqa: BLE001
+            err('Cannot load user config: %s', str(e), exc_info=e)
+
     configuration: _types.VaultConfig
 
     check_incompatible_options('--phrase', '--key')
@@ -1821,6 +1860,8 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             opt_str = param.opts[0]
             msg = f'{opt_str} does not take a SERVICE argument'
             raise click.UsageError(msg)
+
+    user_config = get_user_config()
 
     if service == '':  # noqa: PLC1901
         logger.warning(
