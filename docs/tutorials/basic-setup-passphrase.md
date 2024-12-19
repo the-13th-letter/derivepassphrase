@@ -145,9 +145,9 @@ $ derivepassphrase vault --config --length 12 --space 0 --upper 1 --lower 1 \
 >                        --number 1 --repeat 3 email
 ~~~~
 
-!!! warning "Warning: `-p` and `--config`"
+!!! danger "Security risk: use of `-p` and `--config`"
 
-    Do **not** use the `-p` and the `--config` options together to store the master passphrase!
+    You are **strongly discouraged** from using the `-p` and the `--config` options together to store the master passphrase!
     The configuration is assumed to *not contain sensitive contents* and is *not encrypted*, so your master passphrase is then visible to *anyone* with appropriate privileges!
 
 Check that the settings are stored correctly:
