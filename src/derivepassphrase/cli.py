@@ -12,6 +12,7 @@ import base64
 import collections
 import copy
 import enum
+import functools
 import importlib
 import inspect
 import json
@@ -1788,28 +1789,27 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         for name in param.opts + param.secondary_opts:
             params_by_str[name] = param
 
+    @functools.cache
     def is_param_set(param: click.Parameter) -> bool:
         return bool(ctx.params.get(param.human_readable_name))
 
     def check_incompatible_options(
-        param: click.Parameter | str,
-        *incompatible: click.Parameter | str,
+        param1: click.Parameter | str,
+        param2: click.Parameter | str,
     ) -> None:
-        if isinstance(param, str):
-            param = params_by_str[param]
-        assert isinstance(param, click.Parameter)
-        if not is_param_set(param):
+        param1 = params_by_str[param1] if isinstance(param1, str) else param1
+        param2 = params_by_str[param2] if isinstance(param2, str) else param2
+        if param1 == param2:
             return
-        for other in incompatible:
-            if isinstance(other, str):
-                other = params_by_str[other]  # noqa: PLW2901
-            assert isinstance(other, click.Parameter)
-            if other != param and is_param_set(other):
-                opt_str = param.opts[0]
-                other_str = other.opts[0]
-                raise click.BadOptionUsage(
-                    opt_str, f'mutually exclusive with {other_str}', ctx=ctx
-                )
+        if not is_param_set(param1):
+            return
+        if is_param_set(param2):
+            param1_str = param1.human_readable_name
+            param2_str = param2.human_readable_name
+            raise click.BadOptionUsage(
+                param1_str, f'mutually exclusive with {param2_str}', ctx=ctx
+            )
+        return
 
     def err(msg: Any, *args: Any, **kwargs: Any) -> NoReturn:  # noqa: ANN401
         stacklevel = kwargs.pop('stacklevel', 1)
@@ -1878,17 +1878,15 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     for group in (ConfigurationOption, StorageManagementOption):
         for opt in options_in_group[group]:
             if opt != params_by_str['--config']:
-                check_incompatible_options(
-                    opt, *options_in_group[PasswordGenerationOption]
-                )
+                for other_opt in options_in_group[PasswordGenerationOption]:
+                    check_incompatible_options(opt, other_opt)
 
     for group in (ConfigurationOption, StorageManagementOption):
         for opt in options_in_group[group]:
-            check_incompatible_options(
-                opt,
-                *options_in_group[ConfigurationOption],
-                *options_in_group[StorageManagementOption],
-            )
+            for other_opt in options_in_group[ConfigurationOption]:
+                check_incompatible_options(opt, other_opt)
+            for other_opt in options_in_group[StorageManagementOption]:
+                check_incompatible_options(opt, other_opt)
     sv_or_global_options = options_in_group[PasswordGenerationOption]
     for param in sv_or_global_options:
         if is_param_set(param) and not (
