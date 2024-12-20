@@ -2706,8 +2706,8 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         target=configuration,
         configs=strategies.lists(
             _vault_full_config,
-            min_size=4,
-            max_size=4,
+            min_size=8,
+            max_size=8,
         ),
     )
     def declare_initial_configs(
@@ -2718,37 +2718,20 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
 
     @stateful.initialize(
         target=setting,
-        config=_vault_full_config,
+        configs=strategies.lists(
+            _vault_full_config,
+            min_size=4,
+            max_size=4,
+        )
     )
     def extract_initial_settings(
         self,
-        config: _types.VaultConfig,
+        configs: list[_types.VaultConfig],
     ) -> Iterable[_types.VaultConfigServicesSettings]:
-        return stateful.multiple(
-            *map(copy.deepcopy, config['services'].values())
-        )
-
-    @stateful.rule(
-        target=configuration,
-        config=_vault_full_config,
-    )
-    def declare_config(
-        self,
-        config: _types.VaultConfig,
-    ) -> _types.VaultConfig:
-        return config
-
-    @stateful.rule(
-        target=setting,
-        config=_vault_full_config,
-    )
-    def extract_settings(
-        self,
-        config: _types.VaultConfig,
-    ) -> Iterable[_types.VaultConfigServicesSettings]:
-        return stateful.multiple(
-            *map(copy.deepcopy, config['services'].values())
-        )
+        settings: list[_types.VaultConfigServicesSettings] = []
+        for c in configs:
+            settings.extend(c['services'].values())
+        return stateful.multiple(*map(copy.deepcopy, settings))
 
     @staticmethod
     def fold_configs(
@@ -2846,14 +2829,14 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
 
     @stateful.rule(
         target=configuration,
-        config=configuration.filter(lambda c: 'global' in c),
+        config=configuration,
     )
     def purge_global(
         self,
         config: _types.VaultConfig,
     ) -> _types.VaultConfig:
         cli._save_config(config)
-        config.pop('global')
+        config.pop('global', None)
         _result = self.runner.invoke(
             cli.derivepassphrase_vault,
             ['--delete-globals'],
@@ -2868,7 +2851,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     @stateful.rule(
         target=configuration,
         config_and_service=configuration.filter(
-            lambda c: len(c['services']) > 1
+            lambda c: bool(c['services'])
         ).flatmap(
             lambda c: strategies.tuples(
                 strategies.just(c),
@@ -2896,7 +2879,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
 
     @stateful.rule(
         target=configuration,
-        config=configuration.filter(lambda c: 0 < len(c['services']) < 5),
+        config=configuration,
     )
     def purge_all(
         self,
