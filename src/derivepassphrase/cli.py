@@ -18,6 +18,7 @@ import inspect
 import json
 import logging
 import os
+import shlex
 import sys
 import unicodedata
 import warnings
@@ -1361,6 +1362,78 @@ def _key_to_phrase(
         error_callback('Cannot connect to SSH agent: %s', e.strerror)
 
 
+def _print_config_as_sh_script(
+    config: _types.VaultConfig,
+    /,
+    *,
+    outfile: TextIO,
+    prog_name_list: Sequence[str],
+) -> None:
+    service_keys = (
+        'length',
+        'repeat',
+        'lower',
+        'upper',
+        'number',
+        'space',
+        'dash',
+        'symbol',
+    )
+    print('#!/bin/sh -e', file=outfile)
+    print(file=outfile)
+    print(shlex.join([*prog_name_list, '--clear']), file=outfile)
+    sv_obj_pairs: list[
+        tuple[
+            str | None,
+            _types.VaultConfigGlobalSettings
+            | _types.VaultConfigServicesSettings,
+        ],
+    ] = list(config['services'].items())
+    if config.get('global', {}):
+        sv_obj_pairs.insert(0, (None, config['global']))
+    for sv, sv_obj in sv_obj_pairs:
+        this_service_keys = tuple(k for k in service_keys if k in sv_obj)
+        this_other_keys = tuple(k for k in sv_obj if k not in service_keys)
+        if this_other_keys:
+            other_sv_obj = {k: sv_obj[k] for k in this_other_keys}  # type: ignore[literal-required]
+            dumped_config = json.dumps(
+                (
+                    {'services': {sv: other_sv_obj}}
+                    if sv is not None
+                    else {'global': other_sv_obj, 'services': {}}
+                ),
+                ensure_ascii=False,
+                indent=None,
+            )
+            print(
+                shlex.join([*prog_name_list, '--import', '-']) + " <<'HERE'",
+                dumped_config,
+                'HERE',
+                sep='\n',
+                file=outfile,
+            )
+        if not this_service_keys and not this_other_keys and sv:
+            dumped_config = json.dumps(
+                {'services': {sv: {}}},
+                ensure_ascii=False,
+                indent=None,
+            )
+            print(
+                shlex.join([*prog_name_list, '--import', '-']) + " <<'HERE'",
+                dumped_config,
+                'HERE',
+                sep='\n',
+                file=outfile,
+            )
+        elif this_service_keys:
+            tokens = [*prog_name_list, '--config']
+            for key in this_service_keys:
+                tokens.extend([f'--{key}', str(sv_obj[key])])  # type: ignore[literal-required]
+            if sv is not None:
+                tokens.extend(['--', sv])
+            print(shlex.join(tokens), file=outfile)
+
+
 # Concrete option groups used by this command-line interface.
 class PasswordGenerationOption(OptionGroupOption):
     """Password generation options for the CLI."""
@@ -1657,6 +1730,13 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
     ),
     cls=CompatibilityOption,
 )
+@click.option(
+    '--export-as',
+    type=click.Choice(['JSON', 'sh']),
+    default='JSON',
+    help='when exporting, export as JSON (default) or POSIX sh',
+    cls=CompatibilityOption,
+)
 @click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
 @standard_logging_options
 @click.argument('service', required=False)
@@ -1685,6 +1765,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     import_settings: TextIO | pathlib.Path | os.PathLike[str] | None = None,
     overwrite_config: bool = False,
     unset_settings: Sequence[str] = (),
+    export_as: Literal['json', 'sh'] = 'json',
 ) -> None:
     """Derive a passphrase using the vault(1) derivation scheme.
 
@@ -1785,6 +1866,10 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             Command-line argument `--unset`.  If given together with
             `--config`, unsets the specified settings (in addition to
             any other changes requested).
+        export_as:
+            Command-line argument `--export-as`.  If given together with
+            `--export`, selects the format to export the current
+            configuration as: JSON ("json", default) or POSIX sh ("sh").
 
     """  # noqa: D301
     logger = logging.getLogger(PROG_NAME)
@@ -2120,7 +2205,24 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             # and for programmatic use, our caller may want accurate
             # error information.
             with outfile:
-                json.dump(configuration, outfile)
+                if export_as == 'sh':
+                    this_ctx = ctx
+                    prog_name_pieces = collections.deque([
+                        this_ctx.info_name or 'vault',
+                    ])
+                    while (
+                        this_ctx.parent is not None
+                        and this_ctx.parent.info_name is not None
+                    ):
+                        prog_name_pieces.appendleft(this_ctx.parent.info_name)
+                        this_ctx = this_ctx.parent
+                    _print_config_as_sh_script(
+                        configuration,
+                        outfile=outfile,
+                        prog_name_list=prog_name_pieces,
+                    )
+                else:
+                    json.dump(configuration, outfile)
         except OSError as e:
             err('Cannot store config: %s: %r', e.strerror, e.filename)
     else:

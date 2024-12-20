@@ -8,14 +8,16 @@ import base64
 import contextlib
 import copy
 import errno
+import io
 import json
 import logging
 import os
+import shlex
 import shutil
 import socket
 import textwrap
 import warnings
-from typing import TYPE_CHECKING, NoReturn
+from typing import TYPE_CHECKING
 
 import click.testing
 import hypothesis
@@ -27,7 +29,8 @@ import tests
 from derivepassphrase import _types, cli, ssh_agent, vault
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable, Iterable, Iterator
+    from typing import NoReturn
 
 DUMMY_SERVICE = tests.DUMMY_SERVICE
 DUMMY_PASSPHRASE = tests.DUMMY_PASSPHRASE
@@ -225,6 +228,56 @@ def is_harmless_config_import_warning(record: tuple[str, int, str]) -> bool:
         ),
     ]
     return any(tests.warning_emitted(w, [record]) for w in possible_warnings)
+
+
+def vault_config_exporter_shell_interpreter(  # noqa: C901
+    script: str | Iterable[str],
+    /,
+    *,
+    prog_name_list: list[str] | None = None,
+    command: click.BaseCommand | None = None,
+    runner: click.testing.CliRunner | None = None,
+) -> Iterator[click.testing.Result]:
+    if isinstance(script, str):  # pragma: no cover
+        script = script.splitlines(False)
+    if prog_name_list is None:  # pragma: no cover
+        prog_name_list = ['derivepassphrase', 'vault']
+    if command is None:  # pragma: no cover
+        command = cli.derivepassphrase_vault
+    if runner is None:  # pragma: no cover
+        runner = click.testing.CliRunner(mix_stderr=False)
+    n = len(prog_name_list)
+    it = iter(script)
+    while True:
+        try:
+            raw_line = next(it)
+        except StopIteration:
+            break
+        else:
+            line = shlex.split(raw_line)
+        input_buffer: list[str] = []
+        if line[:n] != prog_name_list:
+            continue
+        line[:n] = []
+        if line and line[-1] == '<<HERE':
+            # naive HERE document support
+            while True:
+                try:
+                    raw_line = next(it)
+                except StopIteration as exc:  # pragma: no cover
+                    msg = 'incomplete here document'
+                    raise EOFError(msg) from exc
+                else:
+                    if raw_line == 'HERE':
+                        break
+                    input_buffer.append(raw_line)
+            line.pop()
+        yield runner.invoke(
+            command,
+            line,
+            catch_exceptions=False,
+            input=(''.join(x + '\n' for x in input_buffer) or None),
+        )
 
 
 class TestCLI:
@@ -866,25 +919,45 @@ class TestCLI:
             error=os.strerror(errno.EISDIR)
         ), 'expected error exit and known error message'
 
+    @pytest.mark.parametrize(
+        'export_options',
+        [
+            [],
+            ['--export-as=sh'],
+        ],
+    )
     def test_214_export_settings_no_stored_settings(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        export_options: list[str],
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             with contextlib.suppress(FileNotFoundError):
                 os.remove(cli._config_filename(subsystem='vault'))
             _result = runner.invoke(
-                cli.derivepassphrase_vault,
-                ['--export', '-'],
+                # Test parent context navigation by not calling
+                # `cli.derivepassphrase_vault` directly.  Used e.g. in
+                # the `--export-as=sh` section to autoconstruct the
+                # program name correctly.
+                cli.derivepassphrase,
+                ['vault', '--export', '-', *export_options],
                 catch_exceptions=False,
             )
         result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
+    @pytest.mark.parametrize(
+        'export_options',
+        [
+            [],
+            ['--export-as=sh'],
+        ],
+    )
     def test_214a_export_settings_bad_stored_config(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        export_options: list[str],
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
@@ -892,7 +965,7 @@ class TestCLI:
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--export', '-'],
+                ['--export', '-', *export_options],
                 input='null',
                 catch_exceptions=False,
             )
@@ -901,9 +974,17 @@ class TestCLI:
             error='Cannot load config'
         ), 'expected error exit and known error message'
 
+    @pytest.mark.parametrize(
+        'export_options',
+        [
+            [],
+            ['--export-as=sh'],
+        ],
+    )
     def test_214b_export_settings_not_a_file(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        export_options: list[str],
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
@@ -912,7 +993,7 @@ class TestCLI:
             os.makedirs(cli._config_filename(subsystem='vault'))
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--export', '-'],
+                ['--export', '-', *export_options],
                 input='null',
                 catch_exceptions=False,
             )
@@ -921,16 +1002,24 @@ class TestCLI:
             error='Cannot load config'
         ), 'expected error exit and known error message'
 
+    @pytest.mark.parametrize(
+        'export_options',
+        [
+            [],
+            ['--export-as=sh'],
+        ],
+    )
     def test_214c_export_settings_target_not_a_file(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        export_options: list[str],
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             dname = cli._config_filename(subsystem=None)
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--export', os.fsdecode(dname)],
+                ['--export', os.fsdecode(dname), *export_options],
                 input='null',
                 catch_exceptions=False,
             )
@@ -939,9 +1028,17 @@ class TestCLI:
             error='Cannot store config'
         ), 'expected error exit and known error message'
 
+    @pytest.mark.parametrize(
+        'export_options',
+        [
+            [],
+            ['--export-as=sh'],
+        ],
+    )
     def test_214d_export_settings_settings_directory_not_a_directory(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        export_options: list[str],
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
@@ -951,7 +1048,7 @@ class TestCLI:
                 print('Obstruction!!', file=outfile)
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--export', '-'],
+                ['--export', '-', *export_options],
                 input='null',
                 catch_exceptions=False,
             )
@@ -2049,6 +2146,204 @@ Boo.
             assert f'UserWarning: {JUST_TESTING}' in record_tuples[0][2]
             assert f'FutureWarning: {THE_FUTURE}' in record_tuples[1][2]
             assert f'UserWarning: {JUST_TESTING}' in record_tuples[2][2]
+
+    def _export_as_sh_helper(
+        self,
+        config: Any,
+    ) -> None:
+        prog_name_list = ('derivepassphrase', 'vault')
+        with io.StringIO() as outfile:
+            cli._print_config_as_sh_script(
+                config, outfile=outfile, prog_name_list=prog_name_list
+            )
+            script = outfile.getvalue()
+        runner = click.testing.CliRunner(mix_stderr=False)
+        monkeypatch = pytest.MonkeyPatch()
+        with tests.isolated_vault_config(
+            runner=runner,
+            monkeypatch=monkeypatch,
+            vault_config={'services': {}},
+        ):
+            for _result in vault_config_exporter_shell_interpreter(script):
+                result = tests.ReadableResult.parse(_result)
+                assert result.clean_exit()
+            assert cli._load_config() == config
+
+    @hypothesis.given(
+        global_config_settable=tests.vault_full_service_config(),
+        global_config_importable=strategies.fixed_dictionaries(
+            {},
+            optional={
+                'key': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                    ),
+                    max_size=128,
+                ),
+                'phrase': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                    ),
+                    max_size=64,
+                ),
+            },
+        ),
+    )
+    def test_130a_export_as_sh_global(
+        self,
+        global_config_settable: _types.VaultConfigServicesSettings,
+        global_config_importable: _types.VaultConfigServicesSettings,
+    ) -> None:
+        config: _types.VaultConfig = {
+            'global': global_config_settable | global_config_importable,
+            'services': {},
+        }
+        assert _types.clean_up_falsy_vault_config_values(config) is not None
+        assert _types.is_vault_config(config)
+        return self._export_as_sh_helper(config)
+
+    @hypothesis.given(
+        global_config_importable=strategies.fixed_dictionaries(
+            {},
+            optional={
+                'key': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                    ),
+                    max_size=128,
+                ),
+                'phrase': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                    ),
+                    max_size=64,
+                ),
+            },
+        ),
+    )
+    def test_130b_export_as_sh_global_only_imports(
+        self,
+        global_config_importable: _types.VaultConfigServicesSettings,
+    ) -> None:
+        config: _types.VaultConfig = {
+            'global': global_config_importable,
+            'services': {},
+        }
+        assert _types.clean_up_falsy_vault_config_values(config) is not None
+        assert _types.is_vault_config(config)
+        if not config['global']:
+            config.pop('global')
+        return self._export_as_sh_helper(config)
+
+    @hypothesis.given(
+        service_name=strategies.text(
+            alphabet=strategies.characters(
+                min_codepoint=32,
+                max_codepoint=126,
+            ),
+            min_size=4,
+            max_size=64,
+        ),
+        service_config_settable=tests.vault_full_service_config(),
+        service_config_importable=strategies.fixed_dictionaries(
+            {},
+            optional={
+                'key': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                    ),
+                    max_size=128,
+                ),
+                'phrase': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                    ),
+                    max_size=64,
+                ),
+                'notes': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                        include_characters=('\n', '\f', '\t'),
+                    ),
+                    max_size=256,
+                ),
+            },
+        ),
+    )
+    def test_130c_export_as_sh_service(
+        self,
+        service_name: str,
+        service_config_settable: _types.VaultConfigServicesSettings,
+        service_config_importable: _types.VaultConfigServicesSettings,
+    ) -> None:
+        config: _types.VaultConfig = {
+            'services': {
+                service_name: (
+                    service_config_settable | service_config_importable
+                ),
+            },
+        }
+        assert _types.clean_up_falsy_vault_config_values(config) is not None
+        assert _types.is_vault_config(config)
+        return self._export_as_sh_helper(config)
+
+    @hypothesis.given(
+        service_name=strategies.text(
+            alphabet=strategies.characters(
+                min_codepoint=32,
+                max_codepoint=126,
+            ),
+            min_size=4,
+            max_size=64,
+        ),
+        service_config_importable=strategies.fixed_dictionaries(
+            {},
+            optional={
+                'key': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                    ),
+                    max_size=128,
+                ),
+                'phrase': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                    ),
+                    max_size=64,
+                ),
+                'notes': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                        include_characters=('\n', '\f', '\t'),
+                    ),
+                    max_size=256,
+                ),
+            },
+        ),
+    )
+    def test_130d_export_as_sh_service_only_imports(
+        self,
+        service_name: str,
+        service_config_importable: _types.VaultConfigServicesSettings,
+    ) -> None:
+        config: _types.VaultConfig = {
+            'services': {
+                service_name: service_config_importable,
+            },
+        }
+        assert _types.clean_up_falsy_vault_config_values(config) is not None
+        assert _types.is_vault_config(config)
+        return self._export_as_sh_helper(config)
 
     @pytest.mark.parametrize(
         ['command_line', 'config', 'result_config'],
