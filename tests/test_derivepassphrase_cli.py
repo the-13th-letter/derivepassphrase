@@ -221,7 +221,7 @@ def is_harmless_config_import_warning(record: tuple[str, int, str]) -> bool:
         ),
         (
             'Setting a service passphrase is ineffective '
-            'because a key is also set.'
+            'because a key is also set:'
         ),
     ]
     return any(tests.warning_emitted(w, [record]) for w in possible_warnings)
@@ -479,28 +479,45 @@ class TestCLI:
         ), 'expected known output'
 
     @pytest.mark.parametrize(
-        'config',
+        ['config', 'command_line'],
         [
-            {
-                'services': {
-                    DUMMY_SERVICE: {
-                        'key': DUMMY_KEY1_B64,
-                        **DUMMY_CONFIG_SETTINGS,
+            pytest.param(
+                {
+                    'global': {'key': DUMMY_KEY1_B64},
+                    'services': {},
+                },
+                ['--config', '-p'],
+                id='global',
+            ),
+            pytest.param(
+                {
+                    'services': {
+                        DUMMY_SERVICE: {
+                            'key': DUMMY_KEY1_B64,
+                            **DUMMY_CONFIG_SETTINGS,
+                        },
                     },
                 },
-            },
-            {
-                'global': {'key': DUMMY_KEY1_B64},
-                'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()},
-            },
+                ['--config', '-p', '--', DUMMY_SERVICE],
+                id='service',
+            ),
+            pytest.param(
+                {
+                    'global': {'key': DUMMY_KEY1_B64},
+                    'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()},
+                },
+                ['--config', '-p', '--', DUMMY_SERVICE],
+                id='service-over-global',
+            ),
         ],
     )
-    def test_206_setting_service_phrase_thus_overriding_key_in_config(
+    def test_206_setting_phrase_thus_overriding_key_in_config(
         self,
         monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: tests.RunningSSHAgentInfo,
         caplog: pytest.LogCaptureFixture,
         config: _types.VaultConfig,
+        command_line: list[str],
     ) -> None:
         with monkeypatch.context():
             monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket)
@@ -516,7 +533,7 @@ class TestCLI:
             ):
                 _result = runner.invoke(
                     cli.derivepassphrase_vault,
-                    ['--config', '-p', '--', DUMMY_SERVICE],
+                    command_line,
                     input=DUMMY_PASSPHRASE,
                     catch_exceptions=False,
                 )
@@ -528,6 +545,9 @@ class TestCLI:
         assert err_lines[0].startswith('Passphrase:')
         assert tests.warning_emitted(
             'Setting a service passphrase is ineffective ',
+            caplog.record_tuples,
+        ) or tests.warning_emitted(
+            'Setting a global passphrase is ineffective ',
             caplog.record_tuples,
         ), 'expected known warning message'
         assert all(map(is_warning_line, result.stderr.splitlines(True)))

@@ -2025,6 +2025,29 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 )
         except AssertionError as e:
             err('The configuration file is invalid.  ' + str(e))
+        global_obj = maybe_config.get('global', {})
+        has_key = _types.js_truthiness(global_obj.get('key'))
+        has_phrase = _types.js_truthiness(global_obj.get('phrase'))
+        if has_key and has_phrase:
+            logger.warning(
+                'Setting a global passphrase is ineffective '
+                'because a key is also set.'
+            )
+        for service_name, service_obj in maybe_config['services'].items():
+            has_key = _types.js_truthiness(
+                service_obj.get('key')
+            ) or _types.js_truthiness(global_obj.get('key'))
+            has_phrase = _types.js_truthiness(
+                service_obj.get('phrase')
+            ) or _types.js_truthiness(global_obj.get('phrase'))
+            if has_key and has_phrase:
+                logger.warning(
+                    (
+                        'Setting a service passphrase is ineffective '
+                        'because a key is also set: %s'
+                    ),
+                    json.dumps(service_name),
+                )
         if overwrite_config:
             put_config(maybe_config)
         else:
@@ -2153,13 +2176,19 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 except AssertionError as e:
                     err('The configuration file is invalid.  ' + str(e))
                 if 'key' in settings:
-                    logger.warning(
-                        (
-                            'Setting a %s passphrase is ineffective '
+                    if service:
+                        logger.warning(
+                            (
+                                'Setting a service passphrase is ineffective '
+                                'because a key is also set: %s'
+                            ),
+                            json.dumps(service),
+                        )
+                    else:
+                        logger.warning(
+                            'Setting a global passphrase is ineffective '
                             'because a key is also set.'
-                        ),
-                        settings_type,
-                    )
+                        )
             if not view.maps[0]:
                 settings_type = 'service' if service else 'global'
                 msg = (

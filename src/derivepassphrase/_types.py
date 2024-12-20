@@ -517,7 +517,7 @@ def clean_up_falsy_vault_config_values(  # noqa: C901,PLR0912
                         )
                     )
                     service_obj[key] = ''
-            elif key in {'notes', 'key'}:
+            elif key == 'notes':
                 if not js_truthiness(value):
                     cleanup_completed.append(
                         CleanupStep(
@@ -525,6 +525,22 @@ def clean_up_falsy_vault_config_values(  # noqa: C901,PLR0912
                         )
                     )
                     service_obj.pop(key)
+            elif key == 'key':
+                if not js_truthiness(value):
+                    if path == ['global']:
+                        cleanup_completed.append(
+                            CleanupStep(
+                                (*path, key), service_obj[key], 'remove', None
+                            )
+                        )
+                        service_obj.pop(key)
+                    else:
+                        cleanup_completed.append(
+                            CleanupStep(
+                                (*path, key), service_obj[key], 'replace', ''
+                            )
+                        )
+                        service_obj[key] = ''
             elif key == 'length':
                 if not js_truthiness(value):
                     cleanup_completed.append(
