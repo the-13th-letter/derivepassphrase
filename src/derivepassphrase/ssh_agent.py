@@ -379,7 +379,7 @@ class SSHAgentClient:
         )
 
     @overload
-    def request(  # pragma: no cover
+    def request(
         self,
         code: int | _types.SSH_AGENTC,
         payload: Buffer,
@@ -389,7 +389,7 @@ class SSHAgentClient:
     ) -> tuple[int, bytes]: ...
 
     @overload
-    def request(  # pragma: no cover
+    def request(
         self,
         code: int | _types.SSH_AGENTC,
         payload: Buffer,
@@ -401,7 +401,7 @@ class SSHAgentClient:
     ) -> bytes: ...
 
     @overload
-    def request(  # pragma: no cover
+    def request(
         self,
         code: int | _types.SSH_AGENTC,
         payload: Buffer,

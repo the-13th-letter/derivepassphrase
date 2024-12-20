@@ -1251,6 +1251,7 @@ def _prompt_for_passphrase() -> str:
 
 def _toml_key(*parts: str) -> str:
     """Return a formatted TOML key, given its parts."""
+
     def escape(string: str) -> str:
         translated = string.translate({
             0: r'\u0000',
@@ -1274,6 +1275,7 @@ def _toml_key(*parts: str) -> str:
             127: r'\u007F',
         })
         return f'"{translated}"' if translated != string else string
+
     return '.'.join(map(escape, parts))
 
 
@@ -2374,9 +2376,11 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             # cases, set the phrase via vault.Vault.phrase_from_key if
             # a key is given.  Finally, if nothing is set, error out.
             if use_key or use_phrase:
-                kwargs['phrase'] = _key_to_phrase(
-                    key, error_callback=err
-                ) if use_key else phrase
+                kwargs['phrase'] = (
+                    _key_to_phrase(key, error_callback=err)
+                    if use_key
+                    else phrase
+                )
             elif kwargs.get('key'):
                 kwargs['phrase'] = _key_to_phrase(
                     kwargs['key'], error_callback=err

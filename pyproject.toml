@@ -81,6 +81,7 @@ exclude_also = [
   "raise NotImplementedError",
   'assert False',
   '(?:typing\.)?assert_never\(',
+  '@overload',
 ]
 
 [tool.coverage.run]
@@ -304,6 +305,15 @@ select = [
   # things), we need to call and to mock several internal functions,
   # which would automatically trigger `SLF001`.
   'SLF001',
+  # pytest does not support sensible introspection of `assert all(...)`
+  # expressions in tests the same way it supports introspection in
+  # `asssert all([...])`.  So the extra list comprehension actually
+  # improves debuggability in this case.
+  'C419',
+  # The tests sometimes include long strings (in non-Python formats)
+  # that should be included verbatim, without artificial line breaking,
+  # so they can be grepped for.
+  'E501',
 ]
 
 [tool.ruff.lint.flake8-copyright]

@@ -1704,7 +1704,7 @@ contents go here
                 }),
                 (
                     "Invalid value 'XXX' for config key "
-                    "vault.default-unicode-normalization-form"
+                    'vault.default-unicode-normalization-form'
                 ),
                 id='global',
             ),
@@ -1722,7 +1722,7 @@ contents go here
                 }),
                 (
                     "Invalid value 'XXX' for config key "
-                    "vault.with_normalization.unicode-normalization-form"
+                    'vault.with_normalization.unicode-normalization-form'
                 ),
                 id='service',
             ),
@@ -1802,7 +1802,7 @@ contents go here
             assert result.error_exit(
                 error=(
                     "Invalid value 'XXX' for config key "
-                    "vault.default-unicode-normalization-form"
+                    'vault.default-unicode-normalization-form'
                 ),
             ), 'expected error exit and known error message'
 
@@ -1953,7 +1953,7 @@ Our menu:
 Your selection? (1-10, leave empty to abort): 9
 A fine choice: Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam and spam
 (Note: Vikings strictly optional.)
-"""  # noqa: E501
+"""
         ), 'expected clean exit'
         _result = runner.invoke(
             driver, ['--heading='], input='', catch_exceptions=True
@@ -1976,7 +1976,7 @@ A fine choice: Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam
 [9] Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam and spam
 [10] Lobster thermidor aux crevettes with a mornay sauce garnished with truffle paté, brandy and a fried egg on top and spam
 Your selection? (1-10, leave empty to abort):\x20
-"""  # noqa: E501
+"""
         ), 'expected known output'
 
     def test_112_prompt_for_selection_single(self) -> None:
@@ -2464,7 +2464,6 @@ Boo.
         skip_if_no_af_unix_support: None,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
     ) -> None:
-
         class CustomError(RuntimeError):
             pass
 
@@ -2515,9 +2514,7 @@ Boo.
             ):
                 cli._key_to_phrase(loaded_key, error_callback=err)
         with monkeypatch.context() as mp:
-            mp.setenv(
-                'SSH_AUTH_SOCK', os.environ['SSH_AUTH_SOCK'] + '~'
-            )
+            mp.setenv('SSH_AUTH_SOCK', os.environ['SSH_AUTH_SOCK'] + '~')
             with pytest.raises(
                 CustomError, match='Cannot connect to SSH agent'
             ):
@@ -3043,7 +3040,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             _vault_full_config,
             min_size=4,
             max_size=4,
-        )
+        ),
     )
     def extract_initial_settings(
         self,

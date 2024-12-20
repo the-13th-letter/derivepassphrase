@@ -254,7 +254,7 @@ def running_ssh_agent(  # pragma: no cover
                 assert (
                     os.environ.get('SSH_AUTH_SOCK', None)
                     == startup_ssh_auth_sock
-                ), f'SSH_AUTH_SOCK mismatch when checking for spawnable {exec_name}'  # noqa: E501
+                ), f'SSH_AUTH_SOCK mismatch when checking for spawnable {exec_name}'
                 proc = spawn_func(executable=shutil.which(exec_name), env={})
                 if proc is None:
                     continue
@@ -370,7 +370,7 @@ def spawn_ssh_agent(
         else:
             assert (
                 os.environ.get('SSH_AUTH_SOCK', None) == startup_ssh_auth_sock
-            ), f'SSH_AUTH_SOCK mismatch when checking for spawnable {exec_name}'  # noqa: E501
+            ), f'SSH_AUTH_SOCK mismatch when checking for spawnable {exec_name}'
             proc = spawn_func(
                 executable=shutil.which(exec_name), env=agent_env
             )
