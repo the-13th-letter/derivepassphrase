@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import base64
 import contextlib
 import copy
 import errno
@@ -14,7 +15,7 @@ import shutil
 import socket
 import textwrap
 import warnings
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NoReturn
 
 import click.testing
 import hypothesis
@@ -220,7 +221,7 @@ def is_harmless_config_import_warning(record: tuple[str, int, str]) -> bool:
         ),
         (
             'Setting a service passphrase is ineffective '
-            'because a key is also set.'
+            'because a key is also set:'
         ),
     ]
     return any(tests.warning_emitted(w, [record]) for w in possible_warnings)
@@ -478,28 +479,45 @@ class TestCLI:
         ), 'expected known output'
 
     @pytest.mark.parametrize(
-        'config',
+        ['config', 'command_line'],
         [
-            {
-                'services': {
-                    DUMMY_SERVICE: {
-                        'key': DUMMY_KEY1_B64,
-                        **DUMMY_CONFIG_SETTINGS,
+            pytest.param(
+                {
+                    'global': {'key': DUMMY_KEY1_B64},
+                    'services': {},
+                },
+                ['--config', '-p'],
+                id='global',
+            ),
+            pytest.param(
+                {
+                    'services': {
+                        DUMMY_SERVICE: {
+                            'key': DUMMY_KEY1_B64,
+                            **DUMMY_CONFIG_SETTINGS,
+                        },
                     },
                 },
-            },
-            {
-                'global': {'key': DUMMY_KEY1_B64},
-                'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()},
-            },
+                ['--config', '-p', '--', DUMMY_SERVICE],
+                id='service',
+            ),
+            pytest.param(
+                {
+                    'global': {'key': DUMMY_KEY1_B64},
+                    'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()},
+                },
+                ['--config', '-p', '--', DUMMY_SERVICE],
+                id='service-over-global',
+            ),
         ],
     )
-    def test_206_setting_service_phrase_thus_overriding_key_in_config(
+    def test_206_setting_phrase_thus_overriding_key_in_config(
         self,
         monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: tests.RunningSSHAgentInfo,
         caplog: pytest.LogCaptureFixture,
         config: _types.VaultConfig,
+        command_line: list[str],
     ) -> None:
         with monkeypatch.context():
             monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket)
@@ -515,7 +533,7 @@ class TestCLI:
             ):
                 _result = runner.invoke(
                     cli.derivepassphrase_vault,
-                    ['--config', '-p', '--', DUMMY_SERVICE],
+                    command_line,
                     input=DUMMY_PASSPHRASE,
                     catch_exceptions=False,
                 )
@@ -527,6 +545,9 @@ class TestCLI:
         assert err_lines[0].startswith('Passphrase:')
         assert tests.warning_emitted(
             'Setting a service passphrase is ineffective ',
+            caplog.record_tuples,
+        ) or tests.warning_emitted(
+            'Setting a global passphrase is ineffective ',
             caplog.record_tuples,
         ), 'expected known warning message'
         assert all(map(is_warning_line, result.stderr.splitlines(True)))
@@ -2115,6 +2136,77 @@ Boo.
                 assert (
                     exception is None
                 ), 'exception querying suitable SSH keys'
+
+    def test_400_key_to_phrase(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        skip_if_no_af_unix_support: None,
+        ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
+    ) -> None:
+
+        class CustomError(RuntimeError):
+            pass
+
+        def err(*args: Any, **_kwargs: Any) -> NoReturn:
+            args = args or ('custom error message',)
+            raise CustomError(*args)
+
+        def fail(*_args: Any, **_kwargs: Any) -> Any:
+            raise ssh_agent.SSHAgentFailedError(
+                _types.SSH_AGENT.FAILURE.value,
+                b'',
+            )
+
+        del skip_if_no_af_unix_support
+        monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', fail)
+        loaded_keys = list(ssh_agent_client_with_test_keys_loaded.list_keys())
+        loaded_key = base64.standard_b64encode(loaded_keys[0][0])
+        with monkeypatch.context() as mp:
+            mp.setattr(
+                ssh_agent.SSHAgentClient,
+                'list_keys',
+                lambda *_a, **_kw: [],
+            )
+            with pytest.raises(CustomError, match='not loaded into the agent'):
+                cli._key_to_phrase(loaded_key, error_callback=err)
+        with monkeypatch.context() as mp:
+            mp.setattr(ssh_agent.SSHAgentClient, 'list_keys', fail)
+            with pytest.raises(
+                CustomError, match='SSH agent failed to complete'
+            ):
+                cli._key_to_phrase(loaded_key, error_callback=err)
+        with monkeypatch.context() as mp:
+            mp.setattr(ssh_agent.SSHAgentClient, 'list_keys', err)
+            with pytest.raises(
+                CustomError, match='SSH agent failed to complete'
+            ) as excinfo:
+                cli._key_to_phrase(loaded_key, error_callback=err)
+            assert excinfo.value.args
+            assert isinstance(
+                excinfo.value.args[0], ssh_agent.SSHAgentFailedError
+            )
+            assert excinfo.value.args[0].__context__ is not None
+            assert isinstance(excinfo.value.args[0].__context__, CustomError)
+        with monkeypatch.context() as mp:
+            mp.delenv('SSH_AUTH_SOCK', raising=True)
+            with pytest.raises(
+                CustomError, match='Cannot find running SSH agent'
+            ):
+                cli._key_to_phrase(loaded_key, error_callback=err)
+        with monkeypatch.context() as mp:
+            mp.setenv(
+                'SSH_AUTH_SOCK', os.environ['SSH_AUTH_SOCK'] + '~'
+            )
+            with pytest.raises(
+                CustomError, match='Cannot connect to SSH agent'
+            ):
+                cli._key_to_phrase(loaded_key, error_callback=err)
+        with monkeypatch.context() as mp:
+            mp.delattr(socket, 'AF_UNIX', raising=True)
+            with pytest.raises(
+                CustomError, match='does not support UNIX domain sockets'
+            ):
+                cli._key_to_phrase(loaded_key, error_callback=err)
 
 
 class TestCLITransition:

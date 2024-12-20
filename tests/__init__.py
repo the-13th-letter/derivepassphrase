@@ -1342,7 +1342,10 @@ def hypothesis_settings_coverage_compatible(
             suppress_health_check=(hypothesis.HealthCheck.too_slow,),
         )
         if sys.gettrace() is not None
-        else hypothesis.settings()
+        else hypothesis.settings(
+            stateful_step_count=32,
+            suppress_health_check=(hypothesis.HealthCheck.too_slow,),
+        )
     )
     return settings if f is None else settings(f)
 

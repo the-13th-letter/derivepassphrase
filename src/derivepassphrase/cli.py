@@ -12,6 +12,7 @@ import base64
 import collections
 import copy
 import enum
+import functools
 import importlib
 import inspect
 import json
@@ -1322,6 +1323,44 @@ def _check_for_misleading_passphrase(
             )
 
 
+def _key_to_phrase(
+    key_: str | bytes | bytearray,
+    /,
+    *,
+    error_callback: Callable[..., NoReturn] = sys.exit,
+) -> bytes | bytearray:
+    key = base64.standard_b64decode(key_)
+    try:
+        with ssh_agent.SSHAgentClient.ensure_agent_subcontext() as client:
+            try:
+                return vault.Vault.phrase_from_key(key, conn=client)
+            except ssh_agent.SSHAgentFailedError as e:
+                try:
+                    keylist = client.list_keys()
+                except ssh_agent.SSHAgentFailedError:
+                    pass
+                except Exception as e2:  # noqa: BLE001
+                    e.__context__ = e2
+                else:
+                    if not any(  # pragma: no branch
+                        k == key for k, _ in keylist
+                    ):
+                        error_callback(
+                            'The requested SSH key is not loaded '
+                            'into the agent.'
+                        )
+                error_callback(e)
+    except KeyError:
+        error_callback('Cannot find running SSH agent; check SSH_AUTH_SOCK')
+    except NotImplementedError:
+        error_callback(
+            'Cannot connect to SSH agent because '
+            'this Python version does not support UNIX domain sockets'
+        )
+    except OSError as e:
+        error_callback('Cannot connect to SSH agent: %s', e.strerror)
+
+
 # Concrete option groups used by this command-line interface.
 class PasswordGenerationOption(OptionGroupOption):
     """Password generation options for the CLI."""
@@ -1750,64 +1789,33 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         for name in param.opts + param.secondary_opts:
             params_by_str[name] = param
 
+    @functools.cache
     def is_param_set(param: click.Parameter) -> bool:
         return bool(ctx.params.get(param.human_readable_name))
 
     def check_incompatible_options(
-        param: click.Parameter | str,
-        *incompatible: click.Parameter | str,
+        param1: click.Parameter | str,
+        param2: click.Parameter | str,
     ) -> None:
-        if isinstance(param, str):
-            param = params_by_str[param]
-        assert isinstance(param, click.Parameter)
-        if not is_param_set(param):
+        param1 = params_by_str[param1] if isinstance(param1, str) else param1
+        param2 = params_by_str[param2] if isinstance(param2, str) else param2
+        if param1 == param2:
             return
-        for other in incompatible:
-            if isinstance(other, str):
-                other = params_by_str[other]  # noqa: PLW2901
-            assert isinstance(other, click.Parameter)
-            if other != param and is_param_set(other):
-                opt_str = param.opts[0]
-                other_str = other.opts[0]
-                raise click.BadOptionUsage(
-                    opt_str, f'mutually exclusive with {other_str}', ctx=ctx
-                )
+        if not is_param_set(param1):
+            return
+        if is_param_set(param2):
+            param1_str = param1.human_readable_name
+            param2_str = param2.human_readable_name
+            raise click.BadOptionUsage(
+                param1_str, f'mutually exclusive with {param2_str}', ctx=ctx
+            )
+        return
 
     def err(msg: Any, *args: Any, **kwargs: Any) -> NoReturn:  # noqa: ANN401
         stacklevel = kwargs.pop('stacklevel', 1)
         stacklevel += 1
         logger.error(msg, *args, stacklevel=stacklevel, **kwargs)
         ctx.exit(1)
-
-    def key_to_phrase(key_: str | bytes | bytearray, /) -> bytes | bytearray:
-        key = base64.standard_b64decode(key_)
-        try:
-            with ssh_agent.SSHAgentClient.ensure_agent_subcontext() as client:
-                try:
-                    return vault.Vault.phrase_from_key(key, conn=client)
-                except ssh_agent.SSHAgentFailedError as e:
-                    try:
-                        keylist = client.list_keys()
-                    except ssh_agent.SSHAgentFailedError:
-                        pass
-                    except Exception as e2:  # noqa: BLE001
-                        e.__context__ = e2
-                    else:
-                        if not any(k == key for k, _ in keylist):
-                            err(
-                                'The requested SSH key is not loaded '
-                                'into the agent.'
-                            )
-                    err(e)
-        except KeyError:
-            err('Cannot find running SSH agent; check SSH_AUTH_SOCK')
-        except NotImplementedError:
-            err(
-                'Cannot connect to SSH agent because '
-                'this Python version does not support UNIX domain sockets'
-            )
-        except OSError as e:
-            err('Cannot connect to SSH agent: %s', e.strerror)
 
     def get_config() -> _types.VaultConfig:
         try:
@@ -1870,17 +1878,15 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     for group in (ConfigurationOption, StorageManagementOption):
         for opt in options_in_group[group]:
             if opt != params_by_str['--config']:
-                check_incompatible_options(
-                    opt, *options_in_group[PasswordGenerationOption]
-                )
+                for other_opt in options_in_group[PasswordGenerationOption]:
+                    check_incompatible_options(opt, other_opt)
 
     for group in (ConfigurationOption, StorageManagementOption):
         for opt in options_in_group[group]:
-            check_incompatible_options(
-                opt,
-                *options_in_group[ConfigurationOption],
-                *options_in_group[StorageManagementOption],
-            )
+            for other_opt in options_in_group[ConfigurationOption]:
+                check_incompatible_options(opt, other_opt)
+            for other_opt in options_in_group[StorageManagementOption]:
+                check_incompatible_options(opt, other_opt)
     sv_or_global_options = options_in_group[PasswordGenerationOption]
     for param in sv_or_global_options:
         if is_param_set(param) and not (
@@ -1954,11 +1960,19 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         try:
             # TODO(the-13th-letter): keep track of auto-close; try
             # os.dup if feasible
-            infile = (
-                cast(TextIO, import_settings)
-                if hasattr(import_settings, 'close')
-                else click.open_file(os.fspath(import_settings), 'rt')
+            infile = cast(
+                TextIO,
+                (
+                    import_settings
+                    if hasattr(import_settings, 'close')
+                    else click.open_file(os.fspath(import_settings), 'rt')
+                ),
             )
+            # Don't specifically catch TypeError or ValueError here if
+            # the passed-in fileobj is not a readable text stream.  This
+            # will never happen on the command-line (thanks to `click`),
+            # and for programmatic use, our caller may want accurate
+            # error information.
             with infile:
                 maybe_config = json.load(infile)
         except json.JSONDecodeError as e:
@@ -2011,6 +2025,29 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 )
         except AssertionError as e:
             err('The configuration file is invalid.  ' + str(e))
+        global_obj = maybe_config.get('global', {})
+        has_key = _types.js_truthiness(global_obj.get('key'))
+        has_phrase = _types.js_truthiness(global_obj.get('phrase'))
+        if has_key and has_phrase:
+            logger.warning(
+                'Setting a global passphrase is ineffective '
+                'because a key is also set.'
+            )
+        for service_name, service_obj in maybe_config['services'].items():
+            has_key = _types.js_truthiness(
+                service_obj.get('key')
+            ) or _types.js_truthiness(global_obj.get('key'))
+            has_phrase = _types.js_truthiness(
+                service_obj.get('phrase')
+            ) or _types.js_truthiness(global_obj.get('phrase'))
+            if has_key and has_phrase:
+                logger.warning(
+                    (
+                        'Setting a service passphrase is ineffective '
+                        'because a key is also set: %s'
+                    ),
+                    json.dumps(service_name),
+                )
         if overwrite_config:
             put_config(maybe_config)
         else:
@@ -2042,11 +2079,19 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         try:
             # TODO(the-13th-letter): keep track of auto-close; try
             # os.dup if feasible
-            outfile = (
-                cast(TextIO, export_settings)
-                if hasattr(export_settings, 'close')
-                else click.open_file(os.fspath(export_settings), 'wt')
+            outfile = cast(
+                TextIO,
+                (
+                    export_settings
+                    if hasattr(export_settings, 'close')
+                    else click.open_file(os.fspath(export_settings), 'wt')
+                ),
             )
+            # Don't specifically catch TypeError or ValueError here if
+            # the passed-in fileobj is not a writable text stream.  This
+            # will never happen on the command-line (thanks to `click`),
+            # and for programmatic use, our caller may want accurate
+            # error information.
             with outfile:
                 json.dump(configuration, outfile)
         except OSError as e:
@@ -2131,13 +2176,19 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 except AssertionError as e:
                     err('The configuration file is invalid.  ' + str(e))
                 if 'key' in settings:
-                    logger.warning(
-                        (
-                            'Setting a %s passphrase is ineffective '
+                    if service:
+                        logger.warning(
+                            (
+                                'Setting a service passphrase is ineffective '
+                                'because a key is also set: %s'
+                            ),
+                            json.dumps(service),
+                        )
+                    else:
+                        logger.warning(
+                            'Setting a global passphrase is ineffective '
                             'because a key is also set.'
-                        ),
-                        settings_type,
-                    )
+                        )
             if not view.maps[0]:
                 settings_type = 'service' if service else 'global'
                 msg = (
@@ -2184,9 +2235,13 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             # cases, set the phrase via vault.Vault.phrase_from_key if
             # a key is given.  Finally, if nothing is set, error out.
             if use_key or use_phrase:
-                kwargs['phrase'] = key_to_phrase(key) if use_key else phrase
+                kwargs['phrase'] = _key_to_phrase(
+                    key, error_callback=err
+                ) if use_key else phrase
             elif kwargs.get('key'):
-                kwargs['phrase'] = key_to_phrase(kwargs['key'])
+                kwargs['phrase'] = _key_to_phrase(
+                    kwargs['key'], error_callback=err
+                )
             elif kwargs.get('phrase'):
                 pass
             else:
