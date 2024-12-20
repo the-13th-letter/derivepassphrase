@@ -1304,6 +1304,32 @@ contents go here
             error=custom_error
         ), 'expected error exit and known error message'
 
+    def test_225f_store_config_fail_unset_and_set_same_settings(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+        ):
+            _result = runner.invoke(
+                cli.derivepassphrase_vault,
+                [
+                    '--config',
+                    '--unset=length',
+                    '--length=15',
+                    '--',
+                    DUMMY_SERVICE,
+                ],
+                catch_exceptions=False,
+            )
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='Attempted to unset and set --length at the same time.'
+        ), 'expected error exit and known error message'
+
     def test_226_no_arguments(self, monkeypatch: pytest.MonkeyPatch) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -2752,17 +2778,27 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         target=configuration,
         config=configuration,
         setting=setting.filter(bool),
+        maybe_unset=strategies.sets(
+            strategies.sampled_from(_valid_properties),
+            max_size=3,
+        ),
         overwrite=strategies.booleans(),
     )
     def set_globals(
         self,
         config: _types.VaultConfig,
         setting: _types.VaultConfigGlobalSettings,
+        maybe_unset: set[str],
         overwrite: bool,
     ) -> _types.VaultConfig:
         cli._save_config(config)
+        config_global = config.get('global', {})
+        maybe_unset = set(maybe_unset) - setting.keys()
         if overwrite:
-            config['global'] = {}
+            config['global'] = config_global = {}
+        elif maybe_unset:
+            for key in maybe_unset:
+                config_global.pop(key, None)  # type: ignore[misc]
         config.setdefault('global', {}).update(setting)
         assert _types.is_vault_config(config)
         # NOTE: This relies on settings_obj containing only the keys
@@ -2774,6 +2810,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
                 '--config',
                 '--overwrite-existing' if overwrite else '--merge-existing',
             ]
+            + [f'--unset={key}' for key in maybe_unset]
             + [
                 f'--{key}={value}'
                 for key, value in setting.items()
@@ -2791,6 +2828,10 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         config=configuration,
         service=strategies.sampled_from(_known_services),
         setting=setting.filter(bool),
+        maybe_unset=strategies.sets(
+            strategies.sampled_from(_valid_properties),
+            max_size=3,
+        ),
         overwrite=strategies.booleans(),
     )
     def set_service(
@@ -2798,11 +2839,17 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         config: _types.VaultConfig,
         service: str,
         setting: _types.VaultConfigServicesSettings,
+        maybe_unset: set[str],
         overwrite: bool,
     ) -> _types.VaultConfig:
         cli._save_config(config)
+        config_service = config['services'].get(service, {})
+        maybe_unset = set(maybe_unset) - setting.keys()
         if overwrite:
-            config['services'][service] = {}
+            config['services'][service] = config_service = {}
+        elif maybe_unset:
+            for key in maybe_unset:
+                config_service.pop(key, None)  # type: ignore[misc]
         config['services'].setdefault(service, {}).update(setting)
         assert _types.is_vault_config(config)
         # NOTE: This relies on settings_obj containing only the keys
@@ -2814,6 +2861,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
                 '--config',
                 '--overwrite-existing' if overwrite else '--merge-existing',
             ]
+            + [f'--unset={key}' for key in maybe_unset]
             + [
                 f'--{key}={value}'
                 for key, value in setting.items()

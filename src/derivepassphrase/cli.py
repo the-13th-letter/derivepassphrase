@@ -1635,6 +1635,28 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
     help='overwrite or merge (default) the existing configuration',
     cls=CompatibilityOption,
 )
+@click.option(
+    '--unset',
+    'unset_settings',
+    multiple=True,
+    type=click.Choice([
+        'phrase',
+        'key',
+        'length',
+        'repeat',
+        'lower',
+        'upper',
+        'number',
+        'space',
+        'dash',
+        'symbol',
+    ]),
+    help=(
+        'with --config, also unsets the given setting; '
+        'may be specified multiple times'
+    ),
+    cls=CompatibilityOption,
+)
 @click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
 @standard_logging_options
 @click.argument('service', required=False)
@@ -1662,6 +1684,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     export_settings: TextIO | pathlib.Path | os.PathLike[str] | None = None,
     import_settings: TextIO | pathlib.Path | os.PathLike[str] | None = None,
     overwrite_config: bool = False,
+    unset_settings: Sequence[str] = (),
 ) -> None:
     """Derive a passphrase using the vault(1) derivation scheme.
 
@@ -1758,6 +1781,10 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             `--merge-existing` (False).  Controls whether config saving
             and config importing overwrite existing configurations, or
             merge them section-wise instead.
+        unset_settings:
+            Command-line argument `--unset`.  If given together with
+            `--config`, unsets the specified settings (in addition to
+            any other changes requested).
 
     """  # noqa: D301
     logger = logging.getLogger(PROG_NAME)
@@ -2189,13 +2216,20 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                             'Setting a global passphrase is ineffective '
                             'because a key is also set.'
                         )
-            if not view.maps[0]:
+            if not view.maps[0] and not unset_settings:
                 settings_type = 'service' if service else 'global'
                 msg = (
                     f'Cannot update {settings_type} settings without '
                     f'actual settings'
                 )
                 raise click.UsageError(msg)
+            for setting in unset_settings:
+                if setting in view.maps[0]:
+                    msg = (
+                        f'Attempted to unset and set --{setting} '
+                        f'at the same time.'
+                    )
+                    raise click.UsageError(msg)
             subtree: dict[str, Any] = (
                 configuration['services'].setdefault(service, {})  # type: ignore[assignment]
                 if service
@@ -2203,6 +2237,9 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             )
             if overwrite_config:
                 subtree.clear()
+            else:
+                for setting in unset_settings:
+                    subtree.pop(setting, None)
             subtree.update(view)
             assert _types.is_vault_config(
                 configuration
