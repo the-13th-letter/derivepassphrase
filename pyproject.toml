@@ -91,6 +91,7 @@ parallel = true
 omit = [
   "__main__.py",
 ]
+dynamic_context = 'test_function'
 
 [tool.hatch.build.targets.sdist]
 exclude = [
