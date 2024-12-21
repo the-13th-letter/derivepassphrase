@@ -225,8 +225,7 @@ def validate_vault_config(
     *,
     allow_derivepassphrase_extensions: bool,
     allow_unknown_settings: bool = False,
-) -> None:
-    ...  # pragma: no cover
+) -> None: ...
 
 
 @overload
@@ -235,8 +234,7 @@ def validate_vault_config(
     /,
     *,
     allow_unknown_settings: bool = False,
-) -> None:
-    ...  # pragma: no cover
+) -> None: ...
 
 
 def validate_vault_config(  # noqa: C901,PLR0912

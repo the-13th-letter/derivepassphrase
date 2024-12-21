@@ -18,6 +18,7 @@ import inspect
 import json
 import logging
 import os
+import shlex
 import sys
 import unicodedata
 import warnings
@@ -1250,6 +1251,7 @@ def _prompt_for_passphrase() -> str:
 
 def _toml_key(*parts: str) -> str:
     """Return a formatted TOML key, given its parts."""
+
     def escape(string: str) -> str:
         translated = string.translate({
             0: r'\u0000',
@@ -1273,6 +1275,7 @@ def _toml_key(*parts: str) -> str:
             127: r'\u007F',
         })
         return f'"{translated}"' if translated != string else string
+
     return '.'.join(map(escape, parts))
 
 
@@ -1359,6 +1362,78 @@ def _key_to_phrase(
         )
     except OSError as e:
         error_callback('Cannot connect to SSH agent: %s', e.strerror)
+
+
+def _print_config_as_sh_script(
+    config: _types.VaultConfig,
+    /,
+    *,
+    outfile: TextIO,
+    prog_name_list: Sequence[str],
+) -> None:
+    service_keys = (
+        'length',
+        'repeat',
+        'lower',
+        'upper',
+        'number',
+        'space',
+        'dash',
+        'symbol',
+    )
+    print('#!/bin/sh -e', file=outfile)
+    print(file=outfile)
+    print(shlex.join([*prog_name_list, '--clear']), file=outfile)
+    sv_obj_pairs: list[
+        tuple[
+            str | None,
+            _types.VaultConfigGlobalSettings
+            | _types.VaultConfigServicesSettings,
+        ],
+    ] = list(config['services'].items())
+    if config.get('global', {}):
+        sv_obj_pairs.insert(0, (None, config['global']))
+    for sv, sv_obj in sv_obj_pairs:
+        this_service_keys = tuple(k for k in service_keys if k in sv_obj)
+        this_other_keys = tuple(k for k in sv_obj if k not in service_keys)
+        if this_other_keys:
+            other_sv_obj = {k: sv_obj[k] for k in this_other_keys}  # type: ignore[literal-required]
+            dumped_config = json.dumps(
+                (
+                    {'services': {sv: other_sv_obj}}
+                    if sv is not None
+                    else {'global': other_sv_obj, 'services': {}}
+                ),
+                ensure_ascii=False,
+                indent=None,
+            )
+            print(
+                shlex.join([*prog_name_list, '--import', '-']) + " <<'HERE'",
+                dumped_config,
+                'HERE',
+                sep='\n',
+                file=outfile,
+            )
+        if not this_service_keys and not this_other_keys and sv:
+            dumped_config = json.dumps(
+                {'services': {sv: {}}},
+                ensure_ascii=False,
+                indent=None,
+            )
+            print(
+                shlex.join([*prog_name_list, '--import', '-']) + " <<'HERE'",
+                dumped_config,
+                'HERE',
+                sep='\n',
+                file=outfile,
+            )
+        elif this_service_keys:
+            tokens = [*prog_name_list, '--config']
+            for key in this_service_keys:
+                tokens.extend([f'--{key}', str(sv_obj[key])])  # type: ignore[literal-required]
+            if sv is not None:
+                tokens.extend(['--', sv])
+            print(shlex.join(tokens), file=outfile)
 
 
 # Concrete option groups used by this command-line interface.
@@ -1635,6 +1710,35 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
     help='overwrite or merge (default) the existing configuration',
     cls=CompatibilityOption,
 )
+@click.option(
+    '--unset',
+    'unset_settings',
+    multiple=True,
+    type=click.Choice([
+        'phrase',
+        'key',
+        'length',
+        'repeat',
+        'lower',
+        'upper',
+        'number',
+        'space',
+        'dash',
+        'symbol',
+    ]),
+    help=(
+        'with --config, also unsets the given setting; '
+        'may be specified multiple times'
+    ),
+    cls=CompatibilityOption,
+)
+@click.option(
+    '--export-as',
+    type=click.Choice(['JSON', 'sh']),
+    default='JSON',
+    help='when exporting, export as JSON (default) or POSIX sh',
+    cls=CompatibilityOption,
+)
 @click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
 @standard_logging_options
 @click.argument('service', required=False)
@@ -1662,6 +1766,8 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     export_settings: TextIO | pathlib.Path | os.PathLike[str] | None = None,
     import_settings: TextIO | pathlib.Path | os.PathLike[str] | None = None,
     overwrite_config: bool = False,
+    unset_settings: Sequence[str] = (),
+    export_as: Literal['json', 'sh'] = 'json',
 ) -> None:
     """Derive a passphrase using the vault(1) derivation scheme.
 
@@ -1758,6 +1864,14 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             `--merge-existing` (False).  Controls whether config saving
             and config importing overwrite existing configurations, or
             merge them section-wise instead.
+        unset_settings:
+            Command-line argument `--unset`.  If given together with
+            `--config`, unsets the specified settings (in addition to
+            any other changes requested).
+        export_as:
+            Command-line argument `--export-as`.  If given together with
+            `--export`, selects the format to export the current
+            configuration as: JSON ("json", default) or POSIX sh ("sh").
 
     """  # noqa: D301
     logger = logging.getLogger(PROG_NAME)
@@ -2093,7 +2207,24 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             # and for programmatic use, our caller may want accurate
             # error information.
             with outfile:
-                json.dump(configuration, outfile)
+                if export_as == 'sh':
+                    this_ctx = ctx
+                    prog_name_pieces = collections.deque([
+                        this_ctx.info_name or 'vault',
+                    ])
+                    while (
+                        this_ctx.parent is not None
+                        and this_ctx.parent.info_name is not None
+                    ):
+                        prog_name_pieces.appendleft(this_ctx.parent.info_name)
+                        this_ctx = this_ctx.parent
+                    _print_config_as_sh_script(
+                        configuration,
+                        outfile=outfile,
+                        prog_name_list=prog_name_pieces,
+                    )
+                else:
+                    json.dump(configuration, outfile)
         except OSError as e:
             err('Cannot store config: %s: %r', e.strerror, e.filename)
     else:
@@ -2189,13 +2320,20 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                             'Setting a global passphrase is ineffective '
                             'because a key is also set.'
                         )
-            if not view.maps[0]:
+            if not view.maps[0] and not unset_settings:
                 settings_type = 'service' if service else 'global'
                 msg = (
                     f'Cannot update {settings_type} settings without '
                     f'actual settings'
                 )
                 raise click.UsageError(msg)
+            for setting in unset_settings:
+                if setting in view.maps[0]:
+                    msg = (
+                        f'Attempted to unset and set --{setting} '
+                        f'at the same time.'
+                    )
+                    raise click.UsageError(msg)
             subtree: dict[str, Any] = (
                 configuration['services'].setdefault(service, {})  # type: ignore[assignment]
                 if service
@@ -2203,6 +2341,9 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             )
             if overwrite_config:
                 subtree.clear()
+            else:
+                for setting in unset_settings:
+                    subtree.pop(setting, None)
             subtree.update(view)
             assert _types.is_vault_config(
                 configuration
@@ -2235,9 +2376,11 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             # cases, set the phrase via vault.Vault.phrase_from_key if
             # a key is given.  Finally, if nothing is set, error out.
             if use_key or use_phrase:
-                kwargs['phrase'] = _key_to_phrase(
-                    key, error_callback=err
-                ) if use_key else phrase
+                kwargs['phrase'] = (
+                    _key_to_phrase(key, error_callback=err)
+                    if use_key
+                    else phrase
+                )
             elif kwargs.get('key'):
                 kwargs['phrase'] = _key_to_phrase(
                     kwargs['key'], error_callback=err

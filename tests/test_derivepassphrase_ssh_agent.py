@@ -47,17 +47,17 @@ class TestStaticFunctionality:
         ['line', 'env_name', 'value'],
         [
             (
-                'SSH_AUTH_SOCK=/tmp/pageant.user/pageant.27170; export SSH_AUTH_SOCK;',  # noqa: E501
+                'SSH_AUTH_SOCK=/tmp/pageant.user/pageant.27170; export SSH_AUTH_SOCK;',
                 'SSH_AUTH_SOCK',
                 '/tmp/pageant.user/pageant.27170',
             ),
             (
-                'SSH_AUTH_SOCK=/tmp/ssh-3CSTC1W5M22A/agent.27270; export SSH_AUTH_SOCK;',  # noqa: E501
+                'SSH_AUTH_SOCK=/tmp/ssh-3CSTC1W5M22A/agent.27270; export SSH_AUTH_SOCK;',
                 'SSH_AUTH_SOCK',
                 '/tmp/ssh-3CSTC1W5M22A/agent.27270',
             ),
             (
-                'SSH_AUTH_SOCK=/tmp/pageant.user/pageant.27170; export SSH_AUTH_SOCK',  # noqa: E501
+                'SSH_AUTH_SOCK=/tmp/pageant.user/pageant.27170; export SSH_AUTH_SOCK',
                 'SSH_AUTH_SOCK',
                 '/tmp/pageant.user/pageant.27170',
             ),

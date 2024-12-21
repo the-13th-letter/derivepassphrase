@@ -8,14 +8,16 @@ import base64
 import contextlib
 import copy
 import errno
+import io
 import json
 import logging
 import os
+import shlex
 import shutil
 import socket
 import textwrap
 import warnings
-from typing import TYPE_CHECKING, NoReturn
+from typing import TYPE_CHECKING
 
 import click.testing
 import hypothesis
@@ -27,7 +29,8 @@ import tests
 from derivepassphrase import _types, cli, ssh_agent, vault
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable, Iterable, Iterator
+    from typing import NoReturn
 
 DUMMY_SERVICE = tests.DUMMY_SERVICE
 DUMMY_PASSPHRASE = tests.DUMMY_PASSPHRASE
@@ -225,6 +228,56 @@ def is_harmless_config_import_warning(record: tuple[str, int, str]) -> bool:
         ),
     ]
     return any(tests.warning_emitted(w, [record]) for w in possible_warnings)
+
+
+def vault_config_exporter_shell_interpreter(  # noqa: C901
+    script: str | Iterable[str],
+    /,
+    *,
+    prog_name_list: list[str] | None = None,
+    command: click.BaseCommand | None = None,
+    runner: click.testing.CliRunner | None = None,
+) -> Iterator[click.testing.Result]:
+    if isinstance(script, str):  # pragma: no cover
+        script = script.splitlines(False)
+    if prog_name_list is None:  # pragma: no cover
+        prog_name_list = ['derivepassphrase', 'vault']
+    if command is None:  # pragma: no cover
+        command = cli.derivepassphrase_vault
+    if runner is None:  # pragma: no cover
+        runner = click.testing.CliRunner(mix_stderr=False)
+    n = len(prog_name_list)
+    it = iter(script)
+    while True:
+        try:
+            raw_line = next(it)
+        except StopIteration:
+            break
+        else:
+            line = shlex.split(raw_line)
+        input_buffer: list[str] = []
+        if line[:n] != prog_name_list:
+            continue
+        line[:n] = []
+        if line and line[-1] == '<<HERE':
+            # naive HERE document support
+            while True:
+                try:
+                    raw_line = next(it)
+                except StopIteration as exc:  # pragma: no cover
+                    msg = 'incomplete here document'
+                    raise EOFError(msg) from exc
+                else:
+                    if raw_line == 'HERE':
+                        break
+                    input_buffer.append(raw_line)
+            line.pop()
+        yield runner.invoke(
+            command,
+            line,
+            catch_exceptions=False,
+            input=(''.join(x + '\n' for x in input_buffer) or None),
+        )
 
 
 class TestCLI:
@@ -866,25 +919,45 @@ class TestCLI:
             error=os.strerror(errno.EISDIR)
         ), 'expected error exit and known error message'
 
+    @pytest.mark.parametrize(
+        'export_options',
+        [
+            [],
+            ['--export-as=sh'],
+        ],
+    )
     def test_214_export_settings_no_stored_settings(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        export_options: list[str],
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             with contextlib.suppress(FileNotFoundError):
                 os.remove(cli._config_filename(subsystem='vault'))
             _result = runner.invoke(
-                cli.derivepassphrase_vault,
-                ['--export', '-'],
+                # Test parent context navigation by not calling
+                # `cli.derivepassphrase_vault` directly.  Used e.g. in
+                # the `--export-as=sh` section to autoconstruct the
+                # program name correctly.
+                cli.derivepassphrase,
+                ['vault', '--export', '-', *export_options],
                 catch_exceptions=False,
             )
         result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
+    @pytest.mark.parametrize(
+        'export_options',
+        [
+            [],
+            ['--export-as=sh'],
+        ],
+    )
     def test_214a_export_settings_bad_stored_config(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        export_options: list[str],
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
@@ -892,7 +965,7 @@ class TestCLI:
         ):
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--export', '-'],
+                ['--export', '-', *export_options],
                 input='null',
                 catch_exceptions=False,
             )
@@ -901,9 +974,17 @@ class TestCLI:
             error='Cannot load config'
         ), 'expected error exit and known error message'
 
+    @pytest.mark.parametrize(
+        'export_options',
+        [
+            [],
+            ['--export-as=sh'],
+        ],
+    )
     def test_214b_export_settings_not_a_file(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        export_options: list[str],
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
@@ -912,7 +993,7 @@ class TestCLI:
             os.makedirs(cli._config_filename(subsystem='vault'))
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--export', '-'],
+                ['--export', '-', *export_options],
                 input='null',
                 catch_exceptions=False,
             )
@@ -921,16 +1002,24 @@ class TestCLI:
             error='Cannot load config'
         ), 'expected error exit and known error message'
 
+    @pytest.mark.parametrize(
+        'export_options',
+        [
+            [],
+            ['--export-as=sh'],
+        ],
+    )
     def test_214c_export_settings_target_not_a_file(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        export_options: list[str],
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             dname = cli._config_filename(subsystem=None)
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--export', os.fsdecode(dname)],
+                ['--export', os.fsdecode(dname), *export_options],
                 input='null',
                 catch_exceptions=False,
             )
@@ -939,9 +1028,17 @@ class TestCLI:
             error='Cannot store config'
         ), 'expected error exit and known error message'
 
+    @pytest.mark.parametrize(
+        'export_options',
+        [
+            [],
+            ['--export-as=sh'],
+        ],
+    )
     def test_214d_export_settings_settings_directory_not_a_directory(
         self,
         monkeypatch: pytest.MonkeyPatch,
+        export_options: list[str],
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
@@ -951,7 +1048,7 @@ class TestCLI:
                 print('Obstruction!!', file=outfile)
             _result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--export', '-'],
+                ['--export', '-', *export_options],
                 input='null',
                 catch_exceptions=False,
             )
@@ -1304,6 +1401,32 @@ contents go here
             error=custom_error
         ), 'expected error exit and known error message'
 
+    def test_225f_store_config_fail_unset_and_set_same_settings(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+        ):
+            _result = runner.invoke(
+                cli.derivepassphrase_vault,
+                [
+                    '--config',
+                    '--unset=length',
+                    '--length=15',
+                    '--',
+                    DUMMY_SERVICE,
+                ],
+                catch_exceptions=False,
+            )
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='Attempted to unset and set --length at the same time.'
+        ), 'expected error exit and known error message'
+
     def test_226_no_arguments(self, monkeypatch: pytest.MonkeyPatch) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -1581,7 +1704,7 @@ contents go here
                 }),
                 (
                     "Invalid value 'XXX' for config key "
-                    "vault.default-unicode-normalization-form"
+                    'vault.default-unicode-normalization-form'
                 ),
                 id='global',
             ),
@@ -1599,7 +1722,7 @@ contents go here
                 }),
                 (
                     "Invalid value 'XXX' for config key "
-                    "vault.with_normalization.unicode-normalization-form"
+                    'vault.with_normalization.unicode-normalization-form'
                 ),
                 id='service',
             ),
@@ -1679,7 +1802,7 @@ contents go here
             assert result.error_exit(
                 error=(
                     "Invalid value 'XXX' for config key "
-                    "vault.default-unicode-normalization-form"
+                    'vault.default-unicode-normalization-form'
                 ),
             ), 'expected error exit and known error message'
 
@@ -1830,7 +1953,7 @@ Our menu:
 Your selection? (1-10, leave empty to abort): 9
 A fine choice: Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam and spam
 (Note: Vikings strictly optional.)
-"""  # noqa: E501
+"""
         ), 'expected clean exit'
         _result = runner.invoke(
             driver, ['--heading='], input='', catch_exceptions=True
@@ -1853,7 +1976,7 @@ A fine choice: Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam
 [9] Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam and spam
 [10] Lobster thermidor aux crevettes with a mornay sauce garnished with truffle paté, brandy and a fried egg on top and spam
 Your selection? (1-10, leave empty to abort):\x20
-"""  # noqa: E501
+"""
         ), 'expected known output'
 
     def test_112_prompt_for_selection_single(self) -> None:
@@ -2024,6 +2147,204 @@ Boo.
             assert f'FutureWarning: {THE_FUTURE}' in record_tuples[1][2]
             assert f'UserWarning: {JUST_TESTING}' in record_tuples[2][2]
 
+    def _export_as_sh_helper(
+        self,
+        config: Any,
+    ) -> None:
+        prog_name_list = ('derivepassphrase', 'vault')
+        with io.StringIO() as outfile:
+            cli._print_config_as_sh_script(
+                config, outfile=outfile, prog_name_list=prog_name_list
+            )
+            script = outfile.getvalue()
+        runner = click.testing.CliRunner(mix_stderr=False)
+        monkeypatch = pytest.MonkeyPatch()
+        with tests.isolated_vault_config(
+            runner=runner,
+            monkeypatch=monkeypatch,
+            vault_config={'services': {}},
+        ):
+            for _result in vault_config_exporter_shell_interpreter(script):
+                result = tests.ReadableResult.parse(_result)
+                assert result.clean_exit()
+            assert cli._load_config() == config
+
+    @hypothesis.given(
+        global_config_settable=tests.vault_full_service_config(),
+        global_config_importable=strategies.fixed_dictionaries(
+            {},
+            optional={
+                'key': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                    ),
+                    max_size=128,
+                ),
+                'phrase': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                    ),
+                    max_size=64,
+                ),
+            },
+        ),
+    )
+    def test_130a_export_as_sh_global(
+        self,
+        global_config_settable: _types.VaultConfigServicesSettings,
+        global_config_importable: _types.VaultConfigServicesSettings,
+    ) -> None:
+        config: _types.VaultConfig = {
+            'global': global_config_settable | global_config_importable,
+            'services': {},
+        }
+        assert _types.clean_up_falsy_vault_config_values(config) is not None
+        assert _types.is_vault_config(config)
+        return self._export_as_sh_helper(config)
+
+    @hypothesis.given(
+        global_config_importable=strategies.fixed_dictionaries(
+            {},
+            optional={
+                'key': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                    ),
+                    max_size=128,
+                ),
+                'phrase': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                    ),
+                    max_size=64,
+                ),
+            },
+        ),
+    )
+    def test_130b_export_as_sh_global_only_imports(
+        self,
+        global_config_importable: _types.VaultConfigServicesSettings,
+    ) -> None:
+        config: _types.VaultConfig = {
+            'global': global_config_importable,
+            'services': {},
+        }
+        assert _types.clean_up_falsy_vault_config_values(config) is not None
+        assert _types.is_vault_config(config)
+        if not config['global']:
+            config.pop('global')
+        return self._export_as_sh_helper(config)
+
+    @hypothesis.given(
+        service_name=strategies.text(
+            alphabet=strategies.characters(
+                min_codepoint=32,
+                max_codepoint=126,
+            ),
+            min_size=4,
+            max_size=64,
+        ),
+        service_config_settable=tests.vault_full_service_config(),
+        service_config_importable=strategies.fixed_dictionaries(
+            {},
+            optional={
+                'key': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                    ),
+                    max_size=128,
+                ),
+                'phrase': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                    ),
+                    max_size=64,
+                ),
+                'notes': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                        include_characters=('\n', '\f', '\t'),
+                    ),
+                    max_size=256,
+                ),
+            },
+        ),
+    )
+    def test_130c_export_as_sh_service(
+        self,
+        service_name: str,
+        service_config_settable: _types.VaultConfigServicesSettings,
+        service_config_importable: _types.VaultConfigServicesSettings,
+    ) -> None:
+        config: _types.VaultConfig = {
+            'services': {
+                service_name: (
+                    service_config_settable | service_config_importable
+                ),
+            },
+        }
+        assert _types.clean_up_falsy_vault_config_values(config) is not None
+        assert _types.is_vault_config(config)
+        return self._export_as_sh_helper(config)
+
+    @hypothesis.given(
+        service_name=strategies.text(
+            alphabet=strategies.characters(
+                min_codepoint=32,
+                max_codepoint=126,
+            ),
+            min_size=4,
+            max_size=64,
+        ),
+        service_config_importable=strategies.fixed_dictionaries(
+            {},
+            optional={
+                'key': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                    ),
+                    max_size=128,
+                ),
+                'phrase': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                    ),
+                    max_size=64,
+                ),
+                'notes': strategies.text(
+                    alphabet=strategies.characters(
+                        min_codepoint=32,
+                        max_codepoint=126,
+                        include_characters=('\n', '\f', '\t'),
+                    ),
+                    max_size=256,
+                ),
+            },
+        ),
+    )
+    def test_130d_export_as_sh_service_only_imports(
+        self,
+        service_name: str,
+        service_config_importable: _types.VaultConfigServicesSettings,
+    ) -> None:
+        config: _types.VaultConfig = {
+            'services': {
+                service_name: service_config_importable,
+            },
+        }
+        assert _types.clean_up_falsy_vault_config_values(config) is not None
+        assert _types.is_vault_config(config)
+        return self._export_as_sh_helper(config)
+
     @pytest.mark.parametrize(
         ['command_line', 'config', 'result_config'],
         [
@@ -2143,7 +2464,6 @@ Boo.
         skip_if_no_af_unix_support: None,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
     ) -> None:
-
         class CustomError(RuntimeError):
             pass
 
@@ -2194,9 +2514,7 @@ Boo.
             ):
                 cli._key_to_phrase(loaded_key, error_callback=err)
         with monkeypatch.context() as mp:
-            mp.setenv(
-                'SSH_AUTH_SOCK', os.environ['SSH_AUTH_SOCK'] + '~'
-            )
+            mp.setenv('SSH_AUTH_SOCK', os.environ['SSH_AUTH_SOCK'] + '~')
             with pytest.raises(
                 CustomError, match='Cannot connect to SSH agent'
             ):
@@ -2706,8 +3024,8 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         target=configuration,
         configs=strategies.lists(
             _vault_full_config,
-            min_size=4,
-            max_size=4,
+            min_size=8,
+            max_size=8,
         ),
     )
     def declare_initial_configs(
@@ -2718,37 +3036,20 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
 
     @stateful.initialize(
         target=setting,
-        config=_vault_full_config,
+        configs=strategies.lists(
+            _vault_full_config,
+            min_size=4,
+            max_size=4,
+        ),
     )
     def extract_initial_settings(
         self,
-        config: _types.VaultConfig,
+        configs: list[_types.VaultConfig],
     ) -> Iterable[_types.VaultConfigServicesSettings]:
-        return stateful.multiple(
-            *map(copy.deepcopy, config['services'].values())
-        )
-
-    @stateful.rule(
-        target=configuration,
-        config=_vault_full_config,
-    )
-    def declare_config(
-        self,
-        config: _types.VaultConfig,
-    ) -> _types.VaultConfig:
-        return config
-
-    @stateful.rule(
-        target=setting,
-        config=_vault_full_config,
-    )
-    def extract_settings(
-        self,
-        config: _types.VaultConfig,
-    ) -> Iterable[_types.VaultConfigServicesSettings]:
-        return stateful.multiple(
-            *map(copy.deepcopy, config['services'].values())
-        )
+        settings: list[_types.VaultConfigServicesSettings] = []
+        for c in configs:
+            settings.extend(c['services'].values())
+        return stateful.multiple(*map(copy.deepcopy, settings))
 
     @staticmethod
     def fold_configs(
@@ -2769,17 +3070,27 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         target=configuration,
         config=configuration,
         setting=setting.filter(bool),
+        maybe_unset=strategies.sets(
+            strategies.sampled_from(_valid_properties),
+            max_size=3,
+        ),
         overwrite=strategies.booleans(),
     )
     def set_globals(
         self,
         config: _types.VaultConfig,
         setting: _types.VaultConfigGlobalSettings,
+        maybe_unset: set[str],
         overwrite: bool,
     ) -> _types.VaultConfig:
         cli._save_config(config)
+        config_global = config.get('global', {})
+        maybe_unset = set(maybe_unset) - setting.keys()
         if overwrite:
-            config['global'] = {}
+            config['global'] = config_global = {}
+        elif maybe_unset:
+            for key in maybe_unset:
+                config_global.pop(key, None)  # type: ignore[misc]
         config.setdefault('global', {}).update(setting)
         assert _types.is_vault_config(config)
         # NOTE: This relies on settings_obj containing only the keys
@@ -2791,6 +3102,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
                 '--config',
                 '--overwrite-existing' if overwrite else '--merge-existing',
             ]
+            + [f'--unset={key}' for key in maybe_unset]
             + [
                 f'--{key}={value}'
                 for key, value in setting.items()
@@ -2808,6 +3120,10 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         config=configuration,
         service=strategies.sampled_from(_known_services),
         setting=setting.filter(bool),
+        maybe_unset=strategies.sets(
+            strategies.sampled_from(_valid_properties),
+            max_size=3,
+        ),
         overwrite=strategies.booleans(),
     )
     def set_service(
@@ -2815,11 +3131,17 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         config: _types.VaultConfig,
         service: str,
         setting: _types.VaultConfigServicesSettings,
+        maybe_unset: set[str],
         overwrite: bool,
     ) -> _types.VaultConfig:
         cli._save_config(config)
+        config_service = config['services'].get(service, {})
+        maybe_unset = set(maybe_unset) - setting.keys()
         if overwrite:
-            config['services'][service] = {}
+            config['services'][service] = config_service = {}
+        elif maybe_unset:
+            for key in maybe_unset:
+                config_service.pop(key, None)  # type: ignore[misc]
         config['services'].setdefault(service, {}).update(setting)
         assert _types.is_vault_config(config)
         # NOTE: This relies on settings_obj containing only the keys
@@ -2831,6 +3153,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
                 '--config',
                 '--overwrite-existing' if overwrite else '--merge-existing',
             ]
+            + [f'--unset={key}' for key in maybe_unset]
             + [
                 f'--{key}={value}'
                 for key, value in setting.items()
@@ -2846,14 +3169,14 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
 
     @stateful.rule(
         target=configuration,
-        config=configuration.filter(lambda c: 'global' in c),
+        config=configuration,
     )
     def purge_global(
         self,
         config: _types.VaultConfig,
     ) -> _types.VaultConfig:
         cli._save_config(config)
-        config.pop('global')
+        config.pop('global', None)
         _result = self.runner.invoke(
             cli.derivepassphrase_vault,
             ['--delete-globals'],
@@ -2868,7 +3191,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     @stateful.rule(
         target=configuration,
         config_and_service=configuration.filter(
-            lambda c: len(c['services']) > 1
+            lambda c: bool(c['services'])
         ).flatmap(
             lambda c: strategies.tuples(
                 strategies.just(c),
@@ -2896,7 +3219,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
 
     @stateful.rule(
         target=configuration,
-        config=configuration.filter(lambda c: 0 < len(c['services']) < 5),
+        config=configuration,
     )
     def purge_all(
         self,
