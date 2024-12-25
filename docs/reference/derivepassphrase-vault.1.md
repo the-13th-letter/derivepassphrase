@@ -240,6 +240,159 @@ This is a property specific to the key type, and sometimes the agent used:
 
 The derivepassphrase vault utility exits 0 on success, and >0 if an error occurs.
 
+### Fatal error messsages on standard error
+
+(`%s` indicates a variable part of the message.)
+
+??? failure "`%s is mutually exclusive with %s.`"
+
+    The two indicated options must not be used at the same time.
+
+??? failure "`%s requires a SERVICE or --config.`"
+
+    Using the indicated passphrase generation option requires the <var>SERVICE</var> argument or the `--config` option.
+
+??? failure "`%s requires a SERVICE.`"
+
+    Using the indicated option requires the <var>SERVICE</var> argument.
+
+??? failure "`%s does not take a SERVICE argument.`"
+
+    The indicated option must not be specified together with the <var>SERVICE</var> argument.
+
+??? failure "`Cannot load vault settings: %s.`"
+
+    There was a fatal problem loading the stored vault configuration data.
+    Further details are contained in the variable part of the message.
+
+??? failure "`Cannot store vault settings: %s.`"
+
+    There was a fatal problem saving the vault configuration data.
+    Further details are contained in the variable part of the message.
+
+??? failure "`Cannot import vault settings: %s.`"
+
+    There was a fatal problem loading the imported vault configuration data.
+    Further details are contained in the variable part of the message.
+
+??? failure "`Cannot export vault settings: %s.`"
+
+    There was a fatal problem saving the exported vault configuration data.
+    Further details are contained in the variable part of the message.
+
+??? failure "`Cannot load user config: %s.`"
+
+    There was a fatal problem loading the central user configuration file.
+    Further details are contained in the variable part of the message.
+
+??? failure "`The user configuration file is invalid.`"
+
+    (Exactly what it says.)
+
+??? failure "`No usable SSH keys were found`"
+
+    The running SSH agent does not contain any suitable SSH keys.
+
+??? failure "`No valid SSH key selected`"
+
+    We requested that an SSH key be selected, but we got an invalid selection.
+
+??? failure "`The requested SSH key is not loaded into the agent.`"
+
+    The running SSH agent does not contain the necessary SSH key.
+
+??? failure "`Cannot find any running SSH agent because SSH_AUTH_SOCK is not set.`"
+
+    We require a running SSH agent, but cannot locate its communication channel, which is normally indicated by the `SSH_AUTH_SOCK` environment variable.
+
+??? failure "`Cannot connect to an SSH agent because this Python version does not support UNIX domain sockets.`"
+
+    This Python installation does not support the communication mechanism necessary to talk to SSH agents.
+
+??? failure "`Cannot connect to the SSH agent: %s.`"
+
+    We cannot connect to the SSH agent indicated by the `SSH_AUTH_SOCK` environment variable.
+    Further details are contained in the variable part of the message.
+
+??? failure "`The SSH agent failed to complete the request`"
+
+    The SSH agent---while responsive in principle---failed to or refused to supply a list of loaded keys.
+
+??? failure "`Error communicating with the SSH agent`"
+
+    There was a system error communicating with the SSH agent.
+
+??? failure "`Not saving any new notes: the user aborted the request.`"
+
+    (Exactly what it says.)
+
+??? failure "`Cannot update %s settings without actual settings.`"
+
+    Using `--config` requires at least one of the `--phrase`, `--key`, `--length`, etc. options.
+
+??? failure "`Attempted to unset and set %s at the same time.`"
+
+    While handling `--config`, the same configuration setting was passed as an option and as an argument to `--unset`.
+
+??? failure "`Generating a passphrase requires a SERVICE.`"
+
+    (Exactly what it says.)
+
+??? failure "`No passphrase or key was given in the configuration.`"
+
+    <b>derivepassphrase vault</b> does not know whether to use a master SSH key or a master passphrase.
+
+??? failure "`No passphrase was given: the user aborted the request.`"
+
+    (Exactly what it says.)
+
+??? failure "`No SSH key was selected: the user aborted the request.`"
+
+    (Exactly what it says.)
+
+### Non-fatal warning and info messages on standard error
+
+(`%s` indicates a variable part of the message.)
+
+??? warning "`The %s passphrase is not %s-normalized.`"
+
+    The indicated passphrase---as a Unicode string---is not properly normalized according to the preferred Unicode normalization form (as specified in the central configuration file).
+    It is therefore possible that the passphrase---as a byte string---is not the same byte string as you expect it to be (even though it *looks* correct), and that the derived passphrases thus do not match their expected values either.
+    Please double-check.
+
+??? warning "`An empty SERVICE is not supported by vault(1).`"
+
+    <i>vault</i>(1) does not support the empty string as a value for <var>SERVICE</var>; it will treat the <var>SERVICE</var> as missing.
+    For compatibility, <b>derivepassphrase vault</b> will do the same.
+    In particular, if the empty service is imported in a configuration via `--import`, then this service cannot be accessed via the <b>derivepassphrase vault</b> command-line.
+
+??? warning "`Replacing invalid value %s for key %s with %s.`"
+
+    When importing a configuration, the indicated invalid value has been replaced with the indicated replacement value.
+    (The "interpretation" of the configuration doesn’t change).
+
+??? warning "`Removing ineffective setting %s = %s.`"
+
+    When importing a configuration, the indicated ineffective setting has been removed.
+    (The "interpretation" of the configuration doesn’t change).
+
+??? warning "`Setting a %s passphrase is ineffective because a key is also set.`"
+
+    The configuration (global or key-specific) contains both a stored master passphrase and an SSH key.
+    The master passphrase will not take effect.
+
+??? warning "`A subcommand will be required in v1.0.`"
+
+    [Since v0.2.0, until v1.0.]
+    This command now requires a subcommand.
+    For compatibility, it currently defaults to "vault".
+
+??? warning "`Using deprecated v0.1-style config file %s, instead of v0.2-style %s.`"
+
+    [Since v0.2.0, until v1.0.]
+    A configuration file has been renamed.
+    <b>derivepassphrase vault</b> will attempt to rename the file itself (`Successfully migrated to %s.`), or complain if it cannot rename it (`Failed to migrate to %s: %s`).
+
 ## COMPATIBILITY
 
 ### With other software
