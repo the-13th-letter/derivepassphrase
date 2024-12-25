@@ -70,7 +70,7 @@ class OptionCombination(NamedTuple):
     check_success: bool
 
 
-PASSWORD_GENERATION_OPTIONS: list[tuple[str, ...]] = [
+PASSPHRASE_GENERATION_OPTIONS: list[tuple[str, ...]] = [
     ('--phrase',),
     ('--key',),
     ('--length', '20'),
@@ -292,7 +292,7 @@ class TestCLI:
             )
             result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(
-            empty_stderr=True, output='Password generation:\n'
+            empty_stderr=True, output='Passphrase generation:\n'
         ), 'expected clean exit, and option groups in help text'
         assert result.clean_exit(
             empty_stderr=True, output='Use NUMBER=0, e.g. "--symbol 0"'
@@ -2593,7 +2593,7 @@ class TestCLITransition:
             )
             result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(
-            empty_stderr=True, output='Password generation:\n'
+            empty_stderr=True, output='Passphrase generation:\n'
         ), 'expected clean exit, and option groups in help text'
         assert result.clean_exit(
             empty_stderr=True, output='Use NUMBER=0, e.g. "--symbol 0"'

@@ -1,0 +1,722 @@
+.Dd 2024-12-25
+.Dt DERIVEPASSPHRASE-VAULT 1
+.Os derivepassphrase 0.4.0
+.
+.Sh NAME
+.
+.Nm derivepassphrase-vault
+.Nd derive a passphrase using the vault derivation scheme
+.
+.Sh SYNOPSIS
+.
+.Bd -ragged
+.Nm derivepassphrase vault
+.Op Fl \-phrase | Fl \-key
+.Op Fl \-length Ar n
+.Op Fl \-repeat Ar n
+.Op Fl \-lower Ar n
+.Op Fl \-upper Ar n
+.Op Fl \-number Ar n
+.Op Fl \-space Ar n
+.Op Fl \-dash Ar n
+.Op Fl \-symbol Ar n
+.Ar SERVICE
+.
+.Nm derivepassphrase vault
+.Brq Fl \-phrase | \-key | No .\|.\|. | Fl \-symbol Ar n
+.No .\|.\|.
+.Fl \-config
+.Op Fl \-unset Ar setting No .\|.\|.
+.Op Fl \-overwrite\-existing | Fl \-merge\-existing
+.Op Ar SERVICE
+.
+.Nm derivepassphrase vault
+.Bro
+.Fl \-notes
+.Ar SERVICE
+|
+.Fl \-delete
+.Ar SERVICE
+|
+.Fl \-delete\-globals
+|
+.Fl \-clear
+.Brc
+.
+.Nm derivepassphrase vault
+.Op Fl \-export\-as Brq Li json | sh
+.Brq Fl \-import Ar PATH | Fl \-export Ar PATH
+.Ed
+.
+.Sh DESCRIPTION
+.
+Using a master passphrase or a master
+.Tn SSH
+key, derive a passphrase for
+.Ar SERVICE ,
+subject to length, character and character repetition constraints, in a
+manner compatible with James Coglan's
+.Xr vault 1 .
+.Pp
+.
+The derivation is cryptographically strong, meaning that even if a single
+passphrase is compromised, guessing the master passphrase or a different
+service's passphrase is computationally infeasible.
+The derivation is also deterministic, given the same inputs, thus the
+resulting passphrase need not be stored explicitly.
+.Pp
+.
+The service name and constraints themselves also need not be kept secret;
+the latter are usually stored in a world-readable file.
+.
+.Sh OPTIONS
+.
+.Ss Passphrase generation
+.
+The passphrase generation options can be divided into
+.Dq passphrase source
+options
+.Fl ( \-phrase , \-key )
+and
+.Dq passphrase constraint
+options (all others).
+The passphrase source options are mutually exclusive \(em you may only
+specify one of them \(em while the passphrase constraint options may be
+combined in any way.
+The
+.Ar SERVICE
+is mandatory (see synopsis\~#1), unless the
+.Fl \-config
+option is specified (see synopsis\~#2).
+All character constraints refer to ASCII printable characters only (space
+.Pq Li U+0020
+to tilde
+.Pq Li U+007E ,
+excluding the grave accent
+.Pq Li U+0060 ) .
+.
+.Bl -tag -width ".Fl p , \-phrase"
+.
+.It Fl p , \-phrase
+Prompt for a passphrase.
+.Pp
+.
+See also
+.Sx Configuration
+for how this interacts with a stored passphrase or
+.Tn SSH
+key.
+.
+.It Fl k , \-key
+Select an SSH key.
+.Pp
+.
+An SSH agent such as OpenSSH's
+.Xr ssh-agent 1
+or PuTTY's
+.Xr pageant 1
+must be running and accessible, and have the desired key loaded.
+The SSH key must also be
+.Em suitable
+for this purpose; see
+.Sx SSH key suitability
+for details.
+.Pp
+.
+See also
+.Sx Configuration
+for how this interacts with a stored passphrase or
+.Tn SSH
+key.
+.
+.It Fl l Ar n , Fl \-length Ar n
+Force the passphrase to have the length
+.Ar n .
+Defaults to the length
+.Sy 20
+if not specified, or if explicitly specified as
+.Li 0 .
+.
+.It Fl r Ar n , Fl \-repeat Ar n
+Permit only runs of up to
+.Ar n
+consecutive occurrences of the same character.
+Alternatively, forbid immediate additional repetitions of length
+.Ar n
+(or more) for any character in the derived passphrase.
+Setting
+.Ar n No = Li 0
+disables repetition constraints, which is the default.
+.
+.It Fl \-lower Ar n
+Include at least
+.Ar n
+lowercase characters in the derived passphrase.
+Setting
+.Ar n No = Li 0
+forbids these characters entirely.
+The default is to not constain the occurrences in any manner.
+.
+.It Fl \-upper Ar n
+Include at least
+.Ar n
+uppercase characters in the derived passphrase.
+Setting
+.Ar n No = Li 0
+forbids these characters entirely.
+The default is to not constain the occurrences in any manner.
+.
+.It Fl \-number Ar n
+Include at least
+.Ar n
+digits in the derived passphrase.
+Setting
+.Ar n No = Li 0
+forbids these characters entirely.
+The default is to not constain the occurrences in any manner.
+.
+.It Fl \-space Ar n
+Include at least
+.Ar n
+spaces in the derived passphrase.
+Setting
+.Ar n No = Li 0
+forbids these characters entirely.
+The default is to not constain the occurrences in any manner.
+.
+.It Fl \-dash Ar n
+Include at least
+.Ar n
+.Dq dashes
+.Li ( \-
+or
+.Li _ )
+in the derived passphrase.
+Setting
+.Ar n No = Li 0
+forbids these characters entirely.
+The default is to not constain the occurrences in any manner.
+.
+.It Fl \-symbol Ar n
+Include at least
+.Ar n
+symbols (any of
+.Li !\[dq]#$%&\[aq]()*+,./:;<=>?@[\e]\(ha{|}\(ti\-_ )
+in the derived passphrase.
+Setting
+.Ar n No = Li 0
+forbids these characters entirely, and effectively also implies
+.Fl \-dash Li 0 .
+The default is to not constain the occurrences in any manner.
+.
+.El
+.
+.Ss Configuration
+.
+The configuration options directly modify the stored settings: default
+settings, known services, and service-specific settings.
+They are mutually exclusive; you may only specify one of them.
+The
+.Ar SERVICE
+is mandatory for
+.Fl \-notes
+and
+.Fl \-delete ,
+optional for
+.Fl \-config ,
+and forbidden for
+.Fl \-delete\-globals
+and
+.Fl \-clear
+(see synopsis\~#2 and synopsis\~#3).
+.
+.Bl -tag -width ".Fl p , \-phrase"
+.
+.It Fl n , \-notes
+Spawn an editor to edit notes for
+.Ar SERVICE .
+Use the
+.Ev VISUAL
+or
+.Ev EDITOR
+environment variables to configure the spawned editor.
+.
+.It Fl c , \-config
+Save the given settings for
+.Ar SERVICE
+(if given), or save the given settings as global default settings.
+.Pp
+.
+See the
+.Sx Passphrase generation
+and
+.Sx Compatibility and extension options
+sections for other options compatible with
+.Fl \-config .
+.Pp
+.
+.Bf -symbolic
+Do not use the
+.Fl \-phrase
+and
+.Fl \-config
+options together!
+The configuration file is assumed to not contain sensitive contents, and is
+not encrypted.
+.Ef
+.
+.It Fl x , \-delete
+Delete all stored settings for
+.Ar SERVICE .
+.
+.It Fl \-delete\-globals
+Delete all stored global default settings.
+.
+.It Fl X , \-clear
+Delete all stored settings.
+.
+.El
+.
+.Ss Storage management
+.
+The storage management options deal with importing and exporting the stored
+settings.
+They are mutually exclusive; you may only specify one of them.
+Using
+.Li \-
+as
+.Ar PATH
+for standard input/standard output is supported.
+.
+.Bl -tag -width ".Fl p , \-phrase"
+.
+.It Fl e Ar PATH , Fl \-export Ar PATH
+Export all saved settings into file
+.Ar PATH .
+.
+.It Fl i Ar PATH , Fl \-import Ar PATH
+Import saved settings from file
+.Ar PATH .
+.
+.El
+.
+.Ss Compatibility and extension options
+.
+By default,
+.Nm derivepassphrase vault
+behaves in a manner compatible with
+.Xr vault 1 .
+The compatibility and extension options modify the behavior to enable
+additional functionality, or specifically to force compatibility.
+.Pp
+.
+.Xr vault 1
+supports none of these options, and behaves as if the option had not been
+given or had been left in its default state.
+.
+.Bl -tag -width ".Fl p , \-phrase"
+.
+.It Fl \-overwrite\-existing No "" / "" Fl \-merge\-existing
+When importing a configuration via
+.Fl \-import ,
+or configuring the settings via
+.Fl \-config ,
+overwrite or merge
+.Em ( default )
+the existing configuration.
+.Pp
+.
+If overwriting the configuration, then the whole configuration
+.Pq for Fl \-import
+or the respective section
+.Pq service-specific or global, for Fl \-config ,
+will be written from scratch.
+If merging, then each section
+.Pq service-specific or global, for Fl \-import
+or each singular setting
+.Pq for Fl \-config
+will be overwritten, but other unaffected settings/sections will not.
+.Pp
+.
+.Xr ( vault 1
+behaves as if
+.Fl \-merge\-existing
+were always given.)
+.
+.It Fl \-unset Ar setting
+When configuring via
+.Fl \-config ,
+also unset the specified
+.Ar setting ,
+where
+.Ar setting
+is one of the passphrase generation settings
+.Pq Li phrase , key , lower , No .\|.\|. .
+May be specified multiple times.
+Must not overlap with any of the settings being set afterwards.
+.Pp
+.
+.Xr ( vault 1
+does not support this option.)
+.
+.It Fl \-export\-as Brq Li json | sh
+When exporting the configuration via
+.Fl \-export ,
+export as
+.Tn JSON
+(default) or as a shell script in
+.Xr sh 1
+format.
+.Pp
+.
+The
+.Tn JSON
+format is compatible with
+.Xr vault 1 .
+For the shell script format, see the
+.Sx SHELL SCRIPT EXPORT FORMAT
+section for details.
+.Pp
+.
+.Xr ( vault 1
+behaves as if
+.Fl \-export\-as Li json
+were always given.)
+.
+.El
+.
+.Ss Other options
+.
+.Bl -tag -width ".Fl p , \-phrase"
+.
+.It Fl \-version
+Show the version and exit.
+.
+.It Fl h , \-help
+Show a help message and exit.
+.
+.El
+.
+.Sh SHELL SCRIPT EXPORT FORMAT
+.
+If the shell script export format is selected, the configuration will be
+exported as a
+.Tn POSIX
+.Xr sh 1
+script, containing calls to
+.Nm derivepassphrase vault
+to reconstruct the current configuration from scratch.
+The script assumes a conforming
+.Xr sh 1 ,
+with support for
+.Dq here
+documents.
+.Pp
+.
+.Bf -symbolic
+Do not run these emitted shell scripts directly without double-checking
+their output first!
+.Ef
+.
+.Sh SSH KEY SUITABILITY
+.
+An
+.Tn SSH
+key is
+.Sy suitable
+for use with
+.Nm derivepassphrase vault
+if the
+.Tn SSH
+agent guarantees that signatures produced with this key will be
+.Em deterministic ,
+given the same message to be signed.
+This is a property specific to the key
+.Em type ,
+and sometimes the agent used:
+.
+.Bl -bullet
+.
+.It
+.Tn RSA ,
+Ed25519 and Ed448 keys are always suitable.
+.Tn OpenSSH Ns No 's
+.Xr ssh-agent 1
+supports only these keys as suitable keys.
+.
+.It
+.Tn DSA
+and
+.Tn ECDSA
+keys are suitable if the
+.Tn SSH
+agent supports deterministic
+.Tn DSA
+signatures, e.g. by implementing
+.Tn RFC 6979 .
+.Tn PuTTY Ns No 's
+.Xr pageant 1
+supports this, in addition to the always-suitable keys mentioned above.
+.
+.El
+.
+.Sh ENVIRONMENT
+.
+.Bl -tag -width ".Fl p , \-phrase"
+.
+.It Ev VISUAL , EDITOR
+.Nm derivepassphrase vault
+uses this editor to edit service notes when called with
+.Fl \-notes .
+.Ev VISUAL
+has higher precedence than
+.Ev EDITOR .
+.
+.It Ev DERIVEPASSPHRASE_PATH
+.Nm derivepassphrase
+stores its configuration files and data in this directory.
+Defaults to
+.Pa \(ti/.derivepassphrase .
+.
+.El
+.
+.Sh FILES
+.
+.Bl -tag -width ".Fl p , \-phrase"
+.
+.It Ev $DERIVEPASSPHRASE_PATH Ns Pa /vault.json
+The stored configuration for
+.Nm derivepassphrase vault :
+the default passphrase generation settings, the known service names, and the
+service-specific settings.
+This file is
+.Em not
+intended for the user to edit.
+.
+.El
+.
+.Sh SECURITY
+.
+.Bl -bullet
+.
+.It
+There is
+.Sy no way
+to retrieve the generated passphrases if the master passphrase, the SSH key,
+or the exact passphrase settings are lost, short of trying out all possible
+combinations.
+You are
+.Sy strongly
+advised to keep independent backups of the settings and the
+.Tn SSH
+key, if any.
+.
+.It
+The configuration is
+.Sy not
+encrypted, and you are
+.Sy strongly
+discouraged from using a stored passphrase.
+.
+.It
+You are
+.Sy strongly
+advised to avoid the
+.Pq shell script
+configuration export format if possible, and use the JSON format instead.
+If you
+.Em must
+use the shell script format, then
+.Sy always
+validate the export before attempting to interpret or run it.
+.
+.El
+.
+.Sh EXAMPLES
+.
+.Dl $ derivepassphrase vault \-\-phrase email
+.Pp
+Prompt for a master passphrase, then generate a standard passphrase
+.Pq length 20, no character or repetition constraints
+for the
+.Dq email
+service.
+.Pp
+.
+.Dl $ derivepassphrase vault \-\-key \-\-upper 9 \-\-lower 9 example.com
+.Pp
+.
+Select an
+.Tn SSH
+key from the available suitable
+.Tn SSH
+keys in the running
+.Tn SSH
+agent, then generate a passphrase for the
+.Li example.com
+service using the previously selected
+.Tn SSH
+key.
+The passphrase will have (standard) length 20, and at least nine characters
+will be uppercase characters and at least another nine characters will be
+lowercase characters.
+.Pp
+.
+.Dl $ derivepassphrase vault \-\-key \-\-upper 9 \-\-lower 9 \-\-number 9 example.com
+.Pp
+.
+Attempt to generate a passphrase as in the previous example.
+.Em This
+example will error out, because the passphrase constraints require at least
+27 characters and the standard passphrase length 20 cannot accomodate this.
+.Pp
+.
+.Dl $ derivepassphrase vault \-\-key \-\-upper 9 \-\-lower 9 \-\-space 2 \-\-config
+.Pp
+.
+After selecting an
+.Tn SSH
+key, configure the default settings to use exactly nine uppercase characters,
+nine lowercase characters, and two spaces for each generated passphrase.
+(The specific service settings, or the command-line invocation, can still
+override these settings.)
+.Pp
+.
+.Dl $ derivepassphrase vault example.com
+.Pp
+.
+Because of the previous setting, the generated passphrase for the
+.Li example.com
+service will behave as if
+.Fl \-key \-upper Li 9 Fl \-lower Li 9 Fl \-space Li 2
+had been specified during invocation (with the
+.Tn SSH
+key already having been selected).
+In particular, it is neither necessary to specify
+.Fl \-phrase No or Fl \-key
+nor is it necessary to actually select an
+.Tn SSH
+key or to type in a master passphrase.
+.
+.Sh DIAGNOSTICS
+.
+.Ex -std "derivepassphrase vault"
+.
+.Sh COMPATIBILITY
+.
+.Ss With other software
+.
+.Nm derivepassphrase vault
+is
+.Em almost
+drop-in compatible with James Coglan's
+.Xr vault 1 ,
+version 0.3.0
+.Pq including Do storeroom Dc support ,
+meaning that each tool supports the same file formats and command-line
+arguments/options as the other one.
+.Pp
+.
+Exceptions:
+.
+.Bl -bullet
+.
+.It
+.Xr vault 1
+does not support the
+.Sx "Compatibility and extension options"
+listed above.
+.
+.It
+.Nm derivepassphrase vault
+can import and generate configuration exports in the same format as
+.Xr vault 1 ,
+but it cannot
+.Em natively
+read or write
+.Xr vault 1
+.Ns 's
+configuration file
+.Pq non-storeroom
+or configuration directory
+.Pq storeroom .
+(The sister command
+.Xr derivepassphrase-export 1
+can read both these formats and export the contents.)
+.
+.El
+.
+.Ss Forward and backward compatibility
+.
+.Bl -bullet
+.
+.It
+.Bo Since v0.2.0 . Bc
+In v1.0, the commands
+.Nm derivepassphrase
+and
+.Nm derivepassphrase export
+will require an explicit subcommand name.
+Both default to the subcommand
+.Ic vault .
+.
+.It
+.Bo Since v0.2.0 . Bc
+In v1.0, the configuration data file for the
+.Ic vault
+subcommand will be named
+.Pa vault.json ,
+instead of
+.Pa config.json .
+.
+.It
+.Bo Since v0.2.0, to be removed in v1.0 . Bc
+An existing configuration data file
+.Pa config.json
+will be attempted to be renamed to
+.Pa vault.json .
+.El
+.
+.Sh SEE ALSO
+.
+.Xr derivepassphrase 1 ,
+.Xr pageant 1 ,
+.Xr ssh-agent 1 .
+.Rs
+.%A "James Coglan"
+.%T "vault(1)"
+.%U https://www.npmjs.com/package/vault
+.Re
+.Pp
+.
+Further online documentation for
+.Xr derivepassphrase 1
+.Pq tutorials, how-tos, reference and design documentation
+is available at
+.Lk https://the13thletter.info/derivepassphrase/ .
+.
+.Sh AUTHOR
+.
+.Lk mailto:software@the13thletter.info "Marco Ricci"
+.
+.Sh BUGS
+.
+.Bl -bullet
+.
+.It
+The defaults are dictated by
+.Xr vault 1 ,
+necessitating the
+.Sx Compatibility and extension options .
+.Pq WONTFIX.
+.
+.It
+The Windows version does not support
+.Tn SSH
+keys because Python on Windows does not support the predominant type of
+inter-process communication used by
+.Tn SSH
+agents on Windows.
+.
+.El
+.

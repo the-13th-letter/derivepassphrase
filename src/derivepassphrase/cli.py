@@ -1438,10 +1438,10 @@ def _print_config_as_sh_script(
 
 
 # Concrete option groups used by this command-line interface.
-class PasswordGenerationOption(OptionGroupOption):
-    """Password generation options for the CLI."""
+class PassphraseGenerationOption(OptionGroupOption):
+    """Passphrase generation options for the CLI."""
 
-    option_group_name = 'Password generation'
+    option_group_name = 'Passphrase generation'
     epilog = """
         Use NUMBER=0, e.g. "--symbol 0", to exclude a character type
         from the output.
@@ -1470,7 +1470,7 @@ class StorageManagementOption(OptionGroupOption):
 class CompatibilityOption(OptionGroupOption):
     """Compatibility and incompatibility options for the CLI."""
 
-    option_group_name = 'Options concerning compatibility with other tools'
+    option_group_name = 'Compatibility and extension options'
 
 
 def _validate_occurrence_constraint(
@@ -1582,7 +1582,7 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
     'use_phrase',
     is_flag=True,
     help='prompts you for your passphrase',
-    cls=PasswordGenerationOption,
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '-k',
@@ -1590,7 +1590,7 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
     'use_key',
     is_flag=True,
     help='uses your SSH private key to generate passwords',
-    cls=PasswordGenerationOption,
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '-l',
@@ -1598,7 +1598,7 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
     metavar='NUMBER',
     callback=_validate_length,
     help='emits password of length NUMBER',
-    cls=PasswordGenerationOption,
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '-r',
@@ -1606,49 +1606,49 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
     metavar='NUMBER',
     callback=_validate_occurrence_constraint,
     help='allows maximum of NUMBER repeated adjacent chars',
-    cls=PasswordGenerationOption,
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '--lower',
     metavar='NUMBER',
     callback=_validate_occurrence_constraint,
     help='includes at least NUMBER lowercase letters',
-    cls=PasswordGenerationOption,
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '--upper',
     metavar='NUMBER',
     callback=_validate_occurrence_constraint,
     help='includes at least NUMBER uppercase letters',
-    cls=PasswordGenerationOption,
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '--number',
     metavar='NUMBER',
     callback=_validate_occurrence_constraint,
     help='includes at least NUMBER digits',
-    cls=PasswordGenerationOption,
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '--space',
     metavar='NUMBER',
     callback=_validate_occurrence_constraint,
     help='includes at least NUMBER spaces',
-    cls=PasswordGenerationOption,
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '--dash',
     metavar='NUMBER',
     callback=_validate_occurrence_constraint,
     help='includes at least NUMBER "-" or "_"',
-    cls=PasswordGenerationOption,
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '--symbol',
     metavar='NUMBER',
     callback=_validate_occurrence_constraint,
     help='includes at least NUMBER symbol chars',
-    cls=PasswordGenerationOption,
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '-n',
@@ -1883,8 +1883,8 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         if isinstance(param, click.Option):
             group: type[click.Option]
             # Use match/case here once Python 3.9 becomes unsupported.
-            if isinstance(param, PasswordGenerationOption):
-                group = PasswordGenerationOption
+            if isinstance(param, PassphraseGenerationOption):
+                group = PassphraseGenerationOption
             elif isinstance(param, ConfigurationOption):
                 group = ConfigurationOption
             elif isinstance(param, StorageManagementOption):
@@ -2006,7 +2006,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     for group in (ConfigurationOption, StorageManagementOption):
         for opt in options_in_group[group]:
             if opt != params_by_str['--config']:
-                for other_opt in options_in_group[PasswordGenerationOption]:
+                for other_opt in options_in_group[PassphraseGenerationOption]:
                     check_incompatible_options(opt, other_opt)
 
     for group in (ConfigurationOption, StorageManagementOption):
@@ -2015,7 +2015,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 check_incompatible_options(opt, other_opt)
             for other_opt in options_in_group[StorageManagementOption]:
                 check_incompatible_options(opt, other_opt)
-    sv_or_global_options = options_in_group[PasswordGenerationOption]
+    sv_or_global_options = options_in_group[PassphraseGenerationOption]
     for param in sv_or_global_options:
         if is_param_set(param) and not (
             service or is_param_set(params_by_str['--config'])
