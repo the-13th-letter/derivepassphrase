@@ -1908,6 +1908,17 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     def is_param_set(param: click.Parameter) -> bool:
         return bool(ctx.params.get(param.human_readable_name))
 
+    def option_name(param: click.Parameter | str) -> str:
+        # Annoyingly, `param.human_readable_name` contains the *function*
+        # parameter name, not the list of option names.  *Those* are
+        # stashed in the `.opts` and `.secondary_opts` attributes, which
+        # are visible in the `.to_info_dict()` output, but not otherwise
+        # documented.
+        param = params_by_str[param] if isinstance(param, str) else param
+        names = [param.human_readable_name, *param.opts, *param.secondary_opts]
+        option_names = [n for n in names if n.startswith('--')]
+        return min(option_names, key=len)
+
     def check_incompatible_options(
         param1: click.Parameter | str,
         param2: click.Parameter | str,
@@ -1919,10 +1930,12 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         if not is_param_set(param1):
             return
         if is_param_set(param2):
-            param1_str = param1.human_readable_name
-            param2_str = param2.human_readable_name
+            param1_str = option_name(param1)
+            param2_str = option_name(param2)
             raise click.BadOptionUsage(
-                param1_str, f'mutually exclusive with {param2_str}', ctx=ctx
+                param1_str,
+                f'{param1_str} is mutually exclusive with {param2_str}',
+                ctx=ctx,
             )
         return
 
