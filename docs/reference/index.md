@@ -5,9 +5,9 @@ title: Reference overview
 ## Man pages
 
 * [`derivepassphrase(1)`][top_man]: Derive a strong passphrase, deterministically, from a master secret.
-    * [`derivepassphrase-vault(1)`][top_man]: Derive a passphrase using the vault(1) derivation scheme.
+    * [`derivepassphrase-vault(1)`][vault_man]: Derive a passphrase using the vault(1) derivation scheme.
     * [`derivepassphrase-export(1)`][export_man]: Export a foreign configuration to standard output.
-        * [`derivepassphrase-export-vault(1)`][export_man]: Export a vault-native configuration to standard output.
+        * [`derivepassphrase-export-vault(1)`][export_vault_man]: Export a vault-native configuration to standard output.
 
 ## Modules and packages (API docs)
 

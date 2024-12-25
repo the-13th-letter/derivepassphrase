@@ -6,8 +6,8 @@
     files are user-editable, the data files are `derivepassphrase`-editable.
 
     The configuration files are in TOML format, so installing
-    `derivepassphrase` on Python 3.10 and older requires the [`tomli`][]
-    package.
+    `derivepassphrase` on Python 3.10 and older requires the
+    [`tomli`][tomli] package.
 
 [tomli]: https://pypi.org/project/tomli/
 

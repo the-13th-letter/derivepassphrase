@@ -146,7 +146,8 @@ class CLIofPackageFormatter(logging.Formatter):
             `PKG.deprecation` (where `PKG` is the package name), else
             `"Warning: "`.
           * For records at level [`logging.ERROR`][] and
-            [`logging.CRITICAL`][] `"Error: "`, `LABEL` is `"ERROR: "`.
+            [`logging.CRITICAL`][] `"Error: "`, `LABEL` is the empty
+            string.
 
         The level indication strings at level `WARNING` or above are
         highlighted.  Use [`click.echo`][] to output them and remove
@@ -516,8 +517,8 @@ def standard_logging_options(f: Callable[P, R]) -> Callable[P, R]:
     """Decorate the function with standard logging click options.
 
     Adds the three click options `-v`/`--verbose`, `-q`/`--quiet` and
-    `--debug`, which issue callbacks to the [`log_info`][],
-    [`silence_warnings`][] and [`log_debug`][] functions, respectively.
+    `--debug`, which calls back into the [`adjust_logging_level`][]
+    function (with different argument values).
 
     Args:
         f: A callable to decorate.
@@ -1084,8 +1085,8 @@ def _get_suitable_ssh_keys(
     with ssh_agent.SSHAgentClient.ensure_agent_subcontext(conn) as client:
         try:
             all_key_comment_pairs = list(client.list_keys())
-        except EOFError as e:  # pragma: no cover
-            raise RuntimeError(_AGENT_COMMUNICATION_ERROR) from e
+        except EOFError as exc:  # pragma: no cover
+            raise RuntimeError(_AGENT_COMMUNICATION_ERROR) from exc
         suitable_keys = copy.copy(all_key_comment_pairs)
         for pair in all_key_comment_pairs:
             key, _comment = pair
@@ -1337,13 +1338,13 @@ def _key_to_phrase(
         with ssh_agent.SSHAgentClient.ensure_agent_subcontext() as client:
             try:
                 return vault.Vault.phrase_from_key(key, conn=client)
-            except ssh_agent.SSHAgentFailedError as e:
+            except ssh_agent.SSHAgentFailedError as exc:
                 try:
                     keylist = client.list_keys()
                 except ssh_agent.SSHAgentFailedError:
                     pass
-                except Exception as e2:  # noqa: BLE001
-                    e.__context__ = e2
+                except Exception as exc2:  # noqa: BLE001
+                    exc.__context__ = exc2
                 else:
                     if not any(  # pragma: no branch
                         k == key for k, _ in keylist
@@ -1352,7 +1353,7 @@ def _key_to_phrase(
                             'The requested SSH key is not loaded '
                             'into the agent.'
                         )
-                error_callback(e)
+                error_callback(exc)
     except KeyError:
         error_callback('Cannot find running SSH agent; check SSH_AUTH_SOCK')
     except NotImplementedError:
@@ -1360,8 +1361,8 @@ def _key_to_phrase(
             'Cannot connect to SSH agent because '
             'this Python version does not support UNIX domain sockets'
         )
-    except OSError as e:
-        error_callback('Cannot connect to SSH agent: %s', e.strerror)
+    except OSError as exc:
+        error_callback('Cannot connect to SSH agent: %s', exc.strerror)
 
 
 def _print_config_as_sh_script(
@@ -1500,9 +1501,9 @@ def _validate_occurrence_constraint(
     else:
         try:
             int_value = int(value, 10)
-        except ValueError as e:
+        except ValueError as exc:
             msg = 'not an integer'
-            raise click.BadParameter(msg) from e
+            raise click.BadParameter(msg) from exc
     if int_value < 0:
         msg = 'not a non-negative integer'
         raise click.BadParameter(msg)
@@ -1537,9 +1538,9 @@ def _validate_length(
     else:
         try:
             int_value = int(value, 10)
-        except ValueError as e:
+        except ValueError as exc:
             msg = 'not an integer'
-            raise click.BadParameter(msg) from e
+            raise click.BadParameter(msg) from exc
     if int_value < 1:
         msg = 'not a positive integer'
         raise click.BadParameter(msg)
@@ -1734,8 +1735,8 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
 )
 @click.option(
     '--export-as',
-    type=click.Choice(['JSON', 'sh']),
-    default='JSON',
+    type=click.Choice(['json', 'sh']),
+    default='json',
     help='when exporting, export as JSON (default) or POSIX sh',
     cls=CompatibilityOption,
 )
@@ -1963,10 +1964,10 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             else:
                 deprecation.info('Successfully migrated to %r.', new_name)
             return backup_config
-        except OSError as e:
-            err('Cannot load config: %s: %r', e.strerror, e.filename)
-        except Exception as e:  # noqa: BLE001
-            err('Cannot load config: %s', str(e), exc_info=e)
+        except OSError as exc:
+            err('Cannot load config: %s: %r', exc.strerror, exc.filename)
+        except Exception as exc:  # noqa: BLE001
+            err('Cannot load config: %s', str(exc), exc_info=exc)
 
     def put_config(config: _types.VaultConfig, /) -> None:
         try:
@@ -1981,10 +1982,10 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             return _load_user_config()
         except FileNotFoundError:
             return {}
-        except OSError as e:
-            err('Cannot load user config: %s: %r', e.strerror, e.filename)
-        except Exception as e:  # noqa: BLE001
-            err('Cannot load user config: %s', str(e), exc_info=e)
+        except OSError as exc:
+            err('Cannot load user config: %s: %r', exc.strerror, exc.filename)
+        except Exception as exc:  # noqa: BLE001
+            err('Cannot load user config: %s', str(exc), exc_info=exc)
 
     configuration: _types.VaultConfig
 
@@ -2089,10 +2090,10 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             # error information.
             with infile:
                 maybe_config = json.load(infile)
-        except json.JSONDecodeError as e:
-            err('Cannot load config: cannot decode JSON: %s', e)
-        except OSError as e:
-            err('Cannot load config: %s: %r', e.strerror, e.filename)
+        except json.JSONDecodeError as exc:
+            err('Cannot load config: cannot decode JSON: %s', exc)
+        except OSError as exc:
+            err('Cannot load config: %s: %r', exc.strerror, exc.filename)
         cleaned = _types.clean_up_falsy_vault_config_values(maybe_config)
         if not _types.is_vault_config(maybe_config):
             err('Cannot load config: %s', _INVALID_VAULT_CONFIG)
@@ -2137,8 +2138,8 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     cast(dict[str, Any], value),
                     main_config=user_config,
                 )
-        except AssertionError as e:
-            err('The configuration file is invalid.  ' + str(e))
+        except AssertionError as exc:
+            err('The configuration file is invalid.  ' + str(exc))
         global_obj = maybe_config.get('global', {})
         has_key = _types.js_truthiness(global_obj.get('key'))
         has_phrase = _types.js_truthiness(global_obj.get('phrase'))
@@ -2225,8 +2226,8 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     )
                 else:
                     json.dump(configuration, outfile)
-        except OSError as e:
-            err('Cannot store config: %s: %r', e.strerror, e.filename)
+        except OSError as exc:
+            err('Cannot store config: %s: %r', exc.strerror, exc.filename)
     else:
         configuration = get_config()
         # This block could be type checked more stringently, but this
@@ -2272,14 +2273,14 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     'Cannot connect to SSH agent because '
                     'this Python version does not support UNIX domain sockets'
                 )
-            except OSError as e:
-                err('Cannot connect to SSH agent: %s', e.strerror)
+            except OSError as exc:
+                err('Cannot connect to SSH agent: %s', exc.strerror)
             except (
                 LookupError,
                 RuntimeError,
                 ssh_agent.SSHAgentFailedError,
-            ) as e:
-                err(str(e))
+            ) as exc:
+                err(str(exc))
         elif use_phrase:
             maybe_phrase = _prompt_for_passphrase()
             if not maybe_phrase:
@@ -2304,8 +2305,8 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                         {'phrase': phrase},
                         main_config=user_config,
                     )
-                except AssertionError as e:
-                    err('The configuration file is invalid.  ' + str(e))
+                except AssertionError as exc:
+                    err('The configuration file is invalid.  ' + str(exc))
                 if 'key' in settings:
                     if service:
                         logger.warning(
@@ -2366,8 +2367,8 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                         {'phrase': phrase},
                         main_config=user_config,
                     )
-                except AssertionError as e:
-                    err('The configuration file is invalid.  ' + str(e))
+                except AssertionError as exc:
+                    err('The configuration file is invalid.  ' + str(exc))
 
             # If either --key or --phrase are given, use that setting.
             # Otherwise, if both key and phrase are set in the config,
