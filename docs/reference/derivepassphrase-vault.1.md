@@ -15,12 +15,14 @@ derivepassphrase-vault – derive a passphrase using the vault derivation scheme
 
 ## DESCRIPTION
 
-Using a master passphrase or a master SSH key, derive a passphrase for <var>SERVICE</var>, subject to length, character and character repetition constraints, in a manner compatible with James Coglan's <i>vault</i>(1).
+Using a master passphrase, derive a passphrase for <var>SERVICE</var>, subject to length, character and character repetition constraints, in a manner compatible with James Coglan's <i>vault</i>(1).
 
-The derivation is cryptographically strong, meaning that even if a single passphrase is compromised, guessing the master passphrase or a different service's passphrase is computationally infeasible.
-The derivation is also deterministic, given the same inputs, thus the resulting passphrase need not be stored explicitly.
+The derivation is <em>strong</em>: derived passphrases have as much entropy as permitted by the master passphrase and the passphrase constraints (whichever is more restrictive), and even if multiple derived passphrases are compromised, the master passphrase remains cryptographically difficult to discern from these compromised passphrases.
+The derivation is also <em>deterministic</em>, given the same inputs, thus the resulting passphrase need not be stored explicitly.
 
-The service name and constraints themselves also need not be kept secret; the latter are usually stored in a world-readable file.
+The service name and constraints themselves also need not be kept secret; the latter are usually stored in a world-readable file to ease repeated entry of passphrase constraints.
+
+In lieu of a master passphrase, a master SSH key can also be used if there is a reachable, running SSH agent currently holding this key and if the key type is supported.  (See ["SSH KEY SUITABILITY"](#ssh-key-suitability) and ["BUGS"](#bugs) below.)  This too is compatible with <i>vault</i>(1).
 
 ## OPTIONS
 
@@ -238,7 +240,7 @@ This is a property specific to the key type, and sometimes the agent used:
 
 ## DIAGNOSTICS
 
-The derivepassphrase vault utility exits 0 on success, and >0 if an error occurs.
+The <b>derivepassphrase vault</b> utility exits 0 on success, and >0 if an error occurs.
 
 ### Fatal error messsages on standard error
 
@@ -314,13 +316,25 @@ The derivepassphrase vault utility exits 0 on success, and >0 if an error occurs
     We cannot connect to the SSH agent indicated by the `SSH_AUTH_SOCK` environment variable.
     Further details are contained in the variable part of the message.
 
-??? failure "`The SSH agent failed to complete the request`"
+??? failure "`The SSH agent failed to or refused to supply a list of loaded keys.`"
 
-    The SSH agent---while responsive in principle---failed to or refused to supply a list of loaded keys.
+    The SSH agent---while responsive in principle---did not fulfill the request.
+
+??? failure "`The SSH agent failed to or refused to issue a signature with the selected key, necessary for deriving a service passphrase.`"
+
+    The SSH agent---while responsive in principle---failed to cooperate with deriving a service passphrase from the selected master SSH key.
+
+??? failure "`The SSH agent contains no keys suitable for derivepassphrase.`"
+
+    None of the keys loaded into the SSH agent (if any) are suitable for use with <b>derivepassphrase vault</b>.  See the ["SSH KEY SUITABILITY"](#ssh-key-suitability) section for the requirements the SSH key and the SSH agent must fulfill to be suitable.
 
 ??? failure "`Error communicating with the SSH agent`"
 
     There was a system error communicating with the SSH agent.
+
+??? failure "`Cannot understand the SSH agent's response because it violates the communication protocol.`"
+
+    (Exactly what it says.)
 
 ??? failure "`Not saving any new notes: the user aborted the request.`"
 

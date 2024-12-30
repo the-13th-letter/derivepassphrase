@@ -50,24 +50,43 @@
 .
 .Sh DESCRIPTION
 .
-Using a master passphrase or a master
-.Tn SSH
-key, derive a passphrase for
+Using a master passphrase, derive a passphrase for
 .Ar SERVICE ,
 subject to length, character and character repetition constraints, in a
 manner compatible with James Coglan's
 .Xr vault 1 .
 .Pp
 .
-The derivation is cryptographically strong, meaning that even if a single
-passphrase is compromised, guessing the master passphrase or a different
-service's passphrase is computationally infeasible.
-The derivation is also deterministic, given the same inputs, thus the
-resulting passphrase need not be stored explicitly.
+The derivation is
+.Em strong :
+derived passphrases have as much entropy as permitted by the master
+passphrase and the passphrase constraints (whichever is more restrictive),
+and even if multiple derived passphrases are compromised, the master
+passphrase remains cryptographically difficult to discern from theses
+compromised passphrases.
+The derivation is also
+.Em deterministic ,
+given the same inputs, thus the resulting passphrase need not be stored
+explicitly.
 .Pp
 .
 The service name and constraints themselves also need not be kept secret;
-the latter are usually stored in a world-readable file.
+the latter are usually stored in a world-readable file to ease repeated
+entry of passphrase constraints.
+.Pp
+.
+In lieu of a master passphrase, a master
+.Tn SSH
+key can also be used if there is a reachable, running
+.Tn SSH
+agent currently holding this key and if the key type is supported.
+(See
+.Sx "SSH KEY SUITABILITY"
+and
+.Sx BUGS
+below.)
+This too is compatible with
+.Xr vault 1 .
 .
 .Sh OPTIONS
 .
@@ -677,12 +696,36 @@ We cannot connect to the SSH agent indicated by the
 environment variable.
 Further details are contained in the variable part of the message.
 .
-.It The SSH agent failed to complete the request
-The SSH agent \(em while responsive in principle \(em failed to or refused
-to supply a list of loaded keys.
+.It The SSH agent failed to or refused to supply a list of loaded keys.
+The SSH agent \(em while responsive in principle \(em did not fulfill the
+request.
+.
+.It "The SSH agent failed to or refused to" "issue a signature with the selected key," "necessary for deriving a service passphrase."
+The SSH agent \(em while responsive in principle \(em failed to cooperate with
+deriving a service passphrase from the selected master
+.Tn SSH
+key.
+.
+.It The SSH agent contains no keys suitable for derivepassphrase.
+.
+None of the keys loaded into the
+.Tn SSH
+agent (if any) are suitable for use with
+.Nm derivepassphrase vault .
+See the
+.Sx "SSH KEY SUITABILITY"
+section for the requirements the
+.Tn SSH
+key and the
+.Tn SSH
+agent must fulfill to be suitable.
 .
 .It Error communicating with the SSH agent
 There was a system error communicating with the SSH agent.
+.
+.It Cannot understand the SSH agent's response because it violates the communication protocol.
+.
+(Exactly what it says.)
 .
 .It Not saving any new notes: the user aborted the request.
 (Exactly what it says.)
