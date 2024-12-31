@@ -95,7 +95,11 @@ class ClickEchoStderrHandler(logging.Handler):
         [`sys.stderr`][].
 
         """
-        click.echo(self.format(record), err=True)
+        click.echo(
+            self.format(record),
+            err=True,
+            color=getattr(record, 'color', None),
+        )
 
 
 class CLIofPackageFormatter(logging.Formatter):
@@ -1016,6 +1020,31 @@ def version_option(f: Callable[P, R]) -> Callable[P, R]:
     )(f)
 
 
+def color_forcing_callback(
+    ctx: click.Context,
+    param: click.Parameter,
+    value: Any,  # noqa: ANN401
+) -> None:
+    """Force the `click` context to honor `NO_COLOR` and `FORCE_COLOR`."""
+    del param, value
+    if os.environ.get('NO_COLOR'):  # pragma: no cover
+        ctx.color = False
+    if os.environ.get('FORCE_COLOR'):  # pragma: no cover
+        ctx.color = True
+
+
+color_forcing_pseudo_option = click.option(
+    '--_pseudo-option-color-forcing',
+    '_color_forcing',
+    is_flag=True,
+    is_eager=True,
+    expose_value=False,
+    hidden=True,
+    callback=color_forcing_callback,
+    help='(pseudo-option)',
+)
+
+
 class LoggingOption(OptionGroupOption):
     """Logging options for the CLI."""
 
@@ -1223,6 +1252,7 @@ class _TopLevelCLIEntryPoint(_DefaultToVaultGroup):
     ),
 )
 @version_option
+@color_forcing_pseudo_option
 @standard_logging_options
 @click.pass_context
 def derivepassphrase(ctx: click.Context, /) -> None:
@@ -1240,7 +1270,10 @@ def derivepassphrase(ctx: click.Context, /) -> None:
     deprecation = logging.getLogger(f'{PROG_NAME}.deprecation')
     if ctx.invoked_subcommand is None:
         deprecation.warning(
-            _msg.TranslatedString(_msg.WarnMsgTemplate.V10_SUBCOMMAND_REQUIRED)
+            _msg.TranslatedString(
+                _msg.WarnMsgTemplate.V10_SUBCOMMAND_REQUIRED
+            ),
+            extra={'color': ctx.color},
         )
         # See definition of click.Group.invoke, non-chained case.
         with ctx:
@@ -1272,6 +1305,7 @@ def derivepassphrase(ctx: click.Context, /) -> None:
     ),
 )
 @version_option
+@color_forcing_pseudo_option
 @standard_logging_options
 @click.pass_context
 def derivepassphrase_export(ctx: click.Context, /) -> None:
@@ -1289,7 +1323,10 @@ def derivepassphrase_export(ctx: click.Context, /) -> None:
     deprecation = logging.getLogger(f'{PROG_NAME}.deprecation')
     if ctx.invoked_subcommand is None:
         deprecation.warning(
-            _msg.TranslatedString(_msg.WarnMsgTemplate.V10_SUBCOMMAND_REQUIRED)
+            _msg.TranslatedString(
+                _msg.WarnMsgTemplate.V10_SUBCOMMAND_REQUIRED
+            ),
+            extra={'color': ctx.color},
         )
         # See definition of click.Group.invoke, non-chained case.
         with ctx:
@@ -1413,6 +1450,7 @@ def _shell_complete_vault_path(  # pragma: no cover
     cls=StandardOption,
 )
 @version_option
+@color_forcing_pseudo_option
 @standard_logging_options
 @click.argument(
     'path',
@@ -1462,6 +1500,7 @@ def derivepassphrase_export_vault(
                     path=path,
                     fmt=fmt,
                 ),
+                extra={'color': ctx.color},
             )
             continue
         except OSError as exc:
@@ -1472,6 +1511,7 @@ def derivepassphrase_export_vault(
                     error=exc.strerror,
                     filename=exc.filename,
                 ).maybe_without_filename(),
+                extra={'color': ctx.color},
             )
             ctx.exit(1)
         except ModuleNotFoundError:
@@ -1480,12 +1520,14 @@ def derivepassphrase_export_vault(
                     _msg.ErrMsgTemplate.MISSING_MODULE,
                     module='cryptography',
                 ),
+                extra={'color': ctx.color},
             )
             logger.info(
                 _msg.TranslatedString(
                     _msg.InfoMsgTemplate.PIP_INSTALL_EXTRA,
                     extra_name='export',
                 ),
+                extra={'color': ctx.color},
             )
             ctx.exit(1)
         else:
@@ -1495,9 +1537,13 @@ def derivepassphrase_export_vault(
                         _msg.ErrMsgTemplate.INVALID_VAULT_CONFIG,
                         config=config,
                     ),
+                    extra={'color': ctx.color},
                 )
                 ctx.exit(1)
-            click.echo(json.dumps(config, indent=2, sort_keys=True))
+            click.echo(
+                json.dumps(config, indent=2, sort_keys=True),
+                color=ctx.color,
+            )
             break
     else:
         logger.error(
@@ -1505,6 +1551,7 @@ def derivepassphrase_export_vault(
                 _msg.ErrMsgTemplate.CANNOT_PARSE_AS_VAULT_CONFIG,
                 path=path,
             ).maybe_without_filename(),
+            extra={'color': ctx.color},
         )
         ctx.exit(1)
 
@@ -1728,6 +1775,7 @@ def _prompt_for_selection(
     items: Sequence[str | bytes],
     heading: str = 'Possible choices:',
     single_choice_prompt: str = 'Confirm this choice?',
+    ctx: click.Context | None = None,
 ) -> int:
     """Prompt user for a choice among the given items.
 
@@ -1747,6 +1795,9 @@ def _prompt_for_selection(
         single_choice_prompt:
             The confirmation prompt if there is only a single possible
             choice.  Defaults to a reasonable standard prompt.
+        ctx:
+            An optional `click` context, from which output device
+            properties and color preferences will be queried.
 
     Returns:
         An index into the items sequence, indicating the user's
@@ -1759,12 +1810,13 @@ def _prompt_for_selection(
 
     """
     n = len(items)
+    color = ctx.color if ctx is not None else None
     if heading:
-        click.echo(click.style(heading, bold=True))
+        click.echo(click.style(heading, bold=True), color=color)
     for i, x in enumerate(items, start=1):
-        click.echo(click.style(f'[{i}]', bold=True), nl=False)
-        click.echo(' ', nl=False)
-        click.echo(x)
+        click.echo(click.style(f'[{i}]', bold=True), nl=False, color=color)
+        click.echo(' ', nl=False, color=color)
+        click.echo(x, color=color)
     if n > 1:
         choices = click.Choice([''] + [str(i) for i in range(1, n + 1)])
         choice = click.prompt(
@@ -1796,7 +1848,10 @@ def _prompt_for_selection(
 
 
 def _select_ssh_key(
-    conn: ssh_agent.SSHAgentClient | socket.socket | None = None, /
+    conn: ssh_agent.SSHAgentClient | socket.socket | None = None,
+    /,
+    *,
+    ctx: click.Context | None = None,
 ) -> bytes | bytearray:
     """Interactively select an SSH key for passphrase derivation.
 
@@ -1808,6 +1863,9 @@ def _select_ssh_key(
         conn:
             An optional connection hint to the SSH agent.  See
             [`ssh_agent.SSHAgentClient.ensure_agent_subcontext`][].
+        ctx:
+            An `click` context, queried for output device properties and
+            color preferences when issuing the prompt.
 
     Returns:
         The selected SSH key.
@@ -1852,6 +1910,7 @@ def _select_ssh_key(
         key_listing,
         heading='Suitable SSH keys:',
         single_choice_prompt='Use this key?',
+        ctx=ctx,
     )
     return suitable_keys[choice].key
 
@@ -1917,6 +1976,7 @@ def _check_for_misleading_passphrase(
     value: dict[str, Any],
     *,
     main_config: dict[str, Any],
+    ctx: click.Context | None = None,
 ) -> None:
     form_key = 'unicode-normalization-form'
     default_form: str = main_config.get('vault', {}).get(
@@ -1954,6 +2014,7 @@ def _check_for_misleading_passphrase(
                 formatted_key,
                 form,
                 stacklevel=2,
+                extra={'color': ctx.color if ctx is not None else None},
             )
 
 
@@ -2522,6 +2583,7 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
     cls=CompatibilityOption,
 )
 @version_option
+@color_forcing_pseudo_option
 @standard_logging_options
 @click.argument(
     'service',
@@ -2725,7 +2787,9 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     def err(msg: Any, /, **kwargs: Any) -> NoReturn:  # noqa: ANN401
         stacklevel = kwargs.pop('stacklevel', 1)
         stacklevel += 1
-        logger.error(msg, stacklevel=stacklevel, **kwargs)
+        extra = kwargs.pop('extra', {})
+        extra.setdefault('color', ctx.color)
+        logger.error(msg, stacklevel=stacklevel, extra=extra, **kwargs)
         ctx.exit(1)
 
     def get_config() -> _types.VaultConfig:
@@ -2746,6 +2810,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     old=old_name,
                     new=new_name,
                 ),
+                extra={'color': ctx.color},
             )
             if isinstance(exc, OSError):
                 logger.warning(
@@ -2755,6 +2820,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                         error=exc.strerror,
                         filename=exc.filename,
                     ).maybe_without_filename(),
+                    extra={'color': ctx.color},
                 )
             else:
                 deprecation.info(
@@ -2762,6 +2828,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                         _msg.InfoMsgTemplate.SUCCESSFULLY_MIGRATED,
                         path=new_name,
                     ),
+                    extra={'color': ctx.color},
                 )
             return backup_config
         except OSError as exc:
@@ -2882,7 +2949,8 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             _msg.TranslatedString(
                 _msg.WarnMsgTemplate.EMPTY_SERVICE_NOT_SUPPORTED,
                 service_metavar=service_metavar,
-            )
+            ),
+            extra={'color': ctx.color},
         )
 
     if edit_notes:
@@ -2982,6 +3050,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                         path=_types.json_path(step.path),
                         new=json.dumps(step.new_value),
                     ),
+                    extra={'color': ctx.color},
                 )
             else:
                 logger.warning(
@@ -2990,6 +3059,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                         path=_types.json_path(step.path),
                         old=json.dumps(step.old_value),
                     ),
+                    extra={'color': ctx.color},
                 )
         if '' in maybe_config['services']:
             logger.warning(
@@ -2998,18 +3068,21 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     service_metavar=service_metavar,
                     PROG_NAME=PROG_NAME,
                 ),
+                extra={'color': ctx.color},
             )
         try:
             _check_for_misleading_passphrase(
                 ('global',),
                 cast(dict[str, Any], maybe_config.get('global', {})),
                 main_config=user_config,
+                ctx=ctx,
             )
             for key, value in maybe_config['services'].items():
                 _check_for_misleading_passphrase(
                     ('services', key),
                     cast(dict[str, Any], value),
                     main_config=user_config,
+                    ctx=ctx,
                 )
         except AssertionError as exc:
             err(
@@ -3026,7 +3099,8 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             logger.warning(
                 _msg.TranslatedString(
                     _msg.WarnMsgTemplate.GLOBAL_PASSPHRASE_INEFFECTIVE,
-                )
+                ),
+                extra={'color': ctx.color},
             )
         for service_name, service_obj in maybe_config['services'].items():
             has_key = _types.js_truthiness(
@@ -3041,6 +3115,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                         _msg.WarnMsgTemplate.SERVICE_PASSPHRASE_INEFFECTIVE,
                         service=json.dumps(service_name),
                     ),
+                    extra={'color': ctx.color},
                 )
         if overwrite_config:
             put_config(maybe_config)
@@ -3146,9 +3221,9 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         )
         if use_key:
             try:
-                key = base64.standard_b64encode(_select_ssh_key()).decode(
-                    'ASCII'
-                )
+                key = base64.standard_b64encode(
+                    _select_ssh_key(ctx=ctx)
+                ).decode('ASCII')
             except IndexError:
                 err(
                     _msg.TranslatedString(
@@ -3219,6 +3294,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                         ('services', service) if service else ('global',),
                         {'phrase': phrase},
                         main_config=user_config,
+                        ctx=ctx,
                     )
                 except AssertionError as exc:
                     err(
@@ -3234,13 +3310,15 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                             _msg.TranslatedString(
                                 _msg.WarnMsgTemplate.SERVICE_PASSPHRASE_INEFFECTIVE,
                                 service=json.dumps(service),
-                            )
+                            ),
+                            extra={'color': ctx.color},
                         )
                     else:
                         logger.warning(
                             _msg.TranslatedString(
                                 _msg.WarnMsgTemplate.GLOBAL_PASSPHRASE_INEFFECTIVE
-                            )
+                            ),
+                            extra={'color': ctx.color},
                         )
             if not view.maps[0] and not unset_settings:
                 settings_type = 'service' if service else 'global'
@@ -3292,6 +3370,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                         _ORIGIN.INTERACTIVE,
                         {'phrase': phrase},
                         main_config=user_config,
+                        ctx=ctx,
                     )
                 except AssertionError as exc:
                     err(
@@ -3327,7 +3406,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 raise click.UsageError(str(err_msg))
             kwargs.pop('key', '')
             result = vault.Vault(**kwargs).generate(service)
-            click.echo(result.decode('ASCII'))
+            click.echo(result.decode('ASCII'), color=ctx.color)
 
 
 if __name__ == '__main__':
