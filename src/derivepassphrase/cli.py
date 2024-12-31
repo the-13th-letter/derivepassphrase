@@ -2536,10 +2536,10 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             )
         return
 
-    def err(msg: Any, *args: Any, **kwargs: Any) -> NoReturn:  # noqa: ANN401
+    def err(msg: Any, /, **kwargs: Any) -> NoReturn:  # noqa: ANN401
         stacklevel = kwargs.pop('stacklevel', 1)
         stacklevel += 1
-        logger.error(msg, *args, stacklevel=stacklevel, **kwargs)
+        logger.error(msg, stacklevel=stacklevel, **kwargs)
         ctx.exit(1)
 
     def get_config() -> _types.VaultConfig:
