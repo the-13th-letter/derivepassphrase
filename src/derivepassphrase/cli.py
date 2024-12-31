@@ -1329,32 +1329,56 @@ def derivepassphrase_export_vault(
             ValueError,
             RuntimeError,
         ):
-            logger.info('Cannot load as %s: %s', fmt, path)
+            logger.info(
+                _msg.TranslatedString(
+                    _msg.InfoMsgTemplate.CANNOT_LOAD_AS_VAULT_CONFIG,
+                    path=path,
+                    fmt=fmt,
+                ),
+            )
             continue
         except OSError as exc:
             logger.error(
-                'Cannot parse %r as a valid config: %s: %r',
-                path,
-                exc.strerror,
-                exc.filename,
+                _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.CANNOT_PARSE_AS_VAULT_CONFIG_OSERROR,
+                    path=path,
+                    error=exc.strerror,
+                    filename=exc.filename,
+                ).maybe_without_filename(),
             )
             ctx.exit(1)
         except ModuleNotFoundError:
-            # TODO(the-13th-letter): Use backslash continuation.
-            # https://github.com/nedbat/coveragepy/issues/1836
             logger.error(
-                'Cannot load the required Python module "cryptography".'
+                _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.MISSING_MODULE,
+                    module='cryptography',
+                ),
             )
-            logger.info('pip users: see the "export" extra.')
+            logger.info(
+                _msg.TranslatedString(
+                    _msg.InfoMsgTemplate.PIP_INSTALL_EXTRA,
+                    extra_name='export',
+                ),
+            )
             ctx.exit(1)
         else:
             if not _types.is_vault_config(config):
-                logger.error('Invalid vault config: %r', config)
+                logger.error(
+                    _msg.TranslatedString(
+                        _msg.ErrMsgTemplate.INVALID_VAULT_CONFIG,
+                        config=config,
+                    ),
+                )
                 ctx.exit(1)
             click.echo(json.dumps(config, indent=2, sort_keys=True))
             break
     else:
-        logger.error('Cannot parse %r as a valid config.', path)
+        logger.error(
+            _msg.TranslatedString(
+                _msg.ErrMsgTemplate.CANNOT_PARSE_AS_VAULT_CONFIG,
+                path=path,
+            ).maybe_without_filename(),
+        )
         ctx.exit(1)
 
 

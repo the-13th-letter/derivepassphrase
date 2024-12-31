@@ -134,7 +134,10 @@ class TestCLI:
             )
         result = tests.ReadableResult.parse(_result)
         assert result.error_exit(
-            error="Cannot parse 'does-not-exist.txt' as a valid config",
+            error=(
+                "Cannot parse 'does-not-exist.txt' "
+                "as a valid vault-native config"
+            ),
             record_tuples=caplog.record_tuples,
         ), 'expected error exit and known error message'
         assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
@@ -157,7 +160,7 @@ class TestCLI:
             )
         result = tests.ReadableResult.parse(_result)
         assert result.error_exit(
-            error="Cannot parse '.vault' as a valid config",
+            error="Cannot parse '.vault' as a valid vault-native config",
             record_tuples=caplog.record_tuples,
         ), 'expected error exit and known error message'
         assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
@@ -180,7 +183,7 @@ class TestCLI:
             )
         result = tests.ReadableResult.parse(_result)
         assert result.error_exit(
-            error="Cannot parse '.vault' as a valid config",
+            error="Cannot parse '.vault' as a valid vault-native config",
             record_tuples=caplog.record_tuples,
         ), 'expected error exit and known error message'
         assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr

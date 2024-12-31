@@ -1311,7 +1311,7 @@ AAAAAAAAAKSBiwUAADFkUEsFBgAAAAAEAAQAwwAAAMIHAAAAAA==
 """
 
 CANNOT_LOAD_CRYPTOGRAPHY = (
-    'Cannot load the required Python module "cryptography".'
+    "Cannot load the required Python module 'cryptography'."
 )
 
 skip_if_cryptography_support = pytest.mark.skipif(

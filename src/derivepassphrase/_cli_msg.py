@@ -939,6 +939,18 @@ class ErrMsgTemplate(enum.Enum):
         context='error message',
         flags='python-brace-format',
     )
+    CANNOT_PARSE_AS_VAULT_CONFIG_OSERROR = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: "error" is supplied by the operating system
+        (errno/strerror).
+        """,
+        msg=r"""
+        Cannot parse {path!r} as a valid vault-native configuration
+        file/directory: {error!s}: {filename!r}.
+        """,
+        context='error message',
+        flags='python-brace-format',
+    )
     CANNOT_STORE_VAULT_SETTINGS = _prepare_translatable(
         comments=r"""
         TRANSLATORS: "error" is supplied by the operating system
