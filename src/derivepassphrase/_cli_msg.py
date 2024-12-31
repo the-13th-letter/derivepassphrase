@@ -6,10 +6,13 @@
 
 from __future__ import annotations
 
+import contextlib
 import datetime
 import enum
 import gettext
 import inspect
+import os
+import sys
 import textwrap
 import types
 from typing import TYPE_CHECKING, NamedTuple, TextIO, cast
@@ -17,7 +20,7 @@ from typing import TYPE_CHECKING, NamedTuple, TextIO, cast
 import derivepassphrase as dpp
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
+    from collections.abc import Iterable, Mapping, Sequence
 
     from typing_extensions import Any, Self
 
@@ -27,7 +30,62 @@ __version__ = dpp.__version__
 __all__ = ('PROG_NAME',)
 
 PROG_NAME = 'derivepassphrase'
-translation = gettext.translation(PROG_NAME, fallback=True)
+
+
+def load_translations(
+    localedirs: list[str] | None = None,
+    languages: Sequence[str] | None = None,
+    class_: type[gettext.NullTranslations] | None = None,
+) -> gettext.NullTranslations:
+    """Load a translation catalog for derivepassphrase.
+
+    Runs [`gettext.translation`][] under the hood for multiple locale
+    directories.  `fallback=True` is implied.
+
+    Args:
+        localedirs:
+            A list of directories to run [`gettext.translation`][]
+            against.  Defaults to `$XDG_DATA_HOME/locale` (usually
+            `~/.local/share/locale`), `{sys.prefix}/share/locale` and
+            `{sys.base_prefix}/share/locale` if not given.
+        languages:
+            Passed directly to [`gettext.translation`][].
+        class_:
+            Passed directly to [`gettext.translation`][].
+
+    Returns:
+        A (potentially dummy) translation catalog.
+
+    """
+    if localedirs is None:
+        if sys.platform.startswith('win'):
+            xdg_data_home = os.environ.get(
+                'APPDATA',
+                os.path.expanduser('~'),
+            )
+        elif os.environ.get('XDG_DATA_HOME'):
+            xdg_data_home = os.environ['XDG_DATA_HOME']
+        else:
+            xdg_data_home = os.path.join(
+                os.path.expanduser('~'), '.local', 'share'
+            )
+        localedirs = [
+            os.path.join(xdg_data_home, 'locale'),
+            os.path.join(sys.prefix, 'share', 'locale'),
+            os.path.join(sys.base_prefix, 'share', 'locale'),
+        ]
+    for localedir in localedirs:
+        with contextlib.suppress(OSError):
+            return gettext.translation(
+                PROG_NAME,
+                localedir=localedir,
+                languages=languages,
+                class_=class_,
+            )
+    return gettext.NullTranslations()
+
+
+translation = load_translations()
 
 
 class TranslatableString(NamedTuple):
@@ -1172,6 +1230,4 @@ def _cstr(s: str) -> str:
 
 
 if __name__ == '__main__':
-    import sys
-
     write_pot_file(sys.stdout)
