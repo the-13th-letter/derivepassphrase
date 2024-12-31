@@ -78,6 +78,11 @@ def _prepare_translatable(
     assert '%' not in msg or bool(
         flags & {'python-format', 'no-python-format'}
     ), f'Missing flag for how to deal with percent character in {msg!r}'
+    assert (
+        not flags & {'python-format', 'python-brace-format'}
+        or '%' in msg
+        or '{' in msg
+    ), f'Missing format string parameters in {msg!r}'
     return TranslatableString(msg, plural_msg, context, comments, flags)
 
 
@@ -292,9 +297,9 @@ class Label(enum.Enum):
     )
     EXPORT_VAULT_FORMAT_HELP_TEXT = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The defaults_hint is the text in
-        EXPORT_VAULT_FORMAT_DEFAULTS_HELP_TEXT, the metavar is in
-        EXPORT_VAULT_FORMAT_METAVAR_FMT.
+        TRANSLATORS: The defaults_hint is
+        Label.EXPORT_VAULT_FORMAT_DEFAULTS_HELP_TEXT, the metavar is
+        Label.EXPORT_VAULT_FORMAT_METAVAR_FMT.
         """,
         msg=r"""
         try the following storage format {metavar!s}; may be
@@ -317,9 +322,9 @@ class Label(enum.Enum):
     )
     EXPORT_VAULT_KEY_HELP_TEXT = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The defaults_hint is the text in
-        EXPORT_VAULT_KEY_DEFAULTS_HELP_TEXT, the metavar is in
-        EXPORT_VAULT_KEY_METAVAR_K.
+        TRANSLATORS: The defaults_hint is
+        Label.EXPORT_VAULT_KEY_DEFAULTS_HELP_TEXT, the metavar is
+        Label.EXPORT_VAULT_KEY_METAVAR_K.
         """,
         msg=r"""
         use {metavar!s} as the storage master key {defaults_hint!s}
@@ -360,8 +365,8 @@ class Label(enum.Enum):
     )
     DERIVEPASSPHRASE_VAULT_LENGTH_HELP_TEXT = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The metavar is specified in
-        PASSPHRASE_GENERATION_METAVAR_NUMBER.
+        TRANSLATORS: The metavar is
+        Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
         """,
         msg='ensure a passphrase length of {metavar!s} characters',
         context='help text (option one-line description)',
@@ -369,8 +374,8 @@ class Label(enum.Enum):
     )
     DERIVEPASSPHRASE_VAULT_REPEAT_HELP_TEXT = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The metavar is specified in
-        PASSPHRASE_GENERATION_METAVAR_NUMBER.
+        TRANSLATORS: The metavar is
+        Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
         """,
         msg='forbid any run of {metavar!s} identical characters',
         context='help text (option one-line description)',
@@ -378,8 +383,8 @@ class Label(enum.Enum):
     )
     DERIVEPASSPHRASE_VAULT_LOWER_HELP_TEXT = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The metavar is specified in
-        PASSPHRASE_GENERATION_METAVAR_NUMBER.
+        TRANSLATORS: The metavar is
+        Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
         """,
         msg='ensure at least {metavar!s} lowercase characters',
         context='help text (option one-line description)',
@@ -387,8 +392,8 @@ class Label(enum.Enum):
     )
     DERIVEPASSPHRASE_VAULT_UPPER_HELP_TEXT = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The metavar is specified in
-        PASSPHRASE_GENERATION_METAVAR_NUMBER.
+        TRANSLATORS: The metavar is
+        Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
         """,
         msg='ensure at least {metavar!s} uppercase characters',
         context='help text (option one-line description)',
@@ -396,8 +401,8 @@ class Label(enum.Enum):
     )
     DERIVEPASSPHRASE_VAULT_NUMBER_HELP_TEXT = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The metavar is specified in
-        PASSPHRASE_GENERATION_METAVAR_NUMBER.
+        TRANSLATORS: The metavar is
+        Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
         """,
         msg='ensure at least {metavar!s} digits',
         context='help text (option one-line description)',
@@ -405,8 +410,8 @@ class Label(enum.Enum):
     )
     DERIVEPASSPHRASE_VAULT_SPACE_HELP_TEXT = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The metavar is specified in
-        PASSPHRASE_GENERATION_METAVAR_NUMBER.
+        TRANSLATORS: The metavar is
+        Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
         """,
         msg='ensure at least {metavar!s} spaces',
         context='help text (option one-line description)',
@@ -414,8 +419,8 @@ class Label(enum.Enum):
     )
     DERIVEPASSPHRASE_VAULT_DASH_HELP_TEXT = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The metavar is specified in
-        PASSPHRASE_GENERATION_METAVAR_NUMBER.
+        TRANSLATORS: The metavar is
+        Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
         """,
         msg='ensure at least {metavar!s} "-" or "_" characters',
         context='help text (option one-line description)',
@@ -423,8 +428,8 @@ class Label(enum.Enum):
     )
     DERIVEPASSPHRASE_VAULT_SYMBOL_HELP_TEXT = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The metavar is specified in
-        PASSPHRASE_GENERATION_METAVAR_NUMBER.
+        TRANSLATORS: The metavar is
+        Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
         """,
         msg='ensure at least {metavar!s} symbol characters',
         context='help text (option one-line description)',
@@ -461,8 +466,8 @@ class Label(enum.Enum):
     )
     DERIVEPASSPHRASE_VAULT_EXPORT_HELP_TEXT = _prepare_translatable(
         comments="""
-        TRANSLATORS: The metavar is specified in
-        STORAGE_MANAGEMENT_METAVAR_SERVICE.
+        TRANSLATORS: The metavar is
+        Label.STORAGE_MANAGEMENT_METAVAR_SERVICE.
         """,
         msg='export all saved settings to {metavar!s}',
         context='help text (option one-line description)',
@@ -470,8 +475,8 @@ class Label(enum.Enum):
     )
     DERIVEPASSPHRASE_VAULT_IMPORT_HELP_TEXT = _prepare_translatable(
         comments="""
-        TRANSLATORS: The metavar is specified in
-        STORAGE_MANAGEMENT_METAVAR_SERVICE.
+        TRANSLATORS: The metavar is
+        Label.STORAGE_MANAGEMENT_METAVAR_SERVICE.
         """,
         msg='import saved settings from {metavar!s}',
         context='help text (option one-line description)',
@@ -485,7 +490,6 @@ class Label(enum.Enum):
         """,
         msg='overwrite or merge (default) the existing configuration',
         context='help text (option one-line description)',
-        flags='python-brace-format',
     )
     DERIVEPASSPHRASE_VAULT_UNSET_HELP_TEXT = _prepare_translatable(
         comments="""
@@ -518,15 +522,15 @@ class Label(enum.Enum):
     )
     EXPORT_VAULT_KEY_METAVAR_K = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: See EXPORT_VAULT_KEY_HELP_TEXT.
+        TRANSLATORS: See Label.EXPORT_VAULT_KEY_HELP_TEXT.
         """,
         msg='K',
         context='help text, metavar (export vault subcommand)',
     )
     EXPORT_VAULT_METAVAR_PATH = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: This metavar is also used in multiple one-line help
-        texts, as "path_metavar".
+        TRANSLATORS: Used as "path_metavar" in
+        Label.DERIVEPASSPHRASE_EXPORT_VAULT_02 and others.
         """,
         msg='PATH',
         context='help text, metavar (export vault subcommand)',
@@ -543,7 +547,7 @@ class Label(enum.Enum):
         TRANSLATORS: This metavar is also used in multiple one-line help
         texts.
         """,
-        msg='NUMBER',
+        msg='PATH',
         context='help text, metavar (storage management group)',
     )
     VAULT_METAVAR_SERVICE = _prepare_translatable(
@@ -561,8 +565,8 @@ class Label(enum.Enum):
     )
     PASSPHRASE_GENERATION_EPILOG = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The metavar is specified in
-        PASSPHRASE_GENERATION_METAVAR_NUMBER.
+        TRANSLATORS: The metavar is
+        Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
         """,
         msg=r"""
         Use {metavar!s}=0 to exclude a character type from the output.
@@ -572,8 +576,8 @@ class Label(enum.Enum):
     )
     STORAGE_MANAGEMENT_EPILOG = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The metavar is specified in
-        STORAGE_MANAGEMENT_METAVAR_PATH.
+        TRANSLATORS: The metavar is
+        Label.STORAGE_MANAGEMENT_METAVAR_PATH.
         """,
         msg=r"""
         Using "-" as {metavar!s} for standard input/standard output
@@ -698,8 +702,8 @@ class WarnMsgTemplate(enum.Enum):
     )
     FAILED_TO_MIGRATE_CONFIG = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The error message is usually supplied by the
-        operating system, e.g. ENOENT/"No such file or directory".
+        TRANSLATORS: "error" is supplied by the operating system
+        (errno/strerror).
         """,
         msg='Failed to migrate to {path!r}: {error!s}: {filename!r}.',
         context='warning message',
@@ -763,7 +767,7 @@ class WarnMsgTemplate(enum.Enum):
         msg=r"""
         Using deprecated v0.1-style config file {old!r}, instead of
         v0.2-style {new!r}.  Support for v0.1-style config filenames
-        will be removed in v1.0.,
+        will be removed in v1.0.
         """,
         comments='',
         context='deprecation warning message',
@@ -808,23 +812,26 @@ class ErrMsgTemplate(enum.Enum):
     )
     CANNOT_CONNECT_TO_AGENT = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The error message is usually supplied by the
-        operating system, e.g. ENOENT/"No such file or directory".
+        TRANSLATORS: "error" is supplied by the operating system
+        (errno/strerror).
         """,
         msg='Cannot connect to the SSH agent: {error!s}: {filename!r}.',
         context='error message',
         flags='python-brace-format',
     )
     CANNOT_DECODEIMPORT_VAULT_SETTINGS = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: "error" is supplied by the operating system
+        (errno/strerror).
+        """,
         msg='Cannot import vault settings: cannot decode JSON: {error!s}.',
-        comments='',
         context='error message',
         flags='python-brace-format',
     )
     CANNOT_EXPORT_VAULT_SETTINGS = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The error message is usually supplied by the
-        operating system, e.g. ENOENT/"No such file or directory".
+        TRANSLATORS: "error" is supplied by the operating system
+        (errno/strerror).
         """,
         msg='Cannot export vault settings: {error!s}: {filename!r}.',
         context='error message',
@@ -832,8 +839,8 @@ class ErrMsgTemplate(enum.Enum):
     )
     CANNOT_IMPORT_VAULT_SETTINGS = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The error message is usually supplied by the
-        operating system, e.g. ENOENT/"No such file or directory".
+        TRANSLATORS: "error" is supplied by the operating system
+        (errno/strerror).
         """,
         msg='Cannot import vault settings: {error!s}: {filename!r}.',
         context='error message',
@@ -841,8 +848,8 @@ class ErrMsgTemplate(enum.Enum):
     )
     CANNOT_LOAD_USER_CONFIG = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The error message is usually supplied by the
-        operating system, e.g. ENOENT/"No such file or directory".
+        TRANSLATORS: "error" is supplied by the operating system
+        (errno/strerror).
         """,
         msg='Cannot load user config: {error!s}: {filename!r}.',
         context='error message',
@@ -850,8 +857,8 @@ class ErrMsgTemplate(enum.Enum):
     )
     CANNOT_LOAD_VAULT_SETTINGS = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The error message is usually supplied by the
-        operating system, e.g. ENOENT/"No such file or directory".
+        TRANSLATORS: "error" is supplied by the operating system
+        (errno/strerror).
         """,
         msg='Cannot load vault settings: {error!s}: {filename!r}.',
         context='error message',
@@ -875,8 +882,8 @@ class ErrMsgTemplate(enum.Enum):
     )
     CANNOT_STORE_VAULT_SETTINGS = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The error message is usually supplied by the
-        operating system, e.g. ENOENT/"No such file or directory".
+        TRANSLATORS: "error" is supplied by the operating system
+        (errno/strerror).
         """,
         msg='Cannot store vault settings: {error!s}: {filename!r}.',
         context='error message',
@@ -909,8 +916,8 @@ class ErrMsgTemplate(enum.Enum):
     )
     INVALID_USER_CONFIG = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The error message is usually supplied by the
-        operating system, e.g. ENOENT/"No such file or directory".
+        TRANSLATORS: "error" is supplied by the operating system
+        (errno/strerror).
         """,
         msg=r"""
         The user configuration file is invalid.  {error!s}: {filename!r}.
@@ -976,7 +983,7 @@ class ErrMsgTemplate(enum.Enum):
     PARAMS_NEEDS_SERVICE_OR_CONFIG = _prepare_translatable(
         comments=r"""
         TRANSLATORS: The param is a long-form command-line option name,
-        and the metavar is given in VAULT_METAVAR_SERVICE.
+        the metavar is Label.VAULT_METAVAR_SERVICE.
         """,
         msg='{param!s} requires a {service_metavar!s} or --config.',
         context='error message',
@@ -985,7 +992,7 @@ class ErrMsgTemplate(enum.Enum):
     PARAMS_NEEDS_SERVICE = _prepare_translatable(
         comments=r"""
         TRANSLATORS: The param is a long-form command-line option name,
-        and the metavar is given in VAULT_METAVAR_SERVICE.
+        the metavar is Label.VAULT_METAVAR_SERVICE.
         """,
         msg='{param!s} requires a {service_metavar!s}.',
         context='error message',
@@ -994,7 +1001,7 @@ class ErrMsgTemplate(enum.Enum):
     PARAMS_NO_SERVICE = _prepare_translatable(
         comments=r"""
         TRANSLATORS: The param is a long-form command-line option name,
-        and the metavar is given in VAULT_METAVAR_SERVICE.
+        the metavar is Label.VAULT_METAVAR_SERVICE.
         """,
         msg='{param!s} does not take a {service_metavar!s} argument.',
         context='error message',
@@ -1002,7 +1009,7 @@ class ErrMsgTemplate(enum.Enum):
     )
     SERVICE_REQUIRED = _prepare_translatable(
         comments=r"""
-        TRANSLATORS: The metavar is given in VAULT_METAVAR_SERVICE.
+        TRANSLATORS: The metavar is Label.VAULT_METAVAR_SERVICE.
         """,
         msg='Deriving a passphrase requires a {service_metavar!s}.',
         context='error message',
