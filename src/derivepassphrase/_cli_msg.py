@@ -6,12 +6,13 @@
 
 from __future__ import annotations
 
+import datetime
 import enum
 import gettext
 import inspect
 import textwrap
 import types
-from typing import TYPE_CHECKING, NamedTuple, cast
+from typing import TYPE_CHECKING, NamedTuple, TextIO, cast
 
 import derivepassphrase as dpp
 
@@ -1046,3 +1047,131 @@ class ErrMsgTemplate(enum.Enum):
         comments='',
         context='error message',
     )
+
+
+def write_pot_file(fileobj: TextIO) -> None:
+    r"""Write a .po template to the given file object.
+
+    Assumes the file object is opened for writing and accepts string
+    inputs.  The file will *not* be closed when writing is complete.
+    The file *must* be opened in UTF-8 encoding, lest the file will
+    declare an incorrect encoding.
+
+    This function crucially depends on all translatable strings
+    appearing in the enums of this module.  Certain parts of the
+    .po header are hard-coded, as is the source filename.
+
+    """
+    entries: dict[
+        str,
+        dict[
+            str,
+            Label | InfoMsgTemplate | WarnMsgTemplate | ErrMsgTemplate,
+        ],
+    ] = {}
+    for enum_class in (
+        Label,
+        InfoMsgTemplate,
+        WarnMsgTemplate,
+        ErrMsgTemplate,
+    ):
+        for member in enum_class.__members__.values():
+            ctx = member.value.l10n_context
+            msg = member.value.singular
+            if (
+                msg in entries.setdefault(ctx, {})
+                and entries[ctx][msg] != member
+            ):
+                raise AssertionError(  # noqa: DOC501,TRY003
+                    f'Duplicate entry for ({ctx!r}, {msg!r}): '  # noqa: EM102
+                    f'{entries[ctx][msg]!r} and {member!r}'
+                )
+            entries[ctx][msg] = member
+    now = datetime.datetime.now().astimezone()
+    header = (
+        inspect.cleandoc(rf"""
+        # English translation for {PROG_NAME!s}.
+        # Copyright (C) {now.strftime('%Y')} AUTHOR
+        # This file is distributed under the same license as {PROG_NAME!s}.
+        # AUTHOR <someone@example.com>, {now.strftime('%Y')}.
+        #
+        msgid ""
+        msgstr ""
+        "Project-Id-Version: {PROG_NAME!s} {__version__!s}\n"
+        "Report-Msgid-Bugs-To: software@the13thletter.info\n"
+        "POT-Creation-Date: {now.strftime('%Y-%m-%d %H:%M%z')}\n"
+        "PO-Revision-Date: {now.strftime('%Y-%m-%d %H:%M%z')}\n"
+        "Last-Translator: AUTHOR <someone@example.com>\n"
+        "Language: en\n"
+        "MIME-Version: 1.0\n"
+        "Content-Type: text/plain; charset=UTF-8\n"
+        "Content-Transfer-Encoding: 8bit\n"
+        "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+        """).removesuffix('\n')
+        + '\n'
+    )
+    fileobj.write(header)
+    for _ctx, subdict in sorted(entries.items()):
+        for _msg, enum_value in sorted(
+            subdict.items(),
+            key=lambda kv: str(kv[1]),
+        ):
+            fileobj.writelines(_format_po_entry(enum_value))
+
+
+def _format_po_entry(
+    enum_value: Label | InfoMsgTemplate | WarnMsgTemplate | ErrMsgTemplate,
+) -> tuple[str, ...]:
+    ret: list[str] = ['\n']
+    ts = enum_value.value
+    if ts.translator_comments:
+        ret.extend(
+            f'#. {line}\n'
+            for line in ts.translator_comments.splitlines(False)  # noqa: FBT003
+        )
+    ret.append(f'#: derivepassphrase/_cli_msg.py:{enum_value}\n')
+    if ts.flags:
+        ret.append(f'#, {", ".join(sorted(ts.flags))}\n')
+    if ts.l10n_context:
+        ret.append(f'msgctxt {_cstr(ts.l10n_context)}\n')
+    ret.append(f'msgid {_cstr(ts.singular)}\n')
+    if ts.plural:
+        ret.append(f'msgid_plural {_cstr(ts.plural)}\n')
+    ret.append('msgstr ""\n')
+    return tuple(ret)
+
+
+def _cstr(s: str) -> str:
+    def escape(string: str) -> str:
+        return string.translate({
+            0: r'\000',
+            1: r'\001',
+            2: r'\002',
+            3: r'\003',
+            4: r'\004',
+            5: r'\005',
+            6: r'\006',
+            7: r'\007',
+            8: r'\b',
+            9: r'\t',
+            10: r'\n',
+            11: r'\013',
+            12: r'\f',
+            13: r'\r',
+            14: r'\016',
+            15: r'\017',
+            ord('"'): r'\"',
+            ord('\\'): r'\\',
+            127: r'\177',
+        })
+
+    return '\n'.join(
+        f'"{escape(line)}"'
+        for line in s.splitlines(True)  # noqa: FBT003
+    )
+
+
+if __name__ == '__main__':
+    import sys
+
+    write_pot_file(sys.stdout)
