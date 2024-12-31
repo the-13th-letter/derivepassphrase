@@ -41,6 +41,7 @@ from typing_extensions import (
 )
 
 import derivepassphrase as dpp
+from derivepassphrase import _cli_msg as _msg
 from derivepassphrase import _types, exporter, ssh_agent, vault
 
 if sys.version_info >= (3, 11):
@@ -63,14 +64,17 @@ __version__ = dpp.__version__
 
 __all__ = ('derivepassphrase',)
 
-PROG_NAME = 'derivepassphrase'
+PROG_NAME = _msg.PROG_NAME
 KEY_DISPLAY_LENGTH = 50
 
 # Error messages
 _INVALID_VAULT_CONFIG = 'Invalid vault config'
 _AGENT_COMMUNICATION_ERROR = 'Error communicating with the SSH agent'
-_NO_USABLE_KEYS = 'No usable SSH keys were found'
+_NO_SUITABLE_KEYS = 'No suitable SSH keys were found'
 _EMPTY_SELECTION = 'Empty selection'
+_NOT_AN_INTEGER = 'not an integer'
+_NOT_A_NONNEGATIVE_INTEGER = 'not a non-negative integer'
+_NOT_A_POSITIVE_INTEGER = 'not a positive integer'
 
 
 # Logging
@@ -146,7 +150,8 @@ class CLIofPackageFormatter(logging.Formatter):
             `PKG.deprecation` (where `PKG` is the package name), else
             `"Warning: "`.
           * For records at level [`logging.ERROR`][] and
-            [`logging.CRITICAL`][] `"Error: "`, `LABEL` is `"ERROR: "`.
+            [`logging.CRITICAL`][] `"Error: "`, `LABEL` is the empty
+            string.
 
         The level indication strings at level `WARNING` or above are
         highlighted.  Use [`click.echo`][] to output them and remove
@@ -180,10 +185,15 @@ class CLIofPackageFormatter(logging.Formatter):
         else:  # pragma: no cover
             msg = f'Unsupported logging level: {record.levelname}'
             raise AssertionError(msg)
-        return ''.join(
-            prefix + level_indicator + line
-            for line in preliminary_result.splitlines(True)  # noqa: FBT003
-        )
+        parts = [
+            ''.join(
+                prefix + level_indicator + line
+                for line in preliminary_result.splitlines(True)  # noqa: FBT003
+            )
+        ]
+        if record.exc_info:
+            parts.append(self.formatException(record.exc_info) + '\n')
+        return ''.join(parts)
 
 
 class StandardCLILogging:
@@ -392,26 +402,334 @@ class OptionGroupOption(click.Option):
 
     """
 
-    option_group_name: str = ''
+    option_group_name: object = ''
     """"""
-    epilog: str = ''
+    epilog: object = ''
     """"""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
         if self.__class__ == __class__:  # type: ignore[name-defined]
             raise NotImplementedError
+        # Though click 8.1 mostly defers help text processing until the
+        # `BaseCommand.format_*` methods are called, the Option
+        # constructor still preprocesses the help text, and asserts that
+        # the help text is a string.  Work around this by removing the
+        # help text from the constructor arguments and re-adding it,
+        # unprocessed, after constructor finishes.
+        unset = object()
+        help = kwargs.pop('help', unset)  # noqa: A001
         super().__init__(*args, **kwargs)
+        if help is not unset:  # pragma: no branch
+            self.help = help
+
+
+class StandardOption(OptionGroupOption):
+    pass
 
 
 class CommandWithHelpGroups(click.Command):
-    """A [`click.Command`][] with support for help/option groups.
+    """A [`click.Command`][] with support for some help text customizations.
 
-    Inspired by [a comment on `pallets/click#373`][CLICK_ISSUE], and
-    further modified to support group epilogs.
+    Supports help/option groups, group epilogs, and help text objects
+    (objects that stringify to help texts).  The latter is primarily
+    used to implement translations.
+
+    Inspired by [a comment on `pallets/click#373`][CLICK_ISSUE] for
+    help/option group support, and further modified to include group
+    epilogs and help text objects.
 
     [CLICK_ISSUE]: https://github.com/pallets/click/issues/373#issuecomment-515293746
 
     """
+
+    @staticmethod
+    def _text(text: object, /) -> str:
+        if isinstance(text, (list, tuple)):
+            return '\n\n'.join(str(x) for x in text)
+        return str(text)
+
+    def collect_usage_pieces(self, ctx: click.Context) -> list[str]:
+        """Return the pieces for the usage string.
+
+        Based on code from click 8.1.  Subject to the following license
+        (3-clause BSD license):
+
+            Copyright 2024 Pallets
+
+            Redistribution and use in source and binary forms, with or
+            without modification, are permitted provided that the
+            following conditions are met:
+
+             1. Redistributions of source code must retain the above
+                copyright notice, this list of conditions and the
+                following disclaimer.
+
+             2. Redistributions in binary form must reproduce the above
+                copyright notice, this list of conditions and the
+                following disclaimer in the documentation and/or other
+                materials provided with the distribution.
+
+             3. Neither the name of the copyright holder nor the names
+                of its contributors may be used to endorse or promote
+                products derived from this software without specific
+                prior written permission.
+
+            THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+            CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
+            INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+            MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+            DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+            CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+            SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+            NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+            LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+            HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+            CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+            OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+            SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+        Modifications are marked with respective comments.  They too are
+        released under the same license above.  The original code did
+        not contain any "noqa" or "pragma" comments.
+
+        Args:
+            ctx:
+                The click context.
+
+        """
+        rv = [str(self.options_metavar)] if self.options_metavar else []
+        for param in self.get_params(ctx):
+            rv.extend(str(x) for x in param.get_usage_pieces(ctx))
+        return rv
+
+    def get_help_option(
+        self,
+        ctx: click.Context,
+    ) -> click.Option | None:
+        """Return a standard help option object.
+
+        Based on code from click 8.1.  Subject to the following license
+        (3-clause BSD license):
+
+            Copyright 2024 Pallets
+
+            Redistribution and use in source and binary forms, with or
+            without modification, are permitted provided that the
+            following conditions are met:
+
+             1. Redistributions of source code must retain the above
+                copyright notice, this list of conditions and the
+                following disclaimer.
+
+             2. Redistributions in binary form must reproduce the above
+                copyright notice, this list of conditions and the
+                following disclaimer in the documentation and/or other
+                materials provided with the distribution.
+
+             3. Neither the name of the copyright holder nor the names
+                of its contributors may be used to endorse or promote
+                products derived from this software without specific
+                prior written permission.
+
+            THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+            CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
+            INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+            MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+            DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+            CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+            SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+            NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+            LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+            HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+            CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+            OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+            SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+        Modifications are marked with respective comments.  They too are
+        released under the same license above.  The original code did
+        not contain any "noqa" or "pragma" comments.
+
+        Args:
+            ctx:
+                The click context.
+
+        """
+        help_options = self.get_help_option_names(ctx)
+
+        if not help_options or not self.add_help_option:  # pragma: no cover
+            return None
+
+        def show_help(
+            ctx: click.Context,
+            param: click.Parameter,  # noqa: ARG001
+            value: str,
+        ) -> None:
+            if value and not ctx.resilient_parsing:
+                click.echo(ctx.get_help(), color=ctx.color)
+                ctx.exit()
+
+        # Modified from click 8.1: We use StandardOption and a non-str
+        # object as the help string.
+        return StandardOption(
+            help_options,
+            is_flag=True,
+            is_eager=True,
+            expose_value=False,
+            callback=show_help,
+            help=_msg.TranslatedString(_msg.Label.HELP_OPTION_HELP_TEXT),
+        )
+
+    def get_short_help_str(
+        self,
+        limit: int = 45,
+    ) -> str:
+        """Return the short help string for a command.
+
+        If only a long help string is given, shorten it.
+
+        Based on code from click 8.1.  Subject to the following license
+        (3-clause BSD license):
+
+            Copyright 2024 Pallets
+
+            Redistribution and use in source and binary forms, with or
+            without modification, are permitted provided that the
+            following conditions are met:
+
+             1. Redistributions of source code must retain the above
+                copyright notice, this list of conditions and the
+                following disclaimer.
+
+             2. Redistributions in binary form must reproduce the above
+                copyright notice, this list of conditions and the
+                following disclaimer in the documentation and/or other
+                materials provided with the distribution.
+
+             3. Neither the name of the copyright holder nor the names
+                of its contributors may be used to endorse or promote
+                products derived from this software without specific
+                prior written permission.
+
+            THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+            CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
+            INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+            MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+            DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+            CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+            SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+            NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+            LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+            HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+            CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+            OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+            SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+        Modifications are marked with respective comments.  They too are
+        released under the same license above.  The original code did
+        not contain any "noqa" or "pragma" comments.
+
+        Args:
+            limit:
+                The maximum width of the short help string.
+
+        """
+        # Modification against click 8.1: Call `_text()` on `self.help`
+        # to allow help texts to be general objects, not just strings.
+        # Used to implement translatable strings, as objects that
+        # stringify to the translation.
+        if self.short_help:  # pragma: no cover
+            text = inspect.cleandoc(self._text(self.short_help))
+        elif self.help:
+            text = click.utils.make_default_short_help(
+                self._text(self.help), limit
+            )
+        else:  # pragma: no cover
+            text = ''
+        if self.deprecated:  # pragma: no cover
+            # Modification against click 8.1: The translated string is
+            # looked up in the derivepassphrase message domain, not the
+            # gettext default domain.
+            text = str(
+                _msg.TranslatedString(_msg.Label.DEPRECATED_COMMAND_LABEL)
+            ).format(text=text)
+        return text.strip()
+
+    def format_help_text(
+        self,
+        ctx: click.Context,
+        formatter: click.HelpFormatter,
+    ) -> None:
+        """Format the help text prologue, if any.
+
+        Based on code from click 8.1.  Subject to the following license
+        (3-clause BSD license):
+
+            Copyright 2024 Pallets
+
+            Redistribution and use in source and binary forms, with or
+            without modification, are permitted provided that the
+            following conditions are met:
+
+             1. Redistributions of source code must retain the above
+                copyright notice, this list of conditions and the
+                following disclaimer.
+
+             2. Redistributions in binary form must reproduce the above
+                copyright notice, this list of conditions and the
+                following disclaimer in the documentation and/or other
+                materials provided with the distribution.
+
+             3. Neither the name of the copyright holder nor the names
+                of its contributors may be used to endorse or promote
+                products derived from this software without specific
+                prior written permission.
+
+            THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+            CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
+            INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+            MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+            DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+            CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+            SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+            NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+            LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+            HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+            CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+            OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+            SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+        Modifications are marked with respective comments.  They too are
+        released under the same license above.  The original code did
+        not contain any "noqa" or "pragma" comments.
+
+        Args:
+            ctx:
+                The click context.
+            formatter:
+                The formatter for the `--help` listing.
+
+        """
+        del ctx
+        # Modification against click 8.1: Call `_text()` on `self.help`
+        # to allow help texts to be general objects, not just strings.
+        # Used to implement translatable strings, as objects that
+        # stringify to the translation.
+        text = (
+            inspect.cleandoc(self._text(self.help).partition('\f')[0])
+            if self.help is not None
+            else ''
+        )
+        if self.deprecated:  # pragma: no cover
+            # Modification against click 8.1: The translated string is
+            # looked up in the derivepassphrase message domain, not the
+            # gettext default domain.
+            text = str(
+                _msg.TranslatedString(_msg.Label.DEPRECATED_COMMAND_LABEL)
+            ).format(text=text)
+        if text:  # pragma: no branch
+            formatter.write_paragraph()
+            with formatter.indentation():
+                formatter.write_text(text)
 
     def format_options(
         self,
@@ -432,6 +750,48 @@ class CommandWithHelpGroups(click.Command):
         section heading is "Options" (or "Other options" if there are
         other option groups) and the epilog is empty.
 
+        We unconditionally call [`format_commands`][], and rely on it to
+        act as a no-op if we aren't actually a [`click.MultiCommand`][].
+
+        Based on code from click 8.1.  Subject to the following license
+        (3-clause BSD license):
+
+            Copyright 2024 Pallets
+
+            Redistribution and use in source and binary forms, with or
+            without modification, are permitted provided that the
+            following conditions are met:
+
+             1. Redistributions of source code must retain the above
+                copyright notice, this list of conditions and the
+                following disclaimer.
+
+             2. Redistributions in binary form must reproduce the above
+                copyright notice, this list of conditions and the
+                following disclaimer in the documentation and/or other
+                materials provided with the distribution.
+
+             3. Neither the name of the copyright holder nor the names
+                of its contributors may be used to endorse or promote
+                products derived from this software without specific
+                prior written permission.
+
+            THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+            CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
+            INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+            MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+            DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+            CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+            SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+            NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+            LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+            HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+            CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+            OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+            SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+        Modifications are released under the same license above.
+
         Args:
             ctx:
                 The click context.
@@ -439,6 +799,7 @@ class CommandWithHelpGroups(click.Command):
                 The formatter for the `--help` listing.
 
         """
+        default_group_name = ''
         help_records: dict[str, list[tuple[str, str]]] = {}
         epilogs: dict[str, str] = {}
         params = self.params[:]
@@ -450,17 +811,24 @@ class CommandWithHelpGroups(click.Command):
         for param in params:
             rec = param.get_help_record(ctx)
             if rec is not None:
+                rec = (rec[0], self._text(rec[1]))
                 if isinstance(param, OptionGroupOption):
-                    group_name = param.option_group_name
-                    epilogs.setdefault(group_name, param.epilog)
-                else:
-                    group_name = ''
+                    group_name = self._text(param.option_group_name)
+                    epilogs.setdefault(group_name, self._text(param.epilog))
+                else:  # pragma: no cover
+                    group_name = default_group_name
                 help_records.setdefault(group_name, []).append(rec)
-        default_group = help_records.pop('')
-        default_group_name = (
-            'Other Options' if len(default_group) > 1 else 'Options'
-        )
-        help_records[default_group_name] = default_group
+        if default_group_name in help_records:  # pragma: no branch
+            default_group = help_records.pop(default_group_name)
+            default_group_label = (
+                _msg.Label.OTHER_OPTIONS_LABEL
+                if len(default_group) > 1
+                else _msg.Label.OPTIONS_LABEL
+            )
+            default_group_name = self._text(
+                _msg.TranslatedString(default_group_label)
+            )
+            help_records[default_group_name] = default_group
         for group_name, records in help_records.items():
             with formatter.section(group_name):
                 formatter.write_dl(records)
@@ -469,12 +837,189 @@ class CommandWithHelpGroups(click.Command):
                 formatter.write_paragraph()
                 with formatter.indentation():
                     formatter.write_text(epilog)
+        self.format_commands(ctx, formatter)
+
+    def format_commands(
+        self,
+        ctx: click.Context,
+        formatter: click.HelpFormatter,
+    ) -> None:
+        """Format the subcommands, if any.
+
+        If called on a command object that isn't derived from
+        [`click.MultiCommand`][], then do nothing.
+
+        Based on code from click 8.1.  Subject to the following license
+        (3-clause BSD license):
+
+            Copyright 2024 Pallets
+
+            Redistribution and use in source and binary forms, with or
+            without modification, are permitted provided that the
+            following conditions are met:
+
+             1. Redistributions of source code must retain the above
+                copyright notice, this list of conditions and the
+                following disclaimer.
+
+             2. Redistributions in binary form must reproduce the above
+                copyright notice, this list of conditions and the
+                following disclaimer in the documentation and/or other
+                materials provided with the distribution.
+
+             3. Neither the name of the copyright holder nor the names
+                of its contributors may be used to endorse or promote
+                products derived from this software without specific
+                prior written permission.
+
+            THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+            CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
+            INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+            MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+            DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+            CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+            SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+            NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+            LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+            HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+            CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+            OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+            SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+        Modifications are marked with respective comments.  They too are
+        released under the same license above.  The original code did
+        not contain any "noqa" or "pragma" comments.
+
+        Args:
+            ctx:
+                The click context.
+            formatter:
+                The formatter for the `--help` listing.
+
+        """
+        if not isinstance(self, click.MultiCommand):
+            return
+        commands: list[tuple[str, click.Command]] = []
+        for subcommand in self.list_commands(ctx):
+            cmd = self.get_command(ctx, subcommand)
+            if cmd is None or cmd.hidden:  # pragma: no cover
+                continue
+            commands.append((subcommand, cmd))
+        if commands:  # pragma: no branch
+            longest_command = max((cmd[0] for cmd in commands), key=len)
+            limit = formatter.width - 6 - len(longest_command)
+            rows: list[tuple[str, str]] = []
+            for subcommand, cmd in commands:
+                help_str = self._text(cmd.get_short_help_str(limit) or '')
+                rows.append((subcommand, help_str))
+            if rows:  # pragma: no branch
+                commands_label = self._text(
+                    _msg.TranslatedString(_msg.Label.COMMANDS_LABEL)
+                )
+                with formatter.section(commands_label):
+                    formatter.write_dl(rows)
+
+    def format_epilog(
+        self,
+        ctx: click.Context,
+        formatter: click.HelpFormatter,
+    ) -> None:
+        """Format the epilog, if any.
+
+        Based on code from click 8.1.  Subject to the following license
+        (3-clause BSD license):
+
+            Copyright 2024 Pallets
+
+            Redistribution and use in source and binary forms, with or
+            without modification, are permitted provided that the
+            following conditions are met:
+
+             1. Redistributions of source code must retain the above
+                copyright notice, this list of conditions and the
+                following disclaimer.
+
+             2. Redistributions in binary form must reproduce the above
+                copyright notice, this list of conditions and the
+                following disclaimer in the documentation and/or other
+                materials provided with the distribution.
+
+             3. Neither the name of the copyright holder nor the names
+                of its contributors may be used to endorse or promote
+                products derived from this software without specific
+                prior written permission.
+
+            THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+            CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
+            INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+            MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+            DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+            CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+            SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+            NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+            LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+            HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+            CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+            OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+            SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+        Modifications are marked with respective comments.  They too are
+        released under the same license above.
+
+        Args:
+            ctx:
+                The click context.
+            formatter:
+                The formatter for the `--help` listing.
+
+        """
+        del ctx
+        if self.epilog:  # pragma: no branch
+            # Modification against click 8.1: Call `str()` on
+            # `self.epilog` to allow help texts to be general objects,
+            # not just strings.  Used to implement translatable strings,
+            # as objects that stringify to the translation.
+            epilog = inspect.cleandoc(self._text(self.epilog))
+            formatter.write_paragraph()
+            with formatter.indentation():
+                formatter.write_text(epilog)
+
+
+def version_option_callback(
+    ctx: click.Context,
+    param: click.Parameter,
+    value: bool,  # noqa: FBT001
+) -> None:  # pragma: no cover
+    del param
+    if value and not ctx.resilient_parsing:
+        click.echo(
+            str(
+                _msg.TranslatedString(
+                    _msg.Label.VERSION_INFO_TEXT,
+                    PROG_NAME=PROG_NAME,
+                    __version__=__version__,
+                )
+            ),
+        )
+        ctx.exit()
+
+
+def version_option(f: Callable[P, R]) -> Callable[P, R]:
+    return click.option(
+        '--version',
+        is_flag=True,
+        is_eager=True,
+        expose_value=False,
+        callback=version_option_callback,
+        cls=StandardOption,
+        help=_msg.TranslatedString(_msg.Label.VERSION_OPTION_HELP_TEXT),
+    )(f)
 
 
 class LoggingOption(OptionGroupOption):
     """Logging options for the CLI."""
 
-    option_group_name = 'Logging'
+    option_group_name = _msg.TranslatedString(_msg.Label.LOGGING_LABEL)
     epilog = ''
 
 
@@ -485,7 +1030,7 @@ debug_option = click.option(
     flag_value=logging.DEBUG,
     expose_value=False,
     callback=adjust_logging_level,
-    help='also emit debug information (implies --verbose)',
+    help=_msg.TranslatedString(_msg.Label.DEBUG_OPTION_HELP_TEXT),
     cls=LoggingOption,
 )
 verbose_option = click.option(
@@ -496,7 +1041,7 @@ verbose_option = click.option(
     flag_value=logging.INFO,
     expose_value=False,
     callback=adjust_logging_level,
-    help='emit extra/progress information to standard error',
+    help=_msg.TranslatedString(_msg.Label.VERBOSE_OPTION_HELP_TEXT),
     cls=LoggingOption,
 )
 quiet_option = click.option(
@@ -507,7 +1052,7 @@ quiet_option = click.option(
     flag_value=logging.ERROR,
     expose_value=False,
     callback=adjust_logging_level,
-    help='suppress even warnings, emit only errors',
+    help=_msg.TranslatedString(_msg.Label.QUIET_OPTION_HELP_TEXT),
     cls=LoggingOption,
 )
 
@@ -516,8 +1061,8 @@ def standard_logging_options(f: Callable[P, R]) -> Callable[P, R]:
     """Decorate the function with standard logging click options.
 
     Adds the three click options `-v`/`--verbose`, `-q`/`--quiet` and
-    `--debug`, which issue callbacks to the [`log_info`][],
-    [`silence_warnings`][] and [`log_debug`][] functions, respectively.
+    `--debug`, which calls back into the [`adjust_logging_level`][]
+    function (with different argument values).
 
     Args:
         f: A callable to decorate.
@@ -533,7 +1078,7 @@ def standard_logging_options(f: Callable[P, R]) -> Callable[P, R]:
 # =========
 
 
-class _DefaultToVaultGroup(click.Group):
+class _DefaultToVaultGroup(CommandWithHelpGroups, click.Group):
     """A helper class to implement the default-to-"vault"-subcommand behavior.
 
     Modifies internal [`click.MultiCommand`][] methods, and thus is both
@@ -547,16 +1092,53 @@ class _DefaultToVaultGroup(click.Group):
         """Resolve a command, but default to "vault" instead of erroring out.
 
         Based on code from click 8.1, which appears to be essentially
-        untouched since at least click 3.2.
+        untouched since at least click 3.2.  Subject to the following
+        license (3-clause BSD license):
+
+            Copyright 2024 Pallets
+
+            Redistribution and use in source and binary forms, with or
+            without modification, are permitted provided that the following
+            conditions are met:
+
+             1. Redistributions of source code must retain the above
+                copyright notice, this list of conditions and the following
+                disclaimer.
+
+             2. Redistributions in binary form must reproduce the above
+                copyright notice, this list of conditions and the following
+                disclaimer in the documentation and/or other materials
+                provided with the distribution.
+
+             3. Neither the name of the copyright holder nor the names of
+                its contributors may be used to endorse or promote products
+                derived from this software without specific prior written
+                permission.
+
+            THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+            CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
+            INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+            MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+            DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+            CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+            SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+            LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+            USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+            AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+            LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+            IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+            THE POSSIBILITY OF SUCH DAMAGE.
+
+        Modifications to this routine are marked with "modifications for
+        derivepassphrase".  Furthermore, all "pragma" and "noqa" comments
+        are also modifications for derivepassphrase.
 
         """
         cmd_name = click.utils.make_str(args[0])
 
-        # ORIGINAL COMMENT
         # Get the command
         cmd = self.get_command(ctx, cmd_name)
 
-        # ORIGINAL COMMENT
         # If we can't find the command but there is a normalization
         # function available, we try with that one.
         if (  # pragma: no cover
@@ -565,7 +1147,6 @@ class _DefaultToVaultGroup(click.Group):
             cmd_name = ctx.token_normalize_func(cmd_name)
             cmd = self.get_command(ctx, cmd_name)
 
-        # ORIGINAL COMMENT
         # If we don't find the command we want to show an error message
         # to the user that it was not provided.  However, there is
         # something else we should do: if the first argument looks like
@@ -575,19 +1156,24 @@ class _DefaultToVaultGroup(click.Group):
         if cmd is None and not ctx.resilient_parsing:
             if click.parser.split_opt(cmd_name)[0]:
                 self.parse_args(ctx, ctx.args)
+            ####
+            # BEGIN modifications for derivepassphrase
+            #
             # Instead of calling ctx.fail here, default to "vault", and
             # issue a deprecation warning.
-            logger = logging.getLogger(PROG_NAME)
             deprecation = logging.getLogger(f'{PROG_NAME}.deprecation')
             deprecation.warning(
-                'A subcommand will be required in v1.0. '
-                'See --help for available subcommands.'
+                _msg.TranslatedString(
+                    _msg.WarnMsgTemplate.V10_SUBCOMMAND_REQUIRED
+                )
             )
-            logger.warning('Defaulting to subcommand "vault".')
             cmd_name = 'vault'
             cmd = self.get_command(ctx, cmd_name)
             assert cmd is not None, 'Mandatory subcommand "vault" missing!'
             args = [cmd_name, *args]
+            #
+            # END modifications for derivepassphrase
+            ####
         return cmd_name if cmd else None, cmd, args[1:]  # noqa: DOC201
 
 
@@ -627,56 +1213,35 @@ class _TopLevelCLIEntryPoint(_DefaultToVaultGroup):
         'ignore_unknown_options': True,
         'allow_interspersed_args': False,
     },
-    epilog=r"""
-        Configuration is stored in a directory according to the
-        DERIVEPASSPHRASE_PATH variable, which defaults to
-        `~/.derivepassphrase` on UNIX-like systems and
-        `C:\Users\<user>\AppData\Roaming\Derivepassphrase` on Windows.
-    """,
+    epilog=_msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_EPILOG_01),
     invoke_without_command=True,
     cls=_TopLevelCLIEntryPoint,
+    help=(
+        _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_01),
+        _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_02),
+        _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_03),
+    ),
 )
-@click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
+@version_option
 @standard_logging_options
 @click.pass_context
 def derivepassphrase(ctx: click.Context, /) -> None:
     """Derive a strong passphrase, deterministically, from a master secret.
 
-    Using a master secret, derive a passphrase for a named service,
-    subject to constraints e.g. on passphrase length, allowed
-    characters, etc.  The exact derivation depends on the selected
-    derivation scheme.  For each scheme, it is computationally
-    infeasible to discern the master secret from the derived passphrase.
-    The derivations are also deterministic, given the same inputs, thus
-    the resulting passphrases need not be stored explicitly.  The
-    service name and constraints themselves also generally need not be
-    kept secret, depending on the scheme.
-
-    The currently implemented subcommands are "vault" (for the scheme
-    used by vault) and "export" (for exporting foreign configuration
-    data).  See the respective `--help` output for instructions.  If no
-    subcommand is given, we default to "vault".
-
-    Deprecation notice: Defaulting to "vault" is deprecated.  Starting
-    in v1.0, the subcommand must be specified explicitly.\f
-
     This is a [`click`][CLICK]-powered command-line interface function,
-    and not intended for programmatic use.  Call with arguments
-    `['--help']` to see full documentation of the interface.  (See also
+    and not intended for programmatic use.  See the derivepassphrase(1)
+    manpage for full documentation of the interface.  (See also
     [`click.testing.CliRunner`][] for controlled, programmatic
     invocation.)
 
     [CLICK]: https://pypi.org/package/click/
 
-    """  # noqa: D301
-    logger = logging.getLogger(PROG_NAME)
+    """
     deprecation = logging.getLogger(f'{PROG_NAME}.deprecation')
     if ctx.invoked_subcommand is None:
         deprecation.warning(
-            'A subcommand will be required in v1.0. '
-            'See --help for available subcommands.'
+            _msg.TranslatedString(_msg.WarnMsgTemplate.V10_SUBCOMMAND_REQUIRED)
         )
-        logger.warning('Defaulting to subcommand "vault".')
         # See definition of click.Group.invoke, non-chained case.
         with ctx:
             sub_ctx = derivepassphrase_vault.make_context(
@@ -700,40 +1265,32 @@ def derivepassphrase(ctx: click.Context, /) -> None:
     },
     invoke_without_command=True,
     cls=_DefaultToVaultGroup,
+    help=(
+        _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_EXPORT_01),
+        _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_EXPORT_02),
+        _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_EXPORT_03),
+    ),
 )
-@click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
+@version_option
 @standard_logging_options
 @click.pass_context
 def derivepassphrase_export(ctx: click.Context, /) -> None:
     """Export a foreign configuration to standard output.
 
-    Read a foreign system configuration, extract all information from
-    it, and export the resulting configuration to standard output.
-
-    The only available subcommand is "vault", which implements the
-    vault-native configuration scheme.  If no subcommand is given, we
-    default to "vault".
-
-    Deprecation notice: Defaulting to "vault" is deprecated.  Starting
-    in v1.0, the subcommand must be specified explicitly.\f
-
     This is a [`click`][CLICK]-powered command-line interface function,
-    and not intended for programmatic use.  Call with arguments
-    `['--help']` to see full documentation of the interface.  (See also
-    [`click.testing.CliRunner`][] for controlled, programmatic
-    invocation.)
+    and not intended for programmatic use.  See the
+    derivepassphrase-export(1) manpage for full documentation of the
+    interface.  (See also [`click.testing.CliRunner`][] for controlled,
+    programmatic invocation.)
 
     [CLICK]: https://pypi.org/package/click/
 
-    """  # noqa: D301
-    logger = logging.getLogger(PROG_NAME)
+    """
     deprecation = logging.getLogger(f'{PROG_NAME}.deprecation')
     if ctx.invoked_subcommand is None:
         deprecation.warning(
-            'A subcommand will be required in v1.0. '
-            'See --help for available subcommands.'
+            _msg.TranslatedString(_msg.WarnMsgTemplate.V10_SUBCOMMAND_REQUIRED)
         )
-        logger.warning('Defaulting to subcommand "vault".')
         # See definition of click.Group.invoke, non-chained case.
         with ctx:
             sub_ctx = derivepassphrase_export_vault.make_context(
@@ -789,29 +1346,62 @@ def _load_data(
 @derivepassphrase_export.command(
     'vault',
     context_settings={'help_option_names': ['-h', '--help']},
+    cls=CommandWithHelpGroups,
+    help=(
+        _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_EXPORT_VAULT_01),
+        _msg.TranslatedString(
+            _msg.Label.DERIVEPASSPHRASE_EXPORT_VAULT_02,
+            path_metavar=_msg.TranslatedString(
+                _msg.Label.EXPORT_VAULT_METAVAR_PATH,
+            ),
+        ),
+        _msg.TranslatedString(
+            _msg.Label.DERIVEPASSPHRASE_EXPORT_VAULT_03,
+            path_metavar=_msg.TranslatedString(
+                _msg.Label.EXPORT_VAULT_METAVAR_PATH,
+            ),
+        ),
+    ),
 )
-@standard_logging_options
 @click.option(
     '-f',
     '--format',
     'formats',
-    metavar='FMT',
+    metavar=_msg.TranslatedString(_msg.Label.EXPORT_VAULT_FORMAT_METAVAR_FMT),
     multiple=True,
     default=('v0.3', 'v0.2', 'storeroom'),
     type=click.Choice(['v0.2', 'v0.3', 'storeroom']),
-    help='try the following storage formats, in order (default: v0.3, v0.2)',
+    help=_msg.TranslatedString(
+        _msg.Label.EXPORT_VAULT_FORMAT_HELP_TEXT,
+        defaults_hint=_msg.TranslatedString(
+            _msg.Label.EXPORT_VAULT_FORMAT_DEFAULTS_HELP_TEXT,
+        ),
+        metavar=_msg.TranslatedString(
+            _msg.Label.EXPORT_VAULT_FORMAT_METAVAR_FMT,
+        ),
+    ),
+    cls=StandardOption,
 )
 @click.option(
     '-k',
     '--key',
-    metavar='K',
-    help=(
-        'use K as the storage master key '
-        '(default: check the `VAULT_KEY`, `LOGNAME`, `USER` or '
-        '`USERNAME` environment variables)'
+    metavar=_msg.TranslatedString(_msg.Label.EXPORT_VAULT_KEY_METAVAR_K),
+    help=_msg.TranslatedString(
+        _msg.Label.EXPORT_VAULT_KEY_HELP_TEXT,
+        metavar=_msg.TranslatedString(_msg.Label.EXPORT_VAULT_KEY_METAVAR_K),
+        defaults_hint=_msg.TranslatedString(
+            _msg.Label.EXPORT_VAULT_KEY_DEFAULTS_HELP_TEXT,
+        ),
     ),
+    cls=StandardOption,
 )
-@click.argument('path', metavar='PATH', required=True)
+@version_option
+@standard_logging_options
+@click.argument(
+    'path',
+    metavar=_msg.TranslatedString(_msg.Label.EXPORT_VAULT_METAVAR_PATH),
+    required=True,
+)
 @click.pass_context
 def derivepassphrase_export_vault(
     ctx: click.Context,
@@ -823,16 +1413,13 @@ def derivepassphrase_export_vault(
 ) -> None:
     """Export a vault-native configuration to standard output.
 
-    Read the vault-native configuration at PATH, extract all information
-    from it, and export the resulting configuration to standard output.
-    Depending on the configuration format, PATH may either be a file or
-    a directory.  Supports the vault "v0.2", "v0.3" and "storeroom"
-    formats.
+    This is a [`click`][CLICK]-powered command-line interface function,
+    and not intended for programmatic use.  See the
+    derivepassphrase-export-vault(1) manpage for full documentation of
+    the interface.  (See also [`click.testing.CliRunner`][] for
+    controlled, programmatic invocation.)
 
-    If PATH is explicitly given as `VAULT_PATH`, then use the
-    `VAULT_PATH` environment variable to determine the correct path.
-    (Use `./VAULT_PATH` or similar to indicate a file/directory actually
-    named `VAULT_PATH`.)
+    [CLICK]: https://pypi.org/package/click/
 
     """
     logger = logging.getLogger(PROG_NAME)
@@ -851,32 +1438,56 @@ def derivepassphrase_export_vault(
             ValueError,
             RuntimeError,
         ):
-            logger.info('Cannot load as %s: %s', fmt, path)
+            logger.info(
+                _msg.TranslatedString(
+                    _msg.InfoMsgTemplate.CANNOT_LOAD_AS_VAULT_CONFIG,
+                    path=path,
+                    fmt=fmt,
+                ),
+            )
             continue
         except OSError as exc:
             logger.error(
-                'Cannot parse %r as a valid config: %s: %r',
-                path,
-                exc.strerror,
-                exc.filename,
+                _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.CANNOT_PARSE_AS_VAULT_CONFIG_OSERROR,
+                    path=path,
+                    error=exc.strerror,
+                    filename=exc.filename,
+                ).maybe_without_filename(),
             )
             ctx.exit(1)
         except ModuleNotFoundError:
-            # TODO(the-13th-letter): Use backslash continuation.
-            # https://github.com/nedbat/coveragepy/issues/1836
             logger.error(
-                'Cannot load the required Python module "cryptography".'
+                _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.MISSING_MODULE,
+                    module='cryptography',
+                ),
             )
-            logger.info('pip users: see the "export" extra.')
+            logger.info(
+                _msg.TranslatedString(
+                    _msg.InfoMsgTemplate.PIP_INSTALL_EXTRA,
+                    extra_name='export',
+                ),
+            )
             ctx.exit(1)
         else:
             if not _types.is_vault_config(config):
-                logger.error('Invalid vault config: %r', config)
+                logger.error(
+                    _msg.TranslatedString(
+                        _msg.ErrMsgTemplate.INVALID_VAULT_CONFIG,
+                        config=config,
+                    ),
+                )
                 ctx.exit(1)
             click.echo(json.dumps(config, indent=2, sort_keys=True))
             break
     else:
-        logger.error('Cannot parse %r as a valid config.', path)
+        logger.error(
+            _msg.TranslatedString(
+                _msg.ErrMsgTemplate.CANNOT_PARSE_AS_VAULT_CONFIG,
+                path=path,
+            ).maybe_without_filename(),
+        )
         ctx.exit(1)
 
 
@@ -1084,15 +1695,15 @@ def _get_suitable_ssh_keys(
     with ssh_agent.SSHAgentClient.ensure_agent_subcontext(conn) as client:
         try:
             all_key_comment_pairs = list(client.list_keys())
-        except EOFError as e:  # pragma: no cover
-            raise RuntimeError(_AGENT_COMMUNICATION_ERROR) from e
+        except EOFError as exc:  # pragma: no cover
+            raise RuntimeError(_AGENT_COMMUNICATION_ERROR) from exc
         suitable_keys = copy.copy(all_key_comment_pairs)
         for pair in all_key_comment_pairs:
             key, _comment = pair
             if vault.Vault.is_suitable_ssh_key(key, client=client):
                 yield pair
     if not suitable_keys:  # pragma: no cover
-        raise LookupError(_NO_USABLE_KEYS)
+        raise LookupError(_NO_SUITABLE_KEYS)
 
 
 def _prompt_for_selection(
@@ -1316,9 +1927,11 @@ def _check_for_misleading_passphrase(
         if not unicodedata.is_normalized(form, phrase):
             logger.warning(
                 (
-                    'the %s passphrase is not %s-normalized.  '
-                    'Make sure to double-check this is really the '
-                    'passphrase you want.'
+                    'The %s passphrase is not %s-normalized.  Its '
+                    'serialization as a byte string may not be what you '
+                    'expect it to be, even if it *displays* correctly.  '
+                    'Please make sure to double-check any derived '
+                    'passphrases for unexpected results.'
                 ),
                 formatted_key,
                 form,
@@ -1337,31 +1950,47 @@ def _key_to_phrase(
         with ssh_agent.SSHAgentClient.ensure_agent_subcontext() as client:
             try:
                 return vault.Vault.phrase_from_key(key, conn=client)
-            except ssh_agent.SSHAgentFailedError as e:
+            except ssh_agent.SSHAgentFailedError as exc:
                 try:
                     keylist = client.list_keys()
                 except ssh_agent.SSHAgentFailedError:
                     pass
-                except Exception as e2:  # noqa: BLE001
-                    e.__context__ = e2
+                except Exception as exc2:  # noqa: BLE001
+                    exc.__context__ = exc2
                 else:
                     if not any(  # pragma: no branch
                         k == key for k, _ in keylist
                     ):
                         error_callback(
-                            'The requested SSH key is not loaded '
-                            'into the agent.'
+                            _msg.TranslatedString(
+                                _msg.ErrMsgTemplate.SSH_KEY_NOT_LOADED
+                            )
                         )
-                error_callback(e)
+                error_callback(
+                    _msg.TranslatedString(
+                        _msg.ErrMsgTemplate.AGENT_REFUSED_SIGNATURE
+                    ),
+                    exc_info=exc,
+                )
     except KeyError:
-        error_callback('Cannot find running SSH agent; check SSH_AUTH_SOCK')
-    except NotImplementedError:
         error_callback(
-            'Cannot connect to SSH agent because '
-            'this Python version does not support UNIX domain sockets'
+            _msg.TranslatedString(_msg.ErrMsgTemplate.NO_SSH_AGENT_FOUND)
         )
-    except OSError as e:
-        error_callback('Cannot connect to SSH agent: %s', e.strerror)
+    except NotImplementedError:
+        error_callback(_msg.TranslatedString(_msg.ErrMsgTemplate.NO_AF_UNIX))
+    except OSError as exc:
+        error_callback(
+            _msg.TranslatedString(
+                _msg.ErrMsgTemplate.CANNOT_CONNECT_TO_AGENT,
+                error=exc.strerror,
+                filename=exc.filename,
+            ).maybe_without_filename()
+        )
+    except RuntimeError as exc:
+        error_callback(
+            _msg.TranslatedString(_msg.ErrMsgTemplate.CANNOT_UNDERSTAND_AGENT),
+            exc_info=exc,
+        )
 
 
 def _print_config_as_sh_script(
@@ -1437,39 +2066,47 @@ def _print_config_as_sh_script(
 
 
 # Concrete option groups used by this command-line interface.
-class PasswordGenerationOption(OptionGroupOption):
-    """Password generation options for the CLI."""
+class PassphraseGenerationOption(OptionGroupOption):
+    """Passphrase generation options for the CLI."""
 
-    option_group_name = 'Password generation'
-    epilog = """
-        Use NUMBER=0, e.g. "--symbol 0", to exclude a character type
-        from the output.
-    """
+    option_group_name = _msg.TranslatedString(
+        _msg.Label.PASSPHRASE_GENERATION_LABEL
+    )
+    epilog = _msg.TranslatedString(
+        _msg.Label.PASSPHRASE_GENERATION_EPILOG,
+        metavar=_msg.TranslatedString(
+            _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+        ),
+    )
 
 
 class ConfigurationOption(OptionGroupOption):
     """Configuration options for the CLI."""
 
-    option_group_name = 'Configuration'
-    epilog = """
-        Use $VISUAL or $EDITOR to configure the spawned editor.
-    """
+    option_group_name = _msg.TranslatedString(_msg.Label.CONFIGURATION_LABEL)
+    epilog = _msg.TranslatedString(_msg.Label.CONFIGURATION_EPILOG)
 
 
 class StorageManagementOption(OptionGroupOption):
     """Storage management options for the CLI."""
 
-    option_group_name = 'Storage management'
-    epilog = """
-        Using "-" as PATH for standard input/standard output is
-        supported.
-    """
+    option_group_name = _msg.TranslatedString(
+        _msg.Label.STORAGE_MANAGEMENT_LABEL
+    )
+    epilog = _msg.TranslatedString(
+        _msg.Label.STORAGE_MANAGEMENT_EPILOG,
+        metavar=_msg.TranslatedString(
+            _msg.Label.STORAGE_MANAGEMENT_METAVAR_PATH
+        ),
+    )
 
 
 class CompatibilityOption(OptionGroupOption):
     """Compatibility and incompatibility options for the CLI."""
 
-    option_group_name = 'Options concerning compatibility with other tools'
+    option_group_name = _msg.TranslatedString(
+        _msg.Label.COMPATIBILITY_OPTION_LABEL
+    )
 
 
 def _validate_occurrence_constraint(
@@ -1500,12 +2137,10 @@ def _validate_occurrence_constraint(
     else:
         try:
             int_value = int(value, 10)
-        except ValueError as e:
-            msg = 'not an integer'
-            raise click.BadParameter(msg) from e
+        except ValueError as exc:
+            raise click.BadParameter(_NOT_AN_INTEGER) from exc
     if int_value < 0:
-        msg = 'not a non-negative integer'
-        raise click.BadParameter(msg)
+        raise click.BadParameter(_NOT_A_NONNEGATIVE_INTEGER)
     return int_value
 
 
@@ -1537,12 +2172,10 @@ def _validate_length(
     else:
         try:
             int_value = int(value, 10)
-        except ValueError as e:
-            msg = 'not an integer'
-            raise click.BadParameter(msg) from e
+        except ValueError as exc:
+            raise click.BadParameter(_NOT_AN_INTEGER) from exc
     if int_value < 1:
-        msg = 'not a positive integer'
-        raise click.BadParameter(msg)
+        raise click.BadParameter(_NOT_A_POSITIVE_INTEGER)
     return int_value
 
 
@@ -1564,97 +2197,165 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
     'vault',
     context_settings={'help_option_names': ['-h', '--help']},
     cls=CommandWithHelpGroups,
-    epilog=r"""
-        WARNING: There is NO WAY to retrieve the generated passphrases
-        if the master passphrase, the SSH key, or the exact passphrase
-        settings are lost, short of trying out all possible
-        combinations.  You are STRONGLY advised to keep independent
-        backups of the settings and the SSH key, if any.
-
-        The configuration is NOT encrypted, and you are STRONGLY
-        discouraged from using a stored passphrase.
-    """,
+    help=(
+        _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_VAULT_01),
+        _msg.TranslatedString(
+            _msg.Label.DERIVEPASSPHRASE_VAULT_02,
+            service_metavar=_msg.TranslatedString(
+                _msg.Label.VAULT_METAVAR_SERVICE
+            ),
+        ),
+    ),
+    epilog=(
+        _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_VAULT_EPILOG_01),
+        _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_VAULT_EPILOG_02),
+    ),
 )
 @click.option(
     '-p',
     '--phrase',
     'use_phrase',
     is_flag=True,
-    help='prompts you for your passphrase',
-    cls=PasswordGenerationOption,
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_PHRASE_HELP_TEXT
+    ),
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '-k',
     '--key',
     'use_key',
     is_flag=True,
-    help='uses your SSH private key to generate passwords',
-    cls=PasswordGenerationOption,
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_KEY_HELP_TEXT
+    ),
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '-l',
     '--length',
-    metavar='NUMBER',
+    metavar=_msg.TranslatedString(
+        _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+    ),
     callback=_validate_length,
-    help='emits password of length NUMBER',
-    cls=PasswordGenerationOption,
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_LENGTH_HELP_TEXT,
+        metavar=_msg.TranslatedString(
+            _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+        ),
+    ),
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '-r',
     '--repeat',
-    metavar='NUMBER',
+    metavar=_msg.TranslatedString(
+        _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+    ),
     callback=_validate_occurrence_constraint,
-    help='allows maximum of NUMBER repeated adjacent chars',
-    cls=PasswordGenerationOption,
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_REPEAT_HELP_TEXT,
+        metavar=_msg.TranslatedString(
+            _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+        ),
+    ),
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '--lower',
-    metavar='NUMBER',
+    metavar=_msg.TranslatedString(
+        _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+    ),
     callback=_validate_occurrence_constraint,
-    help='includes at least NUMBER lowercase letters',
-    cls=PasswordGenerationOption,
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_LOWER_HELP_TEXT,
+        metavar=_msg.TranslatedString(
+            _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+        ),
+    ),
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '--upper',
-    metavar='NUMBER',
+    metavar=_msg.TranslatedString(
+        _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+    ),
     callback=_validate_occurrence_constraint,
-    help='includes at least NUMBER uppercase letters',
-    cls=PasswordGenerationOption,
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_UPPER_HELP_TEXT,
+        metavar=_msg.TranslatedString(
+            _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+        ),
+    ),
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '--number',
-    metavar='NUMBER',
+    metavar=_msg.TranslatedString(
+        _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+    ),
     callback=_validate_occurrence_constraint,
-    help='includes at least NUMBER digits',
-    cls=PasswordGenerationOption,
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_NUMBER_HELP_TEXT,
+        metavar=_msg.TranslatedString(
+            _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+        ),
+    ),
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '--space',
-    metavar='NUMBER',
+    metavar=_msg.TranslatedString(
+        _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+    ),
     callback=_validate_occurrence_constraint,
-    help='includes at least NUMBER spaces',
-    cls=PasswordGenerationOption,
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_SPACE_HELP_TEXT,
+        metavar=_msg.TranslatedString(
+            _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+        ),
+    ),
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '--dash',
-    metavar='NUMBER',
+    metavar=_msg.TranslatedString(
+        _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+    ),
     callback=_validate_occurrence_constraint,
-    help='includes at least NUMBER "-" or "_"',
-    cls=PasswordGenerationOption,
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_DASH_HELP_TEXT,
+        metavar=_msg.TranslatedString(
+            _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+        ),
+    ),
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '--symbol',
-    metavar='NUMBER',
+    metavar=_msg.TranslatedString(
+        _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+    ),
     callback=_validate_occurrence_constraint,
-    help='includes at least NUMBER symbol chars',
-    cls=PasswordGenerationOption,
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_SYMBOL_HELP_TEXT,
+        metavar=_msg.TranslatedString(
+            _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+        ),
+    ),
+    cls=PassphraseGenerationOption,
 )
 @click.option(
     '-n',
     '--notes',
     'edit_notes',
     is_flag=True,
-    help='spawn an editor to edit notes for SERVICE',
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_HELP_TEXT,
+        service_metavar=_msg.TranslatedString(
+            _msg.Label.VAULT_METAVAR_SERVICE
+        ),
+    ),
     cls=ConfigurationOption,
 )
 @click.option(
@@ -1662,7 +2363,12 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
     '--config',
     'store_config_only',
     is_flag=True,
-    help='saves the given settings for SERVICE or global',
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_CONFIG_HELP_TEXT,
+        service_metavar=_msg.TranslatedString(
+            _msg.Label.VAULT_METAVAR_SERVICE
+        ),
+    ),
     cls=ConfigurationOption,
 )
 @click.option(
@@ -1670,13 +2376,20 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
     '--delete',
     'delete_service_settings',
     is_flag=True,
-    help='deletes settings for SERVICE',
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_DELETE_HELP_TEXT,
+        service_metavar=_msg.TranslatedString(
+            _msg.Label.VAULT_METAVAR_SERVICE
+        ),
+    ),
     cls=ConfigurationOption,
 )
 @click.option(
     '--delete-globals',
     is_flag=True,
-    help='deletes the global shared settings',
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_DELETE_GLOBALS_HELP_TEXT,
+    ),
     cls=ConfigurationOption,
 )
 @click.option(
@@ -1684,30 +2397,48 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
     '--clear',
     'clear_all_settings',
     is_flag=True,
-    help='deletes all settings',
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_DELETE_ALL_HELP_TEXT,
+    ),
     cls=ConfigurationOption,
 )
 @click.option(
     '-e',
     '--export',
     'export_settings',
-    metavar='PATH',
-    help='export all saved settings into file PATH',
+    metavar=_msg.TranslatedString(
+        _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+    ),
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_EXPORT_HELP_TEXT,
+        metavar=_msg.TranslatedString(
+            _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+        ),
+    ),
     cls=StorageManagementOption,
 )
 @click.option(
     '-i',
     '--import',
     'import_settings',
-    metavar='PATH',
-    help='import saved settings from file PATH',
+    metavar=_msg.TranslatedString(
+        _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+    ),
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_IMPORT_HELP_TEXT,
+        metavar=_msg.TranslatedString(
+            _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
+        ),
+    ),
     cls=StorageManagementOption,
 )
 @click.option(
     '--overwrite-existing/--merge-existing',
     'overwrite_config',
     default=False,
-    help='overwrite or merge (default) the existing configuration',
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_OVERWRITE_HELP_TEXT
+    ),
     cls=CompatibilityOption,
 )
 @click.option(
@@ -1726,22 +2457,28 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
         'dash',
         'symbol',
     ]),
-    help=(
-        'with --config, also unsets the given setting; '
-        'may be specified multiple times'
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_UNSET_HELP_TEXT
     ),
     cls=CompatibilityOption,
 )
 @click.option(
     '--export-as',
-    type=click.Choice(['JSON', 'sh']),
-    default='JSON',
-    help='when exporting, export as JSON (default) or POSIX sh',
+    type=click.Choice(['json', 'sh']),
+    default='json',
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_EXPORT_AS_HELP_TEXT
+    ),
     cls=CompatibilityOption,
 )
-@click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
+@version_option
 @standard_logging_options
-@click.argument('service', required=False)
+@click.argument(
+    'service',
+    metavar=_msg.TranslatedString(_msg.Label.VAULT_METAVAR_SERVICE),
+    required=False,
+    default=None,
+)
 @click.pass_context
 def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     ctx: click.Context,
@@ -1771,24 +2508,11 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
 ) -> None:
     """Derive a passphrase using the vault(1) derivation scheme.
 
-    Using a master passphrase or a master SSH key, derive a passphrase
-    for SERVICE, subject to length, character and character repetition
-    constraints.  The derivation is cryptographically strong, meaning
-    that even if a single passphrase is compromised, guessing the master
-    passphrase or a different service's passphrase is computationally
-    infeasible.  The derivation is also deterministic, given the same
-    inputs, thus the resulting passphrase need not be stored explicitly.
-    The service name and constraints themselves also need not be kept
-    secret; the latter are usually stored in a world-readable file.
-
-    If operating on global settings, or importing/exporting settings,
-    then SERVICE must be omitted.  Otherwise it is required.\f
-
     This is a [`click`][CLICK]-powered command-line interface function,
-    and not intended for programmatic use.  Call with arguments
-    `['--help']` to see full documentation of the interface.  (See also
-    [`click.testing.CliRunner`][] for controlled, programmatic
-    invocation.)
+    and not intended for programmatic use.  See the
+    derivepassphrase-vault(1) manpage for full documentation of the
+    interface.  (See also [`click.testing.CliRunner`][] for controlled,
+    programmatic invocation.)
 
     [CLICK]: https://pypi.org/package/click/
 
@@ -1873,17 +2597,18 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             `--export`, selects the format to export the current
             configuration as: JSON ("json", default) or POSIX sh ("sh").
 
-    """  # noqa: D301
+    """
     logger = logging.getLogger(PROG_NAME)
     deprecation = logging.getLogger(PROG_NAME + '.deprecation')
+    service_metavar = _msg.TranslatedString(_msg.Label.VAULT_METAVAR_SERVICE)
     options_in_group: dict[type[click.Option], list[click.Option]] = {}
     params_by_str: dict[str, click.Parameter] = {}
     for param in ctx.command.params:
         if isinstance(param, click.Option):
             group: type[click.Option]
             # Use match/case here once Python 3.9 becomes unsupported.
-            if isinstance(param, PasswordGenerationOption):
-                group = PasswordGenerationOption
+            if isinstance(param, PassphraseGenerationOption):
+                group = PassphraseGenerationOption
             elif isinstance(param, ConfigurationOption):
                 group = ConfigurationOption
             elif isinstance(param, StorageManagementOption):
@@ -1892,11 +2617,13 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 group = LoggingOption
             elif isinstance(param, CompatibilityOption):
                 group = CompatibilityOption
-            elif isinstance(param, OptionGroupOption):
+            elif isinstance(param, StandardOption):  # pragma: no branch
+                group = StandardOption
+            elif isinstance(param, OptionGroupOption):  # pragma: no cover
                 raise AssertionError(  # noqa: DOC501,TRY003,TRY004
                     f'Unknown option group for {param!r}'  # noqa: EM102
                 )
-            else:
+            else:  # pragma: no cover
                 group = click.Option
             options_in_group.setdefault(group, []).append(param)
         params_by_str[param.human_readable_name] = param
@@ -1906,6 +2633,17 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     @functools.cache
     def is_param_set(param: click.Parameter) -> bool:
         return bool(ctx.params.get(param.human_readable_name))
+
+    def option_name(param: click.Parameter | str) -> str:
+        # Annoyingly, `param.human_readable_name` contains the *function*
+        # parameter name, not the list of option names.  *Those* are
+        # stashed in the `.opts` and `.secondary_opts` attributes, which
+        # are visible in the `.to_info_dict()` output, but not otherwise
+        # documented.
+        param = params_by_str[param] if isinstance(param, str) else param
+        names = [param.human_readable_name, *param.opts, *param.secondary_opts]
+        option_names = [n for n in names if n.startswith('--')]
+        return min(option_names, key=len)
 
     def check_incompatible_options(
         param1: click.Parameter | str,
@@ -1918,17 +2656,25 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         if not is_param_set(param1):
             return
         if is_param_set(param2):
-            param1_str = param1.human_readable_name
-            param2_str = param2.human_readable_name
+            param1_str = option_name(param1)
+            param2_str = option_name(param2)
             raise click.BadOptionUsage(
-                param1_str, f'mutually exclusive with {param2_str}', ctx=ctx
+                param1_str,
+                str(
+                    _msg.TranslatedString(
+                        _msg.ErrMsgTemplate.PARAMS_MUTUALLY_EXCLUSIVE,
+                        param1=param1_str,
+                        param2=param2_str,
+                    )
+                ),
+                ctx=ctx,
             )
         return
 
-    def err(msg: Any, *args: Any, **kwargs: Any) -> NoReturn:  # noqa: ANN401
+    def err(msg: Any, /, **kwargs: Any) -> NoReturn:  # noqa: ANN401
         stacklevel = kwargs.pop('stacklevel', 1)
         stacklevel += 1
-        logger.error(msg, *args, stacklevel=stacklevel, **kwargs)
+        logger.error(msg, stacklevel=stacklevel, **kwargs)
         ctx.exit(1)
 
     def get_config() -> _types.VaultConfig:
@@ -1944,47 +2690,90 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             )
             new_name = os.path.basename(_config_filename(subsystem='vault'))
             deprecation.warning(
-                (
-                    'Using deprecated v0.1-style config file %r, '
-                    'instead of v0.2-style %r.  '
-                    'Support for v0.1-style config filenames will be '
-                    'removed in v1.0.'
+                _msg.TranslatedString(
+                    _msg.WarnMsgTemplate.V01_STYLE_CONFIG,
+                    old=old_name,
+                    new=new_name,
                 ),
-                old_name,
-                new_name,
             )
             if isinstance(exc, OSError):
                 logger.warning(
-                    'Failed to migrate to %r: %s: %r',
-                    new_name,
-                    exc.strerror,
-                    exc.filename,
+                    _msg.TranslatedString(
+                        _msg.WarnMsgTemplate.FAILED_TO_MIGRATE_CONFIG,
+                        path=new_name,
+                        error=exc.strerror,
+                        filename=exc.filename,
+                    ).maybe_without_filename(),
                 )
             else:
-                deprecation.info('Successfully migrated to %r.', new_name)
+                deprecation.info(
+                    _msg.TranslatedString(
+                        _msg.InfoMsgTemplate.SUCCESSFULLY_MIGRATED,
+                        path=new_name,
+                    ),
+                )
             return backup_config
-        except OSError as e:
-            err('Cannot load config: %s: %r', e.strerror, e.filename)
-        except Exception as e:  # noqa: BLE001
-            err('Cannot load config: %s', str(e), exc_info=e)
+        except OSError as exc:
+            err(
+                _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.CANNOT_LOAD_VAULT_SETTINGS,
+                    error=exc.strerror,
+                    filename=exc.filename,
+                ).maybe_without_filename(),
+            )
+        except Exception as exc:  # noqa: BLE001
+            err(
+                _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.CANNOT_LOAD_VAULT_SETTINGS,
+                    error=str(exc),
+                    filename=None,
+                ).maybe_without_filename(),
+                exc_info=exc,
+            )
 
     def put_config(config: _types.VaultConfig, /) -> None:
         try:
             _save_config(config)
         except OSError as exc:
-            err('Cannot store config: %s: %r', exc.strerror, exc.filename)
+            err(
+                _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.CANNOT_STORE_VAULT_SETTINGS,
+                    error=exc.strerror,
+                    filename=exc.filename,
+                ).maybe_without_filename(),
+            )
         except Exception as exc:  # noqa: BLE001
-            err('Cannot store config: %s', str(exc), exc_info=exc)
+            err(
+                _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.CANNOT_STORE_VAULT_SETTINGS,
+                    error=str(exc),
+                    filename=None,
+                ).maybe_without_filename(),
+                exc_info=exc,
+            )
 
     def get_user_config() -> dict[str, Any]:
         try:
             return _load_user_config()
         except FileNotFoundError:
             return {}
-        except OSError as e:
-            err('Cannot load user config: %s: %r', e.strerror, e.filename)
-        except Exception as e:  # noqa: BLE001
-            err('Cannot load user config: %s', str(e), exc_info=e)
+        except OSError as exc:
+            err(
+                _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.CANNOT_LOAD_USER_CONFIG,
+                    error=exc.strerror,
+                    filename=exc.filename,
+                ).maybe_without_filename(),
+            )
+        except Exception as exc:  # noqa: BLE001
+            err(
+                _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.CANNOT_LOAD_USER_CONFIG,
+                    error=str(exc),
+                    filename=None,
+                ).maybe_without_filename(),
+                exc_info=exc,
+            )
 
     configuration: _types.VaultConfig
 
@@ -1992,7 +2781,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     for group in (ConfigurationOption, StorageManagementOption):
         for opt in options_in_group[group]:
             if opt != params_by_str['--config']:
-                for other_opt in options_in_group[PasswordGenerationOption]:
+                for other_opt in options_in_group[PassphraseGenerationOption]:
                     check_incompatible_options(opt, other_opt)
 
     for group in (ConfigurationOption, StorageManagementOption):
@@ -2001,20 +2790,26 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 check_incompatible_options(opt, other_opt)
             for other_opt in options_in_group[StorageManagementOption]:
                 check_incompatible_options(opt, other_opt)
-    sv_or_global_options = options_in_group[PasswordGenerationOption]
+    sv_or_global_options = options_in_group[PassphraseGenerationOption]
     for param in sv_or_global_options:
         if is_param_set(param) and not (
             service or is_param_set(params_by_str['--config'])
         ):
-            opt_str = param.opts[0]
-            msg = f'{opt_str} requires a SERVICE or --config'
-            raise click.UsageError(msg)  # noqa: DOC501
+            err_msg = _msg.TranslatedString(
+                _msg.ErrMsgTemplate.PARAMS_NEEDS_SERVICE_OR_CONFIG,
+                param=param.opts[0],
+                service_metavar=service_metavar,
+            )
+            raise click.UsageError(str(err_msg))  # noqa: DOC501
     sv_options = [params_by_str['--notes'], params_by_str['--delete']]
     for param in sv_options:
         if is_param_set(param) and not service:
-            opt_str = param.opts[0]
-            msg = f'{opt_str} requires a SERVICE'
-            raise click.UsageError(msg)
+            err_msg = _msg.TranslatedString(
+                _msg.ErrMsgTemplate.PARAMS_NEEDS_SERVICE,
+                param=param.opts[0],
+                service_metavar=service_metavar,
+            )
+            raise click.UsageError(str(err_msg))
     no_sv_options = [
         params_by_str['--delete-globals'],
         params_by_str['--clear'],
@@ -2022,18 +2817,21 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     ]
     for param in no_sv_options:
         if is_param_set(param) and service:
-            opt_str = param.opts[0]
-            msg = f'{opt_str} does not take a SERVICE argument'
-            raise click.UsageError(msg)
+            err_msg = _msg.TranslatedString(
+                _msg.ErrMsgTemplate.PARAMS_NO_SERVICE,
+                param=param.opts[0],
+                service_metavar=service_metavar,
+            )
+            raise click.UsageError(str(err_msg))
 
     user_config = get_user_config()
 
     if service == '':  # noqa: PLC1901
         logger.warning(
-            'An empty SERVICE is not supported by vault(1).  '
-            'For compatibility, this will be treated as if SERVICE '
-            'was not supplied, i.e., it will error out, or '
-            'operate on global settings.'
+            _msg.TranslatedString(
+                _msg.WarnMsgTemplate.EMPTY_SERVICE_NOT_SUPPORTED,
+                service_metavar=service_metavar,
+            )
         )
 
     if edit_notes:
@@ -2052,7 +2850,11 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     break
             else:
                 if not notes_value.strip():
-                    err('Not saving new notes: user aborted request')
+                    err(
+                        _msg.TranslatedString(
+                            _msg.ErrMsgTemplate.USER_ABORTED_EDIT
+                        )
+                    )
             configuration['services'].setdefault(service, {})['notes'] = (
                 notes_value.strip('\n')
             )
@@ -2089,13 +2891,33 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             # error information.
             with infile:
                 maybe_config = json.load(infile)
-        except json.JSONDecodeError as e:
-            err('Cannot load config: cannot decode JSON: %s', e)
-        except OSError as e:
-            err('Cannot load config: %s: %r', e.strerror, e.filename)
+        except json.JSONDecodeError as exc:
+            err(
+                _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.CANNOT_DECODEIMPORT_VAULT_SETTINGS,
+                    error=exc,
+                )
+            )
+        except OSError as exc:
+            err(
+                _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.CANNOT_IMPORT_VAULT_SETTINGS,
+                    error=exc.strerror,
+                    filename=exc.filename,
+                ).maybe_without_filename()
+            )
         cleaned = _types.clean_up_falsy_vault_config_values(maybe_config)
         if not _types.is_vault_config(maybe_config):
-            err('Cannot load config: %s', _INVALID_VAULT_CONFIG)
+            err(
+                _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.CANNOT_IMPORT_VAULT_SETTINGS,
+                    error=_msg.TranslatedString(
+                        _msg.ErrMsgTemplate.INVALID_VAULT_CONFIG,
+                        config=maybe_config,
+                    ),
+                    filename=None,
+                ).maybe_without_filename()
+            )
         assert cleaned is not None
         for step in cleaned:
             # These are never fatal errors, because the semantics of
@@ -2103,27 +2925,28 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             # but not ill-defined.
             if step.action == 'replace':
                 logger.warning(
-                    'Replacing invalid value %s for key %s with %s.',
-                    json.dumps(step.old_value),
-                    _types.json_path(step.path),
-                    json.dumps(step.new_value),
+                    _msg.TranslatedString(
+                        _msg.WarnMsgTemplate.STEP_REPLACE_INVALID_VALUE,
+                        old=json.dumps(step.old_value),
+                        path=_types.json_path(step.path),
+                        new=json.dumps(step.new_value),
+                    ),
                 )
             else:
                 logger.warning(
-                    'Removing ineffective setting %s = %s.',
-                    _types.json_path(step.path),
-                    json.dumps(step.old_value),
+                    _msg.TranslatedString(
+                        _msg.WarnMsgTemplate.STEP_REMOVE_INEFFECTIVE_VALUE,
+                        path=_types.json_path(step.path),
+                        old=json.dumps(step.old_value),
+                    ),
                 )
         if '' in maybe_config['services']:
             logger.warning(
-                (
-                    'An empty SERVICE is not supported by vault(1), '
-                    'and the empty-string service settings will be '
-                    'inaccessible and ineffective.  To ensure that '
-                    'vault(1) and %s see the settings, move them '
-                    'into the "global" section.'
+                _msg.TranslatedString(
+                    _msg.WarnMsgTemplate.EMPTY_SERVICE_SETTINGS_INACCESSIBLE,
+                    service_metavar=service_metavar,
+                    PROG_NAME=PROG_NAME,
                 ),
-                PROG_NAME,
             )
         try:
             _check_for_misleading_passphrase(
@@ -2137,15 +2960,22 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     cast(dict[str, Any], value),
                     main_config=user_config,
                 )
-        except AssertionError as e:
-            err('The configuration file is invalid.  ' + str(e))
+        except AssertionError as exc:
+            err(
+                _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.INVALID_USER_CONFIG,
+                    error=exc,
+                    filename=None,
+                ).maybe_without_filename(),
+            )
         global_obj = maybe_config.get('global', {})
         has_key = _types.js_truthiness(global_obj.get('key'))
         has_phrase = _types.js_truthiness(global_obj.get('phrase'))
         if has_key and has_phrase:
             logger.warning(
-                'Setting a global passphrase is ineffective '
-                'because a key is also set.'
+                _msg.TranslatedString(
+                    _msg.WarnMsgTemplate.GLOBAL_PASSPHRASE_INEFFECTIVE,
+                )
             )
         for service_name, service_obj in maybe_config['services'].items():
             has_key = _types.js_truthiness(
@@ -2156,11 +2986,10 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             ) or _types.js_truthiness(global_obj.get('phrase'))
             if has_key and has_phrase:
                 logger.warning(
-                    (
-                        'Setting a service passphrase is ineffective '
-                        'because a key is also set: %s'
+                    _msg.TranslatedString(
+                        _msg.WarnMsgTemplate.SERVICE_PASSPHRASE_INEFFECTIVE,
+                        service=json.dumps(service_name),
                     ),
-                    json.dumps(service_name),
                 )
         if overwrite_config:
             put_config(maybe_config)
@@ -2225,8 +3054,14 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     )
                 else:
                     json.dump(configuration, outfile)
-        except OSError as e:
-            err('Cannot store config: %s: %r', e.strerror, e.filename)
+        except OSError as exc:
+            err(
+                _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.CANNOT_EXPORT_VAULT_SETTINGS,
+                    error=exc.strerror,
+                    filename=exc.filename,
+                ).maybe_without_filename(),
+            )
     else:
         configuration = get_config()
         # This block could be type checked more stringently, but this
@@ -2264,26 +3099,56 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     'ASCII'
                 )
             except IndexError:
-                err('No valid SSH key selected')
-            except KeyError:
-                err('Cannot find running SSH agent; check SSH_AUTH_SOCK')
-            except NotImplementedError:
                 err(
-                    'Cannot connect to SSH agent because '
-                    'this Python version does not support UNIX domain sockets'
+                    _msg.TranslatedString(
+                        _msg.ErrMsgTemplate.USER_ABORTED_SSH_KEY_SELECTION
+                    ),
                 )
-            except OSError as e:
-                err('Cannot connect to SSH agent: %s', e.strerror)
-            except (
-                LookupError,
-                RuntimeError,
-                ssh_agent.SSHAgentFailedError,
-            ) as e:
-                err(str(e))
+            except KeyError:
+                err(
+                    _msg.TranslatedString(
+                        _msg.ErrMsgTemplate.NO_SSH_AGENT_FOUND
+                    ),
+                )
+            except LookupError:
+                err(
+                    _msg.TranslatedString(
+                        _msg.ErrMsgTemplate.NO_SUITABLE_SSH_KEYS,
+                        PROG_NAME=PROG_NAME,
+                    )
+                )
+            except NotImplementedError:
+                err(_msg.TranslatedString(_msg.ErrMsgTemplate.NO_AF_UNIX))
+            except OSError as exc:
+                err(
+                    _msg.TranslatedString(
+                        _msg.ErrMsgTemplate.CANNOT_CONNECT_TO_AGENT,
+                        error=exc.strerror,
+                        filename=exc.filename,
+                    ).maybe_without_filename(),
+                )
+            except ssh_agent.SSHAgentFailedError as exc:
+                err(
+                    _msg.TranslatedString(
+                        _msg.ErrMsgTemplate.AGENT_REFUSED_LIST_KEYS
+                    ),
+                    exc_info=exc,
+                )
+            except RuntimeError as exc:
+                err(
+                    _msg.TranslatedString(
+                        _msg.ErrMsgTemplate.CANNOT_UNDERSTAND_AGENT
+                    ),
+                    exc_info=exc,
+                )
         elif use_phrase:
             maybe_phrase = _prompt_for_passphrase()
             if not maybe_phrase:
-                err('No passphrase given')
+                err(
+                    _msg.TranslatedString(
+                        _msg.ErrMsgTemplate.USER_ABORTED_PASSPHRASE
+                    )
+                )
             else:
                 phrase = maybe_phrase
         if store_config_only:
@@ -2304,36 +3169,42 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                         {'phrase': phrase},
                         main_config=user_config,
                     )
-                except AssertionError as e:
-                    err('The configuration file is invalid.  ' + str(e))
+                except AssertionError as exc:
+                    err(
+                        _msg.TranslatedString(
+                            _msg.ErrMsgTemplate.INVALID_USER_CONFIG,
+                            error=exc,
+                            filename=None,
+                        ).maybe_without_filename(),
+                    )
                 if 'key' in settings:
                     if service:
                         logger.warning(
-                            (
-                                'Setting a service passphrase is ineffective '
-                                'because a key is also set: %s'
-                            ),
-                            json.dumps(service),
+                            _msg.TranslatedString(
+                                _msg.WarnMsgTemplate.SERVICE_PASSPHRASE_INEFFECTIVE,
+                                service=json.dumps(service),
+                            )
                         )
                     else:
                         logger.warning(
-                            'Setting a global passphrase is ineffective '
-                            'because a key is also set.'
+                            _msg.TranslatedString(
+                                _msg.WarnMsgTemplate.GLOBAL_PASSPHRASE_INEFFECTIVE
+                            )
                         )
             if not view.maps[0] and not unset_settings:
                 settings_type = 'service' if service else 'global'
-                msg = (
-                    f'Cannot update {settings_type} settings without '
-                    f'actual settings'
+                err_msg = _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.CANNOT_UPDATE_SETTINGS_NO_SETTINGS,
+                    settings_type=settings_type,
                 )
-                raise click.UsageError(msg)
+                raise click.UsageError(str(err_msg))
             for setting in unset_settings:
                 if setting in view.maps[0]:
-                    msg = (
-                        f'Attempted to unset and set --{setting} '
-                        f'at the same time.'
+                    err_msg = _msg.TranslatedString(
+                        _msg.ErrMsgTemplate.SET_AND_UNSET_SAME_SETTING,
+                        setting=setting,
                     )
-                    raise click.UsageError(msg)
+                    raise click.UsageError(str(err_msg))
             subtree: dict[str, Any] = (
                 configuration['services'].setdefault(service, {})  # type: ignore[assignment]
                 if service
@@ -2351,8 +3222,13 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             put_config(configuration)
         else:
             if not service:
-                msg = 'SERVICE is required'
-                raise click.UsageError(msg)
+                err_msg = _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.SERVICE_REQUIRED,
+                    service_metavar=_msg.TranslatedString(
+                        _msg.Label.VAULT_METAVAR_SERVICE
+                    ),
+                )
+                raise click.UsageError(str(err_msg))
             kwargs: dict[str, Any] = {
                 k: v
                 for k, v in settings.items()
@@ -2366,8 +3242,14 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                         {'phrase': phrase},
                         main_config=user_config,
                     )
-                except AssertionError as e:
-                    err('The configuration file is invalid.  ' + str(e))
+                except AssertionError as exc:
+                    err(
+                        _msg.TranslatedString(
+                            _msg.ErrMsgTemplate.INVALID_USER_CONFIG,
+                            error=exc,
+                            filename=None,
+                        ).maybe_without_filename(),
+                    )
 
             # If either --key or --phrase are given, use that setting.
             # Otherwise, if both key and phrase are set in the config,
@@ -2388,11 +3270,10 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             elif kwargs.get('phrase'):
                 pass
             else:
-                msg = (
-                    'No passphrase or key given on command-line '
-                    'or in configuration'
+                err_msg = _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.NO_KEY_OR_PHRASE
                 )
-                raise click.UsageError(msg)
+                raise click.UsageError(str(err_msg))
             kwargs.pop('key', '')
             result = vault.Vault(**kwargs).generate(service)
             click.echo(result.decode('ASCII'))

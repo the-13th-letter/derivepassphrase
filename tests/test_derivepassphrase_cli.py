@@ -70,7 +70,7 @@ class OptionCombination(NamedTuple):
     check_success: bool
 
 
-PASSWORD_GENERATION_OPTIONS: list[tuple[str, ...]] = [
+PASSPHRASE_GENERATION_OPTIONS: list[tuple[str, ...]] = [
     ('--phrase',),
     ('--key',),
     ('--length', '20'),
@@ -292,10 +292,10 @@ class TestCLI:
             )
             result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(
-            empty_stderr=True, output='Password generation:\n'
+            empty_stderr=True, output='Passphrase generation:\n'
         ), 'expected clean exit, and option groups in help text'
         assert result.clean_exit(
-            empty_stderr=True, output='Use NUMBER=0, e.g. "--symbol 0"'
+            empty_stderr=True, output='Use $VISUAL or $EDITOR to configure'
         ), 'expected clean exit, and option group epilog in help text'
 
     @pytest.mark.parametrize(
@@ -971,7 +971,7 @@ class TestCLI:
             )
         result = tests.ReadableResult.parse(_result)
         assert result.error_exit(
-            error='Cannot load config'
+            error='Cannot load vault settings:'
         ), 'expected error exit and known error message'
 
     @pytest.mark.parametrize(
@@ -999,7 +999,7 @@ class TestCLI:
             )
         result = tests.ReadableResult.parse(_result)
         assert result.error_exit(
-            error='Cannot load config'
+            error='Cannot load vault settings:'
         ), 'expected error exit and known error message'
 
     @pytest.mark.parametrize(
@@ -1025,7 +1025,7 @@ class TestCLI:
             )
         result = tests.ReadableResult.parse(_result)
         assert result.error_exit(
-            error='Cannot store config'
+            error='Cannot export vault settings:'
         ), 'expected error exit and known error message'
 
     @pytest.mark.parametrize(
@@ -1054,9 +1054,9 @@ class TestCLI:
             )
         result = tests.ReadableResult.parse(_result)
         assert result.error_exit(
-            error='Cannot load config'
+            error='Cannot load vault settings:'
         ) or result.error_exit(
-            error='Cannot load user config'
+            error='Cannot load user config:'
         ), 'expected error exit and known error message'
 
     def test_220_edit_notes_successfully(
@@ -1156,7 +1156,7 @@ contents go here
             )
             result = tests.ReadableResult.parse(_result)
             assert result.error_exit(
-                error='user aborted request'
+                error='the user aborted the request'
             ), 'expected known error message'
             with open(
                 cli._config_filename(subsystem='vault'), encoding='UTF-8'
@@ -1241,14 +1241,18 @@ contents go here
     @pytest.mark.parametrize(
         ['command_line', 'input', 'err_text'],
         [
-            ([], '', 'Cannot update global settings without actual settings'),
+            (
+                [],
+                '',
+                'Cannot update global settings without any given settings',
+            ),
             (
                 ['--', 'sv'],
                 '',
-                'Cannot update service settings without actual settings',
+                'Cannot update service settings without any given settings',
             ),
-            (['--phrase', '--', 'sv'], '', 'No passphrase given'),
-            (['--key'], '', 'No valid SSH key selected'),
+            (['--phrase', '--', 'sv'], '', 'No passphrase was given'),
+            (['--key'], '', 'No SSH key was selected'),
         ],
     )
     def test_225_store_config_fail(
@@ -1324,7 +1328,7 @@ contents go here
             )
         result = tests.ReadableResult.parse(_result)
         assert result.error_exit(
-            error='Cannot find running SSH agent'
+            error='Cannot find any running SSH agent'
         ), 'expected error exit and known error message'
 
     def test_225c_store_config_fail_manual_bad_ssh_agent_connection(
@@ -1345,7 +1349,7 @@ contents go here
             )
         result = tests.ReadableResult.parse(_result)
         assert result.error_exit(
-            error='Cannot connect to SSH agent'
+            error='Cannot connect to the SSH agent'
         ), 'expected error exit and known error message'
 
     @pytest.mark.parametrize('try_race_free_implementation', [True, False])
@@ -1371,7 +1375,7 @@ contents go here
             )
         result = tests.ReadableResult.parse(_result)
         assert result.error_exit(
-            error='Cannot store config'
+            error='Cannot store vault settings:'
         ), 'expected error exit and known error message'
 
     def test_225e_store_config_fail_manual_custom_error(
@@ -1427,6 +1431,89 @@ contents go here
             error='Attempted to unset and set --length at the same time.'
         ), 'expected error exit and known error message'
 
+    def test_225g_store_config_fail_manual_ssh_agent_no_keys_loaded(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
+    ) -> None:
+        del running_ssh_agent
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+        ):
+            def func(
+                *_args: Any,
+                **_kwargs: Any,
+            ) -> list[_types.KeyCommentPair]:
+                return []
+
+            monkeypatch.setattr(ssh_agent.SSHAgentClient, 'list_keys', func)
+            _result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--key', '--config'],
+                catch_exceptions=False,
+            )
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='no keys suitable'
+        ), 'expected error exit and known error message'
+
+    def test_225h_store_config_fail_manual_ssh_agent_runtime_error(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
+    ) -> None:
+        del running_ssh_agent
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+        ):
+            def raiser(*_args: Any, **_kwargs: Any) -> None:
+                raise ssh_agent.TrailingDataError()
+
+            monkeypatch.setattr(ssh_agent.SSHAgentClient, 'list_keys', raiser)
+            _result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--key', '--config'],
+                catch_exceptions=False,
+            )
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='violates the communications protocol.'
+        ), 'expected error exit and known error message'
+
+    def test_225i_store_config_fail_manual_ssh_agent_refuses(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
+    ) -> None:
+        del running_ssh_agent
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+        ):
+            def func(*_args: Any, **_kwargs: Any) -> NoReturn:
+                raise ssh_agent.SSHAgentFailedError(
+                    _types.SSH_AGENT.FAILURE, b''
+                )
+
+            monkeypatch.setattr(ssh_agent.SSHAgentClient, 'list_keys', func)
+            _result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--key', '--config'],
+                catch_exceptions=False,
+            )
+        result = tests.ReadableResult.parse(_result)
+        assert result.error_exit(
+            error='refused to'
+        ), 'expected error exit and known error message'
+
     def test_226_no_arguments(self, monkeypatch: pytest.MonkeyPatch) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -1438,7 +1525,7 @@ contents go here
             )
         result = tests.ReadableResult.parse(_result)
         assert result.error_exit(
-            error='SERVICE is required'
+            error='Deriving a passphrase requires a SERVICE'
         ), 'expected error exit and known error message'
 
     def test_226a_no_passphrase_or_key(
@@ -1456,7 +1543,7 @@ contents go here
             )
         result = tests.ReadableResult.parse(_result)
         assert result.error_exit(
-            error='No passphrase or key given'
+            error='No passphrase or key was given'
         ), 'expected error exit and known error message'
 
     def test_230_config_directory_nonexistant(
@@ -1529,7 +1616,7 @@ contents go here
             )
             result = tests.ReadableResult.parse(_result)
             assert result.error_exit(
-                error='Cannot store config'
+                error='Cannot store vault settings:'
             ), 'expected error exit and known error message'
 
     def test_230b_store_config_custom_error(
@@ -1568,7 +1655,7 @@ contents go here
                     'global': {'phrase': 'Du\u0308sseldorf'},
                     'services': {},
                 }),
-                'the $.global passphrase is not NFC-normalized',
+                'The $.global passphrase is not NFC-normalized',
                 id='global-NFC',
             ),
             pytest.param(
@@ -1581,7 +1668,7 @@ contents go here
                     }
                 }),
                 (
-                    'the $.services["weird entry name"] passphrase '
+                    'The $.services["weird entry name"] passphrase '
                     'is not NFC-normalized'
                 ),
                 id='service-weird-name-NFC',
@@ -1591,7 +1678,7 @@ contents go here
                 ['--config', '-p', '--', DUMMY_SERVICE],
                 'Du\u0308sseldorf',
                 (
-                    f'the $.services.{DUMMY_SERVICE} passphrase '
+                    f'The $.services.{DUMMY_SERVICE} passphrase '
                     f'is not NFC-normalized'
                 ),
                 id='config-NFC',
@@ -1600,7 +1687,7 @@ contents go here
                 '',
                 ['-p', '--', DUMMY_SERVICE],
                 'Du\u0308sseldorf',
-                'the interactive input passphrase is not NFC-normalized',
+                'The interactive input passphrase is not NFC-normalized',
                 id='direct-input-NFC',
             ),
             pytest.param(
@@ -1615,7 +1702,7 @@ contents go here
                     },
                     'services': {},
                 }),
-                'the $.global passphrase is not NFD-normalized',
+                'The $.global passphrase is not NFD-normalized',
                 id='global-NFD',
             ),
             pytest.param(
@@ -1631,7 +1718,7 @@ contents go here
                     },
                 }),
                 (
-                    'the $.services["weird entry name"] passphrase '
+                    'The $.services["weird entry name"] passphrase '
                     'is not NFD-normalized'
                 ),
                 id='service-weird-name-NFD',
@@ -1650,7 +1737,7 @@ contents go here
                     },
                 }),
                 (
-                    'the $.services["weird entry name 2"] passphrase '
+                    'The $.services["weird entry name 2"] passphrase '
                     'is not NFKD-normalized'
                 ),
                 id='service-weird-name-2-NFKD',
@@ -1753,7 +1840,7 @@ contents go here
             )
         result = tests.ReadableResult.parse(_result)
         assert result.error_exit(
-            error='The configuration file is invalid.'
+            error='The user configuration file is invalid.'
         ), 'expected error exit and known error message'
         assert result.error_exit(
             error=error_message
@@ -1797,7 +1884,7 @@ contents go here
             )
             result = tests.ReadableResult.parse(_result)
             assert result.error_exit(
-                error='The configuration file is invalid.'
+                error='The user configuration file is invalid.'
             ), 'expected error exit and known error message'
             assert result.error_exit(
                 error=(
@@ -2464,18 +2551,23 @@ Boo.
         skip_if_no_af_unix_support: None,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
     ) -> None:
-        class CustomError(RuntimeError):
-            pass
+        class ErrCallback(BaseException):
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                super().__init__(*args[:1])
+                self.args = args
+                self.kwargs = kwargs
 
         def err(*args: Any, **_kwargs: Any) -> NoReturn:
-            args = args or ('custom error message',)
-            raise CustomError(*args)
+            raise ErrCallback(*args, **_kwargs)
 
         def fail(*_args: Any, **_kwargs: Any) -> Any:
             raise ssh_agent.SSHAgentFailedError(
                 _types.SSH_AGENT.FAILURE.value,
                 b'',
             )
+
+        def fail_runtime(*_args: Any, **_kwargs: Any) -> Any:
+            raise ssh_agent.TrailingDataError()
 
         del skip_if_no_af_unix_support
         monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', fail)
@@ -2487,42 +2579,52 @@ Boo.
                 'list_keys',
                 lambda *_a, **_kw: [],
             )
-            with pytest.raises(CustomError, match='not loaded into the agent'):
+            with pytest.raises(ErrCallback, match='not loaded into the agent'):
                 cli._key_to_phrase(loaded_key, error_callback=err)
         with monkeypatch.context() as mp:
             mp.setattr(ssh_agent.SSHAgentClient, 'list_keys', fail)
             with pytest.raises(
-                CustomError, match='SSH agent failed to complete'
+                ErrCallback, match='SSH agent failed to or refused to'
             ):
                 cli._key_to_phrase(loaded_key, error_callback=err)
         with monkeypatch.context() as mp:
-            mp.setattr(ssh_agent.SSHAgentClient, 'list_keys', err)
+            mp.setattr(ssh_agent.SSHAgentClient, 'list_keys', fail_runtime)
             with pytest.raises(
-                CustomError, match='SSH agent failed to complete'
+                ErrCallback, match='SSH agent failed to or refused to'
             ) as excinfo:
                 cli._key_to_phrase(loaded_key, error_callback=err)
-            assert excinfo.value.args
+            assert excinfo.value.kwargs
             assert isinstance(
-                excinfo.value.args[0], ssh_agent.SSHAgentFailedError
+                excinfo.value.kwargs['exc_info'],
+                ssh_agent.SSHAgentFailedError,
             )
-            assert excinfo.value.args[0].__context__ is not None
-            assert isinstance(excinfo.value.args[0].__context__, CustomError)
+            assert excinfo.value.kwargs['exc_info'].__context__ is not None
+            assert isinstance(
+                excinfo.value.kwargs['exc_info'].__context__,
+                ssh_agent.TrailingDataError,
+            )
         with monkeypatch.context() as mp:
             mp.delenv('SSH_AUTH_SOCK', raising=True)
             with pytest.raises(
-                CustomError, match='Cannot find running SSH agent'
+                ErrCallback, match='Cannot find any running SSH agent'
             ):
                 cli._key_to_phrase(loaded_key, error_callback=err)
         with monkeypatch.context() as mp:
             mp.setenv('SSH_AUTH_SOCK', os.environ['SSH_AUTH_SOCK'] + '~')
             with pytest.raises(
-                CustomError, match='Cannot connect to SSH agent'
+                ErrCallback, match='Cannot connect to the SSH agent'
             ):
                 cli._key_to_phrase(loaded_key, error_callback=err)
         with monkeypatch.context() as mp:
             mp.delattr(socket, 'AF_UNIX', raising=True)
             with pytest.raises(
-                CustomError, match='does not support UNIX domain sockets'
+                ErrCallback, match='does not support UNIX domain sockets'
+            ):
+                cli._key_to_phrase(loaded_key, error_callback=err)
+        with monkeypatch.context() as mp:
+            mp.setattr(ssh_agent.SSHAgentClient, 'sign', fail_runtime)
+            with pytest.raises(
+                ErrCallback, match='violates the communications protocol'
             ):
                 cli._key_to_phrase(loaded_key, error_callback=err)
 
@@ -2575,7 +2677,7 @@ class TestCLITransition:
             )
             result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(
-            empty_stderr=True, output='Read the vault-native configuration'
+            empty_stderr=True, output='Export a vault-native configuration'
         ), 'expected clean exit, and known help text'
 
     def test_103_help_output_vault(
@@ -2593,10 +2695,10 @@ class TestCLITransition:
             )
             result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(
-            empty_stderr=True, output='Password generation:\n'
+            empty_stderr=True, output='Passphrase generation:\n'
         ), 'expected clean exit, and option groups in help text'
         assert result.clean_exit(
-            empty_stderr=True, output='Use NUMBER=0, e.g. "--symbol 0"'
+            empty_stderr=True, output='Use $VISUAL or $EDITOR to configure'
         ), 'expected clean exit, and option group epilog in help text'
 
     @pytest.mark.parametrize(
@@ -2749,9 +2851,9 @@ class TestCLITransition:
         result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert tests.deprecation_warning_emitted(
-            'A subcommand will be required in v1.0', caplog.record_tuples
+            'A subcommand will be required here in v1.0', caplog.record_tuples
         )
-        assert tests.warning_emitted(
+        assert tests.deprecation_warning_emitted(
             'Defaulting to subcommand "vault"', caplog.record_tuples
         )
         assert json.loads(result.output) == tests.VAULT_V03_CONFIG_DATA
@@ -2773,9 +2875,9 @@ class TestCLITransition:
             )
         result = tests.ReadableResult.parse(_result)
         assert tests.deprecation_warning_emitted(
-            'A subcommand will be required in v1.0', caplog.record_tuples
+            'A subcommand will be required here in v1.0', caplog.record_tuples
         )
-        assert tests.warning_emitted(
+        assert tests.deprecation_warning_emitted(
             'Defaulting to subcommand "vault"', caplog.record_tuples
         )
         assert result.error_exit(
@@ -2808,9 +2910,9 @@ class TestCLITransition:
             result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert tests.deprecation_warning_emitted(
-            'A subcommand will be required in v1.0', caplog.record_tuples
+            'A subcommand will be required here in v1.0', caplog.record_tuples
         )
-        assert tests.warning_emitted(
+        assert tests.deprecation_warning_emitted(
             'Defaulting to subcommand "vault"', caplog.record_tuples
         )
         for c in charset:
@@ -2836,13 +2938,13 @@ class TestCLITransition:
             )
             result = tests.ReadableResult.parse(_result)
         assert tests.deprecation_warning_emitted(
-            'A subcommand will be required in v1.0', caplog.record_tuples
+            'A subcommand will be required here in v1.0', caplog.record_tuples
         )
-        assert tests.warning_emitted(
+        assert tests.deprecation_warning_emitted(
             'Defaulting to subcommand "vault"', caplog.record_tuples
         )
         assert result.error_exit(
-            error='SERVICE is required'
+            error='Deriving a passphrase requires a SERVICE.'
         ), 'expected error exit and known error type'
 
     def test_300_export_using_old_config_file(
