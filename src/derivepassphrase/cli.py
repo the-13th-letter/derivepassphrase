@@ -423,6 +423,10 @@ class OptionGroupOption(click.Option):
             self.help = help
 
 
+class StandardOption(OptionGroupOption):
+    pass
+
+
 class CommandWithHelpGroups(click.Command):
     """A [`click.Command`][] with support for some help text customizations.
 
@@ -497,6 +501,83 @@ class CommandWithHelpGroups(click.Command):
         for param in self.get_params(ctx):
             rv.extend(str(x) for x in param.get_usage_pieces(ctx))
         return rv
+
+    def get_help_option(
+        self,
+        ctx: click.Context,
+    ) -> click.Option | None:
+        """Return a standard help option object.
+
+        Based on code from click 8.1.  Subject to the following license
+        (3-clause BSD license):
+
+            Copyright 2024 Pallets
+
+            Redistribution and use in source and binary forms, with or
+            without modification, are permitted provided that the
+            following conditions are met:
+
+             1. Redistributions of source code must retain the above
+                copyright notice, this list of conditions and the
+                following disclaimer.
+
+             2. Redistributions in binary form must reproduce the above
+                copyright notice, this list of conditions and the
+                following disclaimer in the documentation and/or other
+                materials provided with the distribution.
+
+             3. Neither the name of the copyright holder nor the names
+                of its contributors may be used to endorse or promote
+                products derived from this software without specific
+                prior written permission.
+
+            THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+            CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
+            INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+            MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+            DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+            CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+            SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+            NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+            LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+            HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+            CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+            OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+            SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+        Modifications are marked with respective comments.  They too are
+        released under the same license above.  The original code did
+        not contain any "noqa" or "pragma" comments.
+
+        Args:
+            ctx:
+                The click context.
+
+        """
+        help_options = self.get_help_option_names(ctx)
+
+        if not help_options or not self.add_help_option:  # pragma: no cover
+            return None
+
+        def show_help(
+            ctx: click.Context,
+            param: click.Parameter,  # noqa: ARG001
+            value: str,
+        ) -> None:
+            if value and not ctx.resilient_parsing:
+                click.echo(ctx.get_help(), color=ctx.color)
+                ctx.exit()
+
+        # Modified from click 8.1: We use StandardOption and a non-str
+        # object as the help string.
+        return StandardOption(
+            help_options,
+            is_flag=True,
+            is_eager=True,
+            expose_value=False,
+            callback=show_help,
+            help=_msg.TranslatedString(_msg.Label.HELP_OPTION_HELP_TEXT),
+        )
 
     def get_short_help_str(
         self,
@@ -904,6 +985,37 @@ class CommandWithHelpGroups(click.Command):
                 formatter.write_text(epilog)
 
 
+def version_option_callback(
+    ctx: click.Context,
+    param: click.Parameter,
+    value: bool,  # noqa: FBT001
+) -> None:
+    del param
+    if value and not ctx.resilient_parsing:
+        click.echo(
+            str(
+                _msg.TranslatedString(
+                    _msg.Label.VERSION_INFO_TEXT,
+                    PROG_NAME=PROG_NAME,
+                    __version__=__version__,
+                )
+            ),
+        )
+        ctx.exit()
+
+
+def version_option(f: Callable[P, R]) -> Callable[P, R]:
+    return click.option(
+        '--version',
+        is_flag=True,
+        is_eager=True,
+        expose_value=False,
+        callback=version_option_callback,
+        cls=StandardOption,
+        help=_msg.TranslatedString(_msg.Label.VERSION_OPTION_HELP_TEXT),
+    )(f)
+
+
 class LoggingOption(OptionGroupOption):
     """Logging options for the CLI."""
 
@@ -1110,7 +1222,7 @@ class _TopLevelCLIEntryPoint(_DefaultToVaultGroup):
         _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_03),
     ),
 )
-@click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
+@version_option
 @standard_logging_options
 @click.pass_context
 def derivepassphrase(ctx: click.Context, /) -> None:
@@ -1159,7 +1271,7 @@ def derivepassphrase(ctx: click.Context, /) -> None:
         _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_EXPORT_03),
     ),
 )
-@click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
+@version_option
 @standard_logging_options
 @click.pass_context
 def derivepassphrase_export(ctx: click.Context, /) -> None:
@@ -1231,10 +1343,6 @@ def _load_data(
         assert_never(fmt)
 
 
-class StandardOption(OptionGroupOption):
-    pass
-
-
 @derivepassphrase_export.command(
     'vault',
     context_settings={'help_option_names': ['-h', '--help']},
@@ -1255,7 +1363,6 @@ class StandardOption(OptionGroupOption):
         ),
     ),
 )
-@standard_logging_options
 @click.option(
     '-f',
     '--format',
@@ -1288,6 +1395,8 @@ class StandardOption(OptionGroupOption):
     ),
     cls=StandardOption,
 )
+@version_option
+@standard_logging_options
 @click.argument(
     'path',
     metavar=_msg.TranslatedString(_msg.Label.EXPORT_VAULT_METAVAR_PATH),
@@ -2362,7 +2471,7 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
     ),
     cls=CompatibilityOption,
 )
-@click.version_option(version=dpp.__version__, prog_name=PROG_NAME)
+@version_option
 @standard_logging_options
 @click.argument(
     'service',
@@ -2508,6 +2617,8 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 group = LoggingOption
             elif isinstance(param, CompatibilityOption):
                 group = CompatibilityOption
+            elif isinstance(param, StandardOption):
+                group = StandardOption
             elif isinstance(param, OptionGroupOption):
                 raise AssertionError(  # noqa: DOC501,TRY003,TRY004
                     f'Unknown option group for {param!r}'  # noqa: EM102

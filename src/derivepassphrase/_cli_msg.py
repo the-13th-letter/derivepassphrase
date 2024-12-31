@@ -401,6 +401,11 @@ class Label(enum.Enum):
         """,
         context='help text (option one-line description)',
     )
+    HELP_OPTION_HELP_TEXT = _prepare_translatable(
+        'show this help text, then exit',
+        comments='',
+        context='help text (option one-line description)',
+    )
     QUIET_OPTION_HELP_TEXT = _prepare_translatable(
         'suppress even warnings, emit only errors',
         comments='',
@@ -408,6 +413,11 @@ class Label(enum.Enum):
     )
     VERBOSE_OPTION_HELP_TEXT = _prepare_translatable(
         'emit extra/progress information to standard error',
+        comments='',
+        context='help text (option one-line description)',
+    )
+    VERSION_OPTION_HELP_TEXT = _prepare_translatable(
+        'show applicable version information, then exit',
         comments='',
         context='help text (option one-line description)',
     )
@@ -674,6 +684,14 @@ class Label(enum.Enum):
         'Storage management',
         comments='',
         context='help text, option group name',
+    )
+    VERSION_INFO_TEXT = _prepare_translatable(
+        msg=r"""
+        {PROG_NAME!s} {__version__}
+        """,  # noqa: RUF027
+        comments='',
+        context='help text, version info text',
+        flags='python-brace-format',
     )
     CONFIRM_THIS_CHOICE_PROMPT_TEXT = _prepare_translatable(
         comments=r"""
