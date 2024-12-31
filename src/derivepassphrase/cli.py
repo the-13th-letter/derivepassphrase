@@ -815,7 +815,7 @@ class CommandWithHelpGroups(click.Command):
                 if isinstance(param, OptionGroupOption):
                     group_name = self._text(param.option_group_name)
                     epilogs.setdefault(group_name, self._text(param.epilog))
-                else:
+                else:  # pragma: no cover
                     group_name = default_group_name
                 help_records.setdefault(group_name, []).append(rec)
         if default_group_name in help_records:  # pragma: no branch
@@ -989,7 +989,7 @@ def version_option_callback(
     ctx: click.Context,
     param: click.Parameter,
     value: bool,  # noqa: FBT001
-) -> None:
+) -> None:  # pragma: no cover
     del param
     if value and not ctx.resilient_parsing:
         click.echo(
@@ -2617,13 +2617,13 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 group = LoggingOption
             elif isinstance(param, CompatibilityOption):
                 group = CompatibilityOption
-            elif isinstance(param, StandardOption):
+            elif isinstance(param, StandardOption):  # pragma: no branch
                 group = StandardOption
-            elif isinstance(param, OptionGroupOption):
+            elif isinstance(param, OptionGroupOption):  # pragma: no cover
                 raise AssertionError(  # noqa: DOC501,TRY003,TRY004
                     f'Unknown option group for {param!r}'  # noqa: EM102
                 )
-            else:
+            else:  # pragma: no cover
                 group = click.Option
             options_in_group.setdefault(group, []).append(param)
         params_by_str[param.human_readable_name] = param

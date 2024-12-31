@@ -36,7 +36,7 @@ def load_translations(
     localedirs: list[str] | None = None,
     languages: Sequence[str] | None = None,
     class_: type[gettext.NullTranslations] | None = None,
-) -> gettext.NullTranslations:
+) -> gettext.NullTranslations:  # pragma: no cover
     """Load a translation catalog for derivepassphrase.
 
     Runs [`gettext.translation`][] under the hood for multiple locale
@@ -1137,7 +1137,7 @@ class ErrMsgTemplate(enum.Enum):
     )
 
 
-def write_pot_file(fileobj: TextIO) -> None:
+def _write_pot_file(fileobj: TextIO) -> None:  # pragma: no cover
     r"""Write a .po template to the given file object.
 
     Assumes the file object is opened for writing and accepts string
@@ -1209,7 +1209,7 @@ def write_pot_file(fileobj: TextIO) -> None:
 
 def _format_po_entry(
     enum_value: Label | InfoMsgTemplate | WarnMsgTemplate | ErrMsgTemplate,
-) -> tuple[str, ...]:
+) -> tuple[str, ...]:  # pragma: no cover
     ret: list[str] = ['\n']
     ts = enum_value.value
     if ts.translator_comments:
@@ -1229,7 +1229,7 @@ def _format_po_entry(
     return tuple(ret)
 
 
-def _cstr(s: str) -> str:
+def _cstr(s: str) -> str:  # pragma: no cover
     def escape(string: str) -> str:
         return string.translate({
             0: r'\000',
@@ -1260,4 +1260,4 @@ def _cstr(s: str) -> str:
 
 
 if __name__ == '__main__':
-    write_pot_file(sys.stdout)
+    _write_pot_file(sys.stdout)
