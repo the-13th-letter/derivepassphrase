@@ -1343,6 +1343,23 @@ def _load_data(
         assert_never(fmt)
 
 
+def _shell_complete_vault_path(  # pragma: no cover
+    ctx: click.Context,
+    param: click.Parameter,
+    incomplete: str,
+) -> list[str | click.shell_completion.CompletionItem]:
+    del ctx, param
+    if incomplete and 'VAULT_PATH'.startswith(incomplete):
+        ret: set[str | click.shell_completion.CompletionItem] = {'VAULT_PATH'}
+        for f in os.listdir():
+            if f.startswith(incomplete):
+                ret.add(f + os.path.sep if os.path.isdir(f) else f)
+        return sorted(ret)
+    return [
+        click.shell_completion.CompletionItem('', type='file'),
+    ]
+
+
 @derivepassphrase_export.command(
     'vault',
     context_settings={'help_option_names': ['-h', '--help']},
@@ -1401,6 +1418,7 @@ def _load_data(
     'path',
     metavar=_msg.TranslatedString(_msg.Label.EXPORT_VAULT_METAVAR_PATH),
     required=True,
+    shell_complete=_shell_complete_vault_path,
 )
 @click.pass_context
 def derivepassphrase_export_vault(
@@ -2179,6 +2197,36 @@ def _validate_length(
     return int_value
 
 
+def _shell_complete_path(  # pragma: no cover
+    ctx: click.Context,
+    parameter: click.Parameter,
+    incomplete: str,
+) -> list[str | click.shell_completion.CompletionItem]:
+    del ctx, parameter, incomplete
+    return [click.shell_completion.CompletionItem('', type='file')]
+
+
+def _shell_complete_service(  # pragma: no cover
+    ctx: click.Context,
+    parameter: click.Parameter,
+    incomplete: str,
+) -> list[str | click.shell_completion.CompletionItem]:
+    del ctx, parameter
+    try:
+        config = _load_config()
+        return [sv for sv in config['services'] if sv.startswith(incomplete)]
+    except FileNotFoundError:
+        try:
+            config, _exc = _migrate_and_load_old_config()
+            return [
+                sv for sv in config['services'] if sv.startswith(incomplete)
+            ]
+        except FileNotFoundError:
+            return []
+    except Exception:  # noqa: BLE001
+        return []
+
+
 DEFAULT_NOTES_TEMPLATE = """\
 # Enter notes below the line with the cut mark (ASCII scissors and
 # dashes).  Lines above the cut mark (such as this one) will be ignored.
@@ -2416,6 +2464,7 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
         ),
     ),
     cls=StorageManagementOption,
+    shell_complete=_shell_complete_path,
 )
 @click.option(
     '-i',
@@ -2431,6 +2480,7 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
         ),
     ),
     cls=StorageManagementOption,
+    shell_complete=_shell_complete_path,
 )
 @click.option(
     '--overwrite-existing/--merge-existing',
@@ -2478,6 +2528,7 @@ DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
     metavar=_msg.TranslatedString(_msg.Label.VAULT_METAVAR_SERVICE),
     required=False,
     default=None,
+    shell_complete=_shell_complete_service,
 )
 @click.pass_context
 def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
