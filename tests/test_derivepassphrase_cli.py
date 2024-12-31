@@ -1294,7 +1294,7 @@ contents go here
         ):
             custom_error = 'custom error message'
 
-            def raiser() -> None:
+            def raiser(*_args: Any, **_kwargs: Any) -> None:
                 raise RuntimeError(custom_error)
 
             monkeypatch.setattr(cli, '_select_ssh_key', raiser)
