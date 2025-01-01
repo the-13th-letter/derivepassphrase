@@ -280,15 +280,106 @@ def vault_config_exporter_shell_interpreter(  # noqa: C901
         )
 
 
-class TestCLI:
-    def test_200_help_output(self, monkeypatch: pytest.MonkeyPatch) -> None:
+class TestAllCLI:
+    @pytest.mark.parametrize(
+        ['command', 'non_eager_arguments'],
+        [
+            ([], []),
+            ([], ['export']),
+            (['export'], []),
+            (['export'], ['vault']),
+            (['export', 'vault'], []),
+            (['export', 'vault'], ['--format', 'this-format-doesnt-exist']),
+            (['vault'], []),
+            (['vault'], ['--export', './']),
+        ]
+    )
+    @pytest.mark.parametrize('arguments', [['--help'], ['--version']])
+    def test_200_eager_options(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        command: list[str],
+        arguments: list[str],
+        non_eager_arguments: list[str],
+    ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
             runner=runner,
         ):
             _result = runner.invoke(
-                cli.derivepassphrase_vault, ['--help'], catch_exceptions=False
+                cli.derivepassphrase,
+                [*command, *arguments, *non_eager_arguments],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+
+    @pytest.mark.parametrize('no_color', [False, True])
+    @pytest.mark.parametrize('force_color', [False, True])
+    @pytest.mark.parametrize('isatty', [False, True])
+    @pytest.mark.parametrize(
+        ['command_line', 'input'],
+        [
+            (
+                ['vault', '--import', '-'],
+                '{"services": {"": {"length": 20}}}',
+            ),
+        ]
+    )
+    def test_201_no_color_force_color(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        no_color: bool,
+        force_color: bool,
+        isatty: bool,
+        command_line: list[str],
+        input: str | None,
+    ) -> None:
+        # Force color on if force_color.  Otherwise force color off if
+        # no_color.  Otherwise set color if and only if we have a TTY.
+        color = force_color or not no_color if isatty else force_color
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+        ):
+            if no_color:
+                monkeypatch.setenv('NO_COLOR', 'yes')
+            if force_color:
+                monkeypatch.setenv('FORCE_COLOR', 'yes')
+            _result = runner.invoke(
+                cli.derivepassphrase,
+                command_line,
+                input=input,
+                catch_exceptions=False,
+                color=isatty,
+            )
+            result = tests.ReadableResult.parse(_result)
+        assert (
+            not color
+            or '\x1b[0m' in result.stderr
+            or '\x1b[m' in result.stderr
+        ), 'Expected color, but found no ANSI reset sequence'
+        assert (
+            color or '\x1b[' not in result.stderr
+        ), 'Expected no color, but found an ANSI control sequence'
+
+
+class TestCLI:
+    def test_200_help_output(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+        ):
+            _result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--help'],
+                catch_exceptions=False,
             )
             result = tests.ReadableResult.parse(_result)
         assert result.clean_exit(
@@ -297,6 +388,28 @@ class TestCLI:
         assert result.clean_exit(
             empty_stderr=True, output='Use $VISUAL or $EDITOR to configure'
         ), 'expected clean exit, and option group epilog in help text'
+
+    def test_200a_version_output(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+        ):
+            _result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--version'],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(_result)
+        assert result.clean_exit(
+            empty_stderr=True, output=cli.PROG_NAME
+        ), 'expected clean exit, and program name in version text'
+        assert result.clean_exit(
+            empty_stderr=True, output=cli.__version__
+        ), 'expected clean exit, and version in help text'
 
     @pytest.mark.parametrize(
         'charset_name', ['lower', 'upper', 'number', 'space', 'dash', 'symbol']

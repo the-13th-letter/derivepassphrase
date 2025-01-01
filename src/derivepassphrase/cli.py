@@ -993,7 +993,7 @@ def version_option_callback(
     ctx: click.Context,
     param: click.Parameter,
     value: bool,  # noqa: FBT001
-) -> None:  # pragma: no cover
+) -> None:
     del param
     if value and not ctx.resilient_parsing:
         click.echo(
@@ -1027,9 +1027,9 @@ def color_forcing_callback(
 ) -> None:
     """Force the `click` context to honor `NO_COLOR` and `FORCE_COLOR`."""
     del param, value
-    if os.environ.get('NO_COLOR'):  # pragma: no cover
+    if os.environ.get('NO_COLOR'):
         ctx.color = False
-    if os.environ.get('FORCE_COLOR'):  # pragma: no cover
+    if os.environ.get('FORCE_COLOR'):
         ctx.color = True
 
 
@@ -2730,13 +2730,13 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 group = LoggingOption
             elif isinstance(param, CompatibilityOption):
                 group = CompatibilityOption
-            elif isinstance(param, StandardOption):  # pragma: no branch
+            elif isinstance(param, StandardOption):
                 group = StandardOption
             elif isinstance(param, OptionGroupOption):  # pragma: no cover
                 raise AssertionError(  # noqa: DOC501,TRY003,TRY004
                     f'Unknown option group for {param!r}'  # noqa: EM102
                 )
-            else:  # pragma: no cover
+            else:
                 group = click.Option
             options_in_group.setdefault(group, []).append(param)
         params_by_str[param.human_readable_name] = param
