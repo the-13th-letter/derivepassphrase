@@ -110,7 +110,9 @@ nav:
       - Submodule vault: reference/derivepassphrase.vault.md
     - Technical prerequisites:
       - 'Using derivepassphrase vault with an SSH key': reference/prerequisites-ssh-key.md
-  #- Design & Background: explanation.md
+  - Design & Background:
+    - explanation/index.md
+    - '"altered versions" license requirement': explanation/faq-altered-versions.md
   - Changelog: changelog.md
 exclude_docs: |
   changelog.d
