@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2024 Marco Ricci <software@the13thletter.info>
+# SPDX-FileCopyrightText: 2025 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-Licence-Identifier: MIT
 

@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: 2024 Marco Ricci <software@the13thletter.info>
+# SPDX-FileCopyrightText: 2025 Marco Ricci <software@the13thletter.info>
 #
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: Zlib
 
 """Work-alike of vault(1) – a deterministic, stateless password manager"""  # noqa: D415,RUF002
 
