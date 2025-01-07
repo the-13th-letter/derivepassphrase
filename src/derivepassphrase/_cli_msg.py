@@ -222,10 +222,22 @@ class TranslatedString:
 
 class Label(enum.Enum):
     DEPRECATION_WARNING_LABEL = _prepare_translatable(
-        'Deprecation warning', comments='', context='diagnostic label'
+        comments=r"""
+        TRANSLATORS: This is a short label that will be prepended to
+        a warning message, e.g., "Deprecation warning: A subcommand will
+        be required in v1.0."
+        """,
+        msg='Deprecation warning',
+        context='diagnostic label',
     )
     WARNING_LABEL = _prepare_translatable(
-        'Warning', comments='', context='diagnostic label'
+        comments=r"""
+        TRANSLATORS: This is a short label that will be prepended to
+        a warning message, e.g., "Warning: An empty service name is not
+        supported by vault(1)."
+        """,
+        msg='Warning',
+        context='diagnostic label',
     )
     CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_GLOBAL = (
         _prepare_translatable(
@@ -254,10 +266,15 @@ class Label(enum.Enum):
         )
     )
     DERIVEPASSPHRASE_01 = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This is the first paragraph of the command help
+        text, but it also appears (in truncated form, if necessary) as
+        one-line help text for this command.  The translation should
+        thus be as meaningful as possible even if truncated.
+        """,
         msg="""
         Derive a strong passphrase, deterministically, from a master secret.
         """,
-        comments='',
         context='help text (long form)',
     )
     DERIVEPASSPHRASE_02 = _prepare_translatable(
@@ -289,10 +306,15 @@ class Label(enum.Enum):
         context='help text (long form)',
     )
     DERIVEPASSPHRASE_EXPORT_01 = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This is the first paragraph of the command help
+        text, but it also appears (in truncated form, if necessary) as
+        one-line help text for this command.  The translation should
+        thus be as meaningful as possible even if truncated.
+        """,
         msg="""
         Export a foreign configuration to standard output.
         """,
-        comments='',
         context='help text (long form)',
     )
     DERIVEPASSPHRASE_EXPORT_02 = _prepare_translatable(
@@ -306,10 +328,15 @@ class Label(enum.Enum):
     )
     DERIVEPASSPHRASE_EXPORT_03 = DERIVEPASSPHRASE_03
     DERIVEPASSPHRASE_EXPORT_VAULT_01 = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This is the first paragraph of the command help
+        text, but it also appears (in truncated form, if necessary) as
+        one-line help text for this command.  The translation should
+        thus be as meaningful as possible even if truncated.
+        """,
         msg="""
         Export a vault-native configuration to standard output.
         """,
-        comments='',
         context='help text (long form)',
     )
     DERIVEPASSPHRASE_EXPORT_VAULT_02 = _prepare_translatable(
@@ -334,10 +361,15 @@ class Label(enum.Enum):
         flags='python-brace-format',
     )
     DERIVEPASSPHRASE_VAULT_01 = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This is the first paragraph of the command help
+        text, but it also appears (in truncated form, if necessary) as
+        one-line help text for this command.  The translation should
+        thus be as meaningful as possible even if truncated.
+        """,
         msg="""
         Derive a passphrase using the vault derivation scheme.
         """,
-        comments='',
         context='help text (long form)',
     )
     DERIVEPASSPHRASE_VAULT_02 = _prepare_translatable(
@@ -370,8 +402,12 @@ class Label(enum.Enum):
         context='help text (long form)',
     )
     DEPRECATED_COMMAND_LABEL = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: We use this format string to indicate, at the
+        beginning of a command's help text, that this command is
+        deprecated.
+        """,
         msg='(Deprecated) {text}',
-        comments='',
         context='help text (long form, label)',
         flags='python-brace-format',
     )
@@ -1172,18 +1208,27 @@ class ErrMsgTemplate(enum.Enum):
         context='error message',
     )
     USER_ABORTED_EDIT = _prepare_translatable(
-        'Not saving any new notes: the user aborted the request.',
-        comments='',
+        comments=r"""
+        TRANSLATORS: The user requested to edit the notes for a service,
+        but aborted the request mid-editing.
+        """,
+        msg='Not saving any new notes: the user aborted the request.',
         context='error message',
     )
     USER_ABORTED_PASSPHRASE = _prepare_translatable(
-        'No passphrase was given; the user aborted the request.',
-        comments='',
+        comments=r"""
+        TRANSLATORS: The user was prompted for a master passphrase,
+        but aborted the request.
+        """,
+        msg='No passphrase was given; the user aborted the request.',
         context='error message',
     )
     USER_ABORTED_SSH_KEY_SELECTION = _prepare_translatable(
-        'No SSH key was selected; the user aborted the request.',
-        comments='',
+        comments=r"""
+        TRANSLATORS: The user was prompted to select a master SSH key,
+        but aborted the request.
+        """,
+        msg='No SSH key was selected; the user aborted the request.',
         context='error message',
     )
 
