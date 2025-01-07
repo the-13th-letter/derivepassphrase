@@ -114,16 +114,16 @@ class Test002CLI:
             vault_config=tests.VAULT_V03_CONFIG,
             vault_key=tests.VAULT_MASTER_KEY,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ['-f', 'INVALID', 'VAULT_PATH'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         for snippet in ('Invalid value for', '-f', '--format', 'INVALID'):
-            assert result.error_exit(
-                error=snippet
-            ), 'expected error exit and known error message'
+            assert result.error_exit(error=snippet), (
+                'expected error exit and known error message'
+            )
 
     @tests.skip_if_cryptography_support
     @pytest.mark.parametrize(
@@ -164,12 +164,12 @@ class Test002CLI:
             vault_config=config,
             vault_key=key,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ['-f', format, 'VAULT_PATH'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error=tests.CANNOT_LOAD_CRYPTOGRAPHY,
             record_tuples=caplog.record_tuples,

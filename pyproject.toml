@@ -123,7 +123,7 @@ detached = false
 [tool.hatch.envs.hatch-static-analysis]
 config-path = "/dev/null"
 dependencies = [
-  "ruff ~= 0.6.0",
+  "ruff ~= 0.8.0",
 ]
 
 [tool.hatch.envs.hatch-test]
@@ -245,7 +245,7 @@ select = [
     'ANN', 'ASYNC', 'S', 'BLE', 'FBT', 'B', 'A', 'COM',
     'CPY', 'C4', 'DTZ', 'T10', 'DJ', 'EM', 'EXE', 'FA',
     'ISC', 'ICN', 'LOG', 'G', 'INP', 'PIE', 'T20', 'PYI',
-    'PT', 'Q', 'RET', 'SLF', 'SLOT', 'SIM', 'TID', 'TCH',
+    'PT', 'Q', 'RET', 'SLF', 'SLOT', 'SIM', 'TID', 'TC',
     'INT', 'ARG',
     # We currently do not use pathlib. Disable 'PTH'.
     'TD',

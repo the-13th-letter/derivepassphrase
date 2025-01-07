@@ -288,8 +288,7 @@ def validate_vault_config(  # noqa: C901,PLR0912
     def err_unknown_setting(key: str, path: Sequence[str], /) -> str:
         json_path_str = json_path(path)
         return (
-            f'vault config entry {json_path_str} uses '
-            f'unknown setting {key!r}'
+            f'vault config entry {json_path_str} uses unknown setting {key!r}'
         )
 
     def err_bad_number(
@@ -370,7 +369,7 @@ def is_vault_config(obj: Any) -> TypeIs[VaultConfig]:  # noqa: ANN401
     Returns:
         True if this is a vault config, false otherwise.
 
-    """
+    """  # noqa: DOC501
     try:
         validate_vault_config(
             obj,
@@ -379,7 +378,7 @@ def is_vault_config(obj: Any) -> TypeIs[VaultConfig]:  # noqa: ANN401
         )
     except (TypeError, ValueError) as exc:
         if 'vault config ' not in str(exc):  # pragma: no cover
-            raise  # noqa: DOC501
+            raise
         return False
     return True
 

@@ -310,12 +310,12 @@ class TestAllCLI:
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase,
                 [*command, *arguments, *non_eager_arguments],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
     @pytest.mark.parametrize('no_color', [False, True])
@@ -351,22 +351,22 @@ class TestAllCLI:
                 monkeypatch.setenv('NO_COLOR', 'yes')
             if force_color:
                 monkeypatch.setenv('FORCE_COLOR', 'yes')
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase,
                 command_line,
                 input=input,
                 catch_exceptions=False,
                 color=isatty,
             )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
         assert (
             not color
             or '\x1b[0m' in result.stderr
             or '\x1b[m' in result.stderr
         ), 'Expected color, but found no ANSI reset sequence'
-        assert (
-            color or '\x1b[' not in result.stderr
-        ), 'Expected no color, but found an ANSI control sequence'
+        assert color or '\x1b[' not in result.stderr, (
+            'Expected no color, but found an ANSI control sequence'
+        )
 
 
 class TestCLI:
@@ -379,12 +379,12 @@ class TestCLI:
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--help'],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(
             empty_stderr=True, output='Passphrase generation:\n'
         ), 'expected clean exit, and option groups in help text'
@@ -401,18 +401,18 @@ class TestCLI:
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--version'],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(_result)
-        assert result.clean_exit(
-            empty_stderr=True, output=cli.PROG_NAME
-        ), 'expected clean exit, and program name in version text'
-        assert result.clean_exit(
-            empty_stderr=True, output=cli.__version__
-        ), 'expected clean exit, and version in help text'
+            result = tests.ReadableResult.parse(result_)
+        assert result.clean_exit(empty_stderr=True, output=cli.PROG_NAME), (
+            'expected clean exit, and program name in version text'
+        )
+        assert result.clean_exit(empty_stderr=True, output=cli.__version__), (
+            'expected clean exit, and version in help text'
+        )
 
     @pytest.mark.parametrize(
         'charset_name', ['lower', 'upper', 'number', 'space', 'dash', 'symbol']
@@ -428,18 +428,18 @@ class TestCLI:
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 [option, '0', '-p', '--', DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit:'
         for c in charset:
-            assert (
-                c not in result.output
-            ), f'derived password contains forbidden character {c!r}'
+            assert c not in result.output, (
+                f'derived password contains forbidden character {c!r}'
+            )
 
     def test_202_disable_repetition(
         self, monkeypatch: pytest.MonkeyPatch
@@ -450,16 +450,16 @@ class TestCLI:
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--repeat', '0', '-p', '--', DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(_result)
-        assert result.clean_exit(
-            empty_stderr=True
-        ), 'expected clean exit and empty stderr'
+            result = tests.ReadableResult.parse(result_)
+        assert result.clean_exit(empty_stderr=True), (
+            'expected clean exit and empty stderr'
+        )
         passphrase = result.output.rstrip('\r\n')
         for i in range(len(passphrase) - 1):
             assert passphrase[i : i + 1] != passphrase[i + 1 : i + 2], (
@@ -503,22 +503,22 @@ class TestCLI:
             monkeypatch.setattr(
                 vault.Vault, 'phrase_from_key', tests.phrase_from_key
             )
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--', DUMMY_SERVICE],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
-        assert result.clean_exit(
-            empty_stderr=True
-        ), 'expected clean exit and empty stderr'
-        assert _result.stdout_bytes
-        assert (
-            _result.stdout_bytes.rstrip(b'\n') != DUMMY_RESULT_PASSPHRASE
-        ), 'known false output: phrase-based instead of key-based'
-        assert (
-            _result.stdout_bytes.rstrip(b'\n') == DUMMY_RESULT_KEY1
-        ), 'expected known output'
+        result = tests.ReadableResult.parse(result_)
+        assert result.clean_exit(empty_stderr=True), (
+            'expected clean exit and empty stderr'
+        )
+        assert result_.stdout_bytes
+        assert result_.stdout_bytes.rstrip(b'\n') != DUMMY_RESULT_PASSPHRASE, (
+            'known false output: phrase-based instead of key-based'
+        )
+        assert result_.stdout_bytes.rstrip(b'\n') == DUMMY_RESULT_KEY1, (
+            'expected known output'
+        )
 
     def test_204b_key_from_command_line(
         self, monkeypatch: pytest.MonkeyPatch
@@ -535,22 +535,22 @@ class TestCLI:
             monkeypatch.setattr(
                 vault.Vault, 'phrase_from_key', tests.phrase_from_key
             )
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['-k', '--', DUMMY_SERVICE],
                 input='1\n',
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(), 'expected clean exit'
-        assert _result.stdout_bytes, 'expected program output'
-        last_line = _result.stdout_bytes.splitlines(True)[-1]
-        assert (
-            last_line.rstrip(b'\n') != DUMMY_RESULT_PASSPHRASE
-        ), 'known false output: phrase-based instead of key-based'
-        assert (
-            last_line.rstrip(b'\n') == DUMMY_RESULT_KEY1
-        ), 'expected known output'
+        assert result_.stdout_bytes, 'expected program output'
+        last_line = result_.stdout_bytes.splitlines(True)[-1]
+        assert last_line.rstrip(b'\n') != DUMMY_RESULT_PASSPHRASE, (
+            'known false output: phrase-based instead of key-based'
+        )
+        assert last_line.rstrip(b'\n') == DUMMY_RESULT_KEY1, (
+            'expected known output'
+        )
 
     @pytest.mark.parametrize(
         'config',
@@ -593,18 +593,18 @@ class TestCLI:
             with tests.isolated_vault_config(
                 monkeypatch=monkeypatch, runner=runner, vault_config=config
             ):
-                _result = runner.invoke(
+                result_ = runner.invoke(
                     cli.derivepassphrase_vault,
                     ['-k', '--', DUMMY_SERVICE],
                     input=f'{key_index}\n',
                 )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(), 'expected clean exit'
         assert result.output, 'expected program output'
         assert result.stderr, 'expected stderr'
-        assert (
-            'Error:' not in result.stderr
-        ), 'expected no error messages on stderr'
+        assert 'Error:' not in result.stderr, (
+            'expected no error messages on stderr'
+        )
 
     def test_205_service_phrase_if_key_in_global_config(
         self,
@@ -631,21 +631,21 @@ class TestCLI:
                     },
                 },
             ):
-                _result = runner.invoke(
+                result_ = runner.invoke(
                     cli.derivepassphrase_vault,
                     ['--', DUMMY_SERVICE],
                     catch_exceptions=False,
                 )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(), 'expected clean exit'
-        assert _result.stdout_bytes, 'expected program output'
-        last_line = _result.stdout_bytes.splitlines(True)[-1]
-        assert (
-            last_line.rstrip(b'\n') != DUMMY_RESULT_PASSPHRASE
-        ), 'known false output: phrase-based instead of key-based'
-        assert (
-            last_line.rstrip(b'\n') == DUMMY_RESULT_KEY1
-        ), 'expected known output'
+        assert result_.stdout_bytes, 'expected program output'
+        last_line = result_.stdout_bytes.splitlines(True)[-1]
+        assert last_line.rstrip(b'\n') != DUMMY_RESULT_PASSPHRASE, (
+            'known false output: phrase-based instead of key-based'
+        )
+        assert last_line.rstrip(b'\n') == DUMMY_RESULT_KEY1, (
+            'expected known output'
+        )
 
     @pytest.mark.parametrize(
         ['config', 'command_line'],
@@ -700,13 +700,13 @@ class TestCLI:
                 runner=runner,
                 vault_config=config,
             ):
-                _result = runner.invoke(
+                result_ = runner.invoke(
                     cli.derivepassphrase_vault,
                     command_line,
                     input=DUMMY_PASSPHRASE,
                     catch_exceptions=False,
                 )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(), 'expected clean exit'
         assert not result.output.strip(), 'expected no program output'
         assert result.stderr, 'expected known error output'
@@ -746,16 +746,16 @@ class TestCLI:
             runner=runner,
         ):
             for value in '-42', 'invalid':
-                _result = runner.invoke(
+                result_ = runner.invoke(
                     cli.derivepassphrase_vault,
                     [option, value, '-p', '--', DUMMY_SERVICE],
                     input=DUMMY_PASSPHRASE,
                     catch_exceptions=False,
                 )
-                result = tests.ReadableResult.parse(_result)
-                assert result.error_exit(
-                    error='Invalid value'
-                ), 'expected error exit and known error message'
+                result = tests.ReadableResult.parse(result_)
+                assert result.error_exit(error='Invalid value'), (
+                    'expected error exit and known error message'
+                )
 
     @pytest.mark.parametrize(
         ['options', 'service', 'input', 'check_success'],
@@ -780,26 +780,26 @@ class TestCLI:
             runner=runner,
             vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 options if service else [*options, '--', DUMMY_SERVICE],
                 input=input,
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
             if service is not None:
                 err_msg = (
                     ' requires a SERVICE'
                     if service
                     else ' does not take a SERVICE argument'
                 )
-                assert result.error_exit(
-                    error=err_msg
-                ), 'expected error exit and known error message'
+                assert result.error_exit(error=err_msg), (
+                    'expected error exit and known error message'
+                )
             else:
-                assert result.clean_exit(
-                    empty_stderr=True
-                ), 'expected clean exit'
+                assert result.clean_exit(empty_stderr=True), (
+                    'expected clean exit'
+                )
         if check_success:
             with tests.isolated_vault_config(
                 monkeypatch=monkeypatch,
@@ -809,13 +809,13 @@ class TestCLI:
                 monkeypatch.setattr(
                     cli, '_prompt_for_passphrase', tests.auto_prompt
                 )
-                _result = runner.invoke(
+                result_ = runner.invoke(
                     cli.derivepassphrase_vault,
                     [*options, '--', DUMMY_SERVICE] if service else options,
                     input=input,
                     catch_exceptions=False,
                 )
-                result = tests.ReadableResult.parse(_result)
+                result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
     def test_211a_empty_service_name_causes_warning(
@@ -837,34 +837,34 @@ class TestCLI:
             runner=runner,
             vault_config={'services': {}},
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '--length=30', '--', ''],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(empty_stderr=False), 'expected clean exit'
             assert result.stderr is not None, 'expected known error output'
-            assert all(
-                map(is_expected_warning, caplog.record_tuples)
-            ), 'expected known error output'
+            assert all(map(is_expected_warning, caplog.record_tuples)), (
+                'expected known error output'
+            )
             assert cli._load_config() == {
                 'global': {'length': 30},
                 'services': {},
             }, 'requested configuration change was not applied'
             caplog.clear()
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', '-'],
                 input=json.dumps({'services': {'': {'length': 40}}}),
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(empty_stderr=False), 'expected clean exit'
             assert result.stderr is not None, 'expected known error output'
-            assert all(
-                map(is_expected_warning, caplog.record_tuples)
-            ), 'expected known error output'
+            assert all(map(is_expected_warning, caplog.record_tuples)), (
+                'expected known error output'
+            )
             assert cli._load_config() == {
                 'global': {'length': 30},
                 'services': {'': {'length': 40}},
@@ -889,16 +889,16 @@ class TestCLI:
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 [*options, '--', DUMMY_SERVICE] if service else options,
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
-        assert result.error_exit(
-            error='mutually exclusive with '
-        ), 'expected error exit and known error message'
+        result = tests.ReadableResult.parse(result_)
+        assert result.error_exit(error='mutually exclusive with '), (
+            'expected error exit and known error message'
+        )
 
     @pytest.mark.parametrize(
         'config',
@@ -920,7 +920,7 @@ class TestCLI:
             runner=runner,
             vault_config={'services': {}},
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', '-'],
                 input=json.dumps(config),
@@ -930,7 +930,7 @@ class TestCLI:
                 cli._config_filename(subsystem='vault'), encoding='UTF-8'
             ) as infile:
                 config2 = json.load(infile)
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert config2 == config, 'config not imported correctly'
         assert not result.stderr or all(  # pragma: no branch
@@ -959,7 +959,7 @@ class TestCLI:
             runner=runner,
             vault_config={'services': {}},
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', '-'],
                 input=json.dumps(config),
@@ -969,7 +969,7 @@ class TestCLI:
                 cli._config_filename(subsystem='vault'), encoding='UTF-8'
             ) as infile:
                 config3 = json.load(infile)
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert config3 == config2, 'config not imported correctly'
         assert not result.stderr or all(
@@ -982,16 +982,16 @@ class TestCLI:
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', '-'],
                 input='null',
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
-        assert result.error_exit(
-            error='Invalid vault config'
-        ), 'expected error exit and known error message'
+        result = tests.ReadableResult.parse(result_)
+        assert result.error_exit(error='Invalid vault config'), (
+            'expected error exit and known error message'
+        )
 
     def test_213c_import_bad_config_not_json_data(
         self,
@@ -999,16 +999,16 @@ class TestCLI:
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', '-'],
                 input='This string is not valid JSON.',
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
-        assert result.error_exit(
-            error='cannot decode JSON'
-        ), 'expected error exit and known error message'
+        result = tests.ReadableResult.parse(result_)
+        assert result.error_exit(error='cannot decode JSON'), (
+            'expected error exit and known error message'
+        )
 
     def test_213d_import_bad_config_not_a_file(
         self,
@@ -1025,15 +1025,15 @@ class TestCLI:
             ) as outfile:
                 print('This string is not valid JSON.', file=outfile)
             dname = cli._config_filename(subsystem=None)
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', os.fsdecode(dname)],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
-        assert result.error_exit(
-            error=os.strerror(errno.EISDIR)
-        ), 'expected error exit and known error message'
+        result = tests.ReadableResult.parse(result_)
+        assert result.error_exit(error=os.strerror(errno.EISDIR)), (
+            'expected error exit and known error message'
+        )
 
     @pytest.mark.parametrize(
         'export_options',
@@ -1051,7 +1051,7 @@ class TestCLI:
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             with contextlib.suppress(FileNotFoundError):
                 os.remove(cli._config_filename(subsystem='vault'))
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 # Test parent context navigation by not calling
                 # `cli.derivepassphrase_vault` directly.  Used e.g. in
                 # the `--export-as=sh` section to autoconstruct the
@@ -1060,7 +1060,7 @@ class TestCLI:
                 ['vault', '--export', '-', *export_options],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
     @pytest.mark.parametrize(
@@ -1079,16 +1079,16 @@ class TestCLI:
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch, runner=runner, vault_config={}
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--export', '-', *export_options],
                 input='null',
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
-        assert result.error_exit(
-            error='Cannot load vault settings:'
-        ), 'expected error exit and known error message'
+        result = tests.ReadableResult.parse(result_)
+        assert result.error_exit(error='Cannot load vault settings:'), (
+            'expected error exit and known error message'
+        )
 
     @pytest.mark.parametrize(
         'export_options',
@@ -1107,16 +1107,16 @@ class TestCLI:
             with contextlib.suppress(FileNotFoundError):
                 os.remove(cli._config_filename(subsystem='vault'))
             os.makedirs(cli._config_filename(subsystem='vault'))
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--export', '-', *export_options],
                 input='null',
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
-        assert result.error_exit(
-            error='Cannot load vault settings:'
-        ), 'expected error exit and known error message'
+        result = tests.ReadableResult.parse(result_)
+        assert result.error_exit(error='Cannot load vault settings:'), (
+            'expected error exit and known error message'
+        )
 
     @pytest.mark.parametrize(
         'export_options',
@@ -1133,16 +1133,16 @@ class TestCLI:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             dname = cli._config_filename(subsystem=None)
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--export', os.fsdecode(dname), *export_options],
                 input='null',
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
-        assert result.error_exit(
-            error='Cannot export vault settings:'
-        ), 'expected error exit and known error message'
+        result = tests.ReadableResult.parse(result_)
+        assert result.error_exit(error='Cannot export vault settings:'), (
+            'expected error exit and known error message'
+        )
 
     @pytest.mark.parametrize(
         'export_options',
@@ -1162,18 +1162,18 @@ class TestCLI:
                 shutil.rmtree('.derivepassphrase')
             with open('.derivepassphrase', 'w', encoding='UTF-8') as outfile:
                 print('Obstruction!!', file=outfile)
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--export', '-', *export_options],
                 input='null',
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error='Cannot load vault settings:'
-        ) or result.error_exit(
-            error='Cannot load user config:'
-        ), 'expected error exit and known error message'
+        ) or result.error_exit(error='Cannot load user config:'), (
+            'expected error exit and known error message'
+        )
 
     def test_220_edit_notes_successfully(
         self, monkeypatch: pytest.MonkeyPatch
@@ -1190,12 +1190,12 @@ contents go here
             vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: edit_result)  # noqa: ARG005
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--notes', '--', 'sv'],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(empty_stderr=True), 'expected clean exit'
             with open(
                 cli._config_filename(subsystem='vault'), encoding='UTF-8'
@@ -1216,12 +1216,12 @@ contents go here
             vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: None)  # noqa: ARG005
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--notes', '--', 'sv'],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(empty_stderr=True), 'expected clean exit'
             with open(
                 cli._config_filename(subsystem='vault'), encoding='UTF-8'
@@ -1239,12 +1239,12 @@ contents go here
             vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: 'long\ntext')  # noqa: ARG005
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--notes', '--', 'sv'],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(empty_stderr=True), 'expected clean exit'
             with open(
                 cli._config_filename(subsystem='vault'), encoding='UTF-8'
@@ -1265,15 +1265,15 @@ contents go here
             vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: '\n\n')  # noqa: ARG005
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--notes', '--', 'sv'],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(_result)
-            assert result.error_exit(
-                error='the user aborted the request'
-            ), 'expected known error message'
+            result = tests.ReadableResult.parse(result_)
+            assert result.error_exit(error='the user aborted the request'), (
+                'expected known error message'
+            )
             with open(
                 cli._config_filename(subsystem='vault'), encoding='UTF-8'
             ) as infile:
@@ -1338,21 +1338,21 @@ contents go here
             monkeypatch.setattr(
                 cli, '_get_suitable_ssh_keys', tests.suitable_ssh_keys
             )
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', *command_line],
                 catch_exceptions=False,
                 input=input,
             )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(), 'expected clean exit'
             with open(
                 cli._config_filename(subsystem='vault'), encoding='UTF-8'
             ) as infile:
                 config = json.load(infile)
-            assert (
-                config == result_config
-            ), 'stored config does not match expectation'
+            assert config == result_config, (
+                'stored config does not match expectation'
+            )
 
     @pytest.mark.parametrize(
         ['command_line', 'input', 'err_text'],
@@ -1387,16 +1387,16 @@ contents go here
             monkeypatch.setattr(
                 cli, '_get_suitable_ssh_keys', tests.suitable_ssh_keys
             )
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', *command_line],
                 catch_exceptions=False,
                 input=input,
             )
-        result = tests.ReadableResult.parse(_result)
-        assert result.error_exit(
-            error=err_text
-        ), 'expected error exit and known error message'
+        result = tests.ReadableResult.parse(result_)
+        assert result.error_exit(error=err_text), (
+            'expected error exit and known error message'
+        )
 
     def test_225a_store_config_fail_manual_no_ssh_key_selection(
         self,
@@ -1414,15 +1414,15 @@ contents go here
                 raise RuntimeError(custom_error)
 
             monkeypatch.setattr(cli, '_select_ssh_key', raiser)
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--key', '--config'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
-        assert result.error_exit(
-            error=custom_error
-        ), 'expected error exit and known error message'
+        result = tests.ReadableResult.parse(result_)
+        assert result.error_exit(error=custom_error), (
+            'expected error exit and known error message'
+        )
 
     def test_225b_store_config_fail_manual_no_ssh_agent(
         self,
@@ -1437,15 +1437,15 @@ contents go here
             vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--key', '--config'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
-        assert result.error_exit(
-            error='Cannot find any running SSH agent'
-        ), 'expected error exit and known error message'
+        result = tests.ReadableResult.parse(result_)
+        assert result.error_exit(error='Cannot find any running SSH agent'), (
+            'expected error exit and known error message'
+        )
 
     def test_225c_store_config_fail_manual_bad_ssh_agent_connection(
         self,
@@ -1458,15 +1458,15 @@ contents go here
             vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
             monkeypatch.setenv('SSH_AUTH_SOCK', os.getcwd())
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--key', '--config'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
-        assert result.error_exit(
-            error='Cannot connect to the SSH agent'
-        ), 'expected error exit and known error message'
+        result = tests.ReadableResult.parse(result_)
+        assert result.error_exit(error='Cannot connect to the SSH agent'), (
+            'expected error exit and known error message'
+        )
 
     @pytest.mark.parametrize('try_race_free_implementation', [True, False])
     def test_225d_store_config_fail_manual_read_only_file(
@@ -1484,15 +1484,15 @@ contents go here
                 cli._config_filename(subsystem='vault'),
                 try_race_free_implementation=try_race_free_implementation,
             )
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '--length=15', '--', DUMMY_SERVICE],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
-        assert result.error_exit(
-            error='Cannot store vault settings:'
-        ), 'expected error exit and known error message'
+        result = tests.ReadableResult.parse(result_)
+        assert result.error_exit(error='Cannot store vault settings:'), (
+            'expected error exit and known error message'
+        )
 
     def test_225e_store_config_fail_manual_custom_error(
         self,
@@ -1511,15 +1511,15 @@ contents go here
                 raise RuntimeError(custom_error)
 
             monkeypatch.setattr(cli, '_save_config', raiser)
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '--length=15', '--', DUMMY_SERVICE],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
-        assert result.error_exit(
-            error=custom_error
-        ), 'expected error exit and known error message'
+        result = tests.ReadableResult.parse(result_)
+        assert result.error_exit(error=custom_error), (
+            'expected error exit and known error message'
+        )
 
     def test_225f_store_config_fail_unset_and_set_same_settings(
         self,
@@ -1531,7 +1531,7 @@ contents go here
             runner=runner,
             vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 [
                     '--config',
@@ -1542,7 +1542,7 @@ contents go here
                 ],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error='Attempted to unset and set --length at the same time.'
         ), 'expected error exit and known error message'
@@ -1567,15 +1567,15 @@ contents go here
                 return []
 
             monkeypatch.setattr(ssh_agent.SSHAgentClient, 'list_keys', func)
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--key', '--config'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
-        assert result.error_exit(
-            error='no keys suitable'
-        ), 'expected error exit and known error message'
+        result = tests.ReadableResult.parse(result_)
+        assert result.error_exit(error='no keys suitable'), (
+            'expected error exit and known error message'
+        )
 
     def test_225h_store_config_fail_manual_ssh_agent_runtime_error(
         self,
@@ -1594,12 +1594,12 @@ contents go here
                 raise ssh_agent.TrailingDataError()
 
             monkeypatch.setattr(ssh_agent.SSHAgentClient, 'list_keys', raiser)
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--key', '--config'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error='violates the communications protocol.'
         ), 'expected error exit and known error message'
@@ -1623,15 +1623,15 @@ contents go here
                 )
 
             monkeypatch.setattr(ssh_agent.SSHAgentClient, 'list_keys', func)
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--key', '--config'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
-        assert result.error_exit(
-            error='refused to'
-        ), 'expected error exit and known error message'
+        result = tests.ReadableResult.parse(result_)
+        assert result.error_exit(error='refused to'), (
+            'expected error exit and known error message'
+        )
 
     def test_226_no_arguments(self, monkeypatch: pytest.MonkeyPatch) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
@@ -1639,10 +1639,10 @@ contents go here
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault, [], catch_exceptions=False
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error='Deriving a passphrase requires a SERVICE'
         ), 'expected error exit and known error message'
@@ -1655,15 +1655,15 @@ contents go here
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--', DUMMY_SERVICE],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
-        assert result.error_exit(
-            error='No passphrase or key was given'
-        ), 'expected error exit and known error message'
+        result = tests.ReadableResult.parse(result_)
+        assert result.error_exit(error='No passphrase or key was given'), (
+            'expected error exit and known error message'
+        )
 
     def test_230_config_directory_nonexistant(
         self, monkeypatch: pytest.MonkeyPatch
@@ -1684,17 +1684,17 @@ contents go here
                 return real_os_makedirs(*args, **kwargs)
 
             monkeypatch.setattr(os, 'makedirs', makedirs)
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '-p'],
                 catch_exceptions=False,
                 input='abc\n',
             )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(), 'expected clean exit'
-            assert (
-                result.stderr == 'Passphrase:'
-            ), 'program unexpectedly failed?!'
+            assert result.stderr == 'Passphrase:', (
+                'program unexpectedly failed?!'
+            )
             assert os_makedirs_called, 'os.makedirs has not been called?!'
             with open(
                 cli._config_filename(subsystem='vault'), encoding='UTF-8'
@@ -1714,7 +1714,7 @@ contents go here
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            _save_config = cli._save_config
+            save_config_ = cli._save_config
 
             def obstruct_config_saving(*args: Any, **kwargs: Any) -> Any:
                 with contextlib.suppress(FileNotFoundError):
@@ -1723,20 +1723,20 @@ contents go here
                     '.derivepassphrase', 'w', encoding='UTF-8'
                 ) as outfile:
                     print('Obstruction!!', file=outfile)
-                monkeypatch.setattr(cli, '_save_config', _save_config)
-                return _save_config(*args, **kwargs)
+                monkeypatch.setattr(cli, '_save_config', save_config_)
+                return save_config_(*args, **kwargs)
 
             monkeypatch.setattr(cli, '_save_config', obstruct_config_saving)
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '-p'],
                 catch_exceptions=False,
                 input='abc\n',
             )
-            result = tests.ReadableResult.parse(_result)
-            assert result.error_exit(
-                error='Cannot store vault settings:'
-            ), 'expected error exit and known error message'
+            result = tests.ReadableResult.parse(result_)
+            assert result.error_exit(error='Cannot store vault settings:'), (
+                'expected error exit and known error message'
+            )
 
     def test_230b_store_config_custom_error(
         self, monkeypatch: pytest.MonkeyPatch
@@ -1753,16 +1753,16 @@ contents go here
                 raise RuntimeError(custom_error)
 
             monkeypatch.setattr(cli, '_save_config', raiser)
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '-p'],
                 catch_exceptions=False,
                 input='abc\n',
             )
-            result = tests.ReadableResult.parse(_result)
-            assert result.error_exit(
-                error=custom_error
-            ), 'expected error exit and known error message'
+            result = tests.ReadableResult.parse(result_)
+            assert result.error_exit(error=custom_error), (
+                'expected error exit and known error message'
+            )
 
     @pytest.mark.parametrize(
         ['main_config', 'command_line', 'input', 'warning_message'],
@@ -1881,17 +1881,17 @@ contents go here
             },
             main_config_str=main_config,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--debug', *command_line],
                 catch_exceptions=False,
                 input=input,
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(), 'expected clean exit'
-        assert tests.warning_emitted(
-            warning_message, caplog.record_tuples
-        ), 'expected known warning message in stderr'
+        assert tests.warning_emitted(warning_message, caplog.record_tuples), (
+            'expected known warning message in stderr'
+        )
 
     @pytest.mark.parametrize(
         ['main_config', 'command_line', 'input', 'error_message'],
@@ -1951,19 +1951,19 @@ contents go here
             },
             main_config_str=main_config,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 command_line,
                 catch_exceptions=False,
                 input=input,
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error='The user configuration file is invalid.'
         ), 'expected error exit and known error message'
-        assert result.error_exit(
-            error=error_message
-        ), 'expected error exit and known error message'
+        assert result.error_exit(error=error_message), (
+            'expected error exit and known error message'
+        )
 
     @pytest.mark.parametrize(
         'command_line',
@@ -1995,13 +1995,13 @@ contents go here
             default-unicode-normalization-form = 'XXX'
             """),
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 command_line,
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
             assert result.error_exit(
                 error='The user configuration file is invalid.'
             ), 'expected error exit and known error message'
@@ -2025,16 +2025,16 @@ contents go here
             This file is not valid TOML.
             """),
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--phrase', '--', DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(_result)
-            assert result.error_exit(
-                error='Cannot load user config:'
-            ), 'expected error exit and known error message'
+            result = tests.ReadableResult.parse(result_)
+            assert result.error_exit(error='Cannot load user config:'), (
+                'expected error exit and known error message'
+            )
 
     def test_400_missing_af_unix_support(
         self,
@@ -2050,12 +2050,12 @@ contents go here
                 'SSH_AUTH_SOCK', "the value doesn't even matter"
             )
             monkeypatch.delattr(socket, 'AF_UNIX', raising=False)
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--key', '--config'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error='does not support UNIX domain sockets'
         ), 'expected error exit and known error message'
@@ -2141,8 +2141,8 @@ class TestCLIUtils:
             click.echo('(Note: Vikings strictly optional.)')
 
         runner = click.testing.CliRunner(mix_stderr=True)
-        _result = runner.invoke(driver, [], input='9')
-        result = tests.ReadableResult.parse(_result)
+        result_ = runner.invoke(driver, [], input='9')
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(
             output="""\
 Our menu:
@@ -2161,13 +2161,13 @@ A fine choice: Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam
 (Note: Vikings strictly optional.)
 """
         ), 'expected clean exit'
-        _result = runner.invoke(
+        result_ = runner.invoke(
             driver, ['--heading='], input='', catch_exceptions=True
         )
-        result = tests.ReadableResult.parse(_result)
-        assert result.error_exit(
-            error=IndexError
-        ), 'expected error exit and known error type'
+        result = tests.ReadableResult.parse(result_)
+        assert result.error_exit(error=IndexError), (
+            'expected error exit and known error type'
+        )
         assert (
             result.output
             == """\
@@ -2201,10 +2201,10 @@ Your selection? (1-10, leave empty to abort):\x20
                 click.echo('Great!')
 
         runner = click.testing.CliRunner(mix_stderr=True)
-        _result = runner.invoke(
+        result_ = runner.invoke(
             driver, ['Will replace with spam. Confirm, y/n?'], input='y'
         )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(
             output="""\
 [1] baked beans
@@ -2212,15 +2212,15 @@ Will replace with spam. Confirm, y/n? y
 Great!
 """
         ), 'expected clean exit'
-        _result = runner.invoke(
+        result_ = runner.invoke(
             driver,
             ['Will replace with spam, okay? (Please say "y" or "n".)'],
             input='',
         )
-        result = tests.ReadableResult.parse(_result)
-        assert result.error_exit(
-            error=IndexError
-        ), 'expected error exit and known error type'
+        result = tests.ReadableResult.parse(result_)
+        assert result.error_exit(error=IndexError), (
+            'expected error exit and known error type'
+        )
         assert (
             result.output
             == """\
@@ -2370,8 +2370,8 @@ Boo.
             monkeypatch=monkeypatch,
             vault_config={'services': {}},
         ):
-            for _result in vault_config_exporter_shell_interpreter(script):
-                result = tests.ReadableResult.parse(_result)
+            for result_ in vault_config_exporter_shell_interpreter(script):
+                result = tests.ReadableResult.parse(result_)
                 assert result.clean_exit()
             assert cli._load_config() == config
 
@@ -2591,15 +2591,15 @@ Boo.
                 runner=runner,
                 vault_config=start_config,
             ):
-                _result = runner.invoke(
+                result_ = runner.invoke(
                     cli.derivepassphrase_vault,
                     command_line,
                     catch_exceptions=False,
                 )
-                result = tests.ReadableResult.parse(_result)
-                assert result.clean_exit(
-                    empty_stderr=True
-                ), 'expected clean exit'
+                result = tests.ReadableResult.parse(result_)
+                assert result.clean_exit(empty_stderr=True), (
+                    'expected clean exit'
+                )
                 with open(
                     cli._config_filename(subsystem='vault'), encoding='UTF-8'
                 ) as infile:
@@ -2660,9 +2660,9 @@ Boo.
             except Exception as e:  # noqa: BLE001 # pragma: no cover
                 exception = e
             finally:
-                assert (
-                    exception is None
-                ), 'exception querying suitable SSH keys'
+                assert exception is None, (
+                    'exception querying suitable SSH keys'
+                )
 
     def test_400_key_to_phrase(
         self,
@@ -2755,10 +2755,10 @@ class TestCLITransition:
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase, ['--help'], catch_exceptions=False
             )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(
             empty_stderr=True, output='currently implemented subcommands'
         ), 'expected clean exit, and known help text'
@@ -2771,12 +2771,12 @@ class TestCLITransition:
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase,
                 ['export', '--help'],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(
             empty_stderr=True, output='only available subcommand'
         ), 'expected clean exit, and known help text'
@@ -2789,12 +2789,12 @@ class TestCLITransition:
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase,
                 ['export', 'vault', '--help'],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(
             empty_stderr=True, output='Export a vault-native configuration'
         ), 'expected clean exit, and known help text'
@@ -2807,12 +2807,12 @@ class TestCLITransition:
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase,
                 ['vault', '--help'],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(
             empty_stderr=True, output='Passphrase generation:\n'
         ), 'expected clean exit, and option groups in help text'
@@ -2963,11 +2963,11 @@ class TestCLITransition:
             vault_key=tests.VAULT_MASTER_KEY,
         ):
             monkeypatch.setenv('VAULT_KEY', tests.VAULT_MASTER_KEY)
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase,
                 ['export', 'VAULT_PATH'],
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert tests.deprecation_warning_emitted(
             'A subcommand will be required here in v1.0', caplog.record_tuples
@@ -2988,20 +2988,20 @@ class TestCLITransition:
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase,
                 ['export'],
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert tests.deprecation_warning_emitted(
             'A subcommand will be required here in v1.0', caplog.record_tuples
         )
         assert tests.deprecation_warning_emitted(
             'Defaulting to subcommand "vault"', caplog.record_tuples
         )
-        assert result.error_exit(
-            error="Missing argument 'PATH'"
-        ), 'expected error exit and known error type'
+        assert result.error_exit(error="Missing argument 'PATH'"), (
+            'expected error exit and known error type'
+        )
 
     @pytest.mark.parametrize(
         'charset_name', ['lower', 'upper', 'number', 'space', 'dash', 'symbol']
@@ -3020,13 +3020,13 @@ class TestCLITransition:
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase,
                 [option, '0', '-p', '--', DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert tests.deprecation_warning_emitted(
             'A subcommand will be required here in v1.0', caplog.record_tuples
@@ -3035,9 +3035,9 @@ class TestCLITransition:
             'Defaulting to subcommand "vault"', caplog.record_tuples
         )
         for c in charset:
-            assert (
-                c not in result.output
-            ), f'derived password contains forbidden character {c!r}'
+            assert c not in result.output, (
+                f'derived password contains forbidden character {c!r}'
+            )
 
     def test_211_forward_vault_empty_command_line(
         self,
@@ -3049,13 +3049,13 @@ class TestCLITransition:
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase,
                 [],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
         assert tests.deprecation_warning_emitted(
             'A subcommand will be required here in v1.0', caplog.record_tuples
         )
@@ -3089,12 +3089,12 @@ class TestCLITransition:
                     ),
                     file=fileobj,
                 )
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--export', '-'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(), 'expected clean exit'
         assert tests.deprecation_warning_emitted(
             'v0.1-style config file', caplog.record_tuples
@@ -3134,12 +3134,12 @@ class TestCLITransition:
                 )
 
             monkeypatch.setattr(os, 'replace', raiser)
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--export', '-'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(), 'expected clean exit'
         assert tests.deprecation_warning_emitted(
             'v0.1-style config file', caplog.record_tuples
@@ -3339,7 +3339,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         # NOTE: This relies on settings_obj containing only the keys
         # "length", "repeat", "upper", "lower", "number", "space",
         # "dash" and "symbol".
-        _result = self.runner.invoke(
+        result_ = self.runner.invoke(
             cli.derivepassphrase_vault,
             [
                 '--config',
@@ -3353,7 +3353,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             ],
             catch_exceptions=False,
         )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False)
         assert cli._load_config() == config
         return config
@@ -3390,7 +3390,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         # NOTE: This relies on settings_obj containing only the keys
         # "length", "repeat", "upper", "lower", "number", "space",
         # "dash" and "symbol".
-        _result = self.runner.invoke(
+        result_ = self.runner.invoke(
             cli.derivepassphrase_vault,
             [
                 '--config',
@@ -3405,7 +3405,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             + ['--', service],
             catch_exceptions=False,
         )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False)
         assert cli._load_config() == config
         return config
@@ -3420,13 +3420,13 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     ) -> _types.VaultConfig:
         cli._save_config(config)
         config.pop('global', None)
-        _result = self.runner.invoke(
+        result_ = self.runner.invoke(
             cli.derivepassphrase_vault,
             ['--delete-globals'],
             input='y',
             catch_exceptions=False,
         )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False)
         assert cli._load_config() == config
         return config
@@ -3449,13 +3449,13 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         config, service = config_and_service
         cli._save_config(config)
         config['services'].pop(service, None)
-        _result = self.runner.invoke(
+        result_ = self.runner.invoke(
             cli.derivepassphrase_vault,
             ['--delete', '--', service],
             input='y',
             catch_exceptions=False,
         )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False)
         assert cli._load_config() == config
         return config
@@ -3470,13 +3470,13 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     ) -> _types.VaultConfig:
         cli._save_config(config)
         config = {'services': {}}
-        _result = self.runner.invoke(
+        result_ = self.runner.invoke(
             cli.derivepassphrase_vault,
             ['--clear'],
             input='y',
             catch_exceptions=False,
         )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False)
         assert cli._load_config() == config
         return config
@@ -3500,14 +3500,14 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             else config_to_import
         )
         assert _types.is_vault_config(config)
-        _result = self.runner.invoke(
+        result_ = self.runner.invoke(
             cli.derivepassphrase_vault,
             ['--import', '-']
             + (['--overwrite-existing'] if overwrite else []),
             input=json.dumps(config_to_import),
             catch_exceptions=False,
         )
-        assert tests.ReadableResult.parse(_result).clean_exit(
+        assert tests.ReadableResult.parse(result_).clean_exit(
             empty_stderr=False
         )
         assert cli._load_config() == config
@@ -4148,19 +4148,19 @@ class TestShellCompletion:
             vault_config=vault_config,
         ):
             if mode == 'config':
-                _result = runner.invoke(
+                result_ = runner.invoke(
                     cli.derivepassphrase_vault,
                     ['--config', '--length=10', '--', key],
                     catch_exceptions=False,
                 )
             else:
-                _result = runner.invoke(
+                result_ = runner.invoke(
                     cli.derivepassphrase_vault,
                     ['--import', '-'],
                     catch_exceptions=False,
                     input=json.dumps(config),
                 )
-            result = tests.ReadableResult.parse(_result)
+            result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(), 'expected clean exit'
             assert tests.warning_emitted(
                 'contains an ASCII control character', caplog.record_tuples

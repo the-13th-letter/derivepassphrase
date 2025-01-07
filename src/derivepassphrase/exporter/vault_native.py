@@ -112,6 +112,10 @@ class VaultNativeConfigParser(abc.ABC):
                 If this is a text string, then the UTF-8 encoding of the
                 string is used as the binary password.
 
+        Raises:
+            ValueError:
+                The password must not be empty.
+
         Warning:
             Non-public class, provided for didactical and educational
             purposes only. Subject to change without notice, including
@@ -120,7 +124,7 @@ class VaultNativeConfigParser(abc.ABC):
         """
         if not password:
             msg = 'Password must not be empty'
-            raise ValueError(msg)  # noqa: DOC501
+            raise ValueError(msg)
         self._contents = bytes(contents)
         self._iv_size = 0
         self._mac_size = 0
@@ -208,12 +212,12 @@ class VaultNativeConfigParser(abc.ABC):
     def _derive_keys(self) -> None:
         logger.info('Deriving an encryption and signing key')
         self._generate_keys()
-        assert (
-            len(self._encryption_key) == self._encryption_key_size
-        ), 'Derived encryption key is invalid'
-        assert (
-            len(self._signing_key) == self._signing_key_size
-        ), 'Derived signing key is invalid'
+        assert len(self._encryption_key) == self._encryption_key_size, (
+            'Derived encryption key is invalid'
+        )
+        assert len(self._signing_key) == self._signing_key_size, (
+            'Derived signing key is invalid'
+        )
 
     @abc.abstractmethod
     def _generate_keys(self) -> None:
@@ -348,7 +352,7 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
             buffer = bytearray()
             last_block = b''
             salt = b''
-            logging.debug(
+            logger.debug(
                 (
                     'data = %s, salt = %s, key_size = %s, iv_size = %s, '
                     'buffer length = %s, buffer = %s'
@@ -371,10 +375,10 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
                 block.update(salt)
                 last_block = block.finalize()
                 buffer.extend(last_block)
-                logging.debug(
+                logger.debug(
                     'buffer length = %s, buffer = %s', len(buffer), _h(buffer)
                 )
-            logging.debug(
+            logger.debug(
                 'encryption_key = %s, iv = %s',
                 _h(buffer[:key_size]),
                 _h(buffer[key_size:total_size]),
@@ -457,13 +461,11 @@ def export_vault_native_data(
                 stored_exception = exc
         else:  # pragma: no cover
             msg = (
-                f'Invalid vault native configuration format: '
-                f'{config_format!r}'
+                f'Invalid vault native configuration format: {config_format!r}'
             )
             raise ValueError(msg)
     msg = (
-        f'Not a valid vault native configuration. '
-        f'(We tried: {try_formats!r}.)'
+        f'Not a valid vault native configuration. (We tried: {try_formats!r}.)'
     )
     raise stored_exception or ValueError(msg)
 

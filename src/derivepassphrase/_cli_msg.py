@@ -1245,7 +1245,7 @@ def _write_pot_file(fileobj: TextIO) -> None:  # pragma: no cover
     appearing in the enums of this module.  Certain parts of the
     .po header are hard-coded, as is the source filename.
 
-    """
+    """  # noqa: DOC501
     entries: dict[
         str,
         dict[
@@ -1266,7 +1266,7 @@ def _write_pot_file(fileobj: TextIO) -> None:  # pragma: no cover
                 msg in entries.setdefault(ctx, {})
                 and entries[ctx][msg] != member
             ):
-                raise AssertionError(  # noqa: DOC501,TRY003
+                raise AssertionError(  # noqa: TRY003
                     f'Duplicate entry for ({ctx!r}, {msg!r}): '  # noqa: EM102
                     f'{entries[ctx][msg]!r} and {member!r}'
                 )
