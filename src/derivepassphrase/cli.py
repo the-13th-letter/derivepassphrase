@@ -3296,7 +3296,6 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 view['key'] = key
             elif use_phrase:
                 view['phrase'] = phrase
-                settings_type = 'service' if service else 'global'
                 try:
                     _check_for_misleading_passphrase(
                         ('services', service) if service else ('global',),
@@ -3314,20 +3313,15 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     )
                 if 'key' in settings:
                     if service:
-                        logger.warning(
-                            _msg.TranslatedString(
-                                _msg.WarnMsgTemplate.SERVICE_PASSPHRASE_INEFFECTIVE,
-                                service=json.dumps(service),
-                            ),
-                            extra={'color': ctx.color},
+                        w_msg = _msg.TranslatedString(
+                            _msg.WarnMsgTemplate.SERVICE_PASSPHRASE_INEFFECTIVE,
+                            service=json.dumps(service),
                         )
                     else:
-                        logger.warning(
-                            _msg.TranslatedString(
-                                _msg.WarnMsgTemplate.GLOBAL_PASSPHRASE_INEFFECTIVE
-                            ),
-                            extra={'color': ctx.color},
+                        w_msg = _msg.TranslatedString(
+                            _msg.WarnMsgTemplate.GLOBAL_PASSPHRASE_INEFFECTIVE
                         )
+                    logger.warning(w_msg, extra={'color': ctx.color})
             if not view.maps[0] and not unset_settings:
                 settings_type = 'service' if service else 'global'
                 err_msg = _msg.TranslatedString(
