@@ -390,6 +390,11 @@ The <b>derivepassphrase vault</b> utility exits 0 on success, and >0 if an error
     When importing a configuration, the indicated ineffective setting has been removed.
     (The "interpretation" of the configuration doesn’t change).
 
+??? warning "`The service name %s contains an ASCII control character, which is not supported by our shell completion code.`"
+
+    Because of limitations in the shell completion code, this specific service name will not be available as a suggestion in tab completion.
+    (This *only* affects tab completion, not other functionality.)
+
 ??? warning "`Setting a %s passphrase is ineffective because a key is also set.`"
 
     The configuration (global or key-specific) contains both a stored master passphrase and an SSH key.

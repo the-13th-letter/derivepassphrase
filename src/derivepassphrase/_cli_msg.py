@@ -816,6 +816,19 @@ class WarnMsgTemplate(enum.Enum):
         context='warning message',
         flags='python-brace-format',
     )
+    SERVICE_NAME_INCOMPLETABLE = _prepare_translatable(
+        msg="""
+        The service name {service!r} contains an ASCII control
+        character, which is not supported by our shell completion code.
+        This service name will therefore not be available for completion
+        on the command-line.  You may of course still type it in
+        manually in whatever format your shell accepts, but we highly
+        recommend choosing a different service name instead.
+        """,
+        comments='',
+        context='warning message',
+        flags='python-brace-format',
+    )
     SERVICE_PASSPHRASE_INEFFECTIVE = _prepare_translatable(
         comments=r"""
         TRANSLATORS: The key that is set need not necessarily be set at

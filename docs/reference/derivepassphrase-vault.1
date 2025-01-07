@@ -1,4 +1,4 @@
-.Dd 2024-12-25
+.Dd 2025-01-07
 .Dt DERIVEPASSPHRASE-VAULT 1
 .Os derivepassphrase 0.4.0
 .
@@ -801,6 +801,15 @@ replaced with the indicated replacement value.
 When importing a configuration, the indicated ineffective setting has been
 removed.
 .Pq The Do interpretation Dc of the configuration doesn't change .
+.
+.It "The service name %s" "contains an ASCII control character," "which is not supported" "by our shell completion code."
+Because of limitations in the shell completion code, this specific service name
+will not be available as a suggestion in tab completion.
+.Po
+This
+.Em only
+affects tab completion, not other functionality.
+.Pc
 .
 .It Setting a %s passphrase is ineffective because a key is also set.
 The configuration (global or key-specific) contains both a stored master

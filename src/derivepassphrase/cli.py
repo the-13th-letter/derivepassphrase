@@ -33,11 +33,13 @@ from typing import (
 )
 
 import click
+import click.shell_completion
 from typing_extensions import (
     Any,
     ParamSpec,
     Self,
     assert_never,
+    override,
 )
 
 import derivepassphrase as dpp
@@ -1102,6 +1104,135 @@ def standard_logging_options(f: Callable[P, R]) -> Callable[P, R]:
     """
     return debug_option(verbose_option(quiet_option(f)))
 
+# Shell completion
+# ================
+
+# Use naive filename completion for the `path` argument of
+# `derivepassphrase vault`'s `--import` and `--export` options, as well
+# as the `path` argument of `derivepassphrase export vault`.  The latter
+# treats the pseudo-filename `VAULT_PATH` specially, but this is awkward
+# to combine with standard filename completion, particularly in bash, so
+# we would probably have to implement *all* completion (`VAULT_PATH` and
+# filename completion) ourselves, lacking some niceties of bash's
+# built-in completion (e.g., adding spaces or slashes depending on
+# whether the completion is a directory or a complete filename).
+
+
+def _shell_complete_path(
+    ctx: click.Context,
+    parameter: click.Parameter,
+    value: str,
+) -> list[str | click.shell_completion.CompletionItem]:
+    """Request standard path completion for the `path` argument."""
+    del ctx, parameter, value
+    return [click.shell_completion.CompletionItem('', type='file')]  # noqa: DOC201
+
+
+# The standard `click` shell completion scripts serialize the completion
+# items as newline-separated one-line entries, which get silently
+# corrupted if the value contains newlines.  Each shell imposes
+# additional restrictions: Fish uses newlines in all internal completion
+# helper scripts, so it is difficult, if not impossible, to register
+# completion entries containing newlines if completion comes from within
+# a Fish completion function (instead of a Fish builtin).  Zsh's
+# completion system supports descriptions for each completion item, and
+# the completion helper functions parse every entry as a colon-separated
+# 2-tuple of item and description, meaning any colon in the item value
+# must be escaped.  Finally, Bash requires the result array to be
+# populated at the completion function's top-level scope, but for/while
+# loops within pipelines do not run at top-level scope, and Bash *also*
+# strips NUL characters from command substitution output, making it
+# difficult to read in external data into an array in a cross-platform
+# manner from entirely within Bash.
+#
+# We capitulate in front of these problems---most egregiously because of
+# Fish---and ensure that completion items (in this case: service names)
+# never contain ASCII control characters by refusing to offer such
+# items as valid completions.  On the other side, `derivepassphrase`
+# will warn the user when configuring or importing a service with such
+# a name that it will not be available for shell completion.
+
+
+def _is_completable_item(obj: object) -> bool:
+    """Return whether the item is completable on the command-line.
+
+    The item is completable if and only if it contains no ASCII control
+    characters (U+0000 through U+001F, and U+007F).
+
+    """
+    obj = str(obj)
+    forbidden = frozenset(chr(i) for i in range(32)) | {'\x7F'}
+    return not any(f in obj for f in forbidden)
+
+
+def _shell_complete_service(
+    ctx: click.Context,
+    parameter: click.Parameter,
+    value: str,
+) -> list[str | click.shell_completion.CompletionItem]:
+    """Return known vault service names as completion items.
+
+    Service names are looked up in the vault configuration file.  All
+    errors will be suppressed.  Additionally, any service names deemed
+    not completable as per [`_is_completable_item`][] will be silently
+    skipped.
+
+    """
+    del ctx, parameter
+    try:
+        config = _load_config()
+        return sorted(
+            sv
+            for sv in config['services']
+            if sv.startswith(value) and _is_completable_item(sv)
+        )
+    except FileNotFoundError:
+        try:
+            config, _exc = _migrate_and_load_old_config()
+            return sorted(
+                sv
+                for sv in config['services']
+                if sv.startswith(value) and _is_completable_item(sv)
+            )
+        except FileNotFoundError:
+            return []
+    except Exception:  # noqa: BLE001
+        return []
+
+
+class ZshComplete(click.shell_completion.ZshComplete):
+    """Zsh completion class that supports colons.
+
+    `click`'s Zsh completion class (at least v8.1.7 and v8.1.8) uses
+    completion helper functions (provided by Zsh) that parse each
+    completion item into value-description pairs, separated by a colon.
+    Correspondingly, any internal colons in the completion item's value
+    need to be escaped.  `click` doesn't do this.  So, this subclass
+    overrides those parts, and adds the missing escaping.
+
+    """
+
+    @override
+    def format_completion(
+        self,
+        item: click.shell_completion.CompletionItem,
+    ) -> str:
+        """Return a suitable serialization of the CompletionItem.
+
+        This serialization ensures colons in the item value are properly
+        escaped.
+
+        """
+        type, value, help = (  # noqa: A001
+            item.type,
+            item.value.replace(':', '\\:'),
+            item.help or '_',
+        )
+        return f'{type}\n{value}\n{help}'
+
+
+click.shell_completion.add_completion_class(ZshComplete)
+
 
 # Top-level
 # =========
@@ -1380,23 +1511,6 @@ def _load_data(
         assert_never(fmt)
 
 
-def _shell_complete_vault_path(  # pragma: no cover
-    ctx: click.Context,
-    param: click.Parameter,
-    incomplete: str,
-) -> list[str | click.shell_completion.CompletionItem]:
-    del ctx, param
-    if incomplete and 'VAULT_PATH'.startswith(incomplete):
-        ret: set[str | click.shell_completion.CompletionItem] = {'VAULT_PATH'}
-        for f in os.listdir():
-            if f.startswith(incomplete):
-                ret.add(f + os.path.sep if os.path.isdir(f) else f)
-        return sorted(ret)
-    return [
-        click.shell_completion.CompletionItem('', type='file'),
-    ]
-
-
 @derivepassphrase_export.command(
     'vault',
     context_settings={'help_option_names': ['-h', '--help']},
@@ -1456,7 +1570,7 @@ def _shell_complete_vault_path(  # pragma: no cover
     'path',
     metavar=_msg.TranslatedString(_msg.Label.EXPORT_VAULT_METAVAR_PATH),
     required=True,
-    shell_complete=_shell_complete_vault_path,
+    shell_complete=_shell_complete_path,
 )
 @click.pass_context
 def derivepassphrase_export_vault(
@@ -2258,36 +2372,6 @@ def _validate_length(
     return int_value
 
 
-def _shell_complete_path(  # pragma: no cover
-    ctx: click.Context,
-    parameter: click.Parameter,
-    incomplete: str,
-) -> list[str | click.shell_completion.CompletionItem]:
-    del ctx, parameter, incomplete
-    return [click.shell_completion.CompletionItem('', type='file')]
-
-
-def _shell_complete_service(  # pragma: no cover
-    ctx: click.Context,
-    parameter: click.Parameter,
-    incomplete: str,
-) -> list[str | click.shell_completion.CompletionItem]:
-    del ctx, parameter
-    try:
-        config = _load_config()
-        return [sv for sv in config['services'] if sv.startswith(incomplete)]
-    except FileNotFoundError:
-        try:
-            config, _exc = _migrate_and_load_old_config()
-            return [
-                sv for sv in config['services'] if sv.startswith(incomplete)
-            ]
-        except FileNotFoundError:
-            return []
-    except Exception:  # noqa: BLE001
-        return []
-
-
 DEFAULT_NOTES_TEMPLATE = """\
 # Enter notes below the line with the cut mark (ASCII scissors and
 # dashes).  Lines above the cut mark (such as this one) will be ignored.
@@ -3070,6 +3154,15 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 ),
                 extra={'color': ctx.color},
             )
+        for service_name in sorted(maybe_config['services'].keys()):
+            if not _is_completable_item(service_name):
+                logger.warning(
+                    _msg.TranslatedString(
+                        _msg.WarnMsgTemplate.SERVICE_NAME_INCOMPLETABLE,
+                        service=service_name,
+                    ),
+                    extra={'color': ctx.color},
+                )
         try:
             _check_for_misleading_passphrase(
                 ('global',),
@@ -3336,6 +3429,14 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                         setting=setting,
                     )
                     raise click.UsageError(str(err_msg))
+            if not _is_completable_item(service):
+                logger.warning(
+                    _msg.TranslatedString(
+                        _msg.WarnMsgTemplate.SERVICE_NAME_INCOMPLETABLE,
+                        service=service,
+                    ),
+                    extra={'color': ctx.color},
+                )
             subtree: dict[str, Any] = (
                 configuration['services'].setdefault(service, {})  # type: ignore[assignment]
                 if service
