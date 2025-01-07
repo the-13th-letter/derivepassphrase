@@ -1031,6 +1031,7 @@ class ErrMsgTemplate(enum.Enum):
         Cannot understand the SSH agent's response because it violates
         the communications protocol.
         """,
+        context='error message',
     )
     CANNOT_UPDATE_SETTINGS_NO_SETTINGS = _prepare_translatable(
         comments=r"""
