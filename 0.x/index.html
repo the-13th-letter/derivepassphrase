@@ -1266,10 +1266,10 @@
 <p><a href="https://pypi.org/project/derivepassphrase"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/derivepassphrase.svg" /></a>
 <a href="https://pypi.org/project/derivepassphrase"><img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/derivepassphrase.svg" /></a></p>
 <p>An almost faithful Python reimplementation of <a href="https://www.npmjs.com/package/vault">James Coglan&rsquo;s <code>vault</code></a>, a deterministic password manager/generator.</p>
-<p>Using a master passphrase or a master SSH key, derive a passphrase for a given named service, subject to length, character and character repetition constraints.
-The derivation is cryptographically strong, meaning that even if a single passphrase is compromised, guessing the master passphrase or a different service&rsquo;s passphrase is computationally infeasible.
-The derivation is also deterministic, given the same inputs, thus the resulting passphrase need not be stored explicitly.
-The service name and constraints themselves also need not be kept secret; the latter are usually stored in a world-readable file.</p>
+<p>Using a master passphrase or a master SSH key, derive a passphrase for a given named service, subject to length, character and character repetition constraints.</p>
+<p>The derivation is <em>strong</em>: derived passphrases have as much entropy as permitted by the master passphrase and the passphrase constraints (whichever is more restrictive), and even if multiple derived passphrases are compromised, the master passphrase remains cryptographically difficult to discern from these compromised passphrases.
+The derivation is also <em>deterministic</em>, given the same inputs, thus the resulting passphrase need not be stored explicitly.</p>
+<p>The service name and constraints themselves also need not be kept secret; the latter are usually stored in a world-readable file to ease repeated entry of passphrase constraints.</p>
 <hr />
 <h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
 <h3 id="with-pip">With <code>pip</code><a class="headerlink" href="#with-pip" title="Permanent link">&para;</a></h3>
@@ -1282,7 +1282,9 @@ The service name and constraints themselves also need not be kept secret; the la
 <h3 id="manually">Manually<a class="headerlink" href="#manually" title="Permanent link">&para;</a></h3>
 <p><code>derivepassphrase</code> is a pure Python package, and may be easily installed manually by placing the respective files and the package&rsquo;s dependencies into Python&rsquo;s import path.
 <code>derivepassphrase</code> requires Python 3.9 or higher as well as the <a href="https://pypi.org/project/typing-extensions/">typing-extensions package</a> for its core functionality and programmatic interface, and <a href="https://pypi.org/project/click/"><code>click</code></a> 8.1 or higher for its command-line interface.
+On Python 3.9 and 3.10 only, <code>derivepassphrase</code> additionally requires the <a href="https://pypi.org/project/tomli/">tomli package</a>.
 Using the <code>export vault</code> subcommand additionally requires the <a href="https://pypi.org/project/cryptography/">cryptography package</a>, version 38.0 or newer.</p>
+<p><code>derivepassphrase</code> works just fine on PyPy.</p>
 <h2 id="quick-usage">Quick Usage<a class="headerlink" href="#quick-usage" title="Permanent link">&para;</a></h2>
 <p><code>derivepassphrase</code> is designed to principally support multiple passphrase derivation schemes, but currently only the &ldquo;<a href="https://www.npmjs.com/package/vault">vault</a>&rdquo; scheme is implemented.</p>
 <p>Using the passphrase <code>This passphrase is for demonstration purposes only.</code> when prompted:</p>
