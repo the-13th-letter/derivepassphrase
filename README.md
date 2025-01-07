@@ -6,9 +6,11 @@
 An almost faithful Python reimplementation of [James Coglan's `vault`][VAULT], a deterministic password manager/generator.
 
 Using a master passphrase or a master SSH key, derive a passphrase for a given named service, subject to length, character and character repetition constraints.
-The derivation is cryptographically strong, meaning that even if a single passphrase is compromised, guessing the master passphrase or a different service's passphrase is computationally infeasible.
-The derivation is also deterministic, given the same inputs, thus the resulting passphrase need not be stored explicitly.
-The service name and constraints themselves also need not be kept secret; the latter are usually stored in a world-readable file.
+
+The derivation is *strong*: derived passphrases have as much entropy as permitted by the master passphrase and the passphrase constraints (whichever is more restrictive), and even if multiple derived passphrases are compromised, the master passphrase remains cryptographically difficult to discern from these compromised passphrases.
+The derivation is also *deterministic*, given the same inputs, thus the resulting passphrase need not be stored explicitly.
+
+The service name and constraints themselves also need not be kept secret; the latter are usually stored in a world-readable file to ease repeated entry of passphrase constraints.
 
 [VAULT]: https://www.npmjs.com/package/vault
 
