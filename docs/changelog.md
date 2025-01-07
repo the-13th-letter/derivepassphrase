@@ -30,6 +30,86 @@ effectively constitute a new <q>major</q> release.)
 
 <!-- scriv changelog start -->
 
+## 0.4.0 (2025-01-07)
+
+### Added
+
+  - Both `derivepassphrase vault` and `derivepassphrase export vault` now
+    support changing the amount of diagnostic output they emit via new
+    command-line options `--debug`, `-v`/`--verbose` and `-q`/`--quiet`.
+    Internally, this uses Python's standard [logging][] and [warnings][]
+    systems.
+
+  - `derivepassphrase` now uses a central configuration file, and additional
+    data files, some of which are service-specific.  (The `vault.json`
+    configuration file is now rebranded as a data file.)  The configuration
+    files are user-editable, the data files are `derivepassphrase`-editable.
+
+    The configuration files are in TOML format, so installing
+    `derivepassphrase` on Python 3.10 and older requires the
+    [`tomli`][tomli] package.
+
+  - `derivepassphrase vault --config` now supports an `--unset` option which
+    unsets any given named setting prior to applying any other configuration
+    changes.
+
+  - `derivepassphrase vault --export` can now also export the current
+    configuration as a POSIX `sh` script, using the `--export-as=sh` option.
+    The default (and previous behavior) is `--export-as=json`.
+
+  - `derivepassphrase` now includes basic support for localization: if the
+    necessary translations are installed, then the diagnostics and help
+    texts can be emitted in different languages.  Internally, this uses
+    Python's standard [`gettext`][] system.
+
+    (As of this version, no translations have actually been prepared yet.)
+
+  - `derivepassphrase` now explicitly supports shell completion, in
+    particular filename and service name completion in the `export vault`
+    and `vault` subcommands.
+
+    However, because of restrictions regarding the exchange of data between
+    `derivepassphrase` and the shell, `derivepassphrase` will not offer any
+    service names containing ASCII control characters for completion, and
+    a warning will be issued when importing or configuring such a service.
+    They may still otherwise be used normally.
+
+  - Support the semi-standard `NO_COLOR` and the `FORCE_COLOR` environment
+    variables to suppress or force color output from `derivepassphrase`.
+    (`FORCE_COLOR` overrides `NO_COLOR` if both are set.)
+
+[tomli]: https://pypi.org/project/tomli/
+
+### Changed
+
+  - Calling [`derivepassphrase_export`]
+    [derivepassphrase.cli.derivepassphrase_export],
+    [`derivepassphrase_export_vault`]
+    [derivepassphrase.cli.derivepassphrase_export_vault] or
+    [`derivepassphrase_vault`]
+    [derivepassphrase.cli.derivepassphrase_vault], or calling
+    [`derivepassphrase`] [derivepassphrase.cli.derivepassphrase] via its
+    [`.main`][click.BaseCommand.main] method, causes those functions to use
+    the standard Python [logging][] and [warnings][] facilities to issue
+    diagnostic messages, without output to standard error.  (This includes
+    using [`click.testing.CliRunner`][], which uses `.main` calls under the
+    hood.)  Calling [`derivepassphrase`]
+    [derivepassphrase.cli.derivepassphrase] directly as a function diverts
+    diagnostic messages to standard error.
+
+  - Unicode normalization settings for `vault` service names and stored
+    passphrases are now stored in the central configuration file, instead of
+    the `vault` data file.
+
+  - `derivepassphrase` changed its license from [MIT][] to [zlib/libpng][].
+    This should only make a difference to people redistributing altered
+    versions of `derivepassphrase`; the basic freedoms, and the
+    combinability of `derivepassphrase` with other software should be
+    unaffected.
+
+[MIT]: https://spdx.org/licenses/MIT.html
+[zlib/libpng]: https://spdx.org/licenses/Zlib.html
+
 ## 0.3.3 (2024-11-28)
 
 ### Added
