@@ -36,10 +36,14 @@ $ pip install "derivepassphrase[export]"
 
 `derivepassphrase` is a pure Python package, and may be easily installed manually by placing the respective files and the package's dependencies into Python's import path.
 `derivepassphrase` requires Python 3.9 or higher as well as the [typing-extensions package][TYPING_EXTENSIONS] for its core functionality and programmatic interface, and [`click`][CLICK] 8.1 or higher for its command-line interface.
+On Python 3.9 and 3.10 only, `derivepassphrase` additionally requires the [tomli package][TOMLI].
 Using the `export vault` subcommand additionally requires the [cryptography package][CRYPTOGRAPHY], version 38.0 or newer.
+
+`derivepassphrase` works just fine on PyPy.
 
 [TYPING_EXTENSIONS]: https://pypi.org/project/typing-extensions/
 [CLICK]: https://pypi.org/project/click/
+[TOMLI]: https://pypi.org/project/tomli/
 [CRYPTOGRAPHY]: https://pypi.org/project/cryptography/
 
 ## Quick Usage
