@@ -39,9 +39,9 @@ class TestStaticFunctionality:
         self, public_key: bytes, public_key_data: bytes
     ) -> None:
         keydata = base64.b64decode(public_key.split(None, 2)[1])
-        assert (
-            keydata == public_key_data
-        ), "recorded public key data doesn't match"
+        assert keydata == public_key_data, (
+            "recorded public key data doesn't match"
+        )
 
     @pytest.mark.parametrize(
         ['line', 'env_name', 'value'],
@@ -348,13 +348,13 @@ class TestAgentInteraction:
             click.echo(base64.standard_b64encode(key).decode('ASCII'))
 
         runner = click.testing.CliRunner(mix_stderr=True)
-        _result = runner.invoke(
+        result_ = runner.invoke(
             driver,
             [],
             input=('yes\n' if single else f'{index}\n'),
             catch_exceptions=True,
         )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         for snippet in ('Suitable SSH keys:\n', text, f'\n{b64_key}\n'):
             assert result.clean_exit(output=snippet), 'expected clean exit'
 
@@ -659,7 +659,8 @@ class TestAgentInteraction:
             client = stack.enter_context(ssh_agent.SSHAgentClient())
             monkeypatch2.setattr(client, 'request', request)
             with pytest.raises(
-                RuntimeError, match='Malformed response|does not match request'
+                RuntimeError,
+                match=r'Malformed response|does not match request',
             ):
                 client.query_extensions()
 

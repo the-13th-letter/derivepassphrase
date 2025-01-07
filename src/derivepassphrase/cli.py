@@ -1104,6 +1104,7 @@ def standard_logging_options(f: Callable[P, R]) -> Callable[P, R]:
     """
     return debug_option(verbose_option(quiet_option(f)))
 
+
 # Shell completion
 # ================
 
@@ -1123,9 +1124,9 @@ def _shell_complete_path(
     parameter: click.Parameter,
     value: str,
 ) -> list[str | click.shell_completion.CompletionItem]:
-    """Request standard path completion for the `path` argument."""
+    """Request standard path completion for the `path` argument."""  # noqa: DOC201
     del ctx, parameter, value
-    return [click.shell_completion.CompletionItem('', type='file')]  # noqa: DOC201
+    return [click.shell_completion.CompletionItem('', type='file')]
 
 
 # The standard `click` shell completion scripts serialize the completion
@@ -1161,7 +1162,7 @@ def _is_completable_item(obj: object) -> bool:
 
     """
     obj = str(obj)
-    forbidden = frozenset(chr(i) for i in range(32)) | {'\x7F'}
+    forbidden = frozenset(chr(i) for i in range(32)) | {'\x7f'}
     return not any(f in obj for f in forbidden)
 
 
@@ -1293,7 +1294,7 @@ class _DefaultToVaultGroup(CommandWithHelpGroups, click.Group):
         derivepassphrase".  Furthermore, all "pragma" and "noqa" comments
         are also modifications for derivepassphrase.
 
-        """
+        """  # noqa: DOC201
         cmd_name = click.utils.make_str(args[0])
 
         # Get the command
@@ -1334,7 +1335,7 @@ class _DefaultToVaultGroup(CommandWithHelpGroups, click.Group):
             #
             # END modifications for derivepassphrase
             ####
-        return cmd_name if cmd else None, cmd, args[1:]  # noqa: DOC201
+        return cmd_name if cmd else None, cmd, args[1:]
 
 
 class _TopLevelCLIEntryPoint(_DefaultToVaultGroup):
@@ -1799,7 +1800,7 @@ def _save_config(config: _types.VaultConfig, /) -> None:
         ValueError:
             The data cannot be stored as a vault(1)-compatible config.
 
-    """
+    """  # noqa: DOC501
     if not _types.is_vault_config(config):
         raise ValueError(_INVALID_VAULT_CONFIG)
     filename = _config_filename(subsystem='vault')
@@ -1808,7 +1809,7 @@ def _save_config(config: _types.VaultConfig, /) -> None:
         os.makedirs(filedir, exist_ok=False)
     except FileExistsError:
         if not os.path.isdir(filedir):
-            raise  # noqa: DOC501
+            raise
     with open(filename, 'w', encoding='UTF-8') as fileobj:
         json.dump(config, fileobj)
 
@@ -2040,7 +2041,7 @@ def _prompt_for_passphrase() -> str:
 
     """
     return cast(
-        str,
+        'str',
         click.prompt(
             'Passphrase',
             default='',
@@ -2794,7 +2795,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             `--export`, selects the format to export the current
             configuration as: JSON ("json", default) or POSIX sh ("sh").
 
-    """
+    """  # noqa: DOC501
     logger = logging.getLogger(PROG_NAME)
     deprecation = logging.getLogger(PROG_NAME + '.deprecation')
     service_metavar = _msg.TranslatedString(_msg.Label.VAULT_METAVAR_SERVICE)
@@ -2817,7 +2818,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             elif isinstance(param, StandardOption):
                 group = StandardOption
             elif isinstance(param, OptionGroupOption):  # pragma: no cover
-                raise AssertionError(  # noqa: DOC501,TRY003,TRY004
+                raise AssertionError(  # noqa: TRY003,TRY004
                     f'Unknown option group for {param!r}'  # noqa: EM102
                 )
             else:
@@ -3002,7 +3003,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 param=param.opts[0],
                 service_metavar=service_metavar,
             )
-            raise click.UsageError(str(err_msg))  # noqa: DOC501
+            raise click.UsageError(str(err_msg))
     sv_options = [params_by_str['--notes'], params_by_str['--delete']]
     for param in sv_options:
         if is_param_set(param) and not service is not None:
@@ -3041,7 +3042,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         assert service is not None
         configuration = get_config()
         text = DEFAULT_NOTES_TEMPLATE + configuration['services'].get(
-            service, cast(_types.VaultConfigServicesSettings, {})
+            service, cast('_types.VaultConfigServicesSettings', {})
         ).get('notes', '')
         notes_value = click.edit(text=text)
         if notes_value is not None:
@@ -3080,7 +3081,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             # TODO(the-13th-letter): keep track of auto-close; try
             # os.dup if feasible
             infile = cast(
-                TextIO,
+                'TextIO',
                 (
                     import_settings
                     if hasattr(import_settings, 'close')
@@ -3166,14 +3167,14 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         try:
             _check_for_misleading_passphrase(
                 ('global',),
-                cast(dict[str, Any], maybe_config.get('global', {})),
+                cast('dict[str, Any]', maybe_config.get('global', {})),
                 main_config=user_config,
                 ctx=ctx,
             )
             for key, value in maybe_config['services'].items():
                 _check_for_misleading_passphrase(
                     ('services', key),
-                    cast(dict[str, Any], value),
+                    cast('dict[str, Any]', value),
                     main_config=user_config,
                     ctx=ctx,
                 )
@@ -3242,7 +3243,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             # TODO(the-13th-letter): keep track of auto-close; try
             # os.dup if feasible
             outfile = cast(
-                TextIO,
+                'TextIO',
                 (
                     export_settings
                     if hasattr(export_settings, 'close')
@@ -3307,10 +3308,10 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 if k in service_keys and v is not None
             },
             cast(
-                dict[str, Any],
+                'dict[str, Any]',
                 configuration['services'].get(service, {}) if service else {},
             ),
-            cast(dict[str, Any], configuration.get('global', {})),
+            cast('dict[str, Any]', configuration.get('global', {})),
         )
         if not store_config_only and not service:
             err_msg = _msg.TranslatedString(
@@ -3451,9 +3452,9 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 for setting in unset_settings:
                     subtree.pop(setting, None)
             subtree.update(view)
-            assert _types.is_vault_config(
-                configuration
-            ), f'Invalid vault configuration: {configuration!r}'
+            assert _types.is_vault_config(configuration), (
+                f'Invalid vault configuration: {configuration!r}'
+            )
             put_config(configuration)
         else:
             assert service is not None

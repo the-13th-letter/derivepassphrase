@@ -6,9 +6,11 @@
 An almost faithful Python reimplementation of [James Coglan's `vault`][VAULT], a deterministic password manager/generator.
 
 Using a master passphrase or a master SSH key, derive a passphrase for a given named service, subject to length, character and character repetition constraints.
-The derivation is cryptographically strong, meaning that even if a single passphrase is compromised, guessing the master passphrase or a different service's passphrase is computationally infeasible.
-The derivation is also deterministic, given the same inputs, thus the resulting passphrase need not be stored explicitly.
-The service name and constraints themselves also need not be kept secret; the latter are usually stored in a world-readable file.
+
+The derivation is *strong*: derived passphrases have as much entropy as permitted by the master passphrase and the passphrase constraints (whichever is more restrictive), and even if multiple derived passphrases are compromised, the master passphrase remains cryptographically difficult to discern from these compromised passphrases.
+The derivation is also *deterministic*, given the same inputs, thus the resulting passphrase need not be stored explicitly.
+
+The service name and constraints themselves also need not be kept secret; the latter are usually stored in a world-readable file to ease repeated entry of passphrase constraints.
 
 [VAULT]: https://www.npmjs.com/package/vault
 
@@ -36,10 +38,14 @@ $ pip install "derivepassphrase[export]"
 
 `derivepassphrase` is a pure Python package, and may be easily installed manually by placing the respective files and the package's dependencies into Python's import path.
 `derivepassphrase` requires Python 3.9 or higher as well as the [typing-extensions package][TYPING_EXTENSIONS] for its core functionality and programmatic interface, and [`click`][CLICK] 8.1 or higher for its command-line interface.
+On Python 3.9 and 3.10 only, `derivepassphrase` additionally requires the [tomli package][TOMLI].
 Using the `export vault` subcommand additionally requires the [cryptography package][CRYPTOGRAPHY], version 38.0 or newer.
+
+`derivepassphrase` works just fine on PyPy.
 
 [TYPING_EXTENSIONS]: https://pypi.org/project/typing-extensions/
 [CLICK]: https://pypi.org/project/click/
+[TOMLI]: https://pypi.org/project/tomli/
 [CRYPTOGRAPHY]: https://pypi.org/project/cryptography/
 
 ## Quick Usage

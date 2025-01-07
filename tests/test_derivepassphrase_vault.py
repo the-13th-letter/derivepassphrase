@@ -350,9 +350,9 @@ class TestHypotheses:
                 # appear via the other character class.
                 assert True
             else:
-                assert (
-                    sum(c in Vault._CHARSETS[key] for c in password) == 0
-                ), 'Password does not satisfy character ban constraints.'
+                assert sum(c in Vault._CHARSETS[key] for c in password) == 0, (
+                    'Password does not satisfy character ban constraints.'
+                )
 
         T = TypeVar('T', str, bytes)
 
@@ -363,9 +363,9 @@ class TestHypotheses:
         repeat = config['repeat']
         if repeat:
             for snippet in length_r_substrings(password, r=(repeat + 1)):
-                assert (
-                    len(set(snippet)) > 1
-                ), 'Password does not satisfy character repeat constraints.'
+                assert len(set(snippet)) > 1, (
+                    'Password does not satisfy character repeat constraints.'
+                )
 
     @tests.hypothesis_settings_coverage_compatible
     @hypothesis.given(

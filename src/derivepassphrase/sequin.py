@@ -194,7 +194,7 @@ class Sequin:
             >>> Sequin._big_endian_number([1, 7, 5, 5], base=8) == 0o1755
             True
 
-        """
+        """  # noqa: DOC501
         if base < 2:  # noqa: PLR2004
             msg = f'invalid base: {base!r}'
             raise ValueError(msg)
@@ -206,7 +206,7 @@ class Sequin:
             x = digits[i]
             if not isinstance(x, int):
                 msg = f'not an integer: {x!r}'
-                raise TypeError(msg)  # noqa: DOC501
+                raise TypeError(msg)
             if x not in allowed_range:
                 msg = f'invalid base {base!r} digit: {x!r}'
                 raise ValueError(msg)

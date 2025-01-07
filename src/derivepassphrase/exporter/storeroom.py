@@ -739,9 +739,9 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
                 # Of course, the type checker doesn't necessarily know
                 # this, so we need to use assertions anyway.
                 maybe_obj = obj.get(part)
-                assert isinstance(
-                    maybe_obj, dict
-                ), f'Cannot traverse storage path {_dir!r}'
+                assert isinstance(maybe_obj, dict), (
+                    f'Cannot traverse storage path {_dir!r}'
+                )
                 obj = maybe_obj
         if set(obj.keys()) != set(namelist):
             msg = f'Object key mismatch for path {_dir!r}'

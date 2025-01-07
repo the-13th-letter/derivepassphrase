@@ -201,12 +201,12 @@ class SSHAgentClient:
             >>> SSHAgentClient.string(b'ssh-rsa')
             b'\x00\x00\x00\x07ssh-rsa'
 
-        """
+        """  # noqa: DOC501
         try:
             payload = memoryview(payload)
         except TypeError as e:
             msg = 'invalid payload type'
-            raise TypeError(msg) from e  # noqa: DOC501
+            raise TypeError(msg) from e
         ret = bytearray()
         ret.extend(cls.uint32(len(payload)))
         ret.extend(payload)
@@ -326,7 +326,7 @@ class SSHAgentClient:
                 `conn` was a socket or `None`, and there was an error
                 setting up a socket connection to the agent.
 
-        """
+        """  # noqa: DOC501
         # Use match/case here once Python 3.9 becomes unsupported.
         if isinstance(conn, SSHAgentClient):
             with contextlib.nullcontext():
@@ -337,7 +337,7 @@ class SSHAgentClient:
         else:  # pragma: no cover
             assert_never(conn)
             msg = f'invalid connection hint: {conn!r}'
-            raise TypeError(msg)  # noqa: DOC501
+            raise TypeError(msg)
 
     def _agent_is_pageant(self) -> bool:
         """Return True if we are connected to Pageant.
@@ -641,10 +641,10 @@ class SSHAgentClient:
         msg = 'Malformed response from SSH agent'
         msg2 = 'Extension response message does not match request'
         try:
-            _query, response_data = self.unstring_prefix(response_data)
+            query, response_data = self.unstring_prefix(response_data)
         except ValueError as e:
             raise RuntimeError(msg) from e
-        if bytes(_query) != b'query':
+        if bytes(query) != b'query':
             raise RuntimeError(msg2)
         while response_data:
             try:

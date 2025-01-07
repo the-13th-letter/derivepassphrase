@@ -46,11 +46,11 @@ class TestCLI:
             vault_key=tests.VAULT_MASTER_KEY,
         ):
             monkeypatch.setenv('VAULT_KEY', tests.VAULT_MASTER_KEY)
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ['VAULT_PATH'],
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
         assert json.loads(result.output) == tests.VAULT_V03_CONFIG_DATA
 
@@ -61,11 +61,11 @@ class TestCLI:
             runner=runner,
             vault_config=tests.VAULT_V03_CONFIG,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ['-k', tests.VAULT_MASTER_KEY, '.vault'],
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
         assert json.loads(result.output) == tests.VAULT_V03_CONFIG_DATA
 
@@ -105,11 +105,11 @@ class TestCLI:
             runner=runner,
             vault_config=config,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ['-f', format, '-k', tests.VAULT_MASTER_KEY, 'VAULT_PATH'],
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
         assert json.loads(result.output) == config_data
 
@@ -128,15 +128,15 @@ class TestCLI:
             vault_config=tests.VAULT_V03_CONFIG,
             vault_key=tests.VAULT_MASTER_KEY,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ['does-not-exist.txt'],
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error=(
                 "Cannot parse 'does-not-exist.txt' "
-                "as a valid vault-native config"
+                'as a valid vault-native config'
             ),
             record_tuples=caplog.record_tuples,
         ), 'expected error exit and known error message'
@@ -154,11 +154,11 @@ class TestCLI:
             vault_config='',
             vault_key=tests.VAULT_MASTER_KEY,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ['.vault'],
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error="Cannot parse '.vault' as a valid vault-native config",
             record_tuples=caplog.record_tuples,
@@ -177,11 +177,11 @@ class TestCLI:
             vault_config=tests.VAULT_V02_CONFIG,
             vault_key=tests.VAULT_MASTER_KEY,
         ):
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ['-f', 'v0.3', '.vault'],
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error="Cannot parse '.vault' as a valid vault-native config",
             record_tuples=caplog.record_tuples,
@@ -205,11 +205,11 @@ class TestCLI:
                 return None
 
             monkeypatch.setattr(cli, '_load_data', _load_data)
-            _result = runner.invoke(
+            result_ = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ['.vault'],
             )
-        result = tests.ReadableResult.parse(_result)
+        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error='Invalid vault config: ',
             record_tuples=caplog.record_tuples,
@@ -353,8 +353,7 @@ class TestStoreroom:
 
     def test_404_decrypt_keys_wrong_data_length(self) -> None:
         payload = (
-            b"Any text here, as long as it isn't "
-            b'exactly 64 or 96 bytes long.'
+            b"Any text here, as long as it isn't exactly 64 or 96 bytes long."
         )
         assert len(payload) not in frozenset({
             2 * storeroom.KEY_SIZE,

@@ -232,6 +232,9 @@ class Vault:
         Returns:
             The estimated sufficient hash length.
 
+        Raises:
+            ValueError: The safety factor is less than 1, or not finite.
+
         Warning:
             This is a heuristic, not an exact computation; it may
             underestimate the true necessary hash length.  It is
@@ -239,18 +242,18 @@ class Vault:
             hash length, usually by doubling the hash length each time
             it does not yet prove so.
 
-        """
+        """  # noqa: DOC501
         try:
             safety_factor = float(safety_factor)
         except TypeError as e:
             msg = f'invalid safety factor: not a float: {safety_factor!r}'
-            raise TypeError(msg) from e  # noqa: DOC501
+            raise TypeError(msg) from e
         if not math.isfinite(safety_factor) or safety_factor < 1.0:
             msg = f'invalid safety factor {safety_factor!r}'
-            raise ValueError(msg)  # noqa: DOC501
+            raise ValueError(msg)
         # Ensure the bound is strictly positive.
         entropy_bound = max(1, self._entropy())
-        return int(math.ceil(safety_factor * entropy_bound / 8))
+        return math.ceil(safety_factor * entropy_bound / 8)
 
     @staticmethod
     def _get_binary_string(s: bytes | bytearray | str, /) -> bytes:
