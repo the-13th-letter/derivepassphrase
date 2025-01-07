@@ -993,7 +993,7 @@ def version_option_callback(
     ctx: click.Context,
     param: click.Parameter,
     value: bool,  # noqa: FBT001
-) -> None:  # pragma: no cover
+) -> None:
     del param
     if value and not ctx.resilient_parsing:
         click.echo(
@@ -1027,9 +1027,9 @@ def color_forcing_callback(
 ) -> None:
     """Force the `click` context to honor `NO_COLOR` and `FORCE_COLOR`."""
     del param, value
-    if os.environ.get('NO_COLOR'):  # pragma: no cover
+    if os.environ.get('NO_COLOR'):
         ctx.color = False
-    if os.environ.get('FORCE_COLOR'):  # pragma: no cover
+    if os.environ.get('FORCE_COLOR'):
         ctx.color = True
 
 
@@ -2730,13 +2730,13 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 group = LoggingOption
             elif isinstance(param, CompatibilityOption):
                 group = CompatibilityOption
-            elif isinstance(param, StandardOption):  # pragma: no branch
+            elif isinstance(param, StandardOption):
                 group = StandardOption
             elif isinstance(param, OptionGroupOption):  # pragma: no cover
                 raise AssertionError(  # noqa: DOC501,TRY003,TRY004
                     f'Unknown option group for {param!r}'  # noqa: EM102
                 )
-            else:  # pragma: no cover
+            else:
                 group = click.Option
             options_in_group.setdefault(group, []).append(param)
         params_by_str[param.human_readable_name] = param
@@ -2911,7 +2911,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     sv_or_global_options = options_in_group[PassphraseGenerationOption]
     for param in sv_or_global_options:
         if is_param_set(param) and not (
-            service or is_param_set(params_by_str['--config'])
+            service is not None or is_param_set(params_by_str['--config'])
         ):
             err_msg = _msg.TranslatedString(
                 _msg.ErrMsgTemplate.PARAMS_NEEDS_SERVICE_OR_CONFIG,
@@ -2921,7 +2921,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             raise click.UsageError(str(err_msg))  # noqa: DOC501
     sv_options = [params_by_str['--notes'], params_by_str['--delete']]
     for param in sv_options:
-        if is_param_set(param) and not service:
+        if is_param_set(param) and not service is not None:
             err_msg = _msg.TranslatedString(
                 _msg.ErrMsgTemplate.PARAMS_NEEDS_SERVICE,
                 param=param.opts[0],
@@ -2934,7 +2934,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         *options_in_group[StorageManagementOption],
     ]
     for param in no_sv_options:
-        if is_param_set(param) and service:
+        if is_param_set(param) and service is not None:
             err_msg = _msg.TranslatedString(
                 _msg.ErrMsgTemplate.PARAMS_NO_SERVICE,
                 param=param.opts[0],
@@ -3215,10 +3215,18 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             },
             cast(
                 dict[str, Any],
-                configuration['services'].get(service or '', {}),
+                configuration['services'].get(service, {}) if service else {},
             ),
             cast(dict[str, Any], configuration.get('global', {})),
         )
+        if not store_config_only and not service:
+            err_msg = _msg.TranslatedString(
+                _msg.ErrMsgTemplate.SERVICE_REQUIRED,
+                service_metavar=_msg.TranslatedString(
+                    _msg.Label.VAULT_METAVAR_SERVICE
+                ),
+            )
+            raise click.UsageError(str(err_msg))
         if use_key:
             try:
                 key = base64.standard_b64encode(
@@ -3288,7 +3296,6 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 view['key'] = key
             elif use_phrase:
                 view['phrase'] = phrase
-                settings_type = 'service' if service else 'global'
                 try:
                     _check_for_misleading_passphrase(
                         ('services', service) if service else ('global',),
@@ -3306,20 +3313,15 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     )
                 if 'key' in settings:
                     if service:
-                        logger.warning(
-                            _msg.TranslatedString(
-                                _msg.WarnMsgTemplate.SERVICE_PASSPHRASE_INEFFECTIVE,
-                                service=json.dumps(service),
-                            ),
-                            extra={'color': ctx.color},
+                        w_msg = _msg.TranslatedString(
+                            _msg.WarnMsgTemplate.SERVICE_PASSPHRASE_INEFFECTIVE,
+                            service=json.dumps(service),
                         )
                     else:
-                        logger.warning(
-                            _msg.TranslatedString(
-                                _msg.WarnMsgTemplate.GLOBAL_PASSPHRASE_INEFFECTIVE
-                            ),
-                            extra={'color': ctx.color},
+                        w_msg = _msg.TranslatedString(
+                            _msg.WarnMsgTemplate.GLOBAL_PASSPHRASE_INEFFECTIVE
                         )
+                    logger.warning(w_msg, extra={'color': ctx.color})
             if not view.maps[0] and not unset_settings:
                 settings_type = 'service' if service else 'global'
                 err_msg = _msg.TranslatedString(
@@ -3350,14 +3352,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             ), f'Invalid vault configuration: {configuration!r}'
             put_config(configuration)
         else:
-            if not service:
-                err_msg = _msg.TranslatedString(
-                    _msg.ErrMsgTemplate.SERVICE_REQUIRED,
-                    service_metavar=_msg.TranslatedString(
-                        _msg.Label.VAULT_METAVAR_SERVICE
-                    ),
-                )
-                raise click.UsageError(str(err_msg))
+            assert service is not None
             kwargs: dict[str, Any] = {
                 k: v
                 for k, v in settings.items()
