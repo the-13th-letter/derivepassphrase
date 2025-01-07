@@ -2041,7 +2041,7 @@ def _prompt_for_passphrase() -> str:
 
     """
     return cast(
-        str,
+        'str',
         click.prompt(
             'Passphrase',
             default='',
@@ -3042,7 +3042,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         assert service is not None
         configuration = get_config()
         text = DEFAULT_NOTES_TEMPLATE + configuration['services'].get(
-            service, cast(_types.VaultConfigServicesSettings, {})
+            service, cast('_types.VaultConfigServicesSettings', {})
         ).get('notes', '')
         notes_value = click.edit(text=text)
         if notes_value is not None:
@@ -3081,7 +3081,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             # TODO(the-13th-letter): keep track of auto-close; try
             # os.dup if feasible
             infile = cast(
-                TextIO,
+                'TextIO',
                 (
                     import_settings
                     if hasattr(import_settings, 'close')
@@ -3167,14 +3167,14 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         try:
             _check_for_misleading_passphrase(
                 ('global',),
-                cast(dict[str, Any], maybe_config.get('global', {})),
+                cast('dict[str, Any]', maybe_config.get('global', {})),
                 main_config=user_config,
                 ctx=ctx,
             )
             for key, value in maybe_config['services'].items():
                 _check_for_misleading_passphrase(
                     ('services', key),
-                    cast(dict[str, Any], value),
+                    cast('dict[str, Any]', value),
                     main_config=user_config,
                     ctx=ctx,
                 )
@@ -3243,7 +3243,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             # TODO(the-13th-letter): keep track of auto-close; try
             # os.dup if feasible
             outfile = cast(
-                TextIO,
+                'TextIO',
                 (
                     export_settings
                     if hasattr(export_settings, 'close')
@@ -3308,10 +3308,10 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 if k in service_keys and v is not None
             },
             cast(
-                dict[str, Any],
+                'dict[str, Any]',
                 configuration['services'].get(service, {}) if service else {},
             ),
-            cast(dict[str, Any], configuration.get('global', {})),
+            cast('dict[str, Any]', configuration.get('global', {})),
         )
         if not store_config_only and not service:
             err_msg = _msg.TranslatedString(

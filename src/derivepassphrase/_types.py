@@ -10,6 +10,7 @@ import collections
 import enum
 import json
 import math
+import string
 from typing import TYPE_CHECKING
 
 from typing_extensions import (
@@ -195,11 +196,11 @@ def json_path(path: Sequence[str | int], /) -> str:
 
     def needs_longhand(x: str | int) -> bool:
         initial = (
-            frozenset('abcdefghijklmnopqrstuvwxyz')
-            | frozenset('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+            frozenset(string.ascii_lowercase)
+            | frozenset(string.ascii_uppercase)
             | frozenset('_')
         )
-        chars = initial | frozenset('0123456789')
+        chars = initial | frozenset(string.digits)
         return not (
             isinstance(x, str)
             and x
@@ -413,7 +414,7 @@ def js_truthiness(value: Any, /) -> bool:  # noqa: ANN401
 
     """  # noqa: RUF002
     try:
-        if value in {None, False, 0, 0.0, ''}:
+        if value in {None, False, 0, 0.0, ''}:  # noqa: B033
             return False
     except TypeError:
         # All falsy values are hashable, so this can't be falsy.

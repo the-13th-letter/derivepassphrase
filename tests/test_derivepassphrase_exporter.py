@@ -97,7 +97,7 @@ class Test001ExporterUtils:
     ) -> None:
         monkeypatch.setattr(os.path, 'expanduser', lambda x: x)
         with pytest.raises(
-            RuntimeError, match='[Cc]annot determine home directory'
+            RuntimeError, match=r'[Cc]annot determine home directory'
         ):
             exporter.get_vault_path()
 

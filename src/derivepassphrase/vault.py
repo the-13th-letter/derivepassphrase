@@ -253,7 +253,7 @@ class Vault:
             raise ValueError(msg)
         # Ensure the bound is strictly positive.
         entropy_bound = max(1, self._entropy())
-        return int(math.ceil(safety_factor * entropy_bound / 8))
+        return math.ceil(safety_factor * entropy_bound / 8)
 
     @staticmethod
     def _get_binary_string(s: bytes | bytearray | str, /) -> bytes:

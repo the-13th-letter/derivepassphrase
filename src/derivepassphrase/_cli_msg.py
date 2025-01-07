@@ -163,7 +163,7 @@ class TranslatedString:
         if isinstance(
             template, (Label, InfoMsgTemplate, WarnMsgTemplate, ErrMsgTemplate)
         ):
-            template = cast(TranslatableString, template.value)
+            template = cast('TranslatableString', template.value)
         self.template = template
         self.kwargs = {**args_dict, **kwargs}
         self._rendered: str | None = None

@@ -659,7 +659,8 @@ class TestAgentInteraction:
             client = stack.enter_context(ssh_agent.SSHAgentClient())
             monkeypatch2.setattr(client, 'request', request)
             with pytest.raises(
-                RuntimeError, match='Malformed response|does not match request'
+                RuntimeError,
+                match=r'Malformed response|does not match request',
             ):
                 client.query_extensions()
 
