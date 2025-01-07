@@ -2,78 +2,86 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2025-01-07</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/_future/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2025-01-07</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/changelog/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2025-01-07</lastmod>
+    </url>
+    <url>
+         <loc>https://the13thletter.info/derivepassphrase/0.x/explanation/</loc>
+         <lastmod>2025-01-07</lastmod>
+    </url>
+    <url>
+         <loc>https://the13thletter.info/derivepassphrase/0.x/explanation/faq-altered-versions/</loc>
+         <lastmod>2025-01-07</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/how-tos/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2025-01-07</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/how-tos/ssh-key/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2025-01-07</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2025-01-07</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase-export-vault.1/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2025-01-07</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase-export.1/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2025-01-07</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase-vault.1/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2025-01-07</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase.1/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2025-01-07</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase._types/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2025-01-07</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase.cli/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2025-01-07</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase.exporter/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2025-01-07</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase.sequin/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2025-01-07</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase.ssh_agent/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2025-01-07</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase.vault/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2025-01-07</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/prerequisites-ssh-key/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2025-01-07</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/tutorials/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2025-01-07</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/tutorials/basic-setup-passphrase/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2025-01-07</lastmod>
     </url>
 </urlset>

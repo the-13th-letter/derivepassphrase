@@ -174,6 +174,26 @@
   
   
   
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../explanation/" class="md-tabs__link">
+          
+  
+    
+  
+  Design & Background
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
     <li class="md-tabs__item">
       <a href="../../changelog/" class="md-tabs__link">
         
@@ -1049,6 +1069,92 @@
   
   
   
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../explanation/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Design & Background
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Design & Background
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/faq-altered-versions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    "altered versions" license requirement
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../changelog/" class="md-nav__link">
         
@@ -1355,9 +1461,9 @@ Because we are using a master passphrase, we also need the <code>-p</code> optio
 <div class="highlight"><pre><span></span><code><span class="gp">$ </span>derivepassphrase<span class="w"> </span>vault<span class="w"> </span>--config<span class="w"> </span>--length<span class="w"> </span><span class="m">12</span><span class="w"> </span>--space<span class="w"> </span><span class="m">0</span><span class="w"> </span>--upper<span class="w"> </span><span class="m">1</span><span class="w"> </span>--lower<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
 <span class="gp">&gt; </span><span class="w">                       </span>--number<span class="w"> </span><span class="m">1</span><span class="w"> </span>--repeat<span class="w"> </span><span class="m">3</span><span class="w"> </span>email
 </code></pre></div>
-<div class="admonition warning">
-<p class="admonition-title">Warning: <code>-p</code> and <code>--config</code></p>
-<p>Do <strong>not</strong> use the <code>-p</code> and the <code>--config</code> options together to store the master passphrase!
+<div class="admonition danger">
+<p class="admonition-title">Security risk: use of <code>-p</code> and <code>--config</code></p>
+<p>You are <strong>strongly discouraged</strong> from using the <code>-p</code> and the <code>--config</code> options together to store the master passphrase!
 The configuration is assumed to <em>not contain sensitive contents</em> and is <em>not encrypted</em>, so your master passphrase is then visible to <em>anyone</em> with appropriate privileges!</p>
 </div>
 <p>Check that the settings are stored correctly:</p>
@@ -1507,7 +1613,7 @@ Our configuration should look like this:</p>
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      Copyright &copy; 2024 Marco Ricci (the-13th-letter)
+      Copyright &copy; 2025 Marco Ricci (the-13th-letter)
     </div>
   
   
