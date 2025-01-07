@@ -1104,6 +1104,7 @@ def standard_logging_options(f: Callable[P, R]) -> Callable[P, R]:
     """
     return debug_option(verbose_option(quiet_option(f)))
 
+
 # Shell completion
 # ================
 
@@ -1161,7 +1162,7 @@ def _is_completable_item(obj: object) -> bool:
 
     """
     obj = str(obj)
-    forbidden = frozenset(chr(i) for i in range(32)) | {'\x7F'}
+    forbidden = frozenset(chr(i) for i in range(32)) | {'\x7f'}
     return not any(f in obj for f in forbidden)
 
 

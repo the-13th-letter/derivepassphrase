@@ -295,7 +295,7 @@ class TestAllCLI:
             (['export', 'vault'], ['--format', 'this-format-doesnt-exist']),
             (['vault'], []),
             (['vault'], ['--export', './']),
-        ]
+        ],
     )
     @pytest.mark.parametrize('arguments', [['--help'], ['--version']])
     def test_200_eager_options(
@@ -328,7 +328,7 @@ class TestAllCLI:
                 ['vault', '--import', '-'],
                 '{"services": {"": {"length": 20}}}',
             ),
-        ]
+        ],
     )
     def test_201_no_color_force_color(
         self,
@@ -1559,6 +1559,7 @@ contents go here
             runner=runner,
             vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
+
             def func(
                 *_args: Any,
                 **_kwargs: Any,
@@ -1588,6 +1589,7 @@ contents go here
             runner=runner,
             vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
+
             def raiser(*_args: Any, **_kwargs: Any) -> None:
                 raise ssh_agent.TrailingDataError()
 
@@ -1614,6 +1616,7 @@ contents go here
             runner=runner,
             vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
+
             def func(*_args: Any, **_kwargs: Any) -> NoReturn:
                 raise ssh_agent.SSHAgentFailedError(
                     _types.SSH_AGENT.FAILURE, b''
@@ -3544,7 +3547,7 @@ def zsh_format(item: click.shell_completion.CompletionItem) -> str:
 
 
 def completion_item(
-    item: str | click.shell_completion.CompletionItem
+    item: str | click.shell_completion.CompletionItem,
 ) -> click.shell_completion.CompletionItem:
     return (
         click.shell_completion.CompletionItem(item, type='plain')
@@ -3554,14 +3557,13 @@ def completion_item(
 
 
 def assertable_item(
-    item: str | click.shell_completion.CompletionItem
+    item: str | click.shell_completion.CompletionItem,
 ) -> tuple[str, Any, str | None]:
     item = completion_item(item)
     return (item.type, item.value, item.help)
 
 
 class TestShellCompletion:
-
     class Completions:
         def __init__(
             self,
@@ -3596,7 +3598,7 @@ class TestShellCompletion:
             ('\x7f', False),
             ('service with spaces', True),
             ('service\nwith\nnewlines', False),
-        ]
+        ],
     )
     def test_100_is_completable_item(
         self,
@@ -3766,39 +3768,39 @@ class TestShellCompletion:
         file = click.shell_completion.CompletionItem('', type='file')
         completions = frozenset({(file.type, file.value, file.help)})
         comp = self.Completions(command_prefix, incomplete)
-        assert frozenset(
-            (x.type, x.value, x.help) for x in comp()
-        ) == completions
+        assert (
+            frozenset((x.type, x.value, x.help) for x in comp()) == completions
+        )
 
     @pytest.mark.parametrize(
         ['config', 'incomplete', 'completions'],
         [
             pytest.param(
-                {"services": {}},
+                {'services': {}},
                 '',
                 frozenset(),
                 id='no_services',
             ),
             pytest.param(
-                {"services": {}},
+                {'services': {}},
                 'partial',
                 frozenset(),
                 id='no_services_partial',
             ),
             pytest.param(
-                {"services": {DUMMY_SERVICE: {"length": 10}}},
+                {'services': {DUMMY_SERVICE: {'length': 10}}},
                 '',
                 frozenset({DUMMY_SERVICE}),
                 id='one_service',
             ),
             pytest.param(
-                {"services": {DUMMY_SERVICE: {"length": 10}}},
+                {'services': {DUMMY_SERVICE: {'length': 10}}},
                 DUMMY_SERVICE[:4],
                 frozenset({DUMMY_SERVICE}),
                 id='one_service_partial',
             ),
             pytest.param(
-                {"services": {DUMMY_SERVICE: {"length": 10}}},
+                {'services': {DUMMY_SERVICE: {'length': 10}}},
                 DUMMY_SERVICE[-4:],
                 frozenset(),
                 id='one_service_partial_miss',
@@ -3833,7 +3835,7 @@ class TestShellCompletion:
         ['config', 'comp_func', 'args', 'incomplete', 'results'],
         [
             pytest.param(
-                {"services": {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}},
+                {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}},
                 cli._shell_complete_service,
                 ['vault'],
                 '',
@@ -3841,7 +3843,7 @@ class TestShellCompletion:
                 id='base_config-service',
             ),
             pytest.param(
-                {"services": {}},
+                {'services': {}},
                 cli._shell_complete_service,
                 ['vault'],
                 '',
@@ -3850,9 +3852,9 @@ class TestShellCompletion:
             ),
             pytest.param(
                 {
-                    "services": {
+                    'services': {
                         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        "newline\nin\nname": DUMMY_CONFIG_SETTINGS.copy(),
+                        'newline\nin\nname': DUMMY_CONFIG_SETTINGS.copy(),
                     }
                 },
                 cli._shell_complete_service,
@@ -3863,9 +3865,9 @@ class TestShellCompletion:
             ),
             pytest.param(
                 {
-                    "services": {
+                    'services': {
                         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        "backspace\bin\bname": DUMMY_CONFIG_SETTINGS.copy(),
+                        'backspace\bin\bname': DUMMY_CONFIG_SETTINGS.copy(),
                     }
                 },
                 cli._shell_complete_service,
@@ -3876,9 +3878,9 @@ class TestShellCompletion:
             ),
             pytest.param(
                 {
-                    "services": {
+                    'services': {
                         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        "colon:in:name": DUMMY_CONFIG_SETTINGS.copy(),
+                        'colon:in:name': DUMMY_CONFIG_SETTINGS.copy(),
                     }
                 },
                 cli._shell_complete_service,
@@ -3889,13 +3891,13 @@ class TestShellCompletion:
             ),
             pytest.param(
                 {
-                    "services": {
+                    'services': {
                         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        "colon:in:name": DUMMY_CONFIG_SETTINGS.copy(),
-                        "newline\nin\nname": DUMMY_CONFIG_SETTINGS.copy(),
-                        "backspace\bin\bname": DUMMY_CONFIG_SETTINGS.copy(),
-                        "nul\x00in\x00name": DUMMY_CONFIG_SETTINGS.copy(),
-                        "del\x7fin\x7fname": DUMMY_CONFIG_SETTINGS.copy(),
+                        'colon:in:name': DUMMY_CONFIG_SETTINGS.copy(),
+                        'newline\nin\nname': DUMMY_CONFIG_SETTINGS.copy(),
+                        'backspace\bin\bname': DUMMY_CONFIG_SETTINGS.copy(),
+                        'nul\x00in\x00name': DUMMY_CONFIG_SETTINGS.copy(),
+                        'del\x7fin\x7fname': DUMMY_CONFIG_SETTINGS.copy(),
                     }
                 },
                 cli._shell_complete_service,
@@ -3905,7 +3907,7 @@ class TestShellCompletion:
                 id='brittle_incompletable_multi_config-service',
             ),
             pytest.param(
-                {"services": {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}},
+                {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}},
                 cli._shell_complete_path,
                 ['vault', '--import'],
                 '',
@@ -3913,7 +3915,7 @@ class TestShellCompletion:
                 id='base_config-path',
             ),
             pytest.param(
-                {"services": {}},
+                {'services': {}},
                 cli._shell_complete_path,
                 ['vault', '--import'],
                 '',
@@ -3930,7 +3932,7 @@ class TestShellCompletion:
         config: _types.VaultConfig,
         comp_func: Callable[
             [click.Context, click.Parameter, str],
-            list[str | click.shell_completion.CompletionItem]
+            list[str | click.shell_completion.CompletionItem],
         ],
         args: list[str],
         incomplete: str,
@@ -3942,26 +3944,18 @@ class TestShellCompletion:
             runner=runner,
             vault_config=config,
         ):
-            expected_items = [
-                assertable_item(item)
-                for item in results
-            ]
+            expected_items = [assertable_item(item) for item in results]
             expected_string = '\n'.join(
-                format_func(completion_item(item))
-                for item in results
+                format_func(completion_item(item)) for item in results
             )
             manual_raw_items = comp_func(
                 click.Context(cli.derivepassphrase),
                 click.Argument(['sample_parameter']),
                 incomplete,
             )
-            manual_items = [
-                assertable_item(item)
-                for item in manual_raw_items
-            ]
+            manual_items = [assertable_item(item) for item in manual_raw_items]
             manual_string = '\n'.join(
-                format_func(completion_item(item))
-                for item in manual_raw_items
+                format_func(completion_item(item)) for item in manual_raw_items
             )
             assert manual_items == expected_items
             assert manual_string == expected_string
@@ -3981,10 +3975,7 @@ class TestShellCompletion:
             actual_raw_items = comp.get_completions(
                 *comp.get_completion_args()
             )
-            actual_items = [
-                assertable_item(item)
-                for item in actual_raw_items
-            ]
+            actual_items = [assertable_item(item) for item in actual_raw_items]
             actual_string = comp.complete()
             assert actual_items == expected_items
             assert actual_string == expected_string
@@ -3995,9 +3986,9 @@ class TestShellCompletion:
         [
             pytest.param(
                 {
-                    "services": {
-                        DUMMY_SERVICE: {"length": 10},
-                        "newline\nin\nname": {"length": 10},
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'newline\nin\nname': {'length': 10},
                     },
                 },
                 'newline\nin\nname',
@@ -4007,9 +3998,9 @@ class TestShellCompletion:
             ),
             pytest.param(
                 {
-                    "services": {
-                        DUMMY_SERVICE: {"length": 10},
-                        "newline\nin\nname": {"length": 10},
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'newline\nin\nname': {'length': 10},
                     },
                 },
                 'newline\nin\nname',
@@ -4019,9 +4010,9 @@ class TestShellCompletion:
             ),
             pytest.param(
                 {
-                    "services": {
-                        DUMMY_SERVICE: {"length": 10},
-                        "newline\nin\nname": {"length": 10},
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'newline\nin\nname': {'length': 10},
                     },
                 },
                 'newline\nin\nname',
@@ -4031,9 +4022,9 @@ class TestShellCompletion:
             ),
             pytest.param(
                 {
-                    "services": {
-                        DUMMY_SERVICE: {"length": 10},
-                        "nul\x00in\x00name": {"length": 10},
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'nul\x00in\x00name': {'length': 10},
                     },
                 },
                 'nul\x00in\x00name',
@@ -4043,9 +4034,9 @@ class TestShellCompletion:
             ),
             pytest.param(
                 {
-                    "services": {
-                        DUMMY_SERVICE: {"length": 10},
-                        "nul\x00in\x00name": {"length": 10},
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'nul\x00in\x00name': {'length': 10},
                     },
                 },
                 'nul\x00in\x00name',
@@ -4055,9 +4046,9 @@ class TestShellCompletion:
             ),
             pytest.param(
                 {
-                    "services": {
-                        DUMMY_SERVICE: {"length": 10},
-                        "nul\x00in\x00name": {"length": 10},
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'nul\x00in\x00name': {'length': 10},
                     },
                 },
                 'nul\x00in\x00name',
@@ -4067,9 +4058,9 @@ class TestShellCompletion:
             ),
             pytest.param(
                 {
-                    "services": {
-                        DUMMY_SERVICE: {"length": 10},
-                        "backspace\bin\bname": {"length": 10},
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'backspace\bin\bname': {'length': 10},
                     },
                 },
                 'backspace\bin\bname',
@@ -4079,9 +4070,9 @@ class TestShellCompletion:
             ),
             pytest.param(
                 {
-                    "services": {
-                        DUMMY_SERVICE: {"length": 10},
-                        "backspace\bin\bname": {"length": 10},
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'backspace\bin\bname': {'length': 10},
                     },
                 },
                 'backspace\bin\bname',
@@ -4091,9 +4082,9 @@ class TestShellCompletion:
             ),
             pytest.param(
                 {
-                    "services": {
-                        DUMMY_SERVICE: {"length": 10},
-                        "backspace\bin\bname": {"length": 10},
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'backspace\bin\bname': {'length': 10},
                     },
                 },
                 'backspace\bin\bname',
@@ -4103,9 +4094,9 @@ class TestShellCompletion:
             ),
             pytest.param(
                 {
-                    "services": {
-                        DUMMY_SERVICE: {"length": 10},
-                        "del\x7fin\x7fname": {"length": 10},
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'del\x7fin\x7fname': {'length': 10},
                     },
                 },
                 'del\x7fin\x7fname',
@@ -4115,9 +4106,9 @@ class TestShellCompletion:
             ),
             pytest.param(
                 {
-                    "services": {
-                        DUMMY_SERVICE: {"length": 10},
-                        "del\x7fin\x7fname": {"length": 10},
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'del\x7fin\x7fname': {'length': 10},
                     },
                 },
                 'del\x7fin\x7fname',
@@ -4127,9 +4118,9 @@ class TestShellCompletion:
             ),
             pytest.param(
                 {
-                    "services": {
-                        DUMMY_SERVICE: {"length": 10},
-                        "del\x7fin\x7fname": {"length": 10},
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'del\x7fin\x7fname': {'length': 10},
                     },
                 },
                 'del\x7fin\x7fname',

@@ -136,7 +136,7 @@ class TestCLI:
         assert result.error_exit(
             error=(
                 "Cannot parse 'does-not-exist.txt' "
-                "as a valid vault-native config"
+                'as a valid vault-native config'
             ),
             record_tuples=caplog.record_tuples,
         ), 'expected error exit and known error message'
