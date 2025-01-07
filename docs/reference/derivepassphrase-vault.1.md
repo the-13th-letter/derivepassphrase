@@ -340,7 +340,7 @@ The <b>derivepassphrase vault</b> utility exits 0 on success, and >0 if an error
 
     (Exactly what it says.)
 
-??? failure "`Cannot update %s settings without actual settings.`"
+??? failure "`Cannot update the %s settings without actual settings.`"
 
     Using `--config` requires at least one of the `--phrase`, `--key`, `--length`, etc. options.
 

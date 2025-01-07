@@ -3416,10 +3416,13 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                         )
                     logger.warning(w_msg, extra={'color': ctx.color})
             if not view.maps[0] and not unset_settings:
-                settings_type = 'service' if service else 'global'
                 err_msg = _msg.TranslatedString(
                     _msg.ErrMsgTemplate.CANNOT_UPDATE_SETTINGS_NO_SETTINGS,
-                    settings_type=settings_type,
+                    settings_type=_msg.TranslatedString(
+                        _msg.Label.CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_SERVICE
+                        if service
+                        else _msg.Label.CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_GLOBAL  # noqa: E501
+                    ),
                 )
                 raise click.UsageError(str(err_msg))
             for setting in unset_settings:

@@ -227,6 +227,32 @@ class Label(enum.Enum):
     WARNING_LABEL = _prepare_translatable(
         'Warning', comments='', context='diagnostic label'
     )
+    CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_GLOBAL = (
+        _prepare_translatable(
+            comments=r"""
+            TRANSLATORS: This is one of two values of the settings_type
+            metavar used in the CANNOT_UPDATE_SETTINGS_NO_SETTINGS
+            entry.  It is only used there.  The full sentence then
+            reads: "Cannot update the global settings without any given
+            settings."
+            """,
+            msg='global settings',
+            context='diagnostic label (metavar value)',
+        )
+    )
+    CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_SERVICE = (
+        _prepare_translatable(
+            comments=r"""
+            TRANSLATORS: This is one of two values of the settings_type
+            metavar used in the CANNOT_UPDATE_SETTINGS_NO_SETTINGS
+            entry.  It is only used there.  The full sentence then
+            reads: "Cannot update the service-specific settings without
+            any given settings."
+            """,
+            msg='service-specific settings',
+            context='diagnostic label (metavar value)',
+        )
+    )
     DERIVEPASSPHRASE_01 = _prepare_translatable(
         msg="""
         Derive a strong passphrase, deterministically, from a master secret.
@@ -1007,12 +1033,23 @@ class ErrMsgTemplate(enum.Enum):
         """,
     )
     CANNOT_UPDATE_SETTINGS_NO_SETTINGS = _prepare_translatable(
-        msg=r"""
-        Cannot update {settings_type!s} settings without any given
-        settings.  You must specify at least one of --lower, ...,
-        --symbol, or --phrase or --key.
+        comments=r"""
+        TRANSLATORS: The settings_type metavar contains translations for
+        either "global settings" or "service-specific settings"; see the
+        CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_GLOBAL and
+        CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_SERVICE entries.
+        The first sentence will thus read either "Cannot update the
+        global settings without any given settings." or "Cannot update
+        the service-specific settings without any given settings.".  You
+        may update this entry, and the two metavar entries, in any way
+        you see fit that achieves the desired translations of the first
+        sentence.
         """,
-        comments='',
+        msg=r"""
+        Cannot update the {settings_type!s} without any given settings.
+        You must specify at least one of --lower, ..., --symbol, or
+        --phrase or --key.
+        """,
         context='error message',
         flags='python-brace-format',
     )
