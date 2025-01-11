@@ -158,6 +158,22 @@ The compatibility and extension options modify the behavior to enable additional
 
 ### Other Options
 
+<b>-</b><b>-debug</b>
+:   Emit all diagnostic information to standard error, including progress, warning and error messages.
+
+    Cancels the effect of any previous <b>-</b><b>-quiet</b> or <b>-</b><b>-verbose</b> options.
+
+<b>-v</b>, <b>-</b><b>-verbose</b>
+:   Emit extra/progress information to standard error, on top of warning and error messages.
+
+    Cancels the effect of any previous <b>-</b><b>-debug</b> or <b>-</b><b>-quiet</b> options.
+
+<b>-q</b>, <b>-</b><b>-quiet</b>
+:   Suppress all other diagnostic output to standard error, except error messages.
+    This includes warning messages.
+
+    Cancels the effect of any previous <b>-</b><b>-debug</b> or <b>-</b><b>-verbose</b> options.
+
 <b>-</b><b>-version</b>
 :   Show the version and exit.
 
@@ -428,9 +444,6 @@ Exceptions:
 ### Forward and backward compatibility
 
   * [Since v0.2.0.]
-    In v1.0, the commands <b>derivepassphrase</b> and <b>derivepassphrase export</b> will require an explicit subcommand name.
-    Both default to the subcommand <b>vault</b>.
-  * [Since v0.2.0.]
     In v1.0, the configuration data file for the <b>vault</b> subcommand will be named `vault.json`, instead of `config.json`.
   * [Since v0.2.0, to be removed in v1.0.]
     An existing configuration data file `config.json` will be attempted to be renamed to `vault.json`.
@@ -448,6 +461,7 @@ Exceptions:
 
 ## BUGS
 
-  * The defaults are dictated by <i>vault</i>(1), necessitating the ["Compatibility and extension options"](#compatibility-and-extension-options). (WONTFIX.)
+  * The defaults are dictated by <i>vault</i>(1), necessitating the ["Compatibility and extension options"](#compatibility-and-extension-options).
+    (WONTFIX.)
 
   * The Windows version does not support SSH keys because Python on Windows does not support the predominant type of inter-process communication used by SSH agents on Windows.

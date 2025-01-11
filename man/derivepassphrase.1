@@ -1,0 +1,157 @@
+.Dd 2025-01-11
+.Dt DERIVEPASSPHRASE 1
+.Os derivepassphrase 0.4.0
+.
+.Sh NAME
+.
+.Nm derivepassphrase
+.Nd derive a strong passphrase, deterministically, from a master secret
+.
+.Sh SYNOPSIS
+.
+.Bd -ragged
+.Nm derivepassphrase
+.Ar SUBCOMMAND_ARGS No .\|.\|.
+.Ed
+.
+.Sh DESCRIPTION
+.
+Using a master secret, derive a passphrase for a named service, subject to
+constraints e.g.\& on passphrase length, allowed characters, etc.
+The exact derivation depends on the selected derivation scheme.
+Each scheme derives
+.Em strong
+passphrases by design:
+the derived passphrases have as much entropy as permitted by the master secret
+and the passphrase constraints
+.Pq whichever is more restrictive ,
+and even if multiple derived passphrases are compromised, the master secret
+remains cryptographically difficult to discern from those compromised
+passphrases.
+The derivations are also deterministic, given the same inputs, thus the
+resulting passphrsases need not be stored explicitly.
+The service name and constraints themselves also generally need not be kept
+secret, depending on the scheme.
+.
+.Sh SUBCOMMANDS
+.
+.Bl -tag -width ".Fl p , \-phrase"
+.
+.It Ar export
+Export a foreign configuration to standard output.
+.
+.It Ar vault
+Derive a passphrase using the
+.Xr vault 1
+derivation scheme.
+.
+.El
+.Pp
+.
+If no subcommand is given, we default to
+.Ar vault .
+.
+.Sh OPTIONS
+.
+.Bl -tag -width ".Fl p , \-phrase"
+.
+.It Fl \-debug
+Emit all diagnostic information to standard error, including progress,
+warning and error messages.
+.Pp
+.
+Cancels the effect of any previous
+.Fl \-quiet
+or
+.Fl \-verbose
+options.
+Also applies to subcommands.
+.
+.It Fl v , \-verbose
+Emit extra/progress information to standard error, on top of warning and
+error messages.
+.Pp
+.
+Cancels the effect of any previous
+.Fl \-debug
+or
+.Fl \-quiet
+options.
+Also applies to subcommands.
+.
+.It Fl q , \-quiet
+Suppress all other diagnostic output to standard error, except error
+messages.
+.Pp
+.
+Cancels the effect of any previous
+.Fl \-debug
+or
+.Fl \-verbose
+options.
+Also applies to subcommands.
+.
+.It Fl \-version
+Show the version and exit.
+.
+.It Fl h , \-help
+Show a help message and exit.
+.
+.El
+.
+.Sh ENVIRONMENT
+.
+.Bl -tag -width ".Fl p , \-phrase"
+.
+.It Ev DERIVEPASSPHRASE_PATH
+.Nm derivepassphrase
+stores its configuration files and data in this directory.
+Defaults to
+.Pa \(ti/.derivepassphrase
+on UNIX-like systems and
+.Pa C:\[rs]Users\[rs]<user>\[rs]AppData\[rs]Roaming\[rs]Derivepassphrase
+on Windows.
+.
+.El
+.
+.Sh COMPATIBILITY
+.
+.Ss With other software
+.
+Some derivation schemes are based on other software.
+See their respective manpages for compatibility information.
+.Pp
+.
+Affected derivation schemes:
+.Ar vault .
+.
+.Ss Forward and backward compatibility
+.
+.Bl -bullet
+.
+.It
+.Bo Since v0.2.0 . Bc
+In v1.0,
+.Nm derivepassphrase
+will require an explicit subcommand name.
+Defaults to the subcommand
+.Ic vault .
+.
+.El
+.
+.Sh SEE ALSO
+.
+.Xr derivepassphrase-export 1 ,
+.Xr derivepassphrase-vault 1 .
+.Pp
+.
+Further online documentation for
+.Xr derivepassphrase 1
+.Pq tutorials, how-tos, reference and design documentation
+is available at
+.Lk https://the13thletter.info/derivepassphrase/ .
+.
+.Sh AUTHOR
+.
+.Lk mailto:software@the13thletter.info "Marco Ricci"
+.

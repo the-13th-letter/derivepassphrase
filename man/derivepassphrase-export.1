@@ -1,0 +1,136 @@
+.Dd 2025-01-11
+.Dt DERIVEPASSPHRASE-EXPORT 1
+.Os derivepassphrase 0.4.0
+.
+.Sh NAME
+.
+.Nm derivepassphrase-export
+.Nd export a foreign configuration to standard output
+.
+.Sh SYNOPSIS
+.
+.Bd -ragged
+.Nm derivepassphrase export
+.Ar SUBCOMMAND_ARGS No .\|.\|.
+.Ed
+.
+.Sh DESCRIPTION
+.
+Read a foreign system configuration, extract all information from it,
+and export the resulting configuration to standard output.
+.
+.Sh SUBCOMMANDS
+.
+.Bl -tag -width ".Fl p , \-phrase"
+.
+.It Ar vault
+Export a
+.Xr vault 1
+.Ns -native
+configuration to standard output.
+.
+.El
+.Pp
+.
+If no subcommand is given, we default to
+.Ar vault .
+.
+.Sh OPTIONS
+.
+.Bl -tag -width ".Fl p , \-phrase"
+.
+.It Fl \-debug
+Emit all diagnostic information to standard error, including progress,
+warning and error messages.
+.Pp
+.
+Cancels the effect of any previous
+.Fl \-quiet
+or
+.Fl \-verbose
+options.
+Also applies to subcommands.
+.
+.It Fl v , \-verbose
+Emit extra/progress information to standard error, on top of warning and
+error messages.
+.Pp
+.
+Cancels the effect of any previous
+.Fl \-debug
+or
+.Fl \-quiet
+options.
+Also applies to subcommands.
+.
+.It Fl q , \-quiet
+Suppress all other diagnostic output to standard error, except error
+messages.
+.Pp
+.
+Cancels the effect of any previous
+.Fl \-debug
+or
+.Fl \-verbose
+options.
+Also applies to subcommands.
+.
+.It Fl \-version
+Show the version and exit.
+.
+.It Fl h , \-help
+Show a help message and exit.
+.
+.El
+.
+.Sh ENVIRONMENT
+.
+.Bl -tag -width ".Fl p , \-phrase"
+.
+.It Ev DERIVEPASSPHRASE_PATH
+.Nm derivepassphrase
+stores its configuration files and data in this directory.
+Defaults to
+.Pa \(ti/.derivepassphrase
+on UNIX-like systems and
+.Pa C:\[rs]Users\[rs]<user>\[rs]AppData\[rs]Roaming\[rs]Derivepassphrase
+on Windows.
+.
+.El
+.
+.Sh COMPATIBILITY
+.
+.Ss With other software
+.
+See the respective subcommand's manpage for compatibility information.
+.
+.Ss Forward and backward compatibility
+.
+.Bl -bullet
+.
+.It
+.Bo Since v0.2.0 . Bc
+In v1.0,
+.Nm derivepassphrase export
+will require an explicit subcommand name.
+Defaults to the subcommand
+.Ic vault .
+.
+.El
+.
+.Sh SEE ALSO
+.
+.Xr derivepassphrase 1 ,
+.Xr derivepassphrase-export-vault 1 .
+.Pp
+.
+Further online documentation for
+.Xr derivepassphrase 1
+.Pq tutorials, how-tos, reference and design documentation
+is available at
+.Lk https://the13thletter.info/derivepassphrase/ .
+.
+.Sh AUTHOR
+.
+.Lk mailto:software@the13thletter.info "Marco Ricci"
+.
