@@ -30,6 +30,7 @@ import logging
 import warnings
 from typing import TYPE_CHECKING
 
+from derivepassphrase import _cli_msg as _msg
 from derivepassphrase import exporter, vault
 
 if TYPE_CHECKING:
@@ -80,8 +81,8 @@ __all__ = ('export_vault_native_data',)
 logger = logging.getLogger(__name__)
 
 
-def _h(bs: bytes | bytearray) -> str:
-    return 'bytes.fromhex({!r})'.format(bs.hex(' '))
+def _h(bs: Buffer) -> str:
+    return '<{}>'.format(memoryview(bs).hex(' '))
 
 
 class VaultNativeConfigParser(abc.ABC):
@@ -174,19 +175,25 @@ class VaultNativeConfigParser(abc.ABC):
         ).derive(bytes(password))
         result_key = raw_key.hex().lower().encode('ASCII')
         logger.debug(
-            'binary = pbkdf2(%s, %s, %s, %s, %s) = %s -> %s',
-            repr(password),
-            repr(vault.Vault._UUID),  # noqa: SLF001
-            iterations,
-            key_size // 2,
-            repr('sha1'),
-            _h(raw_key),
-            _h(result_key),
+            _msg.TranslatedString(
+                _msg.DebugMsgTemplate.VAULT_NATIVE_PBKDF2_CALL,
+                password=password,
+                salt=vault.Vault._UUID,  # noqa: SLF001
+                iterations=iterations,
+                key_size=key_size // 2,
+                algorithm='sha1',
+                raw_result=raw_key,
+                result_key=result_key.decode('ASCII'),
+            ),
         )
         return result_key
 
     def _parse_contents(self) -> None:
-        logger.info('Parsing IV, payload and signature from the file contents')
+        logger.info(
+            _msg.TranslatedString(
+                _msg.InfoMsgTemplate.VAULT_NATIVE_PARSING_IV_PAYLOAD_MAC,
+            ),
+        )
 
         if len(self._contents) < self._iv_size + 16 + self._mac_size:
             msg = 'Invalid vault configuration file: file is truncated'
@@ -202,15 +209,21 @@ class VaultNativeConfigParser(abc.ABC):
         self._iv, self._payload = cut(self._message, cutpos2)
 
         logger.debug(
-            'buffer %s = [[%s, %s], %s]',
-            _h(self._contents),
-            _h(self._iv),
-            _h(self._payload),
-            _h(self._message_tag),
+            _msg.TranslatedString(
+                _msg.DebugMsgTemplate.VAULT_NATIVE_PARSE_BUFFER,
+                contents=_h(self._contents),
+                iv=_h(self._iv),
+                payload=_h(self._payload),
+                mac=_h(self._message_tag),
+            ),
         )
 
     def _derive_keys(self) -> None:
-        logger.info('Deriving an encryption and signing key')
+        logger.info(
+            _msg.TranslatedString(
+                _msg.InfoMsgTemplate.VAULT_NATIVE_DERIVING_KEYS,
+            ),
+        )
         self._generate_keys()
         assert len(self._encryption_key) == self._encryption_key_size, (
             'Derived encryption key is invalid'
@@ -224,13 +237,19 @@ class VaultNativeConfigParser(abc.ABC):
         raise AssertionError
 
     def _check_signature(self) -> None:
-        logger.info('Checking HMAC signature')
+        logger.info(
+            _msg.TranslatedString(
+                _msg.InfoMsgTemplate.VAULT_NATIVE_CHECKING_MAC,
+            ),
+        )
         mac = hmac.HMAC(self._signing_key, hashes.SHA256())
         mac_input = self._hmac_input()
         logger.debug(
-            'mac_input = %s, expected_tag = %s',
-            _h(mac_input),
-            _h(self._message_tag),
+            _msg.TranslatedString(
+                _msg.DebugMsgTemplate.VAULT_NATIVE_CHECKING_MAC_DETAILS,
+                mac_input=_h(mac_input),
+                mac=_h(self._message_tag),
+            ),
         )
         mac.update(mac_input)
         try:
@@ -244,16 +263,31 @@ class VaultNativeConfigParser(abc.ABC):
         raise AssertionError
 
     def _decrypt_payload(self) -> Any:  # noqa: ANN401
+        logger.info(
+            _msg.TranslatedString(
+                _msg.InfoMsgTemplate.VAULT_NATIVE_DECRYPTING_CONTENTS,
+            ),
+        )
         decryptor = self._make_decryptor()
         padded_plaintext = bytearray()
         padded_plaintext.extend(decryptor.update(self._payload))
         padded_plaintext.extend(decryptor.finalize())
-        logger.debug('padded plaintext = %s', _h(padded_plaintext))
+        logger.debug(
+            _msg.TranslatedString(
+                _msg.DebugMsgTemplate.VAULT_NATIVE_PADDED_PLAINTEXT,
+                contents=_h(padded_plaintext),
+            ),
+        )
         unpadder = padding.PKCS7(self._iv_size * 8).unpadder()
         plaintext = bytearray()
         plaintext.extend(unpadder.update(padded_plaintext))
         plaintext.extend(unpadder.finalize())
-        logger.debug('plaintext = %s', _h(plaintext))
+        logger.debug(
+            _msg.TranslatedString(
+                _msg.DebugMsgTemplate.VAULT_NATIVE_PLAINTEXT,
+                contents=_h(plaintext),
+            ),
+        )
         return json.loads(plaintext)
 
     @abc.abstractmethod
@@ -279,12 +313,6 @@ class VaultNativeV03ConfigParser(VaultNativeConfigParser):
         super().__init__(*args, **kwargs)
         self._iv_size = 16
         self._mac_size = 32
-
-    def __call__(self) -> Any:  # noqa: ANN401
-        if self._data is self._sentinel:
-            logger.info('Attempting to parse as v0.3 configuration')
-            return super().__call__()
-        return self._data
 
     def _generate_keys(self) -> None:
         self._encryption_key = self._pbkdf2(self._password, self.KEY_SIZE, 100)
@@ -323,17 +351,17 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
         self._iv_size = 16
         self._mac_size = 64
 
-    def __call__(self) -> Any:  # noqa: ANN401
-        if self._data is self._sentinel:
-            logger.info('Attempting to parse as v0.2 configuration')
-            return super().__call__()
-        return self._data
-
     def _parse_contents(self) -> None:
         super()._parse_contents()
-        logger.debug('Decoding payload (base64) and message tag (hex)')
         self._payload = base64.standard_b64decode(self._payload)
         self._message_tag = bytes.fromhex(self._message_tag.decode('ASCII'))
+        logger.debug(
+            _msg.TranslatedString(
+                _msg.DebugMsgTemplate.VAULT_NATIVE_V02_PAYLOAD_MAC_POSTPROCESSING,
+                payload=_h(self._payload),
+                mac=_h(self._message_tag),
+            ),
+        )
 
     def _generate_keys(self) -> None:
         self._encryption_key = self._pbkdf2(self._password, 8, 16)
@@ -353,16 +381,15 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
             last_block = b''
             salt = b''
             logger.debug(
-                (
-                    'data = %s, salt = %s, key_size = %s, iv_size = %s, '
-                    'buffer length = %s, buffer = %s'
+                _msg.TranslatedString(
+                    _msg.DebugMsgTemplate.VAULT_NATIVE_EVP_BYTESTOKEY_INIT,
+                    data=_h(data),
+                    salt=_h(salt),
+                    key_size=key_size,
+                    iv_size=iv_size,
+                    buffer_length=len(buffer),
+                    buffer=_h(buffer),
                 ),
-                _h(data),
-                _h(salt),
-                key_size,
-                iv_size,
-                len(buffer),
-                _h(buffer),
             )
             while len(buffer) < total_size:
                 with warnings.catch_warnings():
@@ -376,12 +403,18 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
                 last_block = block.finalize()
                 buffer.extend(last_block)
                 logger.debug(
-                    'buffer length = %s, buffer = %s', len(buffer), _h(buffer)
+                    _msg.TranslatedString(
+                        _msg.DebugMsgTemplate.VAULT_NATIVE_EVP_BYTESTOKEY_ROUND,
+                        buffer_length=len(buffer),
+                        buffer=_h(buffer),
+                    ),
                 )
             logger.debug(
-                'encryption_key = %s, iv = %s',
-                _h(buffer[:key_size]),
-                _h(buffer[key_size:total_size]),
+                _msg.TranslatedString(
+                    _msg.DebugMsgTemplate.VAULT_NATIVE_EVP_BYTESTOKEY_RESULT,
+                    enc_key=_h(buffer[:key_size]),
+                    iv=_h(buffer[key_size:total_size]),
+                ),
             )
             return bytes(buffer[:key_size]), bytes(buffer[key_size:total_size])
 

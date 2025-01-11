@@ -152,6 +152,7 @@ class TranslatedString:
             str
             | TranslatableString
             | Label
+            | DebugMsgTemplate
             | InfoMsgTemplate
             | WarnMsgTemplate
             | ErrMsgTemplate
@@ -161,7 +162,7 @@ class TranslatedString:
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
         if isinstance(
-            template, (Label, InfoMsgTemplate, WarnMsgTemplate, ErrMsgTemplate)
+            template, (Label, DebugMsgTemplate, InfoMsgTemplate, WarnMsgTemplate, ErrMsgTemplate)
         ):
             template = cast('TranslatableString', template.value)
         self.template = template
@@ -781,7 +782,376 @@ class Label(enum.Enum):
     )
 
 
+class DebugMsgTemplate(enum.Enum):
+    BUCKET_ITEM_FOUND = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This message is emitted by the vault configuration
+        exporter for "storeroom"-type configuration directories.  The
+        system stores entries in different "buckets" of a hash table.
+        Here, we report on a single item (path and value) we discovered
+        after decrypting the whole bucket.  (We ensure the path and
+        value are printable as-is.)
+        """,
+        msg='Found bucket item: {path} -> {value}',
+        context='debug message',
+        flags='python-brace-format',
+    )
+    DECRYPT_BUCKET_ITEM_INFO = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: "AES256-CBC" and "PKCS#7" are, in essence, names of
+        formats, and should not be translated.  "IV" means
+        "initialization vector", and is specifically a cryptographic
+        term, as are "plaintext" and "ciphertext".
+        """,
+        msg="""
+        Decrypt bucket item contents:
+
+          \b
+          Encryption key (master key): {enc_key}
+          Encryption cipher: AES256-CBC with PKCS#7 padding
+          Encryption IV: {iv}
+          Encrypted ciphertext: {ciphertext}
+          Plaintext: {plaintext}
+        """,
+        context='debug message',
+        flags='python-brace-format',
+    )
+    DECRYPT_BUCKET_ITEM_KEY_INFO = _prepare_translatable(
+        msg="""
+        Decrypt bucket item:
+
+          \b
+          Plaintext: {plaintext}
+          Encryption key (master key): {enc_key}
+          Signing key (master key): {sign_key}
+        """,
+        comments='',
+        context='debug message',
+        flags='python-brace-format',
+    )
+    DECRYPT_BUCKET_ITEM_MAC_INFO = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: The MAC stands for "message authentication code",
+        which guarantees the authenticity of the message to anyone who
+        holds the corresponding key, similar to a digital signature.
+        The acronym "MAC" is assumed to be well-known to the English
+        target audience, or at least discoverable by them; they *are*
+        asking for debug output, after all.  Please use your judgement
+        as to whether to translate this term or not, expanded or not.
+        """,
+        msg="""
+        Decrypt bucket item contents:
+
+          \b
+          MAC key: {sign_key}
+          Authenticated content: {ciphertext}
+          Claimed MAC value: {claimed_mac}
+          Computed MAC value: {actual_mac}
+        """,
+        context='debug message',
+        flags='python-brace-format',
+    )
+    DECRYPT_BUCKET_ITEM_SESSION_KEYS_INFO = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: "AES256-CBC" and "PKCS#7" are, in essence, names of
+        formats, and should not be translated.  "IV" means
+        "initialization vector", and is specifically a cryptographic
+        term, as are "plaintext" and "ciphertext".
+        """,
+        msg="""
+        Decrypt bucket item session keys:
+
+          \b
+          Encryption key (master key): {enc_key}
+          Encryption cipher: AES256-CBC with PKCS#7 padding
+          Encryption IV: {iv}
+          Encrypted ciphertext: {ciphertext}
+          Plaintext: {plaintext}
+          Parsed plaintext: {code}
+        """,
+        context='debug message',
+        flags='python-brace-format',
+    )
+    DECRYPT_BUCKET_ITEM_SESSION_KEYS_MAC_INFO = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: The MAC stands for "message authentication code",
+        which guarantees the authenticity of the message to anyone who
+        holds the corresponding key, similar to a digital signature.
+        The acronym "MAC" is assumed to be well-known to the English
+        target audience, or at least discoverable by them; they *are*
+        asking for debug output, after all.  Please use your judgement
+        as to whether to translate this term or not, expanded or not.
+        """,
+        msg="""
+        Decrypt bucket item session keys:
+
+          \b
+          MAC key (master key): {sign_key}
+          Authenticated content: {ciphertext}
+          Claimed MAC value: {claimed_mac}
+          Computed MAC value: {actual_mac}
+        """,
+        context='debug message',
+        flags='python-brace-format',
+    )
+    DERIVED_MASTER_KEYS_KEYS = _prepare_translatable(
+        msg="""
+        Derived master keys' keys:
+
+          \b
+          Encryption key: {enc_key}
+          Signing key: {sign_key}
+          Password: {pw_bytes}
+          Function call: pbkdf2(algorithm={algorithm!r}, length={length!r}, salt={salt!r}, iterations={iterations!r})
+
+        """,  # noqa: E501
+        comments='',
+        context='debug message',
+        flags='python-brace-format',
+    )
+    DIRECTORY_CONTENTS_CHECK_OK = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This message is emitted by the vault configuration
+        exporter for "storeroom"-type configuration directories, while
+        "assembling" the items stored in the configuration according to
+        the item's "path".  Each "directory" in the path contains a list
+        of children it claims to contain, and this list must be matched
+        against the actual discovered items.  Now, at the end, we
+        actually confirm the claim.  (We would have already thrown an
+        error here otherwise.)
+        """,
+        msg='Directory contents check OK: {path} -> {contents}',
+        context='debug message',
+        flags='python-brace-format',
+    )
+    MASTER_KEYS_DATA_MAC_INFO = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: The MAC stands for "message authentication code",
+        which guarantees the authenticity of the message to anyone who
+        holds the corresponding key, similar to a digital signature.
+        The acronym "MAC" is assumed to be well-known to the English
+        target audience, or at least discoverable by them; they *are*
+        asking for debug output, after all.  Please use your judgement
+        as to whether to translate this term or not, expanded or not.
+        """,
+        msg="""
+        Master keys data:
+
+          \b
+          MAC key: {sign_key}
+          Authenticated content: {ciphertext}
+          Claimed MAC value: {claimed_mac}
+          Computed MAC value: {actual_mac}
+        """,
+        context='debug message',
+        flags='python-brace-format',
+    )
+    POSTPONING_DIRECTORY_CONTENTS_CHECK = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This message is emitted by the vault configuration
+        exporter for "storeroom"-type configuration directories, while
+        "assembling" the items stored in the configuration according to
+        the item's "path".  Each "directory" in the path contains a list
+        of children it claims to contain, and this list must be matched
+        against the actual discovered items.  When emitting this
+        message, we merely indicate that we saved the "claimed" list for
+        this directory for later.
+        """,
+        msg='Postponing directory contents check: {path} -> {contents}',
+        context='debug message',
+        flags='python-brace-format',
+    )
+    SETTING_CONFIG_STRUCTURE_CONTENTS = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This message is emitted by the vault configuration
+        exporter for "storeroom"-type configuration directories, while
+        "assembling" the items stored in the configuration according to
+        the item's "path".  We confirm that we set the entry at the
+        given path to the given value.
+        """,
+        msg='Setting contents: {path} -> {value}',
+        context='debug message',
+        flags='python-brace-format',
+    )
+    SETTING_CONFIG_STRUCTURE_CONTENTS_EMPTY_DIRECTORY = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This message is emitted by the vault configuration
+        exporter for "storeroom"-type configuration directories, while
+        "assembling" the items stored in the configuration according to
+        the item's "path".  We confirm that we set up a currently empty
+        directory at the given path.
+        """,
+        msg='Setting contents (empty directory): {path}',
+        context='debug message',
+        flags='python-brace-format',
+    )
+    VAULT_NATIVE_EVP_BYTESTOKEY_INIT = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This message is emitted by the vault configuration
+        exporter for "native"-type configuration directories: in v0.2,
+        the non-standard and deprecated "EVP_bytestokey" function from
+        OpenSSL must be reimplemented from scratch.  The terms "salt"
+        and "IV" (initialization vector) are cryptographic terms.
+        """,
+        msg="""
+        evp_bytestokey_md5 (initialization):
+
+          \b
+          Input: {data}
+          Salt: {salt}
+          Key size: {key_size}
+          IV size: {iv_size}
+          Buffer length: {buffer_length}
+          Buffer: {buffer}
+        """,
+        context='debug message',
+        flags='python-brace-format',
+    )
+    VAULT_NATIVE_EVP_BYTESTOKEY_RESULT = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This message is emitted by the vault configuration
+        exporter for "native"-type configuration directories: in v0.2,
+        the non-standard and deprecated "EVP_bytestokey" function from
+        OpenSSL must be reimplemented from scratch.  The terms "salt"
+        and "IV" (initialization vector) are cryptographic terms.
+        This function reports on the updated buffer length and contents
+        after executing one round of hashing.
+        """,
+        msg="""
+        evp_bytestokey_md5 (result):
+
+          \b
+          Encryption key: {enc_key}
+          IV: {iv}
+        """,
+        context='debug message',
+        flags='python-brace-format',
+    )
+    VAULT_NATIVE_EVP_BYTESTOKEY_ROUND = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This message is emitted by the vault configuration
+        exporter for "native"-type configuration directories: in v0.2,
+        the non-standard and deprecated "EVP_bytestokey" function from
+        OpenSSL must be reimplemented from scratch.  The terms "salt"
+        and "IV" (initialization vector) are cryptographic terms.
+        This function reports on the updated buffer length and contents
+        after executing one round of hashing.
+        """,
+        msg="""
+        evp_bytestokey_md5 (round update):
+
+          \b
+          Buffer length: {buffer_length}
+          Buffer: {buffer}
+        """,
+        context='debug message',
+        flags='python-brace-format',
+    )
+    VAULT_NATIVE_CHECKING_MAC_DETAILS = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This message is emitted by the vault configuration
+        exporter for "native"-type configuration directories.  It is
+        preceded by the info message PARSING_IV_PAYLOAD_MAC; see the
+        commentary there concerning the terms and thoughts on
+        translating them.
+        """,
+        msg="""
+        MAC details:
+
+          \b
+          MAC input: {mac_input}
+          Expected MAC: {mac}
+        """,
+        context='debug message',
+        flags='python-brace-format',
+    )
+    VAULT_NATIVE_PADDED_PLAINTEXT = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This message is emitted by the vault configuration
+        exporter for "native"-type configuration directories.  "padding"
+        and "plaintext" are cryptographic terms.
+        """,
+        msg='Padded plaintext: {contents}',
+        context='debug message',
+        flags='python-brace-format',
+    )
+    VAULT_NATIVE_PARSE_BUFFER = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This message is emitted by the vault configuration
+        exporter for "native"-type configuration directories.  It is
+        preceded by the info message PARSING_IV_PAYLOAD_MAC; see the
+        commentary there concerning the terms and thoughts on
+        translating them.
+        """,
+        msg="""
+        Buffer: {contents}
+
+          \b
+          IV: {iv}
+          Payload: {payload}
+          MAC: {mac}
+        """,
+        context='debug message',
+        flags='python-brace-format',
+    )
+    VAULT_NATIVE_PLAINTEXT = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This message is emitted by the vault configuration
+        exporter for "native"-type configuration directories.
+        "plaintext" is a cryptographic term.
+        """,
+        msg='Plaintext: {contents}',
+        context='debug message',
+        flags='python-brace-format',
+    )
+    VAULT_NATIVE_PBKDF2_CALL = _prepare_translatable(
+        msg="""
+        Master key derivation:
+
+          \b
+          PBKDF2 call: PBKDF2-HMAC(password={password!r}, salt={salt!r}, iterations={iterations!r}, key_size={key_size!r}, algorithm={algorithm!r})
+          Result (binary): {raw_result}
+          Result (hex key): {result_key!r}
+        """,  # noqa: E501
+        comments='',
+        context='debug message',
+        flags='python-brace-format',
+    )
+    VAULT_NATIVE_V02_PAYLOAD_MAC_POSTPROCESSING = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This message is emitted by the vault configuration
+        exporter for "native"-type configuration directories.  It is
+        preceded by the info message PARSING_IV_PAYLOAD_MAC and the
+        debug message PARSING_NATIVE_PARSE_BUFFER; see the commentary
+        there concerning the terms and thoughts on translating them.
+        """,
+        msg="""
+        Postprocessing buffer (v0.2):
+
+          \b
+          Payload: {payload} (decoded from base64)
+          MAC: {mac} (decoded from hex)
+        """,
+        context='debug message',
+        flags='python-brace-format',
+    )
+
+
 class InfoMsgTemplate(enum.Enum):
+    ASSEMBLING_CONFIG_STRUCTURE = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This message is emitted by the vault configuration
+        exporter for "storeroom"-type configuration directories.  The
+        system stores entries in different "buckets" of a hash table.
+        After the respective items in the buckets have been decrypted,
+        we then have a list of item paths plus contents to populate.
+        This must be done in a certain order (we don't yet have an
+        existing directory tree to rely on, but rather must build it
+        on-the-fly), hence the term "assembling".
+        """,
+        msg='Assembling config structure',
+        context='info message',
+    )
     CANNOT_LOAD_AS_VAULT_CONFIG = _prepare_translatable(
         comments=r"""
         TRANSLATORS: "fmt" is a string such as "v0.2" or "storeroom",
@@ -791,6 +1161,40 @@ class InfoMsgTemplate(enum.Enum):
         msg='Cannot load {path!r} as a {fmt!s} vault configuration.',
         context='info message',
         flags='python-brace-format',
+    )
+    CHECKING_CONFIG_STRUCTURE_CONSISTENCY = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This message is emitted by the vault configuration
+        exporter for "storeroom"-type configuration directories.  Having
+        "assembled" the configuration items according to their claimed
+        paths and contents, we then check if the assembled structure is
+        internally consistent.
+        """,
+        msg='Checking config structure consistency',
+        context='info message',
+    )
+    DECRYPTING_BUCKET = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This message is emitted by the vault configuration
+        exporter for "storeroom"-type configuration directories.  The
+        system stores entries in different "buckets" of a hash table.
+        We parse the directory bucket by bucket.  All buckets are
+        numbered in hexadecimal, and typically there are 32 buckets, so
+        2-digit hex numbers.
+        """,
+        msg='Decrypting bucket {bucket_number}',
+        context='info message',
+        flags='python-brace-format',
+    )
+    PARSING_MASTER_KEYS_DATA = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This message is emitted by the vault configuration
+        exporter for "storeroom"-type configuration directories.
+        `.keys` is a filename, from which data about the master keys for
+        this configuration are loaded.
+        """,
+        msg='Parsing master keys data from .keys',
+        context='info message',
     )
     PIP_INSTALL_EXTRA = _prepare_translatable(
         comments=r"""
@@ -814,6 +1218,36 @@ class InfoMsgTemplate(enum.Enum):
         msg='Successfully migrated to {path!r}.',
         context='info message',
         flags='python-brace-format',
+    )
+    VAULT_NATIVE_CHECKING_MAC = _prepare_translatable(
+        msg='Checking MAC',
+        comments='',
+        context='info message',
+    )
+    VAULT_NATIVE_DECRYPTING_CONTENTS = _prepare_translatable(
+        msg='Decrypting contents',
+        comments='',
+        context='info message',
+    )
+    VAULT_NATIVE_DERIVING_KEYS = _prepare_translatable(
+        msg='Deriving an encryption and signing key',
+        comments='',
+        context='info message',
+    )
+    VAULT_NATIVE_PARSING_IV_PAYLOAD_MAC = _prepare_translatable(
+        comments=r"""
+        TRANSLATORS: This message is emitted by the vault configuration
+        exporter for "native"-type configuration directories.  "IV"
+        means "initialization vector", and "MAC" means "message
+        authentication code".  They are specifically cryptographic
+        terms, as is "payload".  The acronyms "IV" and "MAC" are assumed
+        to be well-known to the English target audience, or at least
+        discoverable by them; they *are* asking for debug output, after
+        all.  Please use your judgement as to whether to translate this
+        term or not, expanded or not.
+        """,
+        msg='Parsing IV, payload and MAC from the file contents',
+        context='info message',
     )
 
 
@@ -1250,11 +1684,12 @@ def _write_pot_file(fileobj: TextIO) -> None:  # pragma: no cover
         str,
         dict[
             str,
-            Label | InfoMsgTemplate | WarnMsgTemplate | ErrMsgTemplate,
+            Label | DebugMsgTemplate | InfoMsgTemplate | WarnMsgTemplate | ErrMsgTemplate,
         ],
     ] = {}
     for enum_class in (
         Label,
+        DebugMsgTemplate,
         InfoMsgTemplate,
         WarnMsgTemplate,
         ErrMsgTemplate,
@@ -1304,7 +1739,7 @@ def _write_pot_file(fileobj: TextIO) -> None:  # pragma: no cover
 
 
 def _format_po_entry(
-    enum_value: Label | InfoMsgTemplate | WarnMsgTemplate | ErrMsgTemplate,
+    enum_value: Label | DebugMsgTemplate | InfoMsgTemplate | WarnMsgTemplate | ErrMsgTemplate,
 ) -> tuple[str, ...]:  # pragma: no cover
     ret: list[str] = ['\n']
     ts = enum_value.value

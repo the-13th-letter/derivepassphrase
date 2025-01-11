@@ -31,6 +31,7 @@ import os.path
 import struct
 from typing import TYPE_CHECKING, Any, TypedDict
 
+from derivepassphrase import _cli_msg as _msg
 from derivepassphrase import exporter
 
 if TYPE_CHECKING:
@@ -39,6 +40,7 @@ if TYPE_CHECKING:
     from cryptography.hazmat.primitives import ciphers, hashes, hmac, padding
     from cryptography.hazmat.primitives.ciphers import algorithms, modes
     from cryptography.hazmat.primitives.kdf import pbkdf2
+    from typing_extensions import Buffer
 else:
     try:
         from cryptography.hazmat.primitives import (
@@ -77,6 +79,10 @@ VERSION_SIZE = 1
 __all__ = ('export_storeroom_data',)
 
 logger = logging.getLogger(__name__)
+
+
+def _h(bs: Buffer) -> str:
+    return '<{}>'.format(memoryview(bs).hex(' '))
 
 
 class KeyPair(TypedDict):
@@ -160,20 +166,16 @@ def derive_master_keys_keys(password: str | bytes, iterations: int) -> KeyPair:
         f'{KEY_SIZE}s {KEY_SIZE}s', master_keys_keys_blob
     )
     logger.debug(
-        (
-            'derived master_keys_keys bytes.fromhex(%s) (encryption) '
-            'and bytes.fromhex(%s) (signing) '
-            'from password bytes.fromhex(%s), '
-            'using call '
-            'pbkdf2(algorithm=%s, length=%d, salt=%s, iterations=%d)'
+        _msg.TranslatedString(
+            _msg.DebugMsgTemplate.DERIVED_MASTER_KEYS_KEYS,
+            enc_key=_h(encryption_key),
+            sign_key=_h(signing_key),
+            pw_bytes=_h(password),
+            algorithm='SHA256',
+            length=64,
+            salt=STOREROOM_MASTER_KEYS_UUID,
+            iterations=iterations,
         ),
-        repr(encryption_key.hex(' ')),
-        repr(signing_key.hex(' ')),
-        repr(password.hex(' ')),
-        repr('SHA256'),
-        64,
-        repr(STOREROOM_MASTER_KEYS_UUID),
-        iterations,
     )
     return {
         'encryption_key': encryption_key,
@@ -234,16 +236,13 @@ def decrypt_master_keys_data(data: bytes, keys: KeyPair) -> MasterKeys:
     actual_mac = hmac.HMAC(keys['signing_key'], hashes.SHA256())
     actual_mac.update(ciphertext)
     logger.debug(
-        (
-            'master_keys_data mac_key = bytes.fromhex(%s), '
-            'hashed_content = bytes.fromhex(%s), '
-            'claimed_mac = bytes.fromhex(%s), '
-            'actual_mac = bytes.fromhex(%s)'
+        _msg.TranslatedString(
+            _msg.DebugMsgTemplate.MASTER_KEYS_DATA_MAC_INFO,
+            sign_key=_h(keys['signing_key']),
+            ciphertext=_h(ciphertext),
+            claimed_mac=_h(claimed_mac),
+            actual_mac=_h(actual_mac.copy().finalize()),
         ),
-        repr(keys['signing_key'].hex(' ')),
-        repr(ciphertext.hex(' ')),
-        repr(claimed_mac.hex(' ')),
-        repr(actual_mac.copy().finalize().hex(' ')),
     )
     actual_mac.verify(claimed_mac)
 
@@ -325,17 +324,13 @@ def decrypt_session_keys(data: bytes, master_keys: MasterKeys) -> KeyPair:
     actual_mac = hmac.HMAC(master_keys['signing_key'], hashes.SHA256())
     actual_mac.update(ciphertext)
     logger.debug(
-        (
-            'decrypt_bucket_item (session_keys): '
-            'mac_key = bytes.fromhex(%s) (master), '
-            'hashed_content = bytes.fromhex(%s), '
-            'claimed_mac = bytes.fromhex(%s), '
-            'actual_mac = bytes.fromhex(%s)'
+        _msg.TranslatedString(
+            _msg.DebugMsgTemplate.DECRYPT_BUCKET_ITEM_SESSION_KEYS_MAC_INFO,
+            sign_key=_h(master_keys['signing_key']),
+            ciphertext=_h(ciphertext),
+            claimed_mac=_h(claimed_mac),
+            actual_mac=_h(actual_mac.copy().finalize()),
         ),
-        repr(master_keys['signing_key'].hex(' ')),
-        repr(ciphertext.hex(' ')),
-        repr(claimed_mac.hex(' ')),
-        repr(actual_mac.copy().finalize().hex(' ')),
     )
     actual_mac.verify(claimed_mac)
 
@@ -366,20 +361,19 @@ def decrypt_session_keys(data: bytes, master_keys: MasterKeys) -> KeyPair:
     }
 
     logger.debug(
-        (
-            'decrypt_bucket_item (session_keys): '
-            'decrypt_aes256_cbc_and_unpad(key=bytes.fromhex(%s), '
-            'iv=bytes.fromhex(%s))(bytes.fromhex(%s)) '
-            '= bytes.fromhex(%s) '
-            '= {"encryption_key": bytes.fromhex(%s), '
-            '"signing_key": bytes.fromhex(%s)}'
+        _msg.TranslatedString(
+            _msg.DebugMsgTemplate.DECRYPT_BUCKET_ITEM_SESSION_KEYS_INFO,
+            enc_key=_h(master_keys['encryption_key']),
+            iv=_h(iv),
+            ciphertext=_h(payload),
+            plaintext=_h(plaintext),
+            code=_msg.TranslatedString(
+                '{{"encryption_key": bytes.fromhex({enc_key!r}), '
+                '"signing_key": bytes.fromhex({sign_key!r})}}',
+                enc_key=session_keys['encryption_key'].hex(' '),
+                sign_key=session_keys['signing_key'].hex(' '),
+            ),
         ),
-        repr(master_keys['encryption_key'].hex(' ')),
-        repr(iv.hex(' ')),
-        repr(payload.hex(' ')),
-        repr(plaintext.hex(' ')),
-        repr(session_keys['encryption_key'].hex(' ')),
-        repr(session_keys['signing_key'].hex(' ')),
     )
 
     return session_keys
@@ -432,17 +426,13 @@ def decrypt_contents(data: bytes, session_keys: KeyPair) -> bytes:
     actual_mac = hmac.HMAC(session_keys['signing_key'], hashes.SHA256())
     actual_mac.update(ciphertext)
     logger.debug(
-        (
-            'decrypt_bucket_item (contents): '
-            'mac_key = bytes.fromhex(%s), '
-            'hashed_content = bytes.fromhex(%s), '
-            'claimed_mac = bytes.fromhex(%s), '
-            'actual_mac = bytes.fromhex(%s)'
+        _msg.TranslatedString(
+            _msg.DebugMsgTemplate.DECRYPT_BUCKET_ITEM_MAC_INFO,
+            sign_key=_h(session_keys['signing_key']),
+            ciphertext=_h(ciphertext),
+            claimed_mac=_h(claimed_mac),
+            actual_mac=_h(actual_mac.copy().finalize()),
         ),
-        repr(session_keys['signing_key'].hex(' ')),
-        repr(ciphertext.hex(' ')),
-        repr(claimed_mac.hex(' ')),
-        repr(actual_mac.copy().finalize().hex(' ')),
     )
     actual_mac.verify(claimed_mac)
 
@@ -461,16 +451,13 @@ def decrypt_contents(data: bytes, session_keys: KeyPair) -> bytes:
     plaintext.extend(unpadder.finalize())
 
     logger.debug(
-        (
-            'decrypt_bucket_item (contents): '
-            'decrypt_aes256_cbc_and_unpad(key=bytes.fromhex(%s), '
-            'iv=bytes.fromhex(%s))(bytes.fromhex(%s)) '
-            '= bytes.fromhex(%s)'
+        _msg.TranslatedString(
+            _msg.DebugMsgTemplate.DECRYPT_BUCKET_ITEM_INFO,
+            enc_key=_h(session_keys['encryption_key']),
+            iv=_h(iv),
+            ciphertext=_h(payload),
+            plaintext=_h(plaintext),
         ),
-        repr(session_keys['encryption_key'].hex(' ')),
-        repr(iv.hex(' ')),
-        repr(payload.hex(' ')),
-        repr(plaintext.hex(' ')),
     )
 
     return plaintext
@@ -505,14 +492,12 @@ def decrypt_bucket_item(bucket_item: bytes, master_keys: MasterKeys) -> bytes:
 
     """
     logger.debug(
-        (
-            'decrypt_bucket_item: data = bytes.fromhex(%s), '
-            'encryption_key = bytes.fromhex(%s), '
-            'signing_key = bytes.fromhex(%s)'
+        _msg.TranslatedString(
+            _msg.DebugMsgTemplate.DECRYPT_BUCKET_ITEM_KEY_INFO,
+            plaintext=_h(bucket_item),
+            enc_key=_h(master_keys['encryption_key']),
+            sign_key=_h(master_keys['signing_key']),
         ),
-        repr(bucket_item.hex(' ')),
-        repr(master_keys['encryption_key'].hex(' ')),
-        repr(master_keys['signing_key'].hex(' ')),
     )
     data_version, encrypted_session_keys, data_contents = struct.unpack(
         (
@@ -665,7 +650,9 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
     if encrypted_keys_version != 1:
         msg = f'cannot handle version {encrypted_keys_version} encrypted keys'
         raise RuntimeError(msg)
-    logger.info('Parsing master keys data from .keys')
+    logger.info(
+        _msg.TranslatedString(_msg.InfoMsgTemplate.PARSING_MASTER_KEYS_DATA)
+    )
     encrypted_keys_iterations = 2 ** (10 + (encrypted_keys_params & 0x0F))
     master_keys_keys = derive_master_keys_keys(
         master_keys_key, encrypted_keys_iterations
@@ -683,7 +670,12 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
         if fnmatch.fnmatch(hashdir_name, '[01][0-9a-f]')
     ]
     for file in valid_hashdirs:
-        logger.info('Decrypting bucket %s', file)
+        logger.info(
+            _msg.TranslatedString(
+                _msg.InfoMsgTemplate.DECRYPTING_BUCKET,
+                bucket_number=file,
+            )
+        )
         bucket_contents = list(
             decrypt_bucket_file(file, master_keys, root_dir=storeroom_path)
         )
@@ -691,17 +683,25 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
         for pos, item in enumerate(bucket_index):
             json_contents[item] = bucket_contents[pos]
             logger.debug(
-                'Found bucket item: %s -> %s', item, bucket_contents[pos]
+                _msg.TranslatedString(
+                    _msg.DebugMsgTemplate.BUCKET_ITEM_FOUND,
+                    path=item,
+                    value=bucket_contents[pos],
+                )
             )
     dirs_to_check: dict[str, list[str]] = {}
     json_payload: Any
-    logger.info('Assembling config structure')
+    logger.info(
+        _msg.TranslatedString(_msg.InfoMsgTemplate.ASSEMBLING_CONFIG_STRUCTURE)
+    )
     for path, json_content in sorted(json_contents.items()):
         if path.endswith('/'):
             logger.debug(
-                'Postponing dir check: %s -> %s',
-                path,
-                json_content.decode('utf-8'),
+                _msg.TranslatedString(
+                    _msg.DebugMsgTemplate.POSTPONING_DIRECTORY_CONTENTS_CHECK,
+                    path=path,
+                    contents=json_content.decode('utf-8'),
+                )
             )
             json_payload = json.loads(json_content)
             if not isinstance(json_payload, list) or any(
@@ -714,17 +714,26 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
                 raise RuntimeError(msg)
             dirs_to_check[path] = json_payload
             logger.debug(
-                'Setting contents (empty directory): %s -> %s', path, '{}'
+                _msg.TranslatedString(
+                    _msg.DebugMsgTemplate.SETTING_CONFIG_STRUCTURE_CONTENTS_EMPTY_DIRECTORY,
+                    path=path,
+                ),
             )
             _store(config_structure, path, b'{}')
         else:
             logger.debug(
-                'Setting contents: %s -> %s',
-                path,
-                json_content.decode('utf-8'),
+                _msg.TranslatedString(
+                    _msg.DebugMsgTemplate.SETTING_CONFIG_STRUCTURE_CONTENTS,
+                    path=path,
+                    value=json_content.decode('utf-8'),
+                ),
             )
             _store(config_structure, path, json_content)
-    logger.info('Checking structure consistency')
+    logger.info(
+        _msg.TranslatedString(
+            _msg.InfoMsgTemplate.CHECKING_CONFIG_STRUCTURE_CONSISTENCY,
+        )
+    )
     # Sorted order is important; see `maybe_obj` below.
     for _dir, namelist in sorted(dirs_to_check.items()):
         namelist = [x.rstrip('/') for x in namelist]  # noqa: PLW2901
@@ -746,6 +755,13 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
         if set(obj.keys()) != set(namelist):
             msg = f'Object key mismatch for path {_dir!r}'
             raise RuntimeError(msg)
+        logger.debug(
+            _msg.TranslatedString(
+                _msg.DebugMsgTemplate.DIRECTORY_CONTENTS_CHECK_OK,
+                path=_dir,
+                contents=json.dumps(namelist),
+            )
+        )
     return config_structure
 
 
