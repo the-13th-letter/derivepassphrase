@@ -1360,12 +1360,12 @@ contents go here
             (
                 [],
                 '',
-                'Cannot update global settings without any given settings',
+                'Cannot update the global settings without any given settings',
             ),
             (
                 ['--', 'sv'],
                 '',
-                'Cannot update service settings without any given settings',
+                'Cannot update the service-specific settings without any given settings',
             ),
             (['--phrase', '--', 'sv'], '', 'No passphrase was given'),
             (['--key'], '', 'No SSH key was selected'),
