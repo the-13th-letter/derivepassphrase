@@ -20,10 +20,13 @@ should *not* be used or relied on.
 
 """
 
+# ruff: noqa: S303
+
 from __future__ import annotations
 
 import base64
 import fnmatch
+import importlib
 import json
 import logging
 import os
@@ -43,14 +46,7 @@ if TYPE_CHECKING:
     from typing_extensions import Buffer
 else:
     try:
-        from cryptography.hazmat.primitives import (
-            ciphers,
-            hashes,
-            hmac,
-            padding,
-        )
-        from cryptography.hazmat.primitives.ciphers import algorithms, modes
-        from cryptography.hazmat.primitives.kdf import pbkdf2
+        importlib.import_module('cryptography')
     except ModuleNotFoundError as exc:
 
         class _DummyModule:  # pragma: no cover
@@ -67,6 +63,15 @@ else:
         algorithms = modes = pbkdf2 = _DummyModule(exc)
         STUBBED = True
     else:
+        from cryptography.hazmat.primitives import (
+            ciphers,
+            hashes,
+            hmac,
+            padding,
+        )
+        from cryptography.hazmat.primitives.ciphers import algorithms, modes
+        from cryptography.hazmat.primitives.kdf import pbkdf2
+
         STUBBED = False
 
 STOREROOM_MASTER_KEYS_UUID = b'35b7c7ed-f71e-4adf-9051-02fb0f1e0e17'
@@ -616,27 +621,35 @@ def _store(config: dict[str, Any], path: str, json_contents: bytes) -> None:
         config[path_parts[-1]] = contents
 
 
+@exporter.register_export_vault_config_data_handler('storeroom')
 def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
-    storeroom_path: str | bytes | os.PathLike | None = None,
-    master_keys_key: str | Buffer | None = None,
+    path: str | bytes | os.PathLike | None = None,
+    key: str | Buffer | None = None,
+    *,
+    format: str = 'storeroom',  # noqa: A002
 ) -> dict[str, Any]:
     """Export the full configuration stored in the storeroom.
 
     Args:
-        storeroom_path:
-            Path to the storeroom; usually `~/.vault`.  If not given,
-            then query [`exporter.get_vault_path`][] for the value.
-        master_keys_key:
-            Encryption key/password for the master keys, usually the
-            username, or passed via the `VAULT_KEY` environment
-            variable.  If not given, then query
-            [`exporter.get_vault_key`][] for the value.
+        path:
+            The path to the vault configuration directory.  If not
+            given, then query [`exporter.get_vault_path`][] for the
+            correct value.
+        key:
+            Encryption key/password for the (master keys file in the)
+            configuration directory, usually the username, or passed via
+            the `VAULT_KEY` environment variable.  If not given, then
+            query [`exporter.get_vault_key`][] for the value.
+        format:
+            The format to attempt parsing as.  If specified, must be
+            `storeroom`.
 
     Returns:
-        The full configuration, as stored in the storeroom.
+        The vault configuration, as recorded in the configuration
+        directory.
 
-        This may or may not be a valid configuration according to vault
-        or derivepassphrase.
+        This may or may not be a valid configuration according to
+        `vault` or `derivepassphrase`.
 
     Raises:
         RuntimeError:
@@ -645,17 +658,34 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
         json.JSONDecodeError:
             An internal JSON data structure failed to parse from disk.
             The storeroom is probably corrupted.
+        exporter.NotAVaultConfigError:
+            The directory does contain not a storeroom.
+        ValueError:
+            The requested format is invalid.
 
     """
-    if storeroom_path is None:
-        storeroom_path = exporter.get_vault_path()
-    if master_keys_key is None:
-        master_keys_key = exporter.get_vault_key()
-    elif not isinstance(master_keys_key, str):
-        master_keys_key = memoryview(master_keys_key).toreadonly().cast('c')
-    with open(
-        os.path.join(os.fsdecode(storeroom_path), '.keys'), encoding='utf-8'
-    ) as master_keys_file:
+    # Trigger import errors if necessary.
+    importlib.import_module('cryptography')
+    if path is None:
+        path = exporter.get_vault_path()
+    if key is None:
+        key = exporter.get_vault_key()
+    if format != 'storeroom':  # pragma: no cover
+        msg = exporter.INVALID_VAULT_NATIVE_CONFIGURATION_FORMAT.format(
+            fmt=format
+        )
+        raise ValueError(msg)
+    try:
+        master_keys_file = open(  # noqa: SIM115
+            os.path.join(os.fsdecode(path), '.keys'),
+            encoding='utf-8',
+        )
+    except FileNotFoundError as exc:
+        raise exporter.NotAVaultConfigError(
+            os.fsdecode(path),
+            format='storeroom',
+        ) from exc
+    with master_keys_file:
         header = json.loads(master_keys_file.readline())
         if header != {'version': 1}:
             msg = 'bad or unsupported keys version header'
@@ -675,16 +705,14 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
         _msg.TranslatedString(_msg.InfoMsgTemplate.PARSING_MASTER_KEYS_DATA)
     )
     encrypted_keys_iterations = 2 ** (10 + (encrypted_keys_params & 0x0F))
-    master_keys_keys = derive_master_keys_keys(
-        master_keys_key, encrypted_keys_iterations
-    )
+    master_keys_keys = derive_master_keys_keys(key, encrypted_keys_iterations)
     master_keys = decrypt_master_keys_data(encrypted_keys, master_keys_keys)
 
     config_structure: dict[str, Any] = {}
     json_contents: dict[str, bytes] = {}
     # Use glob.glob(..., root_dir=...) here once Python 3.9 becomes
     # unsupported.
-    storeroom_path_str = os.fsdecode(storeroom_path)
+    storeroom_path_str = os.fsdecode(path)
     valid_hashdirs = [
         hashdir_name
         for hashdir_name in os.listdir(storeroom_path_str)
@@ -699,7 +727,7 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
         )
         bucket_contents = [
             bytes(item)
-            for item in decrypt_bucket_file(file, master_keys, root_dir=storeroom_path)
+            for item in decrypt_bucket_file(file, master_keys, root_dir=path)
         ]
         bucket_index = json.loads(bucket_contents.pop(0))
         for pos, item in enumerate(bucket_index):
@@ -716,12 +744,12 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
     logger.info(
         _msg.TranslatedString(_msg.InfoMsgTemplate.ASSEMBLING_CONFIG_STRUCTURE)
     )
-    for path, json_content in sorted(json_contents.items()):
-        if path.endswith('/'):
+    for item_path, json_content in sorted(json_contents.items()):
+        if item_path.endswith('/'):
             logger.debug(
                 _msg.TranslatedString(
                     _msg.DebugMsgTemplate.POSTPONING_DIRECTORY_CONTENTS_CHECK,
-                    path=path,
+                    path=item_path,
                     contents=json_content.decode('utf-8'),
                 )
             )
@@ -734,33 +762,33 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
                     f'{json_content!r}'
                 )
                 raise RuntimeError(msg)
-            dirs_to_check[path] = json_payload
+            dirs_to_check[item_path] = json_payload
             logger.debug(
                 _msg.TranslatedString(
                     _msg.DebugMsgTemplate.SETTING_CONFIG_STRUCTURE_CONTENTS_EMPTY_DIRECTORY,
-                    path=path,
+                    path=item_path,
                 ),
             )
-            _store(config_structure, path, b'{}')
+            _store(config_structure, item_path, b'{}')
         else:
             logger.debug(
                 _msg.TranslatedString(
                     _msg.DebugMsgTemplate.SETTING_CONFIG_STRUCTURE_CONTENTS,
-                    path=path,
+                    path=item_path,
                     value=json_content.decode('utf-8'),
                 ),
             )
-            _store(config_structure, path, json_content)
+            _store(config_structure, item_path, json_content)
     logger.info(
         _msg.TranslatedString(
             _msg.InfoMsgTemplate.CHECKING_CONFIG_STRUCTURE_CONSISTENCY,
         )
     )
     # Sorted order is important; see `maybe_obj` below.
-    for _dir, namelist in sorted(dirs_to_check.items()):
-        namelist = [x.rstrip('/') for x in namelist]  # noqa: PLW2901
+    for dir_, namelist_ in sorted(dirs_to_check.items()):
+        namelist = [x.rstrip('/') for x in namelist_]
         obj: dict[Any, Any] = config_structure
-        for part in _dir.split('/'):
+        for part in dir_.split('/'):
             if part:
                 # Because we iterate paths in sorted order, parent
                 # directories are encountered before child directories.
@@ -771,17 +799,17 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
                 # this, so we need to use assertions anyway.
                 maybe_obj = obj.get(part)
                 assert isinstance(maybe_obj, dict), (
-                    f'Cannot traverse storage path {_dir!r}'
+                    f'Cannot traverse storage path {dir_!r}'
                 )
                 obj = maybe_obj
         if set(obj.keys()) != set(namelist):
-            msg = f'Object key mismatch for path {_dir!r}'
+            msg = f'Object key mismatch for path {dir_!r}'
             raise RuntimeError(msg)
         logger.debug(
             _msg.TranslatedString(
                 _msg.DebugMsgTemplate.DIRECTORY_CONTENTS_CHECK_OK,
-                path=_dir,
-                contents=json.dumps(namelist),
+                path=dir_,
+                contents=json.dumps(namelist_),
             )
         )
     return config_structure
@@ -789,5 +817,5 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
 
 if __name__ == '__main__':
     logging.basicConfig(level=('DEBUG' if os.getenv('DEBUG') else 'WARNING'))
-    config_structure = export_storeroom_data()
+    config_structure = export_storeroom_data(format='storeroom')
     print(json.dumps(config_structure, indent=2, sort_keys=True))  # noqa: T201

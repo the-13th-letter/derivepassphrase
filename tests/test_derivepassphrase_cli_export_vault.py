@@ -7,6 +7,7 @@ from __future__ import annotations
 import base64
 import contextlib
 import json
+import os
 from typing import TYPE_CHECKING
 
 import click.testing
@@ -15,7 +16,7 @@ import pytest
 from hypothesis import strategies
 
 import tests
-from derivepassphrase import cli
+from derivepassphrase import _types, cli, exporter
 from derivepassphrase.exporter import storeroom, vault_native
 
 cryptography = pytest.importorskip('cryptography', minversion='38.0')
@@ -34,6 +35,8 @@ from cryptography.hazmat.primitives.ciphers import (  # noqa: E402
 if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any
+
+    from typing_extensions import Buffer, Literal
 
 
 class TestCLI:
@@ -165,6 +168,31 @@ class TestCLI:
         ), 'expected error exit and known error message'
         assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
+    def test_302a_vault_config_invalid_just_a_directory(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_exporter_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            vault_config='',
+            vault_key=tests.VAULT_MASTER_KEY,
+        ):
+            os.remove('.vault')
+            os.mkdir('.vault')
+            result_ = runner.invoke(
+                cli.derivepassphrase_export_vault,
+                ['.vault'],
+            )
+        result = tests.ReadableResult.parse(result_)
+        assert result.error_exit(
+            error="Cannot parse '.vault' as a valid vault-native config",
+            record_tuples=caplog.record_tuples,
+        ), 'expected error exit and known error message'
+        assert tests.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
+
     def test_403_invalid_vault_config_bad_signature(
         self,
         monkeypatch: pytest.MonkeyPatch,
@@ -201,10 +229,14 @@ class TestCLI:
             vault_key=tests.VAULT_MASTER_KEY,
         ):
 
-            def _load_data(*_args: Any, **_kwargs: Any) -> None:
+            def export_vault_config_data(*_args: Any, **_kwargs: Any) -> None:
                 return None
 
-            monkeypatch.setattr(cli, '_load_data', _load_data)
+            monkeypatch.setattr(
+                exporter,
+                'export_vault_config_data',
+                export_vault_config_data,
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ['.vault'],
@@ -218,20 +250,28 @@ class TestCLI:
 
 
 class TestStoreroom:
+    @pytest.mark.parametrize('path', ['.vault', None])
     @pytest.mark.parametrize(
-        ['path', 'key'],
+        'key',
         [
-            ('.vault', tests.VAULT_MASTER_KEY),
-            ('.vault', None),
-            (None, tests.VAULT_MASTER_KEY),
-            (None, None),
+            None,
+            pytest.param(tests.VAULT_MASTER_KEY, id='str'),
+            pytest.param(tests.VAULT_MASTER_KEY.encode('ascii'), id='bytes'),
+            pytest.param(
+                bytearray(tests.VAULT_MASTER_KEY.encode('ascii')),
+                id='bytearray',
+            ),
+            pytest.param(
+                memoryview(tests.VAULT_MASTER_KEY.encode('ascii')),
+                id='memoryview',
+            ),
         ],
     )
     def test_200_export_data_path_and_keys_type(
         self,
         monkeypatch: pytest.MonkeyPatch,
         path: str | None,
-        key: str | None,
+        key: str | Buffer | None,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
@@ -437,8 +477,80 @@ class TestVaultNativeConfig:
             == result
         )
 
+    @pytest.mark.parametrize(
+        ['config', 'format', 'result'],
+        [
+            pytest.param(
+                tests.VAULT_V02_CONFIG,
+                'v0.2',
+                tests.VAULT_V02_CONFIG_DATA,
+                id='V02_CONFIG-v0.2',
+            ),
+            pytest.param(
+                tests.VAULT_V02_CONFIG,
+                'v0.3',
+                exporter.NotAVaultConfigError,
+                id='V02_CONFIG-v0.3',
+            ),
+            pytest.param(
+                tests.VAULT_V03_CONFIG,
+                'v0.2',
+                exporter.NotAVaultConfigError,
+                id='V03_CONFIG-v0.2',
+            ),
+            pytest.param(
+                tests.VAULT_V03_CONFIG,
+                'v0.3',
+                tests.VAULT_V03_CONFIG_DATA,
+                id='V03_CONFIG-v0.3',
+            ),
+        ],
+    )
     def test_201_export_vault_native_data_no_arguments(
-        self, monkeypatch: pytest.MonkeyPatch
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        config: str,
+        format: Literal['v0.2', 'v0.3'],
+        result: _types.VaultConfig | type[Exception],
+    ) -> None:
+        runner = click.testing.CliRunner(mix_stderr=False)
+        with tests.isolated_vault_exporter_config(
+            monkeypatch=monkeypatch,
+            runner=runner,
+            vault_config=config,
+            vault_key=tests.VAULT_MASTER_KEY,
+        ):
+            if isinstance(result, type):
+                with pytest.raises(result):
+                    vault_native.export_vault_native_data(None, format=format)
+            else:
+                parsed_config = vault_native.export_vault_native_data(
+                    None, format=format
+                )
+                assert parsed_config == result
+
+    @pytest.mark.parametrize('path', ['.vault', None])
+    @pytest.mark.parametrize(
+        'key',
+        [
+            None,
+            pytest.param(tests.VAULT_MASTER_KEY, id='str'),
+            pytest.param(tests.VAULT_MASTER_KEY.encode('ascii'), id='bytes'),
+            pytest.param(
+                bytearray(tests.VAULT_MASTER_KEY.encode('ascii')),
+                id='bytearray',
+            ),
+            pytest.param(
+                memoryview(tests.VAULT_MASTER_KEY.encode('ascii')),
+                id='memoryview',
+            ),
+        ],
+    )
+    def test_202_export_data_path_and_keys_type(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        path: str | None,
+        key: str | Buffer | None,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
