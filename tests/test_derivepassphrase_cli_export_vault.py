@@ -267,11 +267,19 @@ class TestStoreroom:
             ),
         ],
     )
+    @pytest.mark.parametrize(
+        'handler',
+        [
+            pytest.param(storeroom.export_storeroom_data, id='handler'),
+            pytest.param(exporter.export_vault_config_data, id='dispatcher'),
+        ],
+    )
     def test_200_export_data_path_and_keys_type(
         self,
         monkeypatch: pytest.MonkeyPatch,
         path: str | None,
         key: str | Buffer | None,
+        handler: exporter.ExportVaultConfigDataFunction,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
@@ -281,7 +289,7 @@ class TestStoreroom:
             vault_key=tests.VAULT_MASTER_KEY,
         ):
             assert (
-                storeroom.export_storeroom_data(path, key)
+                handler(path, key, format='storeroom')
                 == tests.VAULT_STOREROOM_CONFIG_DATA
             )
 
@@ -327,11 +335,19 @@ class TestStoreroom:
             ('{"version": 1}\nAAAA', 'cannot handle version 0 encrypted keys'),
         ],
     )
+    @pytest.mark.parametrize(
+        'handler',
+        [
+            pytest.param(storeroom.export_storeroom_data, id='handler'),
+            pytest.param(exporter.export_vault_config_data, id='dispatcher'),
+        ],
+    )
     def test_402_export_storeroom_data_bad_master_keys_file(
         self,
         monkeypatch: pytest.MonkeyPatch,
         data: str,
         err_msg: str,
+        handler: exporter.ExportVaultConfigDataFunction,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
@@ -343,7 +359,7 @@ class TestStoreroom:
             with open('.vault/.keys', 'w', encoding='UTF-8') as outfile:
                 print(data, file=outfile)
             with pytest.raises(RuntimeError, match=err_msg):
-                storeroom.export_storeroom_data()
+                handler(format='storeroom')
 
     @pytest.mark.parametrize(
         ['zipped_config', 'error_text'],
@@ -370,11 +386,19 @@ class TestStoreroom:
             ),
         ],
     )
+    @pytest.mark.parametrize(
+        'handler',
+        [
+            pytest.param(storeroom.export_storeroom_data, id='handler'),
+            pytest.param(exporter.export_vault_config_data, id='dispatcher'),
+        ],
+    )
     def test_403_export_storeroom_data_bad_directory_listing(
         self,
         monkeypatch: pytest.MonkeyPatch,
         zipped_config: bytes,
         error_text: str,
+        handler: exporter.ExportVaultConfigDataFunction,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         # Use parenthesized context manager expressions once Python 3.9
@@ -389,7 +413,7 @@ class TestStoreroom:
                 )
             )
             stack.enter_context(pytest.raises(RuntimeError, match=error_text))
-            storeroom.export_storeroom_data()
+            handler(format='storeroom')
 
     def test_404_decrypt_keys_wrong_data_length(self) -> None:
         payload = (
@@ -506,12 +530,20 @@ class TestVaultNativeConfig:
             ),
         ],
     )
+    @pytest.mark.parametrize(
+        'handler',
+        [
+            pytest.param(vault_native.export_vault_native_data, id='handler'),
+            pytest.param(exporter.export_vault_config_data, id='dispatcher'),
+        ],
+    )
     def test_201_export_vault_native_data_no_arguments(
         self,
         monkeypatch: pytest.MonkeyPatch,
         config: str,
         format: Literal['v0.2', 'v0.3'],
         result: _types.VaultConfig | type[Exception],
+        handler: exporter.ExportVaultConfigDataFunction,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
@@ -522,11 +554,9 @@ class TestVaultNativeConfig:
         ):
             if isinstance(result, type):
                 with pytest.raises(result):
-                    vault_native.export_vault_native_data(None, format=format)
+                    handler(None, format=format)
             else:
-                parsed_config = vault_native.export_vault_native_data(
-                    None, format=format
-                )
+                parsed_config = handler(None, format=format)
                 assert parsed_config == result
 
     @pytest.mark.parametrize('path', ['.vault', None])
@@ -546,11 +576,19 @@ class TestVaultNativeConfig:
             ),
         ],
     )
+    @pytest.mark.parametrize(
+        'handler',
+        [
+            pytest.param(vault_native.export_vault_native_data, id='handler'),
+            pytest.param(exporter.export_vault_config_data, id='dispatcher'),
+        ],
+    )
     def test_202_export_data_path_and_keys_type(
         self,
         monkeypatch: pytest.MonkeyPatch,
         path: str | None,
         key: str | Buffer | None,
+        handler: exporter.ExportVaultConfigDataFunction,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
@@ -559,8 +597,10 @@ class TestVaultNativeConfig:
             vault_config=tests.VAULT_V03_CONFIG,
             vault_key=tests.VAULT_MASTER_KEY,
         ):
-            parsed_config = vault_native.export_vault_native_data(None)
-        assert parsed_config == tests.VAULT_V03_CONFIG_DATA
+            assert (
+                handler(path, key, format='v0.3')
+                == tests.VAULT_V03_CONFIG_DATA
+            )
 
     @pytest.mark.parametrize(
         ['parser_class', 'config', 'result'],
