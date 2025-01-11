@@ -1,0 +1,221 @@
+.Dd 2025-01-11
+.Dt DERIVEPASSPHRASE-EXPORT-VAULT 1
+.Os derivepassphrase 0.4.0
+.
+.Sh NAME
+.
+.Nm derivepassphrase-export-vault
+.Nd export a vault-native configuration to standard output
+.
+.Sh SYNOPSIS
+.
+.Bd -ragged
+.Nm derivepassphrase export vault
+.Op Fl f Ar FMT
+.Op Fl k Ar K
+.Ar PATH
+.Ed
+.
+.Sh DESCRIPTION
+.
+Read the
+.Xr vault 1 Ns -native
+configuration at
+.Ar PATH ,
+extract all information from it, and export the resulting configuration to
+standard output (as if using
+.Xr vault 1 Ns 's
+.Fl \-export
+option).
+Depending on the configuration format, this may either be a file or a
+directory.
+Supports the
+.Xr vault 1
+.Li v0.2 ,
+.Li v0.3
+and
+.Li storeroom
+formats, all of which inherently use encryption and integrity protection.
+.Pp
+.
+If
+.Ar PATH
+is explicitly listed as
+.Li VAULT_PATH ,
+then use the
+.Ev VAULT_PATH
+environment variable to determine the correct path.
+.Po
+Use
+.Pa ./VAULT_PATH
+or similar to indicate a file/directory actually named
+.Pa VAULT_PATH .
+.Pc
+.
+.Sh OPTIONS
+.
+.Bl -tag -width ".Fl p , \-phrase"
+.
+.It Fl f , \-format Ar FMT
+Try the storage format
+.Ar FMT .
+May be given multiple times; the formats will be tried in order.
+.Pp
+.
+By default, we first try
+.Li v0.3 ,
+then
+.Li v0.2 ,
+and finally
+.Li storeroom .
+.
+.It Fl k , \-key Ar K
+Use
+.Ar K
+as the storage master key.
+.Pp
+.
+By default, we check the
+.Ev VAULT_KEY ,
+.Ev LOGNAME ,
+.Ev USER
+and
+.Ev USERNAME
+environment variables, and use the first one with a proper value
+.Pq Em and only the first one .
+.
+.It Fl \-debug
+Emit all diagnostic information to standard error, including progress,
+warning and error messages.
+.Pp
+.
+Cancels the effect of any previous
+.Fl \-quiet
+or
+.Fl \-verbose
+options.
+Also applies to subcommands.
+.
+.It Fl v , \-verbose
+Emit extra/progress information to standard error, on top of warning and
+error messages.
+.Pp
+.
+Cancels the effect of any previous
+.Fl \-debug
+or
+.Fl \-quiet
+options.
+Also applies to subcommands.
+.
+.It Fl q , \-quiet
+Suppress all other diagnostic output to standard error, except error
+messages.
+.Pp
+.
+Cancels the effect of any previous
+.Fl \-debug
+or
+.Fl \-verbose
+options.
+Also applies to subcommands.
+.
+.It Fl \-version
+Show the version and exit.
+.
+.It Fl h , \-help
+Show a help message and exit.
+.
+.El
+.
+.Sh ENVIRONMENT
+.
+.Bl -tag -width ".Fl p , \-phrase"
+.
+.It Ev DERIVEPASSPHRASE_PATH
+.Nm derivepassphrase
+stores its configuration files and data in this directory.
+Defaults to
+.Pa \(ti/.derivepassphrase
+on UNIX-like systems and
+.Pa C:\[rs]Users\[rs]<user>\[rs]AppData\[rs]Roaming\[rs]Derivepassphrase
+on Windows.
+.
+.It Ev VAULT_PATH
+A default path, relative to the home directory, where to look for the
+configuration to load.
+.
+.It Ev VAULT_KEY
+A password with which the vault configuration is encrypted.
+The password is interpreted as a UTF-8 byte string.
+.
+.It Ev LOGNAME , USER , USERNAME
+Fallback values for
+.Ev VAULT_KEY .
+.
+.El
+.
+.Sh COMPATIBILITY
+.
+.Ss With other software
+.
+.Nm derivepassphrase export vault
+fully supports reading the configuration formats used by
+.Xr vault 1
+v0.3 and lower
+.Pq formats Li v0.2 No and Li v0.3 ,
+as well as the
+.Li storeroom
+format used in development builds after
+.Xr vault 1
+v0.3
+.Pq Li storeroom No version 1 .
+.Pp
+.
+There is no corresponding
+.Dq import
+subcommand, nor is there support for writing configuration files or
+directories in any of the aforementioned formats.
+.
+.Sh SEE ALSO
+.
+.Xr derivepassphrase 1 .
+.Rs
+.%A "James Coglan"
+.%T "vault(1)"
+.%U https://www.npmjs.com/package/vault
+.Re
+.Pp
+.
+Further online documentation for
+.Xr derivepassphrase 1
+.Pq tutorials, how-tos, reference and design documentation
+is available at
+.Lk https://the13thletter.info/derivepassphrase/ .
+.
+.Sh AUTHOR
+.
+.Lk mailto:software@the13thletter.info "Marco Ricci"
+.
+.Sh BUGS
+.
+.Bl -bullet
+.It
+There is no support for writing
+.Xr vault 1
+configuration files or directories in any of the aforementioned formats.
+.Pp
+WONTFIX: two-way interoperability of configuration file disk formats is
+currently out of scope.
+Use the standard
+.Fl \-import
+and
+.Fl \-export
+options of both
+.Xr vault 1
+and
+.Nm derivepassphrase vault
+.Ns .
+.
+.El
+.

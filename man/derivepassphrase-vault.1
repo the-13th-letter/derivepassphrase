@@ -1,4 +1,4 @@
-.Dd 2025-01-07
+.Dd 2025-01-11
 .Dt DERIVEPASSPHRASE-VAULT 1
 .Os derivepassphrase 0.4.0
 .
@@ -407,6 +407,42 @@ were always given.)
 .Ss Other options
 .
 .Bl -tag -width ".Fl p , \-phrase"
+.
+.It Fl \-debug
+Emit all diagnostic information to standard error, including progress,
+warning and error messages.
+.Pp
+.
+Cancels the effect of any previous
+.Fl \-quiet
+or
+.Fl \-verbose
+options.
+Also applies to subcommands.
+.
+.It Fl v , \-verbose
+Emit extra/progress information to standard error, on top of warning and
+error messages.
+.Pp
+.
+Cancels the effect of any previous
+.Fl \-debug
+or
+.Fl \-quiet
+options.
+Also applies to subcommands.
+.
+.It Fl q , \-quiet
+Suppress all other diagnostic output to standard error, except error
+messages.
+.Pp
+.
+Cancels the effect of any previous
+.Fl \-debug
+or
+.Fl \-verbose
+options.
+Also applies to subcommands.
 .
 .It Fl \-version
 Show the version and exit.
@@ -884,16 +920,6 @@ can read both these formats and export the contents.)
 .Ss Forward and backward compatibility
 .
 .Bl -bullet
-.
-.It
-.Bo Since v0.2.0 . Bc
-In v1.0, the commands
-.Nm derivepassphrase
-and
-.Nm derivepassphrase export
-will require an explicit subcommand name.
-Both default to the subcommand
-.Ic vault .
 .
 .It
 .Bo Since v0.2.0 . Bc
