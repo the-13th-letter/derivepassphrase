@@ -114,11 +114,11 @@ def _prepare_translatable(
                     fix_sentence_endings=True,
                 )
             )
-        else:  # pragma: no cover
+        else:
             string = ''.join(
                 s
                 for s in string.splitlines(True)  # noqa: FBT003
-                if s.strip() == '\b'
+                if s.strip() != '\b'
             )
         return string
 
