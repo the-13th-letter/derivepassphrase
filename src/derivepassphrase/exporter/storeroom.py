@@ -126,7 +126,10 @@ class MasterKeys(TypedDict):
     """"""
 
 
-def derive_master_keys_keys(password: str | bytes, iterations: int) -> KeyPair:
+def derive_master_keys_keys(
+    password: str | Buffer,
+    iterations: int,
+) -> KeyPair:
     """Derive encryption and signing keys for the master keys data.
 
     The master password is run through a key derivation function to
@@ -161,7 +164,7 @@ def derive_master_keys_keys(password: str | bytes, iterations: int) -> KeyPair:
         length=2 * KEY_SIZE,
         salt=STOREROOM_MASTER_KEYS_UUID,
         iterations=iterations,
-    ).derive(password)
+    ).derive(bytes(password))
     encryption_key, signing_key = struct.unpack(
         f'{KEY_SIZE}s {KEY_SIZE}s', master_keys_keys_blob
     )
@@ -183,7 +186,10 @@ def derive_master_keys_keys(password: str | bytes, iterations: int) -> KeyPair:
     }
 
 
-def decrypt_master_keys_data(data: bytes, keys: KeyPair) -> MasterKeys:
+def decrypt_master_keys_data(
+    data: Buffer,
+    keys: KeyPair,
+) -> MasterKeys:
     r"""Decrypt the master keys data.
 
     The master keys data contains:
@@ -230,6 +236,7 @@ def decrypt_master_keys_data(data: bytes, keys: KeyPair) -> MasterKeys:
         removal.
 
     """
+    data = memoryview(data).toreadonly().cast('c')
     ciphertext, claimed_mac = struct.unpack(
         f'{len(data) - MAC_SIZE}s {MAC_SIZE}s', data
     )
@@ -273,7 +280,10 @@ def decrypt_master_keys_data(data: bytes, keys: KeyPair) -> MasterKeys:
     }
 
 
-def decrypt_session_keys(data: bytes, master_keys: MasterKeys) -> KeyPair:
+def decrypt_session_keys(
+    data: Buffer,
+    master_keys: MasterKeys,
+) -> KeyPair:
     r"""Decrypt the bucket item's session keys.
 
     The bucket item's session keys are single-use keys for encrypting
@@ -318,6 +328,7 @@ def decrypt_session_keys(data: bytes, master_keys: MasterKeys) -> KeyPair:
         removal.
 
     """
+    data = memoryview(data).toreadonly().cast('c')
     ciphertext, claimed_mac = struct.unpack(
         f'{len(data) - MAC_SIZE}s {MAC_SIZE}s', data
     )
@@ -379,7 +390,10 @@ def decrypt_session_keys(data: bytes, master_keys: MasterKeys) -> KeyPair:
     return session_keys
 
 
-def decrypt_contents(data: bytes, session_keys: KeyPair) -> bytes:
+def decrypt_contents(
+    data: Buffer,
+    session_keys: KeyPair,
+) -> Buffer:
     """Decrypt the bucket item's contents.
 
     The data consists of:
@@ -420,6 +434,7 @@ def decrypt_contents(data: bytes, session_keys: KeyPair) -> bytes:
         removal.
 
     """
+    data = memoryview(data).toreadonly().cast('c')
     ciphertext, claimed_mac = struct.unpack(
         f'{len(data) - MAC_SIZE}s {MAC_SIZE}s', data
     )
@@ -463,7 +478,10 @@ def decrypt_contents(data: bytes, session_keys: KeyPair) -> bytes:
     return plaintext
 
 
-def decrypt_bucket_item(bucket_item: bytes, master_keys: MasterKeys) -> bytes:
+def decrypt_bucket_item(
+    bucket_item: Buffer,
+    master_keys: MasterKeys,
+) -> Buffer:
     """Decrypt a bucket item.
 
     Args:
@@ -491,6 +509,7 @@ def decrypt_bucket_item(bucket_item: bytes, master_keys: MasterKeys) -> bytes:
         removal.
 
     """
+    bucket_item = memoryview(bucket_item).toreadonly().cast('c')
     logger.debug(
         _msg.TranslatedString(
             _msg.DebugMsgTemplate.DECRYPT_BUCKET_ITEM_KEY_INFO,
@@ -518,7 +537,7 @@ def decrypt_bucket_file(
     master_keys: MasterKeys,
     *,
     root_dir: str | bytes | os.PathLike = '.',
-) -> Iterator[bytes]:
+) -> Iterator[Buffer]:
     """Decrypt a complete bucket.
 
     Args:
@@ -599,7 +618,7 @@ def _store(config: dict[str, Any], path: str, json_contents: bytes) -> None:
 
 def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
     storeroom_path: str | bytes | os.PathLike | None = None,
-    master_keys_key: str | bytes | None = None,
+    master_keys_key: str | Buffer | None = None,
 ) -> dict[str, Any]:
     """Export the full configuration stored in the storeroom.
 
@@ -632,6 +651,8 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
         storeroom_path = exporter.get_vault_path()
     if master_keys_key is None:
         master_keys_key = exporter.get_vault_key()
+    elif not isinstance(master_keys_key, str):
+        master_keys_key = memoryview(master_keys_key).toreadonly().cast('c')
     with open(
         os.path.join(os.fsdecode(storeroom_path), '.keys'), encoding='utf-8'
     ) as master_keys_file:
@@ -676,9 +697,10 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
                 bucket_number=file,
             )
         )
-        bucket_contents = list(
-            decrypt_bucket_file(file, master_keys, root_dir=storeroom_path)
-        )
+        bucket_contents = [
+            bytes(item)
+            for item in decrypt_bucket_file(file, master_keys, root_dir=storeroom_path)
+        ]
         bucket_index = json.loads(bucket_contents.pop(0))
         for pos, item in enumerate(bucket_index):
             json_contents[item] = bucket_contents[pos]
