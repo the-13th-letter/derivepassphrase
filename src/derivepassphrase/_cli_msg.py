@@ -465,7 +465,7 @@ class Label(enum.Enum):
         be required in v1.0."
         """,
         msg='Deprecation warning',
-        context='diagnostic label',
+        context='Label :: Diagnostics :: Marker',
     )
     WARNING_LABEL = _prepare_translatable(
         comments=r"""
@@ -474,7 +474,7 @@ class Label(enum.Enum):
         supported by vault(1)."
         """,
         msg='Warning',
-        context='diagnostic label',
+        context='Label :: Diagnostics :: Marker',
     )
     CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_GLOBAL = (
         _prepare_translatable(
@@ -486,7 +486,7 @@ class Label(enum.Enum):
             settings."
             """,
             msg='global settings',
-            context='diagnostic label (metavar value)',
+            context='Label :: Error message :: Metavar',
         )
     )
     CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_SERVICE = (
@@ -499,7 +499,7 @@ class Label(enum.Enum):
             any given settings."
             """,
             msg='service-specific settings',
-            context='diagnostic label (metavar value)',
+            context='Label :: Error message :: Metavar',
         )
     )
     DERIVEPASSPHRASE_01 = _prepare_translatable(
@@ -512,7 +512,7 @@ class Label(enum.Enum):
         msg="""
         Derive a strong passphrase, deterministically, from a master secret.
         """,
-        context='help text (long form)',
+        context='Label :: Help text :: Explanation',
     )
     DERIVEPASSPHRASE_02 = _prepare_translatable(
         msg="""
@@ -522,7 +522,7 @@ class Label(enum.Enum):
         instructions.  If no subcommand is given, we default to "vault".
         """,
         comments='',
-        context='help text (long form)',
+        context='Label :: Help text :: Explanation',
     )
     DERIVEPASSPHRASE_03 = _prepare_translatable(
         msg="""
@@ -530,7 +530,7 @@ class Label(enum.Enum):
         Starting in v1.0, the subcommand must be specified explicitly.
         """,
         comments='',
-        context='help text (long form)',
+        context='Label :: Help text :: Explanation',
     )
     DERIVEPASSPHRASE_EPILOG_01 = _prepare_translatable(
         msg=r"""
@@ -540,7 +540,7 @@ class Label(enum.Enum):
         `C:\Users\<user>\AppData\Roaming\Derivepassphrase` on Windows.
         """,
         comments='',
-        context='help text (long form)',
+        context='Label :: Help text :: Explanation',
     )
     DERIVEPASSPHRASE_EXPORT_01 = _prepare_translatable(
         comments=r"""
@@ -552,7 +552,7 @@ class Label(enum.Enum):
         msg="""
         Export a foreign configuration to standard output.
         """,
-        context='help text (long form)',
+        context='Label :: Help text :: Explanation',
     )
     DERIVEPASSPHRASE_EXPORT_02 = _prepare_translatable(
         msg="""
@@ -561,7 +561,7 @@ class Label(enum.Enum):
         we default to "vault".
         """,
         comments='',
-        context='help text (long form)',
+        context='Label :: Help text :: Explanation',
     )
     DERIVEPASSPHRASE_EXPORT_03 = DERIVEPASSPHRASE_03
     DERIVEPASSPHRASE_EXPORT_VAULT_01 = _prepare_translatable(
@@ -574,7 +574,7 @@ class Label(enum.Enum):
         msg="""
         Export a vault-native configuration to standard output.
         """,
-        context='help text (long form)',
+        context='Label :: Help text :: Explanation',
     )
     DERIVEPASSPHRASE_EXPORT_VAULT_02 = _prepare_translatable(
         msg="""
@@ -583,7 +583,7 @@ class Label(enum.Enum):
         "v0.3" and "storeroom" formats.
         """,
         comments='',
-        context='help text (long form)',
+        context='Label :: Help text :: Explanation',
         flags='python-brace-format',
     )
     DERIVEPASSPHRASE_EXPORT_VAULT_03 = _prepare_translatable(
@@ -594,7 +594,7 @@ class Label(enum.Enum):
         a file/directory actually named `VAULT_PATH`.)
         """,
         comments='',
-        context='help text (long form)',
+        context='Label :: Help text :: Explanation',
         flags='python-brace-format',
     )
     DERIVEPASSPHRASE_VAULT_01 = _prepare_translatable(
@@ -607,7 +607,7 @@ class Label(enum.Enum):
         msg="""
         Derive a passphrase using the vault derivation scheme.
         """,
-        context='help text (long form)',
+        context='Label :: Help text :: Explanation',
     )
     DERIVEPASSPHRASE_VAULT_02 = _prepare_translatable(
         msg="""
@@ -616,7 +616,7 @@ class Label(enum.Enum):
         it is required.
         """,
         comments='',
-        context='help text (long form)',
+        context='Label :: Help text :: Explanation',
         flags='python-brace-format',
     )
     DERIVEPASSPHRASE_VAULT_EPILOG_01 = _prepare_translatable(
@@ -628,7 +628,7 @@ class Label(enum.Enum):
         backups of the settings and the SSH key, if any.
         """,
         comments='',
-        context='help text (long form)',
+        context='Label :: Help text :: Explanation',
     )
     DERIVEPASSPHRASE_VAULT_EPILOG_02 = _prepare_translatable(
         msg="""
@@ -636,7 +636,7 @@ class Label(enum.Enum):
         discouraged from using a stored passphrase.
         """,
         comments='',
-        context='help text (long form)',
+        context='Label :: Help text :: Explanation',
     )
     DEPRECATED_COMMAND_LABEL = _prepare_translatable(
         comments=r"""
@@ -645,13 +645,13 @@ class Label(enum.Enum):
         deprecated.
         """,
         msg='(Deprecated) {text}',
-        context='help text (long form, label)',
+        context='Label :: Help text :: Marker',
         flags='python-brace-format',
     )
     DEBUG_OPTION_HELP_TEXT = _prepare_translatable(
         'also emit debug information (implies --verbose)',
         comments='',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
     )
     EXPORT_VAULT_FORMAT_HELP_TEXT = _prepare_translatable(
         comments=r"""
@@ -664,7 +664,7 @@ class Label(enum.Enum):
         specified multiple times, formats will be tried in order
         {defaults_hint!s}
         """,
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
         flags='python-brace-format',
     )
     EXPORT_VAULT_FORMAT_DEFAULTS_HELP_TEXT = _prepare_translatable(
@@ -676,7 +676,7 @@ class Label(enum.Enum):
         msg=r"""
         (default: v0.3, v0.2, storeroom)
         """,
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
     )
     EXPORT_VAULT_KEY_HELP_TEXT = _prepare_translatable(
         comments=r"""
@@ -687,7 +687,7 @@ class Label(enum.Enum):
         msg=r"""
         use {metavar!s} as the storage master key {defaults_hint!s}
         """,
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
         flags='python-brace-format',
     )
     EXPORT_VAULT_KEY_DEFAULTS_HELP_TEXT = _prepare_translatable(
@@ -698,38 +698,38 @@ class Label(enum.Enum):
         (default: check the `VAULT_KEY`, `LOGNAME`, `USER`, or
         `USERNAME` environment variables)
         """,
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
     )
     HELP_OPTION_HELP_TEXT = _prepare_translatable(
         'show this help text, then exit',
         comments='',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
     )
     QUIET_OPTION_HELP_TEXT = _prepare_translatable(
         'suppress even warnings, emit only errors',
         comments='',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
     )
     VERBOSE_OPTION_HELP_TEXT = _prepare_translatable(
         'emit extra/progress information to standard error',
         comments='',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
     )
     VERSION_OPTION_HELP_TEXT = _prepare_translatable(
         'show applicable version information, then exit',
         comments='',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
     )
 
     DERIVEPASSPHRASE_VAULT_PHRASE_HELP_TEXT = _prepare_translatable(
         msg='prompt for a master passphrase',
         comments='',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
     )
     DERIVEPASSPHRASE_VAULT_KEY_HELP_TEXT = _prepare_translatable(
         msg='select a suitable SSH key from the SSH agent',
         comments='',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
     )
     DERIVEPASSPHRASE_VAULT_LENGTH_HELP_TEXT = _prepare_translatable(
         comments=r"""
@@ -737,7 +737,7 @@ class Label(enum.Enum):
         Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
         """,
         msg='ensure a passphrase length of {metavar!s} characters',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
         flags='python-brace-format',
     )
     DERIVEPASSPHRASE_VAULT_REPEAT_HELP_TEXT = _prepare_translatable(
@@ -746,7 +746,7 @@ class Label(enum.Enum):
         Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
         """,
         msg='forbid any run of {metavar!s} identical characters',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
         flags='python-brace-format',
     )
     DERIVEPASSPHRASE_VAULT_LOWER_HELP_TEXT = _prepare_translatable(
@@ -755,7 +755,7 @@ class Label(enum.Enum):
         Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
         """,
         msg='ensure at least {metavar!s} lowercase characters',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
         flags='python-brace-format',
     )
     DERIVEPASSPHRASE_VAULT_UPPER_HELP_TEXT = _prepare_translatable(
@@ -764,7 +764,7 @@ class Label(enum.Enum):
         Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
         """,
         msg='ensure at least {metavar!s} uppercase characters',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
         flags='python-brace-format',
     )
     DERIVEPASSPHRASE_VAULT_NUMBER_HELP_TEXT = _prepare_translatable(
@@ -773,7 +773,7 @@ class Label(enum.Enum):
         Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
         """,
         msg='ensure at least {metavar!s} digits',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
         flags='python-brace-format',
     )
     DERIVEPASSPHRASE_VAULT_SPACE_HELP_TEXT = _prepare_translatable(
@@ -782,7 +782,7 @@ class Label(enum.Enum):
         Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
         """,
         msg='ensure at least {metavar!s} spaces',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
         flags='python-brace-format',
     )
     DERIVEPASSPHRASE_VAULT_DASH_HELP_TEXT = _prepare_translatable(
@@ -791,7 +791,7 @@ class Label(enum.Enum):
         Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
         """,
         msg='ensure at least {metavar!s} "-" or "_" characters',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
         flags='python-brace-format',
     )
     DERIVEPASSPHRASE_VAULT_SYMBOL_HELP_TEXT = _prepare_translatable(
@@ -800,37 +800,37 @@ class Label(enum.Enum):
         Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
         """,
         msg='ensure at least {metavar!s} symbol characters',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
         flags='python-brace-format',
     )
 
     DERIVEPASSPHRASE_VAULT_NOTES_HELP_TEXT = _prepare_translatable(
         msg='spawn an editor to edit notes for {service_metavar!s}',
         comments='',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
         flags='python-brace-format',
     )
     DERIVEPASSPHRASE_VAULT_CONFIG_HELP_TEXT = _prepare_translatable(
         msg='save the given settings for {service_metavar!s}, or global',
         comments='',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
         flags='python-brace-format',
     )
     DERIVEPASSPHRASE_VAULT_DELETE_HELP_TEXT = _prepare_translatable(
         msg='delete the settings for {service_metavar!s}',
         comments='',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
         flags='python-brace-format',
     )
     DERIVEPASSPHRASE_VAULT_DELETE_GLOBALS_HELP_TEXT = _prepare_translatable(
         msg='delete the global settings',
         comments='',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
     )
     DERIVEPASSPHRASE_VAULT_DELETE_ALL_HELP_TEXT = _prepare_translatable(
         msg='delete all settings',
         comments='',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
     )
     DERIVEPASSPHRASE_VAULT_EXPORT_HELP_TEXT = _prepare_translatable(
         comments="""
@@ -838,7 +838,7 @@ class Label(enum.Enum):
         Label.STORAGE_MANAGEMENT_METAVAR_SERVICE.
         """,
         msg='export all saved settings to {metavar!s}',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
         flags='python-brace-format',
     )
     DERIVEPASSPHRASE_VAULT_IMPORT_HELP_TEXT = _prepare_translatable(
@@ -847,7 +847,7 @@ class Label(enum.Enum):
         Label.STORAGE_MANAGEMENT_METAVAR_SERVICE.
         """,
         msg='import saved settings from {metavar!s}',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
         flags='python-brace-format',
     )
     DERIVEPASSPHRASE_VAULT_OVERWRITE_HELP_TEXT = _prepare_translatable(
@@ -857,7 +857,7 @@ class Label(enum.Enum):
         hint that the default (merge) is the second of those options.
         """,
         msg='overwrite or merge (default) the existing configuration',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
     )
     DERIVEPASSPHRASE_VAULT_UNSET_HELP_TEXT = _prepare_translatable(
         comments="""
@@ -871,7 +871,7 @@ class Label(enum.Enum):
         with --config, also unsets the given setting; may be specified
         multiple times
         """,
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
     )
     DERIVEPASSPHRASE_VAULT_EXPORT_AS_HELP_TEXT = _prepare_translatable(
         comments="""
@@ -880,20 +880,20 @@ class Label(enum.Enum):
         (default) and sh refers to the POSIX sh format.
         """,
         msg='when exporting, export as JSON (default) or POSIX sh',
-        context='help text (option one-line description)',
+        context='Label :: Help text :: One-line description',
     )
 
     EXPORT_VAULT_FORMAT_METAVAR_FMT = _prepare_translatable(
         msg='FMT',
         comments='',
-        context='help text, metavar (export vault subcommand)',
+        context='Label :: Help text :: Metavar :: export vault',
     )
     EXPORT_VAULT_KEY_METAVAR_K = _prepare_translatable(
         comments=r"""
         TRANSLATORS: See Label.EXPORT_VAULT_KEY_HELP_TEXT.
         """,
         msg='K',
-        context='help text, metavar (export vault subcommand)',
+        context='Label :: Help text :: Metavar :: export vault',
     )
     EXPORT_VAULT_METAVAR_PATH = _prepare_translatable(
         comments=r"""
@@ -901,14 +901,14 @@ class Label(enum.Enum):
         Label.DERIVEPASSPHRASE_EXPORT_VAULT_02 and others.
         """,
         msg='PATH',
-        context='help text, metavar (export vault subcommand)',
+        context='Label :: Help text :: Metavar :: export vault',
     )
     PASSPHRASE_GENERATION_METAVAR_NUMBER = _prepare_translatable(
         comments=r"""
         TRANSLATORS: This metavar is also used in a matching epilog.
         """,
         msg='NUMBER',
-        context='help text, metavar (passphrase generation group)',
+        context='Label :: Help text :: Metavar :: vault',
     )
     STORAGE_MANAGEMENT_METAVAR_PATH = _prepare_translatable(
         comments=r"""
@@ -916,7 +916,7 @@ class Label(enum.Enum):
         texts.
         """,
         msg='PATH',
-        context='help text, metavar (storage management group)',
+        context='Label :: Help text :: Metavar :: vault',
     )
     VAULT_METAVAR_SERVICE = _prepare_translatable(
         comments=r"""
@@ -924,12 +924,12 @@ class Label(enum.Enum):
         texts, as "service_metavar".
         """,
         msg='SERVICE',
-        context='help text, metavar (vault subcommand)',
+        context='Label :: Help text :: Metavar :: vault',
     )
     CONFIGURATION_EPILOG = _prepare_translatable(
         'Use $VISUAL or $EDITOR to configure the spawned editor.',
         comments='',
-        context='help text, option group epilog (configuration group)',
+        context='Label :: Help text :: Explanation',
     )
     PASSPHRASE_GENERATION_EPILOG = _prepare_translatable(
         comments=r"""
@@ -939,7 +939,7 @@ class Label(enum.Enum):
         msg=r"""
         Use {metavar!s}=0 to exclude a character type from the output.
         """,
-        context='help text, option group epilog (passphrase generation group)',
+        context='Label :: Help text :: Explanation',
         flags='python-brace-format',
     )
     STORAGE_MANAGEMENT_EPILOG = _prepare_translatable(
@@ -951,45 +951,45 @@ class Label(enum.Enum):
         Using "-" as {metavar!s} for standard input/standard output
         is supported.
         """,
-        context='help text, option group epilog (storage management group)',
+        context='Label :: Help text :: Explanation',
         flags='python-brace-format',
     )
     COMMANDS_LABEL = _prepare_translatable(
-        'Commands', comments='', context='help text, option group name'
+        'Commands', comments='', context='Label :: Help text :: Option group name'
     )
     COMPATIBILITY_OPTION_LABEL = _prepare_translatable(
         'Compatibility and extension options',
         comments='',
-        context='help text, option group name',
+        context='Label :: Help text :: Option group name',
     )
     CONFIGURATION_LABEL = _prepare_translatable(
-        'Configuration', comments='', context='help text, option group name'
+        'Configuration', comments='', context='Label :: Help text :: Option group name'
     )
     LOGGING_LABEL = _prepare_translatable(
-        'Logging', comments='', context='help text, option group name'
+        'Logging', comments='', context='Label :: Help text :: Option group name'
     )
     OPTIONS_LABEL = _prepare_translatable(
-        'Options', comments='', context='help text, option group name'
+        'Options', comments='', context='Label :: Help text :: Option group name'
     )
     OTHER_OPTIONS_LABEL = _prepare_translatable(
-        'Other options', comments='', context='help text, option group name'
+        'Other options', comments='', context='Label :: Help text :: Option group name'
     )
     PASSPHRASE_GENERATION_LABEL = _prepare_translatable(
         'Passphrase generation',
         comments='',
-        context='help text, option group name',
+        context='Label :: Help text :: Option group name',
     )
     STORAGE_MANAGEMENT_LABEL = _prepare_translatable(
         'Storage management',
         comments='',
-        context='help text, option group name',
+        context='Label :: Help text :: Option group name',
     )
     VERSION_INFO_TEXT = _prepare_translatable(
         msg=r"""
         {PROG_NAME!s} {__version__}
         """,  # noqa: RUF027
         comments='',
-        context='help text, version info text',
+        context='Label :: Info Message',
         flags='python-brace-format',
     )
     CONFIRM_THIS_CHOICE_PROMPT_TEXT = _prepare_translatable(
@@ -1000,7 +1000,7 @@ class Label(enum.Enum):
         supported, even if the prompt becomes a bit longer.
         """,
         msg='Confirm this choice? (y/N)',
-        context='interactive prompt',
+        context='Label :: Interactive prompt',
     )
     SUITABLE_SSH_KEYS_LABEL = _prepare_translatable(
         comments=r"""
@@ -1008,12 +1008,12 @@ class Label(enum.Enum):
         SSH keys.
         """,
         msg='Suitable SSH keys:',
-        context='interactive prompt',
+        context='Label :: Interactive prompt',
     )
     YOUR_SELECTION_PROMPT_TEXT = _prepare_translatable(
         'Your selection? (1-{n}, leave empty to abort)',
         comments='',
-        context='interactive prompt',
+        context='Label :: Interactive prompt',
         flags='python-brace-format',
     )
 
@@ -1029,7 +1029,7 @@ class DebugMsgTemplate(enum.Enum):
         value are printable as-is.)
         """,
         msg='Found bucket item: {path} -> {value}',
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     DECRYPT_BUCKET_ITEM_INFO = _prepare_translatable(
@@ -1049,7 +1049,7 @@ class DebugMsgTemplate(enum.Enum):
           Encrypted ciphertext: {ciphertext}
           Plaintext: {plaintext}
         """,
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     DECRYPT_BUCKET_ITEM_KEY_INFO = _prepare_translatable(
@@ -1062,7 +1062,7 @@ class DebugMsgTemplate(enum.Enum):
           Signing key (master key): {sign_key}
         """,
         comments='',
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     DECRYPT_BUCKET_ITEM_MAC_INFO = _prepare_translatable(
@@ -1084,7 +1084,7 @@ class DebugMsgTemplate(enum.Enum):
           Claimed MAC value: {claimed_mac}
           Computed MAC value: {actual_mac}
         """,
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     DECRYPT_BUCKET_ITEM_SESSION_KEYS_INFO = _prepare_translatable(
@@ -1105,7 +1105,7 @@ class DebugMsgTemplate(enum.Enum):
           Plaintext: {plaintext}
           Parsed plaintext: {code}
         """,
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     DECRYPT_BUCKET_ITEM_SESSION_KEYS_MAC_INFO = _prepare_translatable(
@@ -1127,7 +1127,7 @@ class DebugMsgTemplate(enum.Enum):
           Claimed MAC value: {claimed_mac}
           Computed MAC value: {actual_mac}
         """,
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     DERIVED_MASTER_KEYS_KEYS = _prepare_translatable(
@@ -1142,7 +1142,7 @@ class DebugMsgTemplate(enum.Enum):
 
         """,  # noqa: E501
         comments='',
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     DIRECTORY_CONTENTS_CHECK_OK = _prepare_translatable(
@@ -1157,7 +1157,7 @@ class DebugMsgTemplate(enum.Enum):
         error here otherwise.)
         """,
         msg='Directory contents check OK: {path} -> {contents}',
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     MASTER_KEYS_DATA_MAC_INFO = _prepare_translatable(
@@ -1179,7 +1179,7 @@ class DebugMsgTemplate(enum.Enum):
           Claimed MAC value: {claimed_mac}
           Computed MAC value: {actual_mac}
         """,
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     POSTPONING_DIRECTORY_CONTENTS_CHECK = _prepare_translatable(
@@ -1194,7 +1194,7 @@ class DebugMsgTemplate(enum.Enum):
         this directory for later.
         """,
         msg='Postponing directory contents check: {path} -> {contents}',
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     SETTING_CONFIG_STRUCTURE_CONTENTS = _prepare_translatable(
@@ -1206,7 +1206,7 @@ class DebugMsgTemplate(enum.Enum):
         given path to the given value.
         """,
         msg='Setting contents: {path} -> {value}',
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     SETTING_CONFIG_STRUCTURE_CONTENTS_EMPTY_DIRECTORY = _prepare_translatable(
@@ -1218,7 +1218,7 @@ class DebugMsgTemplate(enum.Enum):
         directory at the given path.
         """,
         msg='Setting contents (empty directory): {path}',
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     VAULT_NATIVE_EVP_BYTESTOKEY_INIT = _prepare_translatable(
@@ -1240,7 +1240,7 @@ class DebugMsgTemplate(enum.Enum):
           Buffer length: {buffer_length}
           Buffer: {buffer}
         """,
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     VAULT_NATIVE_EVP_BYTESTOKEY_RESULT = _prepare_translatable(
@@ -1260,7 +1260,7 @@ class DebugMsgTemplate(enum.Enum):
           Encryption key: {enc_key}
           IV: {iv}
         """,
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     VAULT_NATIVE_EVP_BYTESTOKEY_ROUND = _prepare_translatable(
@@ -1280,7 +1280,7 @@ class DebugMsgTemplate(enum.Enum):
           Buffer length: {buffer_length}
           Buffer: {buffer}
         """,
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     VAULT_NATIVE_CHECKING_MAC_DETAILS = _prepare_translatable(
@@ -1298,7 +1298,7 @@ class DebugMsgTemplate(enum.Enum):
           MAC input: {mac_input}
           Expected MAC: {mac}
         """,
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     VAULT_NATIVE_PADDED_PLAINTEXT = _prepare_translatable(
@@ -1308,7 +1308,7 @@ class DebugMsgTemplate(enum.Enum):
         and "plaintext" are cryptographic terms.
         """,
         msg='Padded plaintext: {contents}',
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     VAULT_NATIVE_PARSE_BUFFER = _prepare_translatable(
@@ -1327,7 +1327,7 @@ class DebugMsgTemplate(enum.Enum):
           Payload: {payload}
           MAC: {mac}
         """,
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     VAULT_NATIVE_PLAINTEXT = _prepare_translatable(
@@ -1337,7 +1337,7 @@ class DebugMsgTemplate(enum.Enum):
         "plaintext" is a cryptographic term.
         """,
         msg='Plaintext: {contents}',
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     VAULT_NATIVE_PBKDF2_CALL = _prepare_translatable(
@@ -1350,7 +1350,7 @@ class DebugMsgTemplate(enum.Enum):
           Result (hex key): {result_key!r}
         """,  # noqa: E501
         comments='',
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
     VAULT_NATIVE_V02_PAYLOAD_MAC_POSTPROCESSING = _prepare_translatable(
@@ -1368,7 +1368,7 @@ class DebugMsgTemplate(enum.Enum):
           Payload: {payload} (decoded from base64)
           MAC: {mac} (decoded from hex)
         """,
-        context='debug message',
+        context='Debug message',
         flags='python-brace-format',
     )
 
@@ -1386,7 +1386,7 @@ class InfoMsgTemplate(enum.Enum):
         on-the-fly), hence the term "assembling".
         """,
         msg='Assembling config structure',
-        context='info message',
+        context='Info message',
     )
     CANNOT_LOAD_AS_VAULT_CONFIG = _prepare_translatable(
         comments=r"""
@@ -1395,7 +1395,7 @@ class InfoMsgTemplate(enum.Enum):
         configuration as.
         """,
         msg='Cannot load {path!r} as a {fmt!s} vault configuration.',
-        context='info message',
+        context='Info message',
         flags='python-brace-format',
     )
     CHECKING_CONFIG_STRUCTURE_CONSISTENCY = _prepare_translatable(
@@ -1407,7 +1407,7 @@ class InfoMsgTemplate(enum.Enum):
         internally consistent.
         """,
         msg='Checking config structure consistency',
-        context='info message',
+        context='Info message',
     )
     DECRYPTING_BUCKET = _prepare_translatable(
         comments=r"""
@@ -1419,7 +1419,7 @@ class InfoMsgTemplate(enum.Enum):
         2-digit hex numbers.
         """,
         msg='Decrypting bucket {bucket_number}',
-        context='info message',
+        context='Info message',
         flags='python-brace-format',
     )
     PARSING_MASTER_KEYS_DATA = _prepare_translatable(
@@ -1430,7 +1430,7 @@ class InfoMsgTemplate(enum.Enum):
         this configuration are loaded.
         """,
         msg='Parsing master keys data from .keys',
-        context='info message',
+        context='Info message',
     )
     PIP_INSTALL_EXTRA = _prepare_translatable(
         comments=r"""
@@ -1443,7 +1443,7 @@ class InfoMsgTemplate(enum.Enum):
         automatically, hence this suggestion to PyPI users.
         """,
         msg='(For users installing from PyPI, see the {extra_name!r} extra.)',
-        context='info message',
+        context='Info message',
         flags='python-brace-format',
     )
     SUCCESSFULLY_MIGRATED = _prepare_translatable(
@@ -1452,23 +1452,23 @@ class InfoMsgTemplate(enum.Enum):
         deprecated v0.1-style ..." deprecation warning.
         """,
         msg='Successfully migrated to {path!r}.',
-        context='info message',
+        context='Info message',
         flags='python-brace-format',
     )
     VAULT_NATIVE_CHECKING_MAC = _prepare_translatable(
         msg='Checking MAC',
         comments='',
-        context='info message',
+        context='Info message',
     )
     VAULT_NATIVE_DECRYPTING_CONTENTS = _prepare_translatable(
         msg='Decrypting contents',
         comments='',
-        context='info message',
+        context='Info message',
     )
     VAULT_NATIVE_DERIVING_KEYS = _prepare_translatable(
         msg='Deriving an encryption and signing key',
         comments='',
-        context='info message',
+        context='Info message',
     )
     VAULT_NATIVE_PARSING_IV_PAYLOAD_MAC = _prepare_translatable(
         comments=r"""
@@ -1483,7 +1483,7 @@ class InfoMsgTemplate(enum.Enum):
         term or not, expanded or not.
         """,
         msg='Parsing IV, payload and MAC from the file contents',
-        context='info message',
+        context='Info message',
     )
 
 
@@ -1495,7 +1495,7 @@ class WarnMsgTemplate(enum.Enum):
         For compatibility, this will be treated as if SERVICE was not
         supplied, i.e., it will error out, or operate on global settings.
         """,
-        context='warning message',
+        context='Warning message',
         flags='python-brace-format',
     )
     EMPTY_SERVICE_SETTINGS_INACCESSIBLE = _prepare_translatable(
@@ -1506,7 +1506,7 @@ class WarnMsgTemplate(enum.Enum):
         settings, move them into the "global" section.
         """,
         comments='',
-        context='warning message',
+        context='Warning message',
         flags='python-brace-format',
     )
     FAILED_TO_MIGRATE_CONFIG = _prepare_translatable(
@@ -1515,7 +1515,7 @@ class WarnMsgTemplate(enum.Enum):
         (errno/strerror).
         """,
         msg='Failed to migrate to {path!r}: {error!s}: {filename!r}.',
-        context='warning message',
+        context='Warning message',
         flags='python-brace-format',
     )
     GLOBAL_PASSPHRASE_INEFFECTIVE = _prepare_translatable(
@@ -1524,7 +1524,7 @@ class WarnMsgTemplate(enum.Enum):
         because a key is also set.
         """,
         comments='',
-        context='warning message',
+        context='Warning message',
     )
     PASSPHRASE_NOT_NORMALIZED = _prepare_translatable(
         comments=r"""
@@ -1545,7 +1545,7 @@ class WarnMsgTemplate(enum.Enum):
         be, even if it *displays* correctly.  Please make sure to
         double-check any derived passphrases for unexpected results.
         """,
-        context='warning message',
+        context='Warning message',
         flags='python-brace-format',
     )
     SERVICE_NAME_INCOMPLETABLE = _prepare_translatable(
@@ -1558,7 +1558,7 @@ class WarnMsgTemplate(enum.Enum):
         recommend choosing a different service name instead.
         """,
         comments='',
-        context='warning message',
+        context='Warning message',
         flags='python-brace-format',
     )
     SERVICE_PASSPHRASE_INEFFECTIVE = _prepare_translatable(
@@ -1570,19 +1570,19 @@ class WarnMsgTemplate(enum.Enum):
         Setting a service passphrase is ineffective because a key is
         also set: {service!s}.
         """,
-        context='warning message',
+        context='Warning message',
         flags='python-brace-format',
     )
     STEP_REMOVE_INEFFECTIVE_VALUE = _prepare_translatable(
         'Removing ineffective setting {path!s} = {old!s}.',
         comments='',
-        context='warning message',
+        context='Warning message',
         flags='python-brace-format',
     )
     STEP_REPLACE_INVALID_VALUE = _prepare_translatable(
         'Replacing invalid value {old!s} for key {path!s} with {new!s}.',
         comments='',
-        context='warning message',
+        context='Warning message',
         flags='python-brace-format',
     )
     V01_STYLE_CONFIG = _prepare_translatable(
@@ -1592,7 +1592,7 @@ class WarnMsgTemplate(enum.Enum):
         will be removed in v1.0.
         """,
         comments='',
-        context='deprecation warning message',
+        context='Warning message :: Deprecation',
         flags='python-brace-format',
     )
     V10_SUBCOMMAND_REQUIRED = _prepare_translatable(
@@ -1606,7 +1606,7 @@ class WarnMsgTemplate(enum.Enum):
         A subcommand will be required here in v1.0.  See --help for
         available subcommands.  Defaulting to subcommand "vault".
         """,
-        context='deprecation warning message',
+        context='Warning message :: Deprecation',
     )
 
 
@@ -1618,7 +1618,7 @@ class ErrMsgTemplate(enum.Enum):
         msg="""
         The SSH agent failed to or refused to supply a list of loaded keys.
         """,
-        context='error message',
+        context='Error message',
     )
     AGENT_REFUSED_SIGNATURE = _prepare_translatable(
         comments=r"""
@@ -1630,7 +1630,7 @@ class ErrMsgTemplate(enum.Enum):
         The SSH agent failed to or refused to issue a signature with the
         selected key, necessary for deriving a service passphrase.
         """,
-        context='error message',
+        context='Error message',
     )
     CANNOT_CONNECT_TO_AGENT = _prepare_translatable(
         comments=r"""
@@ -1638,7 +1638,7 @@ class ErrMsgTemplate(enum.Enum):
         (errno/strerror).
         """,
         msg='Cannot connect to the SSH agent: {error!s}: {filename!r}.',
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     CANNOT_DECODEIMPORT_VAULT_SETTINGS = _prepare_translatable(
@@ -1647,7 +1647,7 @@ class ErrMsgTemplate(enum.Enum):
         (errno/strerror).
         """,
         msg='Cannot import vault settings: cannot decode JSON: {error!s}.',
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     CANNOT_EXPORT_VAULT_SETTINGS = _prepare_translatable(
@@ -1656,7 +1656,7 @@ class ErrMsgTemplate(enum.Enum):
         (errno/strerror).
         """,
         msg='Cannot export vault settings: {error!s}: {filename!r}.',
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     CANNOT_IMPORT_VAULT_SETTINGS = _prepare_translatable(
@@ -1665,7 +1665,7 @@ class ErrMsgTemplate(enum.Enum):
         (errno/strerror).
         """,
         msg='Cannot import vault settings: {error!s}: {filename!r}.',
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     CANNOT_LOAD_USER_CONFIG = _prepare_translatable(
@@ -1674,7 +1674,7 @@ class ErrMsgTemplate(enum.Enum):
         (errno/strerror).
         """,
         msg='Cannot load user config: {error!s}: {filename!r}.',
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     CANNOT_LOAD_VAULT_SETTINGS = _prepare_translatable(
@@ -1683,7 +1683,7 @@ class ErrMsgTemplate(enum.Enum):
         (errno/strerror).
         """,
         msg='Cannot load vault settings: {error!s}: {filename!r}.',
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     CANNOT_PARSE_AS_VAULT_CONFIG = _prepare_translatable(
@@ -1699,7 +1699,7 @@ class ErrMsgTemplate(enum.Enum):
         Cannot parse {path!r} as a valid vault-native configuration
         file/directory.
         """,
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     CANNOT_PARSE_AS_VAULT_CONFIG_OSERROR = _prepare_translatable(
@@ -1711,7 +1711,7 @@ class ErrMsgTemplate(enum.Enum):
         Cannot parse {path!r} as a valid vault-native configuration
         file/directory: {error!s}: {filename!r}.
         """,
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     CANNOT_STORE_VAULT_SETTINGS = _prepare_translatable(
@@ -1720,7 +1720,7 @@ class ErrMsgTemplate(enum.Enum):
         (errno/strerror).
         """,
         msg='Cannot store vault settings: {error!s}: {filename!r}.',
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     CANNOT_UNDERSTAND_AGENT = _prepare_translatable(
@@ -1737,7 +1737,7 @@ class ErrMsgTemplate(enum.Enum):
         Cannot understand the SSH agent's response because it violates
         the communications protocol.
         """,
-        context='error message',
+        context='Error message',
     )
     CANNOT_UPDATE_SETTINGS_NO_SETTINGS = _prepare_translatable(
         comments=r"""
@@ -1757,7 +1757,7 @@ class ErrMsgTemplate(enum.Enum):
         You must specify at least one of --lower, ..., --symbol, or
         --phrase or --key.
         """,
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     INVALID_USER_CONFIG = _prepare_translatable(
@@ -1768,7 +1768,7 @@ class ErrMsgTemplate(enum.Enum):
         msg=r"""
         The user configuration file is invalid.  {error!s}: {filename!r}.
         """,
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     INVALID_VAULT_CONFIG = _prepare_translatable(
@@ -1779,13 +1779,13 @@ class ErrMsgTemplate(enum.Enum):
         parsable, however.
         """,
         msg='Invalid vault config: {config!r}.',
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     MISSING_MODULE = _prepare_translatable(
         'Cannot load the required Python module {module!r}.',
         comments='',
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     NO_AF_UNIX = _prepare_translatable(
@@ -1794,7 +1794,7 @@ class ErrMsgTemplate(enum.Enum):
         not support UNIX domain sockets.
         """,
         comments='',
-        context='error message',
+        context='Error message',
     )
     NO_KEY_OR_PHRASE = _prepare_translatable(
         msg=r"""
@@ -1802,19 +1802,19 @@ class ErrMsgTemplate(enum.Enum):
         case, the --phrase or --key argument is required.
         """,
         comments='',
-        context='error message',
+        context='Error message',
     )
     NO_SSH_AGENT_FOUND = _prepare_translatable(
         'Cannot find any running SSH agent because SSH_AUTH_SOCK is not set.',
         comments='',
-        context='error message',
+        context='Error message',
     )
     NO_SUITABLE_SSH_KEYS = _prepare_translatable(
         msg="""
         The SSH agent contains no keys suitable for {PROG_NAME!s}.
         """,  # noqa: RUF027
         comments='',
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     PARAMS_MUTUALLY_EXCLUSIVE = _prepare_translatable(
@@ -1823,7 +1823,7 @@ class ErrMsgTemplate(enum.Enum):
         Typical example: "--key is mutually exclusive with --phrase."
         """,
         msg='{param1!s} is mutually exclusive with {param2!s}.',
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     PARAMS_NEEDS_SERVICE_OR_CONFIG = _prepare_translatable(
@@ -1832,7 +1832,7 @@ class ErrMsgTemplate(enum.Enum):
         the metavar is Label.VAULT_METAVAR_SERVICE.
         """,
         msg='{param!s} requires a {service_metavar!s} or --config.',
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     PARAMS_NEEDS_SERVICE = _prepare_translatable(
@@ -1841,7 +1841,7 @@ class ErrMsgTemplate(enum.Enum):
         the metavar is Label.VAULT_METAVAR_SERVICE.
         """,
         msg='{param!s} requires a {service_metavar!s}.',
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     PARAMS_NO_SERVICE = _prepare_translatable(
@@ -1850,7 +1850,7 @@ class ErrMsgTemplate(enum.Enum):
         the metavar is Label.VAULT_METAVAR_SERVICE.
         """,
         msg='{param!s} does not take a {service_metavar!s} argument.',
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     SERVICE_REQUIRED = _prepare_translatable(
@@ -1858,7 +1858,7 @@ class ErrMsgTemplate(enum.Enum):
         TRANSLATORS: The metavar is Label.VAULT_METAVAR_SERVICE.
         """,
         msg='Deriving a passphrase requires a {service_metavar!s}.',
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     SET_AND_UNSET_SAME_SETTING = _prepare_translatable(
@@ -1869,13 +1869,13 @@ class ErrMsgTemplate(enum.Enum):
         translation instead.
         """,
         msg='Attempted to unset and set --{setting!s} at the same time.',
-        context='error message',
+        context='Error message',
         flags='python-brace-format',
     )
     SSH_KEY_NOT_LOADED = _prepare_translatable(
         'The requested SSH key is not loaded into the agent.',
         comments='',
-        context='error message',
+        context='Error message',
     )
     USER_ABORTED_EDIT = _prepare_translatable(
         comments=r"""
@@ -1883,7 +1883,7 @@ class ErrMsgTemplate(enum.Enum):
         but aborted the request mid-editing.
         """,
         msg='Not saving any new notes: the user aborted the request.',
-        context='error message',
+        context='Error message',
     )
     USER_ABORTED_PASSPHRASE = _prepare_translatable(
         comments=r"""
@@ -1891,7 +1891,7 @@ class ErrMsgTemplate(enum.Enum):
         but aborted the request.
         """,
         msg='No passphrase was given; the user aborted the request.',
-        context='error message',
+        context='Error message',
     )
     USER_ABORTED_SSH_KEY_SELECTION = _prepare_translatable(
         comments=r"""
@@ -1899,7 +1899,7 @@ class ErrMsgTemplate(enum.Enum):
         but aborted the request.
         """,
         msg='No SSH key was selected; the user aborted the request.',
-        context='error message',
+        context='Error message',
     )
 
 
