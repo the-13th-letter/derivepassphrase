@@ -1944,6 +1944,17 @@ def _write_po_file(  # noqa: C901
                 )
             entries[ctx][msg] = member
     build_time = datetime.datetime.now().astimezone()
+    if os.environ.get('SOURCE_DATE_EPOCH'):
+        try:
+            source_date_epoch = int(os.environ['SOURCE_DATE_EPOCH'])
+        except ValueError as exc:
+            err_msg = 'Cannot parse SOURCE_DATE_EPOCH'
+            raise RuntimeError(err_msg) from exc
+        else:
+            build_time = datetime.datetime.fromtimestamp(
+                source_date_epoch,
+                tz=datetime.timezone.utc,
+            )
     if is_template:
         header = (
             inspect.cleandoc(rf"""
