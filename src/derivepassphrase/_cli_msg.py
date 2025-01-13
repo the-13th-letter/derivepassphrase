@@ -12,17 +12,18 @@ import enum
 import gettext
 import inspect
 import os
+import string
 import sys
 import textwrap
 import types
 from typing import TYPE_CHECKING, NamedTuple, TextIO, Union, cast
 
-from typing_extensions import TypeAlias
+from typing_extensions import TypeAlias, override
 
 import derivepassphrase as dpp
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping, Sequence
+    from collections.abc import Iterable, Iterator, Mapping, Sequence
 
     from typing_extensions import Any, Self
 
@@ -88,6 +89,112 @@ def load_translations(
 
 
 translation = load_translations()
+_debug_translation_message_cache: dict[tuple[str, str], MsgTemplate] = {}
+
+
+class DebugTranslations(gettext.NullTranslations):
+    """A debug object indicating which known message is being requested.
+
+    Each call to the `*gettext` methods will return the enum name if the
+    message is a known translatable message for the `derivepassphrase`
+    command-line interface, or the message itself otherwise.
+
+    """
+
+    @staticmethod
+    def _load_cache() -> None:
+        cache = _debug_translation_message_cache
+        for enum_class in MSG_TEMPLATE_CLASSES:
+            for member in enum_class.__members__.values():
+                value = cast('TranslatableString', member.value)
+                singular = value.singular
+                plural = value.plural
+                context = value.l10n_context
+                cache.setdefault((context, singular), member)
+                if plural:
+                    cache.setdefault((context, plural), member)
+
+    @classmethod
+    def _locate_message(
+        cls,
+        message: str,
+        /,
+        *,
+        context: str = '',
+        message_plural: str = '',
+        n: int = 1,
+    ) -> str:
+        try:
+            enum_value = _debug_translation_message_cache[context, message]
+        except KeyError:
+            return message if not message_plural or n == 1 else message_plural
+        return cls._format_enum_name_maybe_with_fields(
+            enum_name=str(enum_value),
+            ts=cast('TranslatableString', enum_value.value),
+        )
+
+    @staticmethod
+    def _format_enum_name_maybe_with_fields(
+        enum_name: str,
+        ts: TranslatableString,
+    ) -> str:
+        formatter = string.Formatter()
+        fields: dict[str, int] = {}
+        for _lit, field, _spec, _conv in formatter.parse(ts.singular):
+            if field is not None and field not in fields:
+                fields[field] = len(fields)
+        sorted_fields = [
+            f'{field}={{{field}!r}}'
+            for field in sorted(fields.keys(), key=fields.__getitem__)
+        ]
+        return (
+            '{!s}({})'.format(enum_name, ', '.join(sorted_fields))
+            if sorted_fields
+            else str(enum_name)
+        )
+
+    @override
+    def gettext(
+        self,
+        message: str,
+        /,
+    ) -> str:  # pragma: no cover
+        return self._locate_message(message)
+
+    @override
+    def ngettext(
+        self,
+        msgid1: str,
+        msgid2: str,
+        n: int,
+        /,
+    ) -> str:  # pragma: no cover
+        return self._locate_message(msgid1, message_plural=msgid2, n=n)
+
+    @override
+    def pgettext(
+        self,
+        context: str,
+        message: str,
+        /,
+    ) -> str:
+        return self._locate_message(message, context=context)
+
+    @override
+    def npgettext(
+        self,
+        context: str,
+        msgid1: str,
+        msgid2: str,
+        n: int,
+        /,
+    ) -> str:  # pragma: no cover
+        return self._locate_message(
+            msgid1,
+            context=context,
+            message_plural=msgid2,
+            n=n,
+        )
 
 
 class TranslatableString(NamedTuple):
@@ -1678,9 +1785,18 @@ MSG_TEMPLATE_CLASSES = (
     ErrMsgTemplate,
 )
 
+DebugTranslations._load_cache()  # noqa: SLF001
 
-def _write_pot_file(fileobj: TextIO) -> None:  # pragma: no cover
-    r"""Write a .po template to the given file object.
+
+
+def _write_po_file(  # noqa: C901
+    fileobj: TextIO,
+    /,
+    *,
+    is_template: bool = True,
+    version: str = __version__,
+) -> None:  # pragma: no cover
+    r"""Write a .po file to the given file object.
 
     Assumes the file object is opened for writing and accepts string
     inputs.  The file will *not* be closed when writing is complete.
@@ -1695,8 +1811,9 @@ def _write_pot_file(fileobj: TextIO) -> None:  # pragma: no cover
     entries: dict[str, dict[str, MsgTemplate]] = {}
     for enum_class in MSG_TEMPLATE_CLASSES:
         for member in enum_class.__members__.values():
-            ctx = member.value.l10n_context
-            msg = member.value.singular
+            value = cast('TranslatableString', member.value)
+            ctx = value.l10n_context
+            msg = value.singular
             if (
                 msg in entries.setdefault(ctx, {})
                 and entries[ctx][msg] != member
@@ -1706,49 +1823,113 @@ def _write_pot_file(fileobj: TextIO) -> None:  # pragma: no cover
                     f'{entries[ctx][msg]!r} and {member!r}'
                 )
             entries[ctx][msg] = member
-    now = datetime.datetime.now().astimezone()
-    header = (
-        inspect.cleandoc(rf"""
-        # English translation for {PROG_NAME!s}.
-        # Copyright (C) {now.strftime('%Y')} AUTHOR
-        # This file is distributed under the same license as {PROG_NAME!s}.
-        # AUTHOR <someone@example.com>, {now.strftime('%Y')}.
-        #
-        msgid ""
-        msgstr ""
-        "Project-Id-Version: {PROG_NAME!s} {__version__!s}\n"
-        "Report-Msgid-Bugs-To: software@the13thletter.info\n"
-        "POT-Creation-Date: {now.strftime('%Y-%m-%d %H:%M%z')}\n"
-        "PO-Revision-Date: {now.strftime('%Y-%m-%d %H:%M%z')}\n"
-        "Last-Translator: AUTHOR <someone@example.com>\n"
-        "Language: en\n"
-        "MIME-Version: 1.0\n"
-        "Content-Type: text/plain; charset=UTF-8\n"
-        "Content-Transfer-Encoding: 8bit\n"
-        "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-        """).removesuffix('\n')
-        + '\n'
-    )
+    build_time = datetime.datetime.now().astimezone()
+    if is_template:
+        header = (
+            inspect.cleandoc(rf"""
+            # English translation for {PROG_NAME!s}.
+            # Copyright (C) {build_time.strftime('%Y')} AUTHOR
+            # This file is distributed under the same license as {PROG_NAME!s}.
+            # AUTHOR <someone@example.com>, {build_time.strftime('%Y')}.
+            #
+            msgid ""
+            msgstr ""
+            """).removesuffix('\n')
+            + '\n'
+        )
+    else:
+        header = (
+            inspect.cleandoc(rf"""
+            # English debug translation for {PROG_NAME!s}.
+            # Copyright (C) {build_time.strftime('%Y')} {__author__}
+            # This file is distributed under the same license as {PROG_NAME!s}.
+            #
+            msgid ""
+            msgstr ""
+            """).removesuffix('\n')
+            + '\n'
+        )
     fileobj.write(header)
+    po_info = {
+        'Project-Id-Version': f'{PROG_NAME} {version}',
+        'Report-Msgid-Bugs-To': 'software@the13thletter.info',
+        'PO-Revision-Date': build_time.strftime('%Y-%m-%d %H:%M%z'),
+        'MIME-Version': '1.0',
+        'Content-Type': 'text/plain; charset=UTF-8',
+        'Content-Transfer-Encoding': '8bit',
+        'Plural-Forms': 'nplurals=2; plural=(n != 1);',
+    }
+    if is_template:
+        po_info.update({
+            'POT-Creation-Date': build_time.strftime('%Y-%m-%d %H:%M%z'),
+            'Last-Translator': 'AUTHOR <someone@example.com>',
+            'Language': 'en',
+            'Language-Team': 'English',
+        })
+    else:
+        po_info.update({
+            'Last-Translator': __author__,
+            'Language': 'en_DEBUG',
+            'Language-Team': 'English',
+        })
+    print(*_format_po_info(po_info), sep='\n', end='\n', file=fileobj)
     for _ctx, subdict in sorted(entries.items()):
         for _msg, enum_value in sorted(
             subdict.items(),
             key=lambda kv: str(kv[1]),
         ):
-            fileobj.writelines(_format_po_entry(enum_value))
+            fileobj.writelines(
+                _format_po_entry(
+                    enum_value, is_debug_translation=not is_template
+                )
+            )
+
+
+def _format_po_info(
+    data: Mapping[str, Any],
+    /,
+) -> Iterator[str]:  # pragma: no cover
+    sortorder = [
+        'project-id-version',
+        'report-msgid-bugs-to',
+        'pot-creation-date',
+        'po-revision-date',
+        'last-translator',
+        'language',
+        'language-team',
+        'mime-version',
+        'content-type',
+        'content-transfer-encoding',
+        'plural-forms',
+    ]
+
+    def _sort_position(s: str, /) -> int:
+        n = len(sortorder)
+        for i, x in enumerate(sortorder):
+            if s.lower().rstrip(':') == x:
+                return i
+        return n
+
+    for key in sorted(data.keys(), key=_sort_position):
+        value = data[key]
+        line = f"{key}: {value}\n"
+        yield _cstr(line)
 
 
 def _format_po_entry(
     enum_value: MsgTemplate,
+    /,
+    *,
+    is_debug_translation: bool = False,
 ) -> tuple[str, ...]:  # pragma: no cover
     ret: list[str] = ['\n']
     ts = enum_value.value
     if ts.translator_comments:
-        ret.extend(
-            f'#. {line}\n'
-            for line in ts.translator_comments.splitlines(False)  # noqa: FBT003
-        )
-    ret.append(f'#: derivepassphrase/_cli_msg.py:{enum_value}\n')
+        comments = ts.translator_comments.splitlines(False)  # noqa: FBT003
+        comments.extend(['', f'Message-ID: {enum_value}'])
+    else:
+        comments = [f'TRANSLATORS: Message-ID: {enum_value}']
+    ret.extend(f'#. {line}\n' for line in comments)
     if ts.flags:
         ret.append(f'#, {", ".join(sorted(ts.flags))}\n')
     if ts.l10n_context:
@@ -1756,7 +1937,12 @@ def _format_po_entry(
     ret.append(f'msgid {_cstr(ts.singular)}\n')
     if ts.plural:
         ret.append(f'msgid_plural {_cstr(ts.plural)}\n')
-    ret.append('msgstr ""\n')
+    value = (
+        DebugTranslations().pgettext(ts.l10n_context, ts.singular)
+        if is_debug_translation
+        else ''
+    )
+    ret.append(f'msgstr {_cstr(value)}\n')
     return tuple(ret)
 
 
@@ -1786,9 +1972,38 @@ def _cstr(s: str) -> str:  # pragma: no cover
 
     return '\n'.join(
         f'"{escape(line)}"'
-        for line in s.splitlines(True)  # noqa: FBT003
+        for line in s.splitlines(True) or ['']  # noqa: FBT003
     )
 
 
 if __name__ == '__main__':
-    _write_pot_file(sys.stdout)
+    import argparse
+    ap = argparse.ArgumentParser()
+    ex = ap.add_mutually_exclusive_group()
+    ex.add_argument(
+        '--template',
+        action='store_true',
+        dest='is_template',
+        default=True,
+        help='Generate a template file (default)',
+    )
+    ex.add_argument(
+        '--debug-translation',
+        action='store_false',
+        dest='is_template',
+        default=True,
+        help='Generate a "debug" translation file',
+    )
+    ap.add_argument(
+        '--set-version',
+        action='store',
+        dest='version',
+        default=__version__,
+        help='Override declared software version',
+    )
+    args = ap.parse_args()
+    _write_po_file(
+        sys.stdout,
+        version=args.version,
+        is_template=args.is_template,
+    )
