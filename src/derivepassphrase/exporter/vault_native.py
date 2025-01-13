@@ -21,12 +21,16 @@ should *not* be used or relied on.
 
 """
 
+# ruff: noqa: S303
+
 from __future__ import annotations
 
 import abc
 import base64
+import importlib
 import json
 import logging
+import os
 import warnings
 from typing import TYPE_CHECKING
 
@@ -34,7 +38,6 @@ from derivepassphrase import _cli_msg as _msg
 from derivepassphrase import exporter, vault
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
     from typing import Any
 
     from typing_extensions import Buffer
@@ -47,16 +50,7 @@ if TYPE_CHECKING:
     from cryptography.hazmat.primitives.kdf import pbkdf2
 else:
     try:
-        from cryptography import exceptions as crypt_exceptions
-        from cryptography import utils as crypt_utils
-        from cryptography.hazmat.primitives import (
-            ciphers,
-            hashes,
-            hmac,
-            padding,
-        )
-        from cryptography.hazmat.primitives.ciphers import algorithms, modes
-        from cryptography.hazmat.primitives.kdf import pbkdf2
+        importlib.import_module('cryptography')
     except ModuleNotFoundError as exc:
 
         class _DummyModule:  # pragma: no cover
@@ -74,6 +68,17 @@ else:
         algorithms = modes = pbkdf2 = _DummyModule(exc)
         STUBBED = True
     else:
+        from cryptography import exceptions as crypt_exceptions
+        from cryptography import utils as crypt_utils
+        from cryptography.hazmat.primitives import (
+            ciphers,
+            hashes,
+            hmac,
+            padding,
+        )
+        from cryptography.hazmat.primitives.ciphers import algorithms, modes
+        from cryptography.hazmat.primitives.kdf import pbkdf2
+
         STUBBED = False
 
 __all__ = ('export_vault_native_data',)
@@ -427,80 +432,69 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
         ).decryptor()
 
 
+@exporter.register_export_vault_config_data_handler('v0.2', 'v0.3')
 def export_vault_native_data(
-    contents: Buffer | None = None,
+    path: str | bytes | os.PathLike | None = None,
     key: str | Buffer | None = None,
     *,
-    try_formats: Sequence[str] = ('v0.3', 'v0.2'),
+    format: str,  # noqa: A002
 ) -> Any:  # noqa: ANN401
     """Export the full configuration stored in vault native format.
 
     Args:
-        contents:
-            The binary encrypted contents of the vault configuration
-            file.  If not given, then query
-            [`exporter.get_vault_path`][] for the correct filename and
-            read the contents from there.
-
-            Note: On disk, these are usually stored in base64-encoded
-            form, not in the "raw" form as needed here.
+        path:
+            The path to the vault configuration file.  If not given,
+            then query [`exporter.get_vault_path`][] for the correct
+            value.
         key:
             Encryption key/password for the configuration file, usually
             the username, or passed via the `VAULT_KEY` environment
             variable.  If not given, then query
             [`exporter.get_vault_key`][] for the value.
-        try_formats:
-            A sequence of formats to try out, in order.  Each key must
-            be one of `v0.2` or `v0.3`.
+        format:
+            The format to attempt parsing as.  Must be `v0.2` or `v0.3`.
 
     Returns:
         The vault configuration, as recorded in the configuration file.
 
-        This may or may not be a valid configuration according to vault
-        or derivepassphrase.
+        This may or may not be a valid configuration according to
+        `vault` or `derivepassphrase`.
 
     Raises:
-        RuntimeError:
-            Something went wrong during data collection, e.g. we
-            encountered unsupported or corrupted data in the storeroom.
         json.JSONDecodeError:
             An internal JSON data structure failed to parse from disk.
-            The storeroom is probably corrupted.
+            The encrypted configuration is probably corrupted.
+        exporter.NotAVaultConfigError:
+            The (encrypted) contents are not in the claimed
+            configuration format.
         ValueError:
-            The requested formats to try out are invalid, or the
-            encrypted contents aren't in any of the attempted
-            configuration formats.
+            The requested format is invalid.
 
     """
-    if contents is None:
-        with open(exporter.get_vault_path(), 'rb') as infile:
-            contents = base64.standard_b64decode(infile.read())
+    # Trigger import errors if necessary.
+    importlib.import_module('cryptography')
+    if path is None:
+        path = exporter.get_vault_path()
+    with open(path, 'rb') as infile:
+        contents = base64.standard_b64decode(infile.read())
     if key is None:
         key = exporter.get_vault_key()
-    stored_exception: Exception | None = None
-    for config_format in try_formats:
-        # Use match/case here once Python 3.9 becomes unsupported.
-        if config_format == 'v0.2':
-            try:
-                return VaultNativeV02ConfigParser(contents, key)()
-            except ValueError as exc:
-                exc.__context__ = stored_exception
-                stored_exception = exc
-        elif config_format == 'v0.3':
-            try:
-                return VaultNativeV03ConfigParser(contents, key)()
-            except ValueError as exc:
-                exc.__context__ = stored_exception
-                stored_exception = exc
-        else:  # pragma: no cover
-            msg = (
-                f'Invalid vault native configuration format: {config_format!r}'
-            )
-            raise ValueError(msg)
-    msg = (
-        f'Not a valid vault native configuration. (We tried: {try_formats!r}.)'
-    )
-    raise stored_exception or ValueError(msg)
+    parser_class: type[VaultNativeConfigParser] | None = {
+        'v0.2': VaultNativeV02ConfigParser,
+        'v0.3': VaultNativeV03ConfigParser,
+    }.get(format)
+    if parser_class is None:  # pragma: no cover
+        msg = exporter.INVALID_VAULT_NATIVE_CONFIGURATION_FORMAT.format(
+            fmt=format
+        )
+        raise ValueError(msg)
+    try:
+        return parser_class(contents, key)()
+    except ValueError as exc:
+        raise exporter.NotAVaultConfigError(
+            os.fsdecode(path),
+            format=format,
+        ) from exc
 
 
 if __name__ == '__main__':

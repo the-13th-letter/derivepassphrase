@@ -5,12 +5,16 @@
 from __future__ import annotations
 
 import os
+from typing import TYPE_CHECKING, Any
 
 import click.testing
 import pytest
 
 import tests
 from derivepassphrase import cli, exporter
+
+if TYPE_CHECKING:
+    from typing_extensions import Buffer
 
 
 class Test001ExporterUtils:
@@ -82,6 +86,33 @@ class Test001ExporterUtils:
                 os.path.realpath(exporter.get_vault_path())
             ) == os.path.realpath(os.path.expanduser(expected))
 
+    def test_220_register_export_vault_config_data_handler(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def handler(  # pragma: no cover
+            path: str | bytes | os.PathLike | None = None,
+            key: str | Buffer | None = None,
+            *,
+            format: str,
+        ) -> Any:
+            del path, key
+            raise ValueError(format)
+
+        registry = {'dummy': handler}
+        monkeypatch.setattr(
+            exporter, '_export_vault_config_data_registry', registry
+        )
+        dec = exporter.register_export_vault_config_data_handler(
+            'name1',
+            'name2',
+        )
+        assert dec(handler) == handler
+        assert registry == {
+            'dummy': handler,
+            'name1': handler,
+            'name2': handler,
+        }
+
     def test_300_get_vault_key_without_envs(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -100,6 +131,59 @@ class Test001ExporterUtils:
             RuntimeError, match=r'[Cc]annot determine home directory'
         ):
             exporter.get_vault_path()
+
+    @pytest.mark.parametrize(
+        ['namelist', 'err_pat'],
+        [
+            pytest.param((), '[Nn]o names given', id='empty'),
+            pytest.param(
+                ('name1', '', 'name2'),
+                '[Uu]nder an empty name',
+                id='empty-string',
+            ),
+            pytest.param(
+                ('dummy', 'name1', 'name2'),
+                '[Aa]lready registered',
+                id='existing',
+            ),
+        ],
+    )
+    def test_320_register_export_vault_config_data_handler_errors(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        namelist: tuple[str, ...],
+        err_pat: str,
+    ) -> None:
+        def handler(  # pragma: no cover
+            path: str | bytes | os.PathLike | None = None,
+            key: str | Buffer | None = None,
+            *,
+            format: str,
+        ) -> Any:
+            del path, key
+            raise ValueError(format)
+
+        registry = {'dummy': handler}
+        monkeypatch.setattr(
+            exporter, '_export_vault_config_data_registry', registry
+        )
+        with pytest.raises(ValueError, match=err_pat):
+            exporter.register_export_vault_config_data_handler(*namelist)(
+                handler
+            )
+
+    def test_321_export_vault_config_data_bad_handler(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(exporter, '_export_vault_config_data_registry', {})
+        monkeypatch.setattr(
+            exporter, 'find_vault_config_data_handlers', lambda: None
+        )
+        with pytest.raises(
+            ValueError,
+            match=r'Invalid vault native configuration format',
+        ):
+            exporter.export_vault_config_data(format='v0.3')
 
 
 class Test002CLI:

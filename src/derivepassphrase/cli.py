@@ -13,7 +13,6 @@ import collections
 import copy
 import enum
 import functools
-import importlib
 import inspect
 import json
 import logging
@@ -38,7 +37,6 @@ from typing_extensions import (
     Any,
     ParamSpec,
     Self,
-    assert_never,
     override,
 )
 
@@ -1473,45 +1471,6 @@ def derivepassphrase_export(ctx: click.Context, /) -> None:
     return None
 
 
-def _load_data(
-    fmt: Literal['v0.2', 'v0.3', 'storeroom'],
-    path: str | bytes | os.PathLike[str],
-    key: bytes,
-) -> Any:  # noqa: ANN401
-    contents: bytes
-    module: types.ModuleType
-    # Use match/case here once Python 3.9 becomes unsupported.
-    if fmt == 'v0.2':
-        module = importlib.import_module(
-            'derivepassphrase.exporter.vault_native'
-        )
-        if module.STUBBED:
-            raise ModuleNotFoundError
-        with open(path, 'rb') as infile:
-            contents = base64.standard_b64decode(infile.read())
-        return module.export_vault_native_data(
-            contents, key, try_formats=['v0.2']
-        )
-    elif fmt == 'v0.3':  # noqa: RET505
-        module = importlib.import_module(
-            'derivepassphrase.exporter.vault_native'
-        )
-        if module.STUBBED:
-            raise ModuleNotFoundError
-        with open(path, 'rb') as infile:
-            contents = base64.standard_b64decode(infile.read())
-        return module.export_vault_native_data(
-            contents, key, try_formats=['v0.3']
-        )
-    elif fmt == 'storeroom':
-        module = importlib.import_module('derivepassphrase.exporter.storeroom')
-        if module.STUBBED:
-            raise ModuleNotFoundError
-        return module.export_storeroom_data(path, key)
-    else:  # pragma: no cover
-        assert_never(fmt)
-
-
 @derivepassphrase_export.command(
     'vault',
     context_settings={'help_option_names': ['-h', '--help']},
@@ -1578,7 +1537,7 @@ def derivepassphrase_export_vault(
     ctx: click.Context,
     /,
     *,
-    path: str | bytes | os.PathLike[str],
+    path: str | bytes | os.PathLike[str] | None,
     formats: Sequence[Literal['v0.2', 'v0.3', 'storeroom']] = (),
     key: str | bytes | None = None,
 ) -> None:
@@ -1595,24 +1554,22 @@ def derivepassphrase_export_vault(
     """
     logger = logging.getLogger(PROG_NAME)
     if path in {'VAULT_PATH', b'VAULT_PATH'}:
-        path = exporter.get_vault_path()
-    if key is None:
-        key = exporter.get_vault_key()
-    elif isinstance(key, str):  # pragma: no branch
+        path = None
+    if isinstance(key, str):  # pragma: no branch
         key = key.encode('utf-8')
     for fmt in formats:
         try:
-            config = _load_data(fmt, path, key)
+            config = exporter.export_vault_config_data(path, key, format=fmt)
         except (
             IsADirectoryError,
             NotADirectoryError,
-            ValueError,
+            exporter.NotAVaultConfigError,
             RuntimeError,
         ):
             logger.info(
                 _msg.TranslatedString(
                     _msg.InfoMsgTemplate.CANNOT_LOAD_AS_VAULT_CONFIG,
-                    path=path,
+                    path=path or exporter.get_vault_path(),
                     fmt=fmt,
                 ),
                 extra={'color': ctx.color},
