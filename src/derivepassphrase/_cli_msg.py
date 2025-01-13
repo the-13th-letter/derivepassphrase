@@ -107,12 +107,14 @@ class DebugTranslations(gettext.NullTranslations):
         for enum_class in MSG_TEMPLATE_CLASSES:
             for member in enum_class.__members__.values():
                 value = cast('TranslatableString', member.value)
-                singular = value.singular
-                plural = value.plural
-                context = value.l10n_context
-                cache.setdefault((context, singular), member)
-                if plural:
-                    cache.setdefault((context, plural), member)
+                value2 = value.maybe_without_filename()
+                for v in {value, value2}:
+                    singular = v.singular
+                    plural = v.plural
+                    context = v.l10n_context
+                    cache.setdefault((context, singular), member)
+                    if plural:
+                        cache.setdefault((context, plural), member)
 
     @classmethod
     def _locate_message(
@@ -203,6 +205,26 @@ class TranslatableString(NamedTuple):
     l10n_context: str
     translator_comments: str
     flags: frozenset[str]
+
+    def maybe_without_filename(self) -> Self:
+        """Return a new translatable string without the "filename" field.
+
+        Only acts upon translatable strings containing the exact
+        contents `": {filename!r}"`.  The specified part will be
+        removed.  This is correct usage in English for messages like
+        `"Cannot open file: {error!s}: {filename!r}."`, but not
+        necessarily in other languages.
+
+        """
+        filename_str = ': {filename!r}'
+        ret = self
+        a, sep1, b = self.singular.partition(filename_str)
+        c, sep2, d = self.plural.partition(filename_str)
+        if sep1:
+            ret = ret._replace(singular=(a + b))
+        if sep2:
+            ret = ret._replace(plural=(c + d))
+        return ret
 
 
 def _prepare_translatable(
@@ -300,27 +322,33 @@ class TranslatedString:
                 template = translation.pgettext(context, template)
             else:  # pragma: no cover
                 template = translation.gettext(template)
-            self._rendered = template.format(**self.kwargs)
+            kwargs = {
+                k: str(v) if isinstance(v, TranslatedString) else v
+                for k, v in self.kwargs.items()
+            }
+            self._rendered = template.format(**kwargs)
         return self._rendered
 
     def maybe_without_filename(self) -> Self:
+        """Return a new string without the "filename" field.
+
+        Only acts upon translated strings containing the exact contents
+        `": {filename!r}"`.  The specified part will be removed.  This
+        acts upon the string *before* translation, i.e., the string
+        without the filename will be used as a translation base.
+
+        """
+        new_template = (
+            self.template.maybe_without_filename()
+            if not isinstance(self.template, str)
+            else self.template
+        )
         if (
-            not isinstance(self.template, str)
+            not isinstance(new_template, str)
             and self.kwargs.get('filename') is None
-            and ': {filename!r}' in self.template.singular
+            and new_template != self.template
         ):
-            singular = ''.join(
-                self.template.singular.split(': {filename!r}', 1)
-            )
-            plural = (
-                ''.join(self.template.plural.split(': {filename!r}', 1))
-                if self.template.plural
-                else self.template.plural
-            )
-            return self.__class__(
-                self.template._replace(singular=singular, plural=plural),
-                self.kwargs,
-            )
+            return self.__class__(new_template, self.kwargs)
         return self
 
 
@@ -1878,11 +1906,21 @@ def _write_po_file(  # noqa: C901
             subdict.items(),
             key=lambda kv: str(kv[1]),
         ):
+            value = cast('TranslatableString', enum_value.value)
+            value2 = value.maybe_without_filename()
             fileobj.writelines(
                 _format_po_entry(
                     enum_value, is_debug_translation=not is_template
                 )
             )
+            if value != value2:
+                fileobj.writelines(
+                    _format_po_entry(
+                        enum_value,
+                        is_debug_translation=not is_template,
+                        transformed_string=value2,
+                    )
+                )
 
 
 def _format_po_info(
@@ -1921,9 +1959,10 @@ def _format_po_entry(
     /,
     *,
     is_debug_translation: bool = False,
+    transformed_string: TranslatableString | None = None,
 ) -> tuple[str, ...]:  # pragma: no cover
     ret: list[str] = ['\n']
-    ts = enum_value.value
+    ts = transformed_string or cast('TranslatableString', enum_value.value)
     if ts.translator_comments:
         comments = ts.translator_comments.splitlines(False)  # noqa: FBT003
         comments.extend(['', f'Message-ID: {enum_value}'])
