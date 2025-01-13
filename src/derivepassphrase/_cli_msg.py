@@ -122,7 +122,8 @@ class DebugTranslations(gettext.NullTranslations):
                     plural = v.plural
                     context = v.l10n_context
                     cache.setdefault((context, singular), (member, trimmed))
-                    if plural:
+                    # Currently no translatable messages use plural forms
+                    if plural:  # pragma: no cover
                         cache.setdefault((context, plural), (member, trimmed))
 
     @classmethod
@@ -260,7 +261,8 @@ class TranslatableString(NamedTuple):
         c, sep2, d = self.plural.partition(filename_str)
         if sep1:
             ret = ret._replace(singular=(a + b))
-        if sep2:
+        # Currently no translatable messages use plural forms
+        if sep2:  # pragma: no cover
             ret = ret._replace(plural=(c + d))
         return ret
 
@@ -311,6 +313,36 @@ class TranslatableString(NamedTuple):
             ValueError:
                 The flags failed to validate.  See the exact error
                 message for details.
+
+        Examples:
+            >>> TranslatableString('', 'all OK').validate_flags()
+            ... # doctest: +NORMALIZE_WHITESPACE
+            TranslatableString(l10n_context='', singular='all OK', plural='',
+                               flags=frozenset(), translator_comments='')
+            >>> TranslatableString('', '20% OK').validate_flags(
+            ...     'no-python-format'
+            ... )
+            ... # doctest: +NORMALIZE_WHITESPACE
+            TranslatableString(l10n_context='', singular='20% OK', plural='',
+                               flags=frozenset({'no-python-format'}),
+                               translator_comments='')
+            >>> TranslatableString('', '%d items').validate_flags()
+            ... # doctest: +ELLIPSIS
+            Traceback (most recent call last):
+                ...
+            ValueError: Missing flag for how to deal with percent character ...
+            >>> TranslatableString('', '{braces}').validate_flags()
+            ... # doctest: +ELLIPSIS
+            Traceback (most recent call last):
+                ...
+            ValueError: Missing flag for how to deal with brace character ...
+            >>> TranslatableString('', 'no braces').validate_flags(
+            ...     'python-brace-format'
+            ... )
+            ... # doctest: +ELLIPSIS
+            Traceback (most recent call last):
+                ...
+            ValueError: Missing format string parameters ...
 
         """
         all_flags = frozenset(

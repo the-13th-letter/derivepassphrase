@@ -82,6 +82,7 @@ exclude_also = [
   'assert False',
   '(?:typing\.)?assert_never\(',
   '@overload',
+  'class .*\(Protocol\):',
 ]
 
 [tool.coverage.run]
