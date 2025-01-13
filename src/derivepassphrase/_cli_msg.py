@@ -206,6 +206,30 @@ class TranslatableString(NamedTuple):
     translator_comments: str
     flags: frozenset[str]
 
+    @staticmethod
+    def _maybe_rewrap(
+        string: str,
+        /,
+        *,
+        fix_sentence_endings: bool = True,
+    ) -> str:
+        string = inspect.cleandoc(string)
+        if not any(s.strip() == '\b' for s in string.splitlines()):
+            string = '\n'.join(
+                textwrap.wrap(
+                    string,
+                    width=float('inf'),  # type: ignore[arg-type]
+                    fix_sentence_endings=fix_sentence_endings,
+                )
+            )
+        else:
+            string = ''.join(
+                s
+                for s in string.splitlines(True)  # noqa: FBT003
+                if s.strip() != '\b'
+            )
+        return string
+
     def maybe_without_filename(self) -> Self:
         """Return a new translatable string without the "filename" field.
 
@@ -226,6 +250,83 @@ class TranslatableString(NamedTuple):
             ret = ret._replace(plural=(c + d))
         return ret
 
+    def rewrapped(self) -> Self:
+        """Return a rewrapped version of self.
+
+        Normalizes all parts assumed to contain English prose.
+
+        """
+        msg = self._maybe_rewrap(self.singular, fix_sentence_endings=True)
+        plural = self._maybe_rewrap(self.plural, fix_sentence_endings=True)
+        context = self.l10n_context.strip()
+        comments = self._maybe_rewrap(
+            self.translator_comments, fix_sentence_endings=False
+        )
+        return self._replace(
+            singular=msg,
+            plural=plural,
+            l10n_context=context,
+            translator_comments=comments,
+        )
+
+    def with_comments(self, comments: str, /) -> Self:
+        """Add or replace the string's translator comments.
+
+        The comments are assumed to contain English prose, and will be
+        normalized.
+
+        Returns:
+            A new [`TranslatableString`][] with the specified comments.
+
+        """
+        if not comments.lstrip().startswith(  # pragma: no cover
+            'TRANSLATORS:'
+        ):
+            comments = 'TRANSLATORS: ' + comments.lstrip()
+        comments = self._maybe_rewrap(comments, fix_sentence_endings=False)
+        return self._replace(translator_comments=comments)
+
+    def validate_flags(self, *extra_flags: str) -> Self:
+        """Add all flags, then validate them against the string.
+
+        Returns:
+            A new [`TranslatableString`][] with the extra flags added,
+            and all flags validated.
+
+        Raises:
+            ValueError:
+                The flags failed to validate.  See the exact error
+                message for details.
+
+        """
+        all_flags = frozenset(
+            f.strip() for f in self.flags.union(extra_flags)
+        )
+        if '{' in self.singular and not bool(
+            all_flags & {'python-brace-format', 'no-python-brace-format'}
+        ):
+            msg = (
+                f'Missing flag for how to deal with brace character '
+                f'in {self.singular!r}'
+            )
+            raise ValueError(msg)
+        if '%' in self.singular and not bool(
+            all_flags & {'python-format', 'no-python-format'}
+        ):
+            msg = (
+                f'Missing flag for how to deal with percent character '
+                f'in {self.singular!r}'
+            )
+            raise ValueError(msg)
+        if (
+            all_flags & {'python-format', 'python-brace-format'}
+            and '%' not in self.singular
+            and '{' not in self.singular
+        ):
+            msg = f'Missing format string parameters in {self.singular!r}'
+            raise ValueError(msg)
+        return self._replace(flags=all_flags)
+
 
 def _prepare_translatable(
     msg: str,
@@ -235,45 +336,36 @@ def _prepare_translatable(
     *,
     flags: Iterable[str] = (),
 ) -> TranslatableString:
-    def maybe_rewrap(string: str) -> str:
-        string = inspect.cleandoc(string)
-        if not any(s.strip() == '\b' for s in string.splitlines()):
-            string = '\n'.join(
-                textwrap.wrap(
-                    string,
-                    width=float('inf'),  # type: ignore[arg-type]
-                    fix_sentence_endings=True,
-                )
-            )
-        else:
-            string = ''.join(
-                s
-                for s in string.splitlines(True)  # noqa: FBT003
-                if s.strip() != '\b'
-            )
-        return string
+    return translatable(
+        context, msg, plural=plural, comments=comments, flags=flags
+    )
 
-    msg = maybe_rewrap(msg)
-    plural_msg = maybe_rewrap(plural_msg)
-    context = context.strip()
-    comments = inspect.cleandoc(comments)
+
+def translatable(
+    context: str,
+    single: str,
+    /,
+    flags: Iterable[str] = (),
+    plural: str = '',
+    comments: str = '',
+) -> TranslatableString:
+    """Return a [`TranslatableString`][] with validated parts.
+
+    This factory function is really only there to make the enum
+    definitions more readable.
+
+    """
     flags = (
-        frozenset(f.strip() for f in flags)
+        frozenset(flags)
         if not isinstance(flags, str)
         else frozenset({flags})
     )
-    assert '{' not in msg or bool(
-        flags & {'python-brace-format', 'no-python-brace-format'}
-    ), f'Missing flag for how to deal with brace in {msg!r}'
-    assert '%' not in msg or bool(
-        flags & {'python-format', 'no-python-format'}
-    ), f'Missing flag for how to deal with percent character in {msg!r}'
-    assert (
-        not flags & {'python-format', 'python-brace-format'}
-        or '%' in msg
-        or '{' in msg
-    ), f'Missing format string parameters in {msg!r}'
-    return TranslatableString(msg, plural_msg, context, comments, flags)
+    return (
+        TranslatableString(context, single, plural=plural, flags=flags)
+        .rewrapped()
+        .with_comments(comments)
+        .validate_flags()
+    )
 
 
 class TranslatedString:
