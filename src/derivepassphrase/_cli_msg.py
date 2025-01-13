@@ -89,7 +89,10 @@ def load_translations(
 
 
 translation = load_translations()
-_debug_translation_message_cache: dict[tuple[str, str], MsgTemplate] = {}
+_debug_translation_message_cache: dict[
+    tuple[str, str],
+    tuple[MsgTemplate, frozenset],
+] = {}
 
 
 class DebugTranslations(gettext.NullTranslations):
@@ -107,14 +110,19 @@ class DebugTranslations(gettext.NullTranslations):
         for enum_class in MSG_TEMPLATE_CLASSES:
             for member in enum_class.__members__.values():
                 value = cast('TranslatableString', member.value)
+                queue: list[tuple[TranslatableString, frozenset[str]]] = [
+                    (value, frozenset())
+                ]
                 value2 = value.maybe_without_filename()
-                for v in {value, value2}:
+                if value != value2:
+                    queue.append((value2, frozenset({'filename'})))
+                for v, trimmed in queue:
                     singular = v.singular
                     plural = v.plural
                     context = v.l10n_context
-                    cache.setdefault((context, singular), member)
+                    cache.setdefault((context, singular), (member, trimmed))
                     if plural:
-                        cache.setdefault((context, plural), member)
+                        cache.setdefault((context, plural), (member, trimmed))
 
     @classmethod
     def _locate_message(
@@ -127,31 +135,36 @@ class DebugTranslations(gettext.NullTranslations):
         n: int = 1,
     ) -> str:
         try:
-            enum_value = _debug_translation_message_cache[context, message]
+            enum_value, trimmed = _debug_translation_message_cache[
+                context, message
+            ]
         except KeyError:
             return message if not message_plural or n == 1 else message_plural
         return cls._format_enum_name_maybe_with_fields(
             enum_name=str(enum_value),
             ts=cast('TranslatableString', enum_value.value),
+            trimmed=trimmed,
         )
 
     @staticmethod
     def _format_enum_name_maybe_with_fields(
         enum_name: str,
         ts: TranslatableString,
+        trimmed: frozenset[str] = frozenset(),
     ) -> str:
         formatter = string.Formatter()
         fields: dict[str, int] = {}
         for _lit, field, _spec, _conv in formatter.parse(ts.singular):
             if field is not None and field not in fields:
                 fields[field] = len(fields)
-        sorted_fields = [
-            f'{field}={{{field}!r}}'
-            for field in sorted(fields.keys(), key=fields.__getitem__)
+        sorted_fields = sorted(fields.keys(), key=fields.__getitem__)
+        formatted_fields = [
+            f'{f}=None' if f in trimmed else f'{f}={{{f}!r}}'
+            for f in sorted_fields
         ]
         return (
-            '{!s}({})'.format(enum_name, ', '.join(sorted_fields))
-            if sorted_fields
+            '{!s}({})'.format(enum_name, ', '.join(formatted_fields))
+            if formatted_fields
             else str(enum_name)
         )
 
