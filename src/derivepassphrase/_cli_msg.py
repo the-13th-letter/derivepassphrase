@@ -15,7 +15,9 @@ import os
 import sys
 import textwrap
 import types
-from typing import TYPE_CHECKING, NamedTuple, TextIO, cast
+from typing import TYPE_CHECKING, NamedTuple, TextIO, Union, cast
+
+from typing_extensions import TypeAlias
 
 import derivepassphrase as dpp
 
@@ -151,19 +153,13 @@ class TranslatedString:
         template: (
             str
             | TranslatableString
-            | Label
-            | DebugMsgTemplate
-            | InfoMsgTemplate
-            | WarnMsgTemplate
-            | ErrMsgTemplate
+            | MsgTemplate
         ),
         args_dict: Mapping[str, Any] = types.MappingProxyType({}),
         /,
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
-        if isinstance(
-            template, (Label, DebugMsgTemplate, InfoMsgTemplate, WarnMsgTemplate, ErrMsgTemplate)
-        ):
+        if isinstance(template, MSG_TEMPLATE_CLASSES):
             template = cast('TranslatableString', template.value)
         self.template = template
         self.kwargs = {**args_dict, **kwargs}
@@ -1667,6 +1663,22 @@ class ErrMsgTemplate(enum.Enum):
     )
 
 
+MsgTemplate: TypeAlias = Union[
+    Label,
+    DebugMsgTemplate,
+    InfoMsgTemplate,
+    WarnMsgTemplate,
+    ErrMsgTemplate,
+]
+MSG_TEMPLATE_CLASSES = (
+    Label,
+    DebugMsgTemplate,
+    InfoMsgTemplate,
+    WarnMsgTemplate,
+    ErrMsgTemplate,
+)
+
+
 def _write_pot_file(fileobj: TextIO) -> None:  # pragma: no cover
     r"""Write a .po template to the given file object.
 
@@ -1680,20 +1692,8 @@ def _write_pot_file(fileobj: TextIO) -> None:  # pragma: no cover
     .po header are hard-coded, as is the source filename.
 
     """  # noqa: DOC501
-    entries: dict[
-        str,
-        dict[
-            str,
-            Label | DebugMsgTemplate | InfoMsgTemplate | WarnMsgTemplate | ErrMsgTemplate,
-        ],
-    ] = {}
-    for enum_class in (
-        Label,
-        DebugMsgTemplate,
-        InfoMsgTemplate,
-        WarnMsgTemplate,
-        ErrMsgTemplate,
-    ):
+    entries: dict[str, dict[str, MsgTemplate]] = {}
+    for enum_class in MSG_TEMPLATE_CLASSES:
         for member in enum_class.__members__.values():
             ctx = member.value.l10n_context
             msg = member.value.singular
@@ -1739,7 +1739,7 @@ def _write_pot_file(fileobj: TextIO) -> None:  # pragma: no cover
 
 
 def _format_po_entry(
-    enum_value: Label | DebugMsgTemplate | InfoMsgTemplate | WarnMsgTemplate | ErrMsgTemplate,
+    enum_value: MsgTemplate,
 ) -> tuple[str, ...]:  # pragma: no cover
     ret: list[str] = ['\n']
     ts = enum_value.value
