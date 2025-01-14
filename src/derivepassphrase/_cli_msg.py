@@ -154,15 +154,9 @@ class DebugTranslations(gettext.NullTranslations):
         ts: TranslatableString,
         trimmed: frozenset[str] = frozenset(),
     ) -> str:
-        formatter = string.Formatter()
-        fields: dict[str, int] = {}
-        for _lit, field, _spec, _conv in formatter.parse(ts.singular):
-            if field is not None and field not in fields:
-                fields[field] = len(fields)
-        sorted_fields = sorted(fields.keys(), key=fields.__getitem__)
         formatted_fields = [
             f'{f}=None' if f in trimmed else f'{f}={{{f}!r}}'
-            for f in sorted_fields
+            for f in ts.fields()
         ]
         return (
             '{!s}({})'.format(enum_name, ', '.join(formatted_fields))
@@ -175,7 +169,7 @@ class DebugTranslations(gettext.NullTranslations):
         self,
         message: str,
         /,
-    ) -> str:  # pragma: no cover
+    ) -> str:
         return self._locate_message(message)
 
     @override
@@ -220,6 +214,33 @@ class TranslatableString(NamedTuple):
     plural: str = ''
     flags: frozenset[str] = frozenset()
     translator_comments: str = ''
+
+    def fields(self) -> list[str]:
+        """Return the replacement fields this template requires.
+
+        Raises:
+            NotImplementedError:
+                Replacement field discovery for %-formatting is not
+                implemented.
+
+        """
+        if 'python-format' in self.flags:  # pragma: no cover
+            err_msg = (
+                'Replacement field discovery for %-formatting '
+                'is not implemented'
+            )
+            raise NotImplementedError(err_msg)
+        if (
+            'no-python-brace-format' in self.flags
+            or 'python-brace-format' not in self.flags
+        ):
+            return []
+        formatter = string.Formatter()
+        fields: dict[str, int] = {}
+        for _lit, field, _spec, _conv in formatter.parse(self.singular):
+            if field is not None and field not in fields:
+                fields[field] = len(fields)
+        return sorted(fields, key=fields.__getitem__)
 
     @staticmethod
     def _maybe_rewrap(
@@ -436,23 +457,37 @@ class TranslatedString:
 
     def __str__(self) -> str:
         if self._rendered is None:
-            # raw str support is currently unneeded, so excluded from coverage
-            if isinstance(self.template, str):  # pragma: no cover
-                context = None
+            do_escape = False
+            if isinstance(self.template, str):
+                context = ''
                 template = self.template
             else:
                 context = self.template.l10n_context
                 template = self.template.singular
-            if context is not None:
-                template = translation.pgettext(context, template)
-            else:  # pragma: no cover
-                template = translation.gettext(template)
+                do_escape = 'no-python-brace-format' in self.template.flags
+            template = (
+                translation.pgettext(context, template)
+                if context
+                else translation.gettext(template)
+            )
+            template = self._escape(template) if do_escape else template
             kwargs = {
                 k: str(v) if isinstance(v, TranslatedString) else v
                 for k, v in self.kwargs.items()
             }
             self._rendered = template.format(**kwargs)
         return self._rendered
+
+    @staticmethod
+    def _escape(template: str) -> str:
+        return template.translate({
+            ord('{'): '{{',
+            ord('}'): '}}',
+        })
+
+    @classmethod
+    def constant(cls, template: str) -> Self:
+        return cls(cls._escape(template))
 
     def maybe_without_filename(self) -> Self:
         """Return a new string without the "filename" field.
