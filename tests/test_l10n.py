@@ -56,7 +56,6 @@ def monkeypatched_null_translations() -> Iterator[None]:
 
 @pytest.mark.usefixtures('use_debug_translations')
 class TestL10nMachineryWithDebugTranslations:
-
     error_codes = tuple(
         sorted(errno.errorcode, key=errno.errorcode.__getitem__)
     )
@@ -66,9 +65,7 @@ class TestL10nMachineryWithDebugTranslations:
         if e.value.fields() == ['error', 'filename']
     )
     no_fields_messages = tuple(
-        e
-        for e in all_translatable_strings_enum_values
-        if not e.value.fields()
+        e for e in all_translatable_strings_enum_values if not e.value.fields()
     )
 
     @hypothesis.given(value=strategies.text(max_size=100))
