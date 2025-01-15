@@ -1364,9 +1364,9 @@ def hypothesis_settings_coverage_compatible_with_caplog(
     return settings if f is None else settings(f)
 
 
-def list_keys(self: Any = None) -> list[_types.KeyCommentPair]:
+def list_keys(self: Any = None) -> list[_types.SSHKeyCommentPair]:
     del self  # Unused.
-    Pair = _types.KeyCommentPair  # noqa: N806
+    Pair = _types.SSHKeyCommentPair  # noqa: N806
     list1 = [
         Pair(value['public_key_data'], f'{key} test key'.encode('ASCII'))
         for key, value in SUPPORTED_KEYS.items()
@@ -1390,9 +1390,9 @@ def sign(
     raise AssertionError
 
 
-def list_keys_singleton(self: Any = None) -> list[_types.KeyCommentPair]:
+def list_keys_singleton(self: Any = None) -> list[_types.SSHKeyCommentPair]:
     del self  # Unused.
-    Pair = _types.KeyCommentPair  # noqa: N806
+    Pair = _types.SSHKeyCommentPair  # noqa: N806
     list1 = [
         Pair(value['public_key_data'], f'{key} test key'.encode('ASCII'))
         for key, value in SUPPORTED_KEYS.items()
@@ -1400,9 +1400,9 @@ def list_keys_singleton(self: Any = None) -> list[_types.KeyCommentPair]:
     return list1[:1]
 
 
-def suitable_ssh_keys(conn: Any) -> Iterator[_types.KeyCommentPair]:
+def suitable_ssh_keys(conn: Any) -> Iterator[_types.SSHKeyCommentPair]:
     del conn  # Unused.
-    Pair = _types.KeyCommentPair  # noqa: N806
+    Pair = _types.SSHKeyCommentPair  # noqa: N806
     yield from [
         Pair(DUMMY_KEY1, b'no comment'),
         Pair(DUMMY_KEY2, b'a comment'),

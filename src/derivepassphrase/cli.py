@@ -1794,7 +1794,7 @@ def _load_user_config() -> dict[str, Any]:
 
 def _get_suitable_ssh_keys(
     conn: ssh_agent.SSHAgentClient | socket.socket | None = None, /
-) -> Iterator[_types.KeyCommentPair]:
+) -> Iterator[_types.SSHKeyCommentPair]:
     """Yield all SSH keys suitable for passphrase derivation.
 
     Suitable SSH keys are queried from the running SSH agent (see

@@ -560,9 +560,9 @@ class TestAgentInteraction:
         with monkeypatch.context() as monkeypatch2:
             client = ssh_agent.SSHAgentClient()
             monkeypatch2.setattr(client, 'request', request)
-            KeyCommentPair = _types.KeyCommentPair  # noqa: N806
+            SSHKeyCommentPair = _types.SSHKeyCommentPair  # noqa: N806
             loaded_keys = [
-                KeyCommentPair(v['public_key_data'], b'no comment')
+                SSHKeyCommentPair(v['public_key_data'], b'no comment')
                 for v in tests.SUPPORTED_KEYS.values()
             ]
             monkeypatch2.setattr(client, 'list_keys', lambda: loaded_keys)

@@ -32,10 +32,10 @@ import logging
 import os
 import os.path
 import struct
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any
 
 from derivepassphrase import _cli_msg as _msg
-from derivepassphrase import exporter
+from derivepassphrase import _types, exporter
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -90,51 +90,10 @@ def _h(bs: Buffer) -> str:
     return '<{}>'.format(memoryview(bs).hex(' '))
 
 
-class KeyPair(TypedDict):
-    """A pair of AES256 keys, one for encryption and one for signing.
-
-    Attributes:
-        encryption_key:
-            AES256 key, used for encryption with AES256-CBC (with PKCS#7
-            padding).
-        signing_key:
-            AES256 key, used for signing with HMAC-SHA256.
-
-    """
-
-    encryption_key: bytes
-    """"""
-    signing_key: bytes
-    """"""
-
-
-class MasterKeys(TypedDict):
-    """A triple of AES256 keys, for encryption, signing and hashing.
-
-    Attributes:
-        hashing_key:
-            AES256 key, used for hashing with HMAC-SHA256 to derive
-            a hash table slot for an item.
-        encryption_key:
-            AES256 key, used for encryption with AES256-CBC (with PKCS#7
-            padding).
-        signing_key:
-            AES256 key, used for signing with HMAC-SHA256.
-
-    """
-
-    hashing_key: bytes
-    """"""
-    encryption_key: bytes
-    """"""
-    signing_key: bytes
-    """"""
-
-
 def derive_master_keys_keys(
     password: str | Buffer,
     iterations: int,
-) -> KeyPair:
+) -> _types.StoreroomKeyPair:
     """Derive encryption and signing keys for the master keys data.
 
     The master password is run through a key derivation function to
@@ -185,16 +144,16 @@ def derive_master_keys_keys(
             iterations=iterations,
         ),
     )
-    return {
-        'encryption_key': encryption_key,
-        'signing_key': signing_key,
-    }
+    return _types.StoreroomKeyPair(
+        encryption_key=encryption_key,
+        signing_key=signing_key,
+    )
 
 
 def decrypt_master_keys_data(
     data: Buffer,
-    keys: KeyPair,
-) -> MasterKeys:
+    keys: _types.StoreroomKeyPair,
+) -> _types.StoreroomMasterKeys:
     r"""Decrypt the master keys data.
 
     The master keys data contains:
@@ -245,12 +204,12 @@ def decrypt_master_keys_data(
     ciphertext, claimed_mac = struct.unpack(
         f'{len(data) - MAC_SIZE}s {MAC_SIZE}s', data
     )
-    actual_mac = hmac.HMAC(keys['signing_key'], hashes.SHA256())
+    actual_mac = hmac.HMAC(keys.signing_key, hashes.SHA256())
     actual_mac.update(ciphertext)
     logger.debug(
         _msg.TranslatedString(
             _msg.DebugMsgTemplate.MASTER_KEYS_DATA_MAC_INFO,
-            sign_key=_h(keys['signing_key']),
+            sign_key=_h(keys.signing_key),
             ciphertext=_h(ciphertext),
             claimed_mac=_h(claimed_mac),
             actual_mac=_h(actual_mac.copy().finalize()),
@@ -263,7 +222,7 @@ def decrypt_master_keys_data(
             f'{IV_SIZE}s {len(ciphertext) - IV_SIZE}s', ciphertext
         )
         decryptor = ciphers.Cipher(
-            algorithms.AES256(keys['encryption_key']), modes.CBC(iv)
+            algorithms.AES256(keys.encryption_key), modes.CBC(iv)
         ).decryptor()
         padded_plaintext = bytearray()
         padded_plaintext.extend(decryptor.update(payload))
@@ -278,17 +237,17 @@ def decrypt_master_keys_data(
     except (ValueError, struct.error) as exc:
         msg = 'Invalid encrypted master keys payload'
         raise ValueError(msg) from exc
-    return {
-        'hashing_key': hashing_key,
-        'encryption_key': encryption_key,
-        'signing_key': signing_key,
-    }
+    return _types.StoreroomMasterKeys(
+        hashing_key=hashing_key,
+        encryption_key=encryption_key,
+        signing_key=signing_key,
+    )
 
 
 def decrypt_session_keys(
     data: Buffer,
-    master_keys: MasterKeys,
-) -> KeyPair:
+    master_keys: _types.StoreroomMasterKeys,
+) -> _types.StoreroomKeyPair:
     r"""Decrypt the bucket item's session keys.
 
     The bucket item's session keys are single-use keys for encrypting
@@ -337,12 +296,12 @@ def decrypt_session_keys(
     ciphertext, claimed_mac = struct.unpack(
         f'{len(data) - MAC_SIZE}s {MAC_SIZE}s', data
     )
-    actual_mac = hmac.HMAC(master_keys['signing_key'], hashes.SHA256())
+    actual_mac = hmac.HMAC(master_keys.signing_key, hashes.SHA256())
     actual_mac.update(ciphertext)
     logger.debug(
         _msg.TranslatedString(
             _msg.DebugMsgTemplate.DECRYPT_BUCKET_ITEM_SESSION_KEYS_MAC_INFO,
-            sign_key=_h(master_keys['signing_key']),
+            sign_key=_h(master_keys.signing_key),
             ciphertext=_h(ciphertext),
             claimed_mac=_h(claimed_mac),
             actual_mac=_h(actual_mac.copy().finalize()),
@@ -355,7 +314,7 @@ def decrypt_session_keys(
             f'{IV_SIZE}s {len(ciphertext) - IV_SIZE}s', ciphertext
         )
         decryptor = ciphers.Cipher(
-            algorithms.AES256(master_keys['encryption_key']), modes.CBC(iv)
+            algorithms.AES256(master_keys.encryption_key), modes.CBC(iv)
         ).decryptor()
         padded_plaintext = bytearray()
         padded_plaintext.extend(decryptor.update(payload))
@@ -371,23 +330,23 @@ def decrypt_session_keys(
         msg = 'Invalid encrypted session keys payload'
         raise ValueError(msg) from exc
 
-    session_keys: KeyPair = {
-        'encryption_key': session_encryption_key,
-        'signing_key': session_signing_key,
-    }
+    session_keys = _types.StoreroomKeyPair(
+        encryption_key=session_encryption_key,
+        signing_key=session_signing_key,
+    )
 
     logger.debug(
         _msg.TranslatedString(
             _msg.DebugMsgTemplate.DECRYPT_BUCKET_ITEM_SESSION_KEYS_INFO,
-            enc_key=_h(master_keys['encryption_key']),
+            enc_key=_h(master_keys.encryption_key),
             iv=_h(iv),
             ciphertext=_h(payload),
             plaintext=_h(plaintext),
             code=_msg.TranslatedString(
-                '{{"encryption_key": bytes.fromhex({enc_key!r}), '
-                '"signing_key": bytes.fromhex({sign_key!r})}}',
-                enc_key=session_keys['encryption_key'].hex(' '),
-                sign_key=session_keys['signing_key'].hex(' '),
+                'StoreroomKeyPair(encryption_key=bytes.fromhex({enc_key!r}), '
+                'signing_key=bytes.fromhex({sign_key!r}))',
+                enc_key=session_keys.encryption_key.hex(' '),
+                sign_key=session_keys.signing_key.hex(' '),
             ),
         ),
     )
@@ -397,7 +356,7 @@ def decrypt_session_keys(
 
 def decrypt_contents(
     data: Buffer,
-    session_keys: KeyPair,
+    session_keys: _types.StoreroomKeyPair,
 ) -> Buffer:
     """Decrypt the bucket item's contents.
 
@@ -443,12 +402,12 @@ def decrypt_contents(
     ciphertext, claimed_mac = struct.unpack(
         f'{len(data) - MAC_SIZE}s {MAC_SIZE}s', data
     )
-    actual_mac = hmac.HMAC(session_keys['signing_key'], hashes.SHA256())
+    actual_mac = hmac.HMAC(session_keys.signing_key, hashes.SHA256())
     actual_mac.update(ciphertext)
     logger.debug(
         _msg.TranslatedString(
             _msg.DebugMsgTemplate.DECRYPT_BUCKET_ITEM_MAC_INFO,
-            sign_key=_h(session_keys['signing_key']),
+            sign_key=_h(session_keys.signing_key),
             ciphertext=_h(ciphertext),
             claimed_mac=_h(claimed_mac),
             actual_mac=_h(actual_mac.copy().finalize()),
@@ -460,7 +419,7 @@ def decrypt_contents(
         f'{IV_SIZE}s {len(ciphertext) - IV_SIZE}s', ciphertext
     )
     decryptor = ciphers.Cipher(
-        algorithms.AES256(session_keys['encryption_key']), modes.CBC(iv)
+        algorithms.AES256(session_keys.encryption_key), modes.CBC(iv)
     ).decryptor()
     padded_plaintext = bytearray()
     padded_plaintext.extend(decryptor.update(payload))
@@ -473,7 +432,7 @@ def decrypt_contents(
     logger.debug(
         _msg.TranslatedString(
             _msg.DebugMsgTemplate.DECRYPT_BUCKET_ITEM_INFO,
-            enc_key=_h(session_keys['encryption_key']),
+            enc_key=_h(session_keys.encryption_key),
             iv=_h(iv),
             ciphertext=_h(payload),
             plaintext=_h(plaintext),
@@ -485,7 +444,7 @@ def decrypt_contents(
 
 def decrypt_bucket_item(
     bucket_item: Buffer,
-    master_keys: MasterKeys,
+    master_keys: _types.StoreroomMasterKeys,
 ) -> Buffer:
     """Decrypt a bucket item.
 
@@ -519,8 +478,8 @@ def decrypt_bucket_item(
         _msg.TranslatedString(
             _msg.DebugMsgTemplate.DECRYPT_BUCKET_ITEM_KEY_INFO,
             plaintext=_h(bucket_item),
-            enc_key=_h(master_keys['encryption_key']),
-            sign_key=_h(master_keys['signing_key']),
+            enc_key=_h(master_keys.encryption_key),
+            sign_key=_h(master_keys.signing_key),
         ),
     )
     data_version, encrypted_session_keys, data_contents = struct.unpack(
@@ -539,7 +498,7 @@ def decrypt_bucket_item(
 
 def decrypt_bucket_file(
     filename: str,
-    master_keys: MasterKeys,
+    master_keys: _types.StoreroomMasterKeys,
     *,
     root_dir: str | bytes | os.PathLike = '.',
 ) -> Iterator[Buffer]:

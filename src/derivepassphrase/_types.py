@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 __all__ = (
     'SSH_AGENT',
     'SSH_AGENTC',
-    'KeyCommentPair',
+    'SSHKeyCommentPair',
     'VaultConfig',
     'is_vault_config',
 )
@@ -577,7 +577,7 @@ def clean_up_falsy_vault_config_values(  # noqa: C901,PLR0912
     return cleanup_completed
 
 
-class KeyCommentPair(NamedTuple):
+class SSHKeyCommentPair(NamedTuple):
     """SSH key plus comment pair.  For typing purposes.
 
     Attributes:
@@ -659,4 +659,45 @@ class SSH_AGENT(enum.Enum):  # noqa: N801
     EXTENSION_FAILURE: int = 28
     """"""
     EXTENSION_RESPONSE: int = 29
+    """"""
+
+
+class StoreroomKeyPair(NamedTuple):
+    """A pair of AES256 keys, one for encryption and one for signing.
+
+    Attributes:
+        encryption_key:
+            AES256 key, used for encryption with AES256-CBC (with PKCS#7
+            padding).
+        signing_key:
+            AES256 key, used for signing with HMAC-SHA256.
+
+    """
+
+    encryption_key: bytes
+    """"""
+    signing_key: bytes
+    """"""
+
+
+class StoreroomMasterKeys(NamedTuple):
+    """A triple of AES256 keys, for encryption, signing and hashing.
+
+    Attributes:
+        hashing_key:
+            AES256 key, used for hashing with HMAC-SHA256 to derive
+            a hash table slot for an item.
+        encryption_key:
+            AES256 key, used for encryption with AES256-CBC (with PKCS#7
+            padding).
+        signing_key:
+            AES256 key, used for signing with HMAC-SHA256.
+
+    """
+
+    hashing_key: bytes
+    """"""
+    encryption_key: bytes
+    """"""
+    signing_key: bytes
     """"""

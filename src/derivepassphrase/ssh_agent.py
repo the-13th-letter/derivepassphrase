@@ -484,7 +484,7 @@ class SSHAgentClient:
             raise SSHAgentFailedError(response[0], response[1:])
         return response[1:]
 
-    def list_keys(self) -> Sequence[_types.KeyCommentPair]:
+    def list_keys(self) -> Sequence[_types.SSHKeyCommentPair]:
         """Request a list of keys known to the SSH agent.
 
         Returns:
@@ -521,7 +521,7 @@ class SSHAgentClient:
             return bytes(buf)
 
         key_count = int.from_bytes(shift(4), 'big')
-        keys: collections.deque[_types.KeyCommentPair]
+        keys: collections.deque[_types.SSHKeyCommentPair]
         keys = collections.deque()
         for _ in range(key_count):
             key_size = int.from_bytes(shift(4), 'big')
@@ -529,7 +529,7 @@ class SSHAgentClient:
             comment_size = int.from_bytes(shift(4), 'big')
             comment = shift(comment_size)
             # Both `key` and `comment` are not wrapped as SSH strings.
-            keys.append(_types.KeyCommentPair(key, comment))
+            keys.append(_types.SSHKeyCommentPair(key, comment))
         if response_stream:
             raise TrailingDataError
         return keys
