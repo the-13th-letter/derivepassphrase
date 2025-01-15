@@ -461,7 +461,6 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
 
     """
     agent_type, client, isolated = spawn_ssh_agent
-    all_test_keys = {**tests.SUPPORTED_KEYS, **tests.UNSUITABLE_KEYS}
     successfully_loaded_keys: set[str] = set()
 
     def prepare_payload(
@@ -483,10 +482,9 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
         return (return_code, bytes(payload) + lifetime_constraint)
 
     try:
-        for key_type, key_struct in all_test_keys.items():
-            try:
-                private_key_data = key_struct['private_key_blob']
-            except KeyError:  # pragma: no cover
+        for key_type, key_struct in tests.ALL_KEYS.items():
+            private_key_data = key_struct.private_key_blob
+            if private_key_data is None:  # pragma: no cover
                 continue
             request_code, payload = prepare_payload(
                 private_key_data, isolated=isolated, time_to_live=30
@@ -513,7 +511,7 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
                         pair.key for pair in client.list_keys()
                     })
                     if agent_type == tests.KnownSSHAgent.Pageant and (
-                        key_struct['public_key_data'] in current_loaded_keys
+                        key_struct.public_key_data in current_loaded_keys
                     ):
                         pass
                     elif agent_type == tests.KnownSSHAgent.Pageant and (
@@ -539,14 +537,14 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
                 successfully_loaded_keys.add(key_type)
         yield client
     finally:
-        for key_type, key_struct in all_test_keys.items():
+        for key_type, key_struct in tests.ALL_KEYS.items():
             if not isolated and (
                 key_type in successfully_loaded_keys
             ):  # pragma: no cover
                 # The public key blob is the base64-encoded part in
                 # the "public key line".
                 public_key = base64.standard_b64decode(
-                    key_struct['public_key'].split(None, 2)[1]
+                    key_struct.public_key.split(None, 2)[1]
                 )
                 request_code = _types.SSH_AGENTC.REMOVE_IDENTITY
                 client.request(

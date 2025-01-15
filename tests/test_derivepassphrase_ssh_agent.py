@@ -31,7 +31,7 @@ class TestStaticFunctionality:
     @pytest.mark.parametrize(
         ['public_key', 'public_key_data'],
         [
-            (val['public_key'], val['public_key_data'])
+            (val.public_key, val.public_key_data)
             for val in tests.SUPPORTED_KEYS.values()
         ],
     )
@@ -232,20 +232,22 @@ class TestStaticFunctionality:
 
 class TestAgentInteraction:
     @pytest.mark.parametrize(
-        'data_dict',
+        'ssh_test_key',
         list(tests.SUPPORTED_KEYS.values()),
         ids=tests.SUPPORTED_KEYS.keys(),
     )
     def test_200_sign_data_via_agent(
         self,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
-        data_dict: tests.SSHTestKey,
+        ssh_test_key: tests.SSHTestKey,
     ) -> None:
         client = ssh_agent_client_with_test_keys_loaded
         key_comment_pairs = {bytes(k): bytes(c) for k, c in client.list_keys()}
-        public_key_data = data_dict['public_key_data']
-        expected_signature = data_dict['expected_signature']
-        derived_passphrase = data_dict['derived_passphrase']
+        public_key_data = ssh_test_key.public_key_data
+        expected_signature = ssh_test_key.expected_signature
+        derived_passphrase = ssh_test_key.derived_passphrase
+        assert expected_signature is not None
+        assert derived_passphrase is not None
         if public_key_data not in key_comment_pairs:  # pragma: no cover
             pytest.skip('prerequisite SSH key not loaded')
         signature = bytes(
@@ -262,19 +264,18 @@ class TestAgentInteraction:
         ), 'SSH signature mismatch'
 
     @pytest.mark.parametrize(
-        'data_dict',
+        'ssh_test_key',
         list(tests.UNSUITABLE_KEYS.values()),
         ids=tests.UNSUITABLE_KEYS.keys(),
     )
     def test_201_sign_data_via_agent_unsupported(
         self,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
-        data_dict: tests.SSHTestKey,
+        ssh_test_key: tests.SSHTestKey,
     ) -> None:
         client = ssh_agent_client_with_test_keys_loaded
         key_comment_pairs = {bytes(k): bytes(c) for k, c in client.list_keys()}
-        public_key_data = data_dict['public_key_data']
-        _ = data_dict['expected_signature']
+        public_key_data = ssh_test_key.public_key_data
         if public_key_data not in key_comment_pairs:  # pragma: no cover
             pytest.skip('prerequisite SSH key not loaded')
         assert not vault.Vault.is_suitable_ssh_key(
@@ -288,7 +289,7 @@ class TestAgentInteraction:
     @pytest.mark.parametrize(
         ['key', 'single'],
         [
-            (value['public_key_data'], False)
+            (value.public_key_data, False)
             for value in tests.SUPPORTED_KEYS.values()
         ]
         + [(tests.list_keys_singleton()[0].key, True)],
@@ -303,11 +304,9 @@ class TestAgentInteraction:
         client = ssh_agent_client_with_test_keys_loaded
 
         def key_is_suitable(key: bytes) -> bool:
-            always = {
-                v['public_key_data'] for v in tests.SUPPORTED_KEYS.values()
-            }
+            always = {v.public_key_data for v in tests.SUPPORTED_KEYS.values()}
             dsa = {
-                v['public_key_data']
+                v.public_key_data
                 for k, v in tests.UNSUITABLE_KEYS.items()
                 if k.startswith(('dsa', 'ecdsa'))
             }
@@ -503,7 +502,7 @@ class TestAgentInteraction:
                 'target SSH key not loaded into agent',
             ),
             (
-                tests.SUPPORTED_KEYS['ed25519']['public_key_data'],
+                tests.SUPPORTED_KEYS['ed25519'].public_key_data,
                 True,
                 _types.SSH_AGENT.FAILURE,
                 b'',
@@ -562,7 +561,7 @@ class TestAgentInteraction:
             monkeypatch2.setattr(client, 'request', request)
             SSHKeyCommentPair = _types.SSHKeyCommentPair  # noqa: N806
             loaded_keys = [
-                SSHKeyCommentPair(v['public_key_data'], b'no comment')
+                SSHKeyCommentPair(v.public_key_data, b'no comment')
                 for v in tests.SUPPORTED_KEYS.values()
             ]
             monkeypatch2.setattr(client, 'list_keys', lambda: loaded_keys)
