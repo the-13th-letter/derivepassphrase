@@ -32,6 +32,7 @@ __all__ = ()
 if TYPE_CHECKING:
     import socket
     from collections.abc import Callable, Iterator, Mapping, Sequence
+    from contextlib import AbstractContextManager
 
     import click.testing
     from typing_extensions import Any
@@ -1478,10 +1479,10 @@ def isolated_vault_exporter_config(
     vault_key: str | None = None,
 ) -> Iterator[None]:
     if TYPE_CHECKING:
-        chdir = contextlib.chdir
+        chdir: Callable[..., AbstractContextManager]
     else:
         try:
-            chdir = contextlib.chdir
+            chdir = contextlib.chdir  # type: ignore[attr]
         except AttributeError:
 
             @contextlib.contextmanager
