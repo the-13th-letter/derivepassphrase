@@ -11,9 +11,10 @@ import enum
 import json
 import math
 import string
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 from typing_extensions import (
+    Buffer,
     NamedTuple,
     NotRequired,
     TypedDict,
@@ -34,7 +35,7 @@ if TYPE_CHECKING:
 __all__ = (
     'SSH_AGENT',
     'SSH_AGENTC',
-    'KeyCommentPair',
+    'SSHKeyCommentPair',
     'VaultConfig',
     'is_vault_config',
 )
@@ -577,7 +578,10 @@ def clean_up_falsy_vault_config_values(  # noqa: C901,PLR0912
     return cleanup_completed
 
 
-class KeyCommentPair(NamedTuple):
+B = TypeVar('B', bound=Buffer)
+
+
+class SSHKeyCommentPair(NamedTuple, Generic[B]):
     """SSH key plus comment pair.  For typing purposes.
 
     Attributes:
@@ -586,10 +590,17 @@ class KeyCommentPair(NamedTuple):
 
     """
 
-    key: bytes | bytearray
+    key: B
     """"""
-    comment: bytes | bytearray
+    comment: B
     """"""
+
+    def toreadonly(self) -> SSHKeyCommentPair[bytes]:
+        """Return a copy with read-only entries."""
+        return SSHKeyCommentPair(
+            key=bytes(self.key),
+            comment=bytes(self.comment),
+        )
 
 
 class SSH_AGENTC(enum.Enum):  # noqa: N801
@@ -660,3 +671,59 @@ class SSH_AGENT(enum.Enum):  # noqa: N801
     """"""
     EXTENSION_RESPONSE: int = 29
     """"""
+
+
+class StoreroomKeyPair(NamedTuple, Generic[B]):
+    """A pair of AES256 keys, one for encryption and one for signing.
+
+    Attributes:
+        encryption_key:
+            AES256 key, used for encryption with AES256-CBC (with PKCS#7
+            padding).
+        signing_key:
+            AES256 key, used for signing with HMAC-SHA256.
+
+    """
+
+    encryption_key: B
+    """"""
+    signing_key: B
+    """"""
+
+    def toreadonly(self) -> StoreroomKeyPair[bytes]:
+        """Return a copy with read-only entries."""
+        return StoreroomKeyPair(
+            encryption_key=bytes(self.encryption_key),
+            signing_key=bytes(self.signing_key),
+        )
+
+
+class StoreroomMasterKeys(NamedTuple, Generic[B]):
+    """A triple of AES256 keys, for encryption, signing and hashing.
+
+    Attributes:
+        hashing_key:
+            AES256 key, used for hashing with HMAC-SHA256 to derive
+            a hash table slot for an item.
+        encryption_key:
+            AES256 key, used for encryption with AES256-CBC (with PKCS#7
+            padding).
+        signing_key:
+            AES256 key, used for signing with HMAC-SHA256.
+
+    """
+
+    hashing_key: B
+    """"""
+    encryption_key: B
+    """"""
+    signing_key: B
+    """"""
+
+    def toreadonly(self) -> StoreroomMasterKeys[bytes]:
+        """Return a copy with read-only entries."""
+        return StoreroomMasterKeys(
+            hashing_key=bytes(self.hashing_key),
+            encryption_key=bytes(self.encryption_key),
+            signing_key=bytes(self.signing_key),
+        )

@@ -185,7 +185,7 @@ path = "src/derivepassphrase/__init__.py"
 
 [tool.mypy]
 files = ['src/**/*.py', 'tests/**/*.py']
-mypy_path = '$MYPY_CONFIG_FILE_DIR/src'
+mypy_path = '$MYPY_CONFIG_FILE_DIR/src:$MYPY_CONFIG_FILE_DIR/other-stubs'
 explicit_package_bases = true
 implicit_reexport = false
 sqlite_cache = true

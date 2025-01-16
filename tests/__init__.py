@@ -32,17 +32,22 @@ __all__ = ()
 if TYPE_CHECKING:
     import socket
     from collections.abc import Callable, Iterator, Mapping, Sequence
+    from contextlib import AbstractContextManager
 
     import click.testing
-    from typing_extensions import Any, NotRequired, TypedDict
+    from typing_extensions import Any
 
-    class SSHTestKey(TypedDict):
-        private_key: bytes
-        private_key_blob: NotRequired[bytes]
-        public_key: bytes | str
-        public_key_data: bytes
-        expected_signature: bytes | None
-        derived_passphrase: bytes | str | None
+
+class SSHTestKey(NamedTuple):
+    public_key: bytes | str
+    public_key_data: bytes
+    private_key: bytes
+    private_key_blob: bytes | None = None
+    expected_signature: bytes | None = None
+    derived_passphrase: bytes | str | None = None
+
+    def is_suitable(self) -> bool:
+        return vault.Vault.is_suitable_ssh_key(self.public_key_data)
 
 
 class ValidationSettings(NamedTuple):
@@ -463,9 +468,9 @@ class RunningSSHAgentInfo(NamedTuple):
     agent_type: KnownSSHAgent
 
 
-SUPPORTED_KEYS: Mapping[str, SSHTestKey] = {
-    'ed25519': {
-        'private_key': rb"""-----BEGIN OPENSSH PRIVATE KEY-----
+ALL_KEYS: Mapping[str, SSHTestKey] = {
+    'ed25519': SSHTestKey(
+        private_key=rb"""-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
 QyNTUxOQAAACCBeIFoJtYCSF8P/zJIb+TBMIncHGpFBgnpCQ/7whJpdgAAAKDweO7H8Hju
 xwAAAAtzc2gtZWQyNTUxOQAAACCBeIFoJtYCSF8P/zJIb+TBMIncHGpFBgnpCQ/7whJpdg
@@ -473,7 +478,7 @@ AAAEAbM/A869nkWZbe2tp3Dm/L6gitvmpH/aRZt8sBII3ExYF4gWgm1gJIXw//Mkhv5MEw
 idwcakUGCekJD/vCEml2AAAAG3Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQEC
 -----END OPENSSH PRIVATE KEY-----
 """,
-        'private_key_blob': bytes.fromhex("""
+        private_key_blob=bytes.fromhex("""
             00 00 00 0b 73 73 68 2d 65 64 32 35 35 31 39
             00 00 00 20
             81 78 81 68 26 d6 02 48 5f 0f ff 32 48 6f e4 c1
@@ -486,15 +491,15 @@ idwcakUGCekJD/vCEml2AAAAG3Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQEC
             00 00 00 1b 74 65 73 74 20 6b 65 79 20 77 69 74
             68 6f 75 74 20 70 61 73 73 70 68 72 61 73 65
 """),
-        'public_key': rb"""ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIF4gWgm1gJIXw//Mkhv5MEwidwcakUGCekJD/vCEml2 test key without passphrase
+        public_key=rb"""ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIF4gWgm1gJIXw//Mkhv5MEwidwcakUGCekJD/vCEml2 test key without passphrase
 """,
-        'public_key_data': bytes.fromhex("""
+        public_key_data=bytes.fromhex("""
             00 00 00 0b 73 73 68 2d 65 64 32 35 35 31 39
             00 00 00 20
             81 78 81 68 26 d6 02 48 5f 0f ff 32 48 6f e4 c1
             30 89 dc 1c 6a 45 06 09 e9 09 0f fb c2 12 69 76
 """),
-        'expected_signature': bytes.fromhex("""
+        expected_signature=bytes.fromhex("""
             00 00 00 0b 73 73 68 2d 65 64 32 35 35 31 39
             00 00 00 40
             f0 98 19 80 6c 1a 97 d5 26 03 6e cc e3 65 8f 86
@@ -502,12 +507,12 @@ idwcakUGCekJD/vCEml2AAAAG3Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQEC
             0d 08 1f ec f8 73 9b 8c 5f 55 39 16 7c 53 54 2c
             1e 52 bb 30 ed 7f 89 e2 2f 69 51 55 d8 9e a6 02
         """),
-        'derived_passphrase': rb'8JgZgGwal9UmA27M42WPhmYHExkTCSEzM/nkNlMdr/0NCB/s+HObjF9VORZ8U1QsHlK7MO1/ieIvaVFV2J6mAg==',
-    },
+        derived_passphrase=rb'8JgZgGwal9UmA27M42WPhmYHExkTCSEzM/nkNlMdr/0NCB/s+HObjF9VORZ8U1QsHlK7MO1/ieIvaVFV2J6mAg==',
+    ),
     # Currently only supported by PuTTY (which is deficient in other
     # niceties of the SSH agent and the agent's client).
-    'ed448': {
-        'private_key': rb"""-----BEGIN OPENSSH PRIVATE KEY-----
+    'ed448': SSHTestKey(
+        private_key=rb"""-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAASgAAAAlz
 c2gtZWQ0NDgAAAA54vZy009Wu8wExjvEb3hqtLz1GO/+d5vmGUbErWQ4AUO9mYLT
 zHJHc2m4s+yWzP29Cc3EcxizLG8AAAAA8BdhfCcXYXwnAAAACXNzaC1lZDQ0OAAA
@@ -518,7 +523,7 @@ GUbErWQ4AUO9mYLTzHJHc2m4s+yWzP29Cc3EcxizLG8AAAAAG3Rlc3Qga2V5IHdp
 dGhvdXQgcGFzc3BocmFzZQECAwQFBgcICQ==
 -----END OPENSSH PRIVATE KEY-----
 """,
-        'private_key_blob': bytes.fromhex("""
+        private_key_blob=bytes.fromhex("""
             00 00 00 09 73 73 68 2d 65 64 34 34 38
             00 00 00 39 e2 f6 72 d3 4f 56 bb cc 04
             c6 3b c4 6f 78 6a b4 bc f5 18 ef fe 77 9b e6 19
@@ -535,16 +540,16 @@ dGhvdXQgcGFzc3BocmFzZQECAwQFBgcICQ==
             00 00 00 1b 74 65 73 74 20 6b 65 79 20 77 69
             74 68 6f 75 74 20 70 61 73 73 70 68 72 61 73 65
 """),
-        'public_key': rb"""ssh-ed448 AAAACXNzaC1lZDQ0OAAAADni9nLTT1a7zATGO8RveGq0vPUY7/53m+YZRsStZDgBQ72ZgtPMckdzabiz7JbM/b0JzcRzGLMsbwA= test key without passphrase
+        public_key=rb"""ssh-ed448 AAAACXNzaC1lZDQ0OAAAADni9nLTT1a7zATGO8RveGq0vPUY7/53m+YZRsStZDgBQ72ZgtPMckdzabiz7JbM/b0JzcRzGLMsbwA= test key without passphrase
 """,
-        'public_key_data': bytes.fromhex("""
+        public_key_data=bytes.fromhex("""
             00 00 00 09 73 73 68 2d 65 64 34 34 38
             00 00 00 39 e2 f6 72 d3 4f 56 bb cc 04
             c6 3b c4 6f 78 6a b4 bc f5 18 ef fe 77 9b e6 19
             46 c4 ad 64 38 01 43 bd 99 82 d3 cc 72 47 73 69
             b8 b3 ec 96 cc fd bd 09 cd c4 73 18 b3 2c 6f 00
         """),
-        'expected_signature': bytes.fromhex("""
+        expected_signature=bytes.fromhex("""
             00 00 00 09 73 73 68 2d 65 64 34 34 38
             00 00 00 72 06 86
             f4 64 a4 a6 ba d9 c3 22 c4 93 49 99 fc 11 de 67
@@ -555,10 +560,10 @@ dGhvdXQgcGFzc3BocmFzZQECAwQFBgcICQ==
             db bd 77 7c 80 20 7f 3a 48 61 f6 1f ae a9 5e 53
             7b e0 9d 93 1e ea dc eb b5 cd 56 4c ea 8f 08 00
         """),
-        'derived_passphrase': rb'Bob0ZKSmutnDIsSTSZn8Ed5nlwjy2Lc8LBPnxRwekqYO2C9tgQOCAONy5DJtctJtMoQ/zKkeVywAmrOZ3kXazi7R2+WJ8zW+JFiQxsoE8NuIgNu9d3yAIH86SGH2H66pXlN74J2THurc67XNVkzqjwgA',
-    },
-    'rsa': {
-        'private_key': rb"""-----BEGIN OPENSSH PRIVATE KEY-----
+        derived_passphrase=rb'Bob0ZKSmutnDIsSTSZn8Ed5nlwjy2Lc8LBPnxRwekqYO2C9tgQOCAONy5DJtctJtMoQ/zKkeVywAmrOZ3kXazi7R2+WJ8zW+JFiQxsoE8NuIgNu9d3yAIH86SGH2H66pXlN74J2THurc67XNVkzqjwgA',
+    ),
+    'rsa': SSHTestKey(
+        private_key=rb"""-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
 NhAAAAAwEAAQAAAYEAsaHu6Xs4cVsuDSNJlMCqoPVgmDgEviI8TfXmHKqX3JkIqI3LsvV7
 Ijf8WCdTveEq7CkuZhImtsR52AOEVAoU8mDXDNr+nJ5wUPzf1UIaRjDe0lcXW4SlF01hQs
@@ -597,7 +602,7 @@ btBNdMEJJp7ifucYmoYAAwE7K+VlWagDEK2y8Mte9y9E+N0uO2j+h85sQt/UIb2iE/vhcg
 Bgp6142WnSCQAAABt0ZXN0IGtleSB3aXRob3V0IHBhc3NwaHJhc2UB
 -----END OPENSSH PRIVATE KEY-----
 """,
-        'private_key_blob': bytes.fromhex("""
+        private_key_blob=bytes.fromhex("""
             00 00 00 07 73 73 68 2d 72 73 61
             00 00 01 81 00
             b1 a1 ee e9 7b 38 71 5b 2e 0d 23 49 94 c0 aa a0
@@ -692,9 +697,9 @@ Bgp6142WnSCQAAABt0ZXN0IGtleSB3aXRob3V0IHBhc3NwaHJhc2UB
             00 00 00 1b 74 65 73 74 20 6b 65 79 20 77 69
             74 68 6f 75 74 20 70 61 73 73 70 68 72 61 73 65
 """),
-        'public_key': rb"""ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCxoe7pezhxWy4NI0mUwKqg9WCYOAS+IjxN9eYcqpfcmQiojcuy9XsiN/xYJ1O94SrsKS5mEia2xHnYA4RUChTyYNcM2v6cnnBQ/N/VQhpGMN7SVxdbhKUXTWFCwbjBgO6rGyHB6WtoH8vd7TOEPt+NgcXwhsWyoaUUdYTA62V+GF9vEmxMaC4ubgDz+B0QkPnauSoNxmkhcIe0lsLNb1pClZyz88PDnKXCX/d0HuN/HJ+sbPg7dCvOyqFYSyKn3uY6bCXqoIdurxXzH3O7z0P8f5sbmKOrGGKNuNxVRbeVl/D/3uDL0nqsbfUc1qvkfwbJwtMXC4IV6kOZMSk2BAsqh7x48gQ+rhYeEVSi8F3CWs4HJQoqrGt7K9a3mCSlMBHP70u3w6ME7eumoryxlUofewTd17ZEkzdX08l2ZlKzZvwQUrc+xQZ2Uw8z2mfW6Ti4gi0pYGaig7Ke4PwuXpo/C5YAWfeXycsvJZ2uaYRjMdZeJGNAnHLUGLkBscw5aI8= test key without passphrase
+        public_key=rb"""ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCxoe7pezhxWy4NI0mUwKqg9WCYOAS+IjxN9eYcqpfcmQiojcuy9XsiN/xYJ1O94SrsKS5mEia2xHnYA4RUChTyYNcM2v6cnnBQ/N/VQhpGMN7SVxdbhKUXTWFCwbjBgO6rGyHB6WtoH8vd7TOEPt+NgcXwhsWyoaUUdYTA62V+GF9vEmxMaC4ubgDz+B0QkPnauSoNxmkhcIe0lsLNb1pClZyz88PDnKXCX/d0HuN/HJ+sbPg7dCvOyqFYSyKn3uY6bCXqoIdurxXzH3O7z0P8f5sbmKOrGGKNuNxVRbeVl/D/3uDL0nqsbfUc1qvkfwbJwtMXC4IV6kOZMSk2BAsqh7x48gQ+rhYeEVSi8F3CWs4HJQoqrGt7K9a3mCSlMBHP70u3w6ME7eumoryxlUofewTd17ZEkzdX08l2ZlKzZvwQUrc+xQZ2Uw8z2mfW6Ti4gi0pYGaig7Ke4PwuXpo/C5YAWfeXycsvJZ2uaYRjMdZeJGNAnHLUGLkBscw5aI8= test key without passphrase
 """,
-        'public_key_data': bytes.fromhex("""
+        public_key_data=bytes.fromhex("""
             00 00 00 07 73 73 68 2d 72 73 61
             00 00 00 03 01 00 01
             00 00 01 81 00
@@ -723,7 +728,7 @@ Bgp6142WnSCQAAABt0ZXN0IGtleSB3aXRob3V0IHBhc3NwaHJhc2UB
             0b 96 00 59 f7 97 c9 cb 2f 25 9d ae 69 84 63 31
             d6 5e 24 63 40 9c 72 d4 18 b9 01 b1 cc 39 68 8f
 """),
-        'expected_signature': bytes.fromhex("""
+        expected_signature=bytes.fromhex("""
             00 00 00 07 73 73 68 2d 72 73 61
             00 00 01 80
             a2 10 7c 2e f6 bb 53 a8 74 2a a1 19 99 ad 81 be
@@ -751,13 +756,10 @@ Bgp6142WnSCQAAABt0ZXN0IGtleSB3aXRob3V0IHBhc3NwaHJhc2UB
             de 69 2c 48 62 d9 fd d1 9b 6b b0 49 db d3 ff 38
             e7 10 d9 2d ce 9f 0d 5e 09 7b 37 d2 7b c3 bf ce
 """),
-        'derived_passphrase': rb'ohB8Lva7U6h0KqEZma2Bvnmc7dadCU5uxRhIM5B3mWj3ngNazU4Y64l9haLurkqS9m/Ouf6GfyprMdpuGv6ipYi4RH+hdnOz7HW10Ka5FZdlCRN9lCHR+10PiyMEd8LDVSKxoAmK9Tgq1n8bhymgJdMlb8tkYQeY3BTFhPiSJF5QEWtJ5fDMKcspqRnYp3EfkQsFsQFLwl8ApbYhv/gsnWebRzsKSWt5Lfwd7Ayw5Sci1an408P530ho6fvvPNwmv8/qKUMBpuPFUZX0Zm2KVeJH7OgwRUyuR+fJpCGLZLq2iPYh+HO5yxGheHWSxlrlZP7tQtmVmeYrbzwWPCh0pHIvDT8sM2eqNRmO57URL7P3asUC4m+jQuNiGZkD6qUg56HjvMgGo7V81nZd329gRoMqCADW09mkwUGM+GBWRYHaO6IWH55OdYMX2sNTwz4ZpBu80im4eGEreOaxUrDV7N5pLEhi2f3Rm2uwSdvT/zjnENktzp8NXgl7N9J7w7/O',
-    },
-}
-
-UNSUITABLE_KEYS: Mapping[str, SSHTestKey] = {
-    'dsa1024': {
-        'private_key': rb"""-----BEGIN OPENSSH PRIVATE KEY-----
+        derived_passphrase=rb'ohB8Lva7U6h0KqEZma2Bvnmc7dadCU5uxRhIM5B3mWj3ngNazU4Y64l9haLurkqS9m/Ouf6GfyprMdpuGv6ipYi4RH+hdnOz7HW10Ka5FZdlCRN9lCHR+10PiyMEd8LDVSKxoAmK9Tgq1n8bhymgJdMlb8tkYQeY3BTFhPiSJF5QEWtJ5fDMKcspqRnYp3EfkQsFsQFLwl8ApbYhv/gsnWebRzsKSWt5Lfwd7Ayw5Sci1an408P530ho6fvvPNwmv8/qKUMBpuPFUZX0Zm2KVeJH7OgwRUyuR+fJpCGLZLq2iPYh+HO5yxGheHWSxlrlZP7tQtmVmeYrbzwWPCh0pHIvDT8sM2eqNRmO57URL7P3asUC4m+jQuNiGZkD6qUg56HjvMgGo7V81nZd329gRoMqCADW09mkwUGM+GBWRYHaO6IWH55OdYMX2sNTwz4ZpBu80im4eGEreOaxUrDV7N5pLEhi2f3Rm2uwSdvT/zjnENktzp8NXgl7N9J7w7/O',
+    ),
+    'dsa1024': SSHTestKey(
+        private_key=rb"""-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABsQAAAAdzc2gtZH
 NzAAAAgQC7KAZXqBGNVLBQPrcMYAoNW54BhD8aIhe7BDWYzJcsaMt72VKSkguZ8+XR7nRa
 0C/ZsBi+uJp0dpxy9ZMTOWX4u5YPMeQcXEdGExZIfimGqSOAsy6fCld2IfJZJZExcCmhe9
@@ -779,7 +781,7 @@ u7HfrQhdOiKSa+ZO9AAojbURqrLDRfBJa5dXn2AAAAFQDJHfenj4EJ9WkehpdJatPBlqCW
 0gAAABt0ZXN0IGtleSB3aXRob3V0IHBhc3NwaHJhc2UBAgMEBQYH
 -----END OPENSSH PRIVATE KEY-----
 """,
-        'private_key_blob': bytes.fromhex("""
+        private_key_blob=bytes.fromhex("""
             00 00 00 07 73 73 68 2d 64 73 73
             00 00 00 81 00
             bb 28 06 57 a8 11 8d 54 b0 50 3e b7 0c 60 0a 0d
@@ -815,9 +817,9 @@ u7HfrQhdOiKSa+ZO9AAojbURqrLDRfBJa5dXn2AAAAFQDJHfenj4EJ9WkehpdJatPBlqCW
             00 00 00 1b 74 65 73 74 20 6b 65 79 20 77 69
             74 68 6f 75 74 20 70 61 73 73 70 68 72 61 73 65
 """),
-        'public_key': rb"""ssh-dss AAAAB3NzaC1kc3MAAACBALsoBleoEY1UsFA+twxgCg1bngGEPxoiF7sENZjMlyxoy3vZUpKSC5nz5dHudFrQL9mwGL64mnR2nHL1kxM5Zfi7lg8x5BxcR0YTFkh+KYapI4CzLp8KV3Yh8lklkTFwKaF71KyOx3dhIA8lGW45cVBz3kxmhHmEzCUgMPxDOsTtAAAAFQD32c5k6B3tocxUahelQQFyfseiywAAAIAuvYCDeHEzesp3HNVTDx9fRVU9c77f4qvyEZ7Qpz/s3BVoFUvUZDx96cG5bKekBRsfTCjeHXCQH/yFfqn5Lxye7msgGVS5U3AvD9shiiEr3wt+pNgr9X6DooP7ybfjC8SJdmarLBjnifZuSxyHU2q+P+02kvMTFLH9dLSRIzVqKAAAAIBtA1E9xUS4YOsRx/7GDm2AB6M9cE9ev8myz4KGTriSbeaKsxiMBbJZi1VyBP7uE5jG1hGKfwvIwuopGaprRDlSu8N8KGAuG+wb1hJv8ynDmqbw+IdJp/CGRrP+17f7yEqiCqh7ux360IXToikmvmTvQAKI21Eaqyw0XwSWuXV59g== test key without passphrase
+        public_key=rb"""ssh-dss AAAAB3NzaC1kc3MAAACBALsoBleoEY1UsFA+twxgCg1bngGEPxoiF7sENZjMlyxoy3vZUpKSC5nz5dHudFrQL9mwGL64mnR2nHL1kxM5Zfi7lg8x5BxcR0YTFkh+KYapI4CzLp8KV3Yh8lklkTFwKaF71KyOx3dhIA8lGW45cVBz3kxmhHmEzCUgMPxDOsTtAAAAFQD32c5k6B3tocxUahelQQFyfseiywAAAIAuvYCDeHEzesp3HNVTDx9fRVU9c77f4qvyEZ7Qpz/s3BVoFUvUZDx96cG5bKekBRsfTCjeHXCQH/yFfqn5Lxye7msgGVS5U3AvD9shiiEr3wt+pNgr9X6DooP7ybfjC8SJdmarLBjnifZuSxyHU2q+P+02kvMTFLH9dLSRIzVqKAAAAIBtA1E9xUS4YOsRx/7GDm2AB6M9cE9ev8myz4KGTriSbeaKsxiMBbJZi1VyBP7uE5jG1hGKfwvIwuopGaprRDlSu8N8KGAuG+wb1hJv8ynDmqbw+IdJp/CGRrP+17f7yEqiCqh7ux360IXToikmvmTvQAKI21Eaqyw0XwSWuXV59g== test key without passphrase
 """,
-        'public_key_data': bytes.fromhex("""
+        public_key_data=bytes.fromhex("""
             00 00 00 07 73 73 68 2d 64 73 73
             00 00 00 81 00
             bb 28 06 57 a8 11 8d 54 b0 50 3e b7 0c 60 0a 0d
@@ -849,11 +851,11 @@ u7HfrQhdOiKSa+ZO9AAojbURqrLDRfBJa5dXn2AAAAFQDJHfenj4EJ9WkehpdJatPBlqCW
             a2 0a a8 7b bb 1d fa d0 85 d3 a2 29 26 be 64 ef
             40 02 88 db 51 1a ab 2c 34 5f 04 96 b9 75 79 f6
 """),
-        'expected_signature': None,
-        'derived_passphrase': None,
-    },
-    'ecdsa256': {
-        'private_key': rb"""-----BEGIN OPENSSH PRIVATE KEY-----
+        expected_signature=None,
+        derived_passphrase=None,
+    ),
+    'ecdsa256': SSHTestKey(
+        private_key=rb"""-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAaAAAABNlY2RzYS
 1zaGEyLW5pc3RwMjU2AAAACG5pc3RwMjU2AAAAQQTLbU0zDwsk2Dvp+VYIrsNVf5gWwz2S
 3SZ8TbxiQRkpnGSVqyIoHJOJc+NQItAa7xlJ/8Z6gfz57Z3apUkaMJm6AAAAuKeY+YinmP
@@ -863,7 +865,7 @@ oAAAAhAKIl/3n0pKVIxpZkXTGtii782Qr4yIcvHdpxjO/QsIqKAAAAG3Rlc3Qga2V5IHdp
 dGhvdXQgcGFzc3BocmFzZQECAwQ=
 -----END OPENSSH PRIVATE KEY-----
 """,
-        'private_key_blob': bytes.fromhex("""
+        private_key_blob=bytes.fromhex("""
             00 00 00 13 65 63 64
             73 61 2d 73 68 61 32 2d 6e 69 73 74 70 32 35 36
             00 00 00 08 6e 69 73 74 70 32 35 36
@@ -878,9 +880,9 @@ dGhvdXQgcGFzc3BocmFzZQECAwQ=
             00 00 00 1b 74 65 73 74 20 6b 65 79 20 77 69
             74 68 6f 75 74 20 70 61 73 73 70 68 72 61 73 65
 """),
-        'public_key': rb"""ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMttTTMPCyTYO+n5Vgiuw1V/mBbDPZLdJnxNvGJBGSmcZJWrIigck4lz41Ai0BrvGUn/xnqB/PntndqlSRowmbo= test key without passphrase
+        public_key=rb"""ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMttTTMPCyTYO+n5Vgiuw1V/mBbDPZLdJnxNvGJBGSmcZJWrIigck4lz41Ai0BrvGUn/xnqB/PntndqlSRowmbo= test key without passphrase
 """,
-        'public_key_data': bytes.fromhex("""
+        public_key_data=bytes.fromhex("""
             00 00 00 13 65 63 64
             73 61 2d 73 68 61 32 2d 6e 69 73 74 70 32 35 36
             00 00 00 08 6e 69 73 74 70 32 35 36
@@ -890,11 +892,11 @@ dGhvdXQgcGFzc3BocmFzZQECAwQ=
             64 95 ab 22 28 1c 93 89 73 e3 50 22 d0 1a ef 19
             49 ff c6 7a 81 fc f9 ed 9d da a5 49 1a 30 99 ba
 """),
-        'expected_signature': None,
-        'derived_passphrase': None,
-    },
-    'ecdsa384': {
-        'private_key': rb"""-----BEGIN OPENSSH PRIVATE KEY-----
+        expected_signature=None,
+        derived_passphrase=None,
+    ),
+    'ecdsa384': SSHTestKey(
+        private_key=rb"""-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAiAAAABNlY2RzYS
 1zaGEyLW5pc3RwMzg0AAAACG5pc3RwMzg0AAAAYQSgkOjkAvq7v5vHuj3KBL4/EAWcn5hZ
 DyKcbyV0eBMGFq7hKXQlZqIahLVqeMR0QqmkxNJ2rly2VHcXneq3vZ+9fIsWCOdYk5WP3N
@@ -905,7 +907,7 @@ JAu0J3Q+cypZuKQVAAAAMQD5sTy8p+B1cn/DhOmXquui1BcxvASqzzevkBlbQoBa73y04B
 2OdqVOVRkwZWRROz0AAAAbdGVzdCBrZXkgd2l0aG91dCBwYXNzcGhyYXNlAQIDBA==
 -----END OPENSSH PRIVATE KEY-----
 """,
-        'private_key_blob': bytes.fromhex("""
+        private_key_blob=bytes.fromhex("""
             00 00 00 13 65 63 64
             73 61 2d 73 68 61 32 2d 6e 69 73 74 70 33 38 34
             00 00 00 08 6e 69 73 74 70 33 38 34
@@ -923,9 +925,9 @@ JAu0J3Q+cypZuKQVAAAAMQD5sTy8p+B1cn/DhOmXquui1BcxvASqzzevkBlbQoBa73y04B
             00 00 00 1b 74 65 73 74 20 6b 65 79 20 77 69
             74 68 6f 75 74 20 70 61 73 73 70 68 72 61 73 65
 """),
-        'public_key': rb"""ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBKCQ6OQC+ru/m8e6PcoEvj8QBZyfmFkPIpxvJXR4EwYWruEpdCVmohqEtWp4xHRCqaTE0nauXLZUdxed6re9n718ixYI51iTlY/c1k/O/3XVefvBsSQLtCd0PnMqWbikFQ== test key without passphrase
+        public_key=rb"""ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBKCQ6OQC+ru/m8e6PcoEvj8QBZyfmFkPIpxvJXR4EwYWruEpdCVmohqEtWp4xHRCqaTE0nauXLZUdxed6re9n718ixYI51iTlY/c1k/O/3XVefvBsSQLtCd0PnMqWbikFQ== test key without passphrase
 """,
-        'public_key_data': bytes.fromhex("""
+        public_key_data=bytes.fromhex("""
             00 00 00 13 65 63 64
             73 61 2d 73 68 61 32 2d 6e 69 73 74 70 33 38 34
             00 00 00 08 6e 69 73 74 70 33 38 34
@@ -937,11 +939,11 @@ JAu0J3Q+cypZuKQVAAAAMQD5sTy8p+B1cn/DhOmXquui1BcxvASqzzevkBlbQoBa73y04B
             7c 8b 16 08 e7 58 93 95 8f dc d6 4f ce ff 75 d5
             79 fb c1 b1 24 0b b4 27 74 3e 73 2a 59 b8 a4 15
 """),
-        'expected_signature': None,
-        'derived_passphrase': None,
-    },
-    'ecdsa521': {
-        'private_key': rb"""-----BEGIN OPENSSH PRIVATE KEY-----
+        expected_signature=None,
+        derived_passphrase=None,
+    ),
+    'ecdsa521': SSHTestKey(
+        private_key=rb"""-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAArAAAABNlY2RzYS
 1zaGEyLW5pc3RwNTIxAAAACG5pc3RwNTIxAAAAhQQASVOdwDznmlcGqiLvFtYeVtrAEiVz
 iIfsL7jEM8Utu/m8WSkPFQtjwqdFw+WfZ0mi6qMbEFgi/ELzZSKVteCSbcMAhqAkOMFKiD
@@ -954,7 +956,7 @@ U3otwLYnuj+/5AdzuB/zotu95UdFv9I2DNXzd9E4WAyz6IqBBNcsMkxrzHAdqsYDAAAAG3
 Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQ==
 -----END OPENSSH PRIVATE KEY-----
 """,
-        'private_key_blob': bytes.fromhex("""
+        private_key_blob=bytes.fromhex("""
             00 00 00 13 65 63 64
             73 61 2d 73 68 61 32 2d 6e 69 73 74 70 35 32 31
             00 00 00 08 6e 69 73 74 70 35 32 31
@@ -975,9 +977,9 @@ Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQ==
             00 00 00 1b 74 65 73 74 20 6b 65 79 20 77 69
             74 68 6f 75 74 20 70 61 73 73 70 68 72 61 73 65
 """),
-        'public_key': rb"""ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1MjEAAACFBABJU53APOeaVwaqIu8W1h5W2sASJXOIh+wvuMQzxS27+bxZKQ8VC2PCp0XD5Z9nSaLqoxsQWCL8QvNlIpW14JJtwwCGoCQ4wUqIO7hvG+wzptPTZG7urbJPjXJLIaFQPRDJIGcjoKS3/CdDVMSmPzMMqJESvGz17pAsYSU1GTMs8yz6Yw== test key without passphrase
+        public_key=rb"""ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1MjEAAACFBABJU53APOeaVwaqIu8W1h5W2sASJXOIh+wvuMQzxS27+bxZKQ8VC2PCp0XD5Z9nSaLqoxsQWCL8QvNlIpW14JJtwwCGoCQ4wUqIO7hvG+wzptPTZG7urbJPjXJLIaFQPRDJIGcjoKS3/CdDVMSmPzMMqJESvGz17pAsYSU1GTMs8yz6Yw== test key without passphrase
 """,
-        'public_key_data': bytes.fromhex("""
+        public_key_data=bytes.fromhex("""
             00 00 00 13 65 63 64
             73 61 2d 73 68 61 32 2d 6e 69 73 74 70 32 35 36
             00 00 00 08 6e 69 73 74 70 35 32 31
@@ -991,18 +993,24 @@ Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQ==
             23 a0 a4 b7 fc 27 43 54 c4 a6 3f 33 0c a8 91 12
             bc 6c f5 ee 90 2c 61 25 35 19 33 2c f3 2c fa 63
 """),
-        'expected_signature': None,
-        'derived_passphrase': None,
-    },
+        expected_signature=None,
+        derived_passphrase=None,
+    ),
+}
+SUPPORTED_KEYS: Mapping[str, SSHTestKey] = {
+    k: v for k, v in ALL_KEYS.items() if v.is_suitable()
+}
+UNSUITABLE_KEYS: Mapping[str, SSHTestKey] = {
+    k: v for k, v in ALL_KEYS.items() if not v.is_suitable()
 }
 
 DUMMY_SERVICE = 'service1'
 DUMMY_PASSPHRASE = 'my secret passphrase'
-DUMMY_KEY1 = SUPPORTED_KEYS['ed25519']['public_key_data']
+DUMMY_KEY1 = SUPPORTED_KEYS['ed25519'].public_key_data
 DUMMY_KEY1_B64 = base64.standard_b64encode(DUMMY_KEY1).decode('ASCII')
-DUMMY_KEY2 = SUPPORTED_KEYS['rsa']['public_key_data']
+DUMMY_KEY2 = SUPPORTED_KEYS['rsa'].public_key_data
 DUMMY_KEY2_B64 = base64.standard_b64encode(DUMMY_KEY2).decode('ASCII')
-DUMMY_KEY3 = SUPPORTED_KEYS['ed448']['public_key_data']
+DUMMY_KEY3 = SUPPORTED_KEYS['ed448'].public_key_data
 DUMMY_KEY3_B64 = base64.standard_b64encode(DUMMY_KEY3).decode('ASCII')
 DUMMY_CONFIG_SETTINGS = {
     'length': 10,
@@ -1364,18 +1372,13 @@ def hypothesis_settings_coverage_compatible_with_caplog(
     return settings if f is None else settings(f)
 
 
-def list_keys(self: Any = None) -> list[_types.KeyCommentPair]:
+def list_keys(self: Any = None) -> list[_types.SSHKeyCommentPair]:
     del self  # Unused.
-    Pair = _types.KeyCommentPair  # noqa: N806
-    list1 = [
-        Pair(value['public_key_data'], f'{key} test key'.encode('ASCII'))
-        for key, value in SUPPORTED_KEYS.items()
+    Pair = _types.SSHKeyCommentPair  # noqa: N806
+    return [
+        Pair(value.public_key_data, f'{key} test key'.encode('ASCII'))
+        for key, value in ALL_KEYS.items()
     ]
-    list2 = [
-        Pair(value['public_key_data'], f'{key} test key'.encode('ASCII'))
-        for key, value in UNSUITABLE_KEYS.items()
-    ]
-    return list1 + list2
 
 
 def sign(
@@ -1384,25 +1387,25 @@ def sign(
     del self  # Unused.
     assert message == vault.Vault._UUID
     for value in SUPPORTED_KEYS.values():
-        if value['public_key_data'] == key:  # pragma: no branch
-            assert value['expected_signature'] is not None
-            return value['expected_signature']
+        if value.public_key_data == key:  # pragma: no branch
+            assert value.expected_signature is not None
+            return value.expected_signature
     raise AssertionError
 
 
-def list_keys_singleton(self: Any = None) -> list[_types.KeyCommentPair]:
+def list_keys_singleton(self: Any = None) -> list[_types.SSHKeyCommentPair]:
     del self  # Unused.
-    Pair = _types.KeyCommentPair  # noqa: N806
+    Pair = _types.SSHKeyCommentPair  # noqa: N806
     list1 = [
-        Pair(value['public_key_data'], f'{key} test key'.encode('ASCII'))
+        Pair(value.public_key_data, f'{key} test key'.encode('ASCII'))
         for key, value in SUPPORTED_KEYS.items()
     ]
     return list1[:1]
 
 
-def suitable_ssh_keys(conn: Any) -> Iterator[_types.KeyCommentPair]:
+def suitable_ssh_keys(conn: Any) -> Iterator[_types.SSHKeyCommentPair]:
     del conn  # Unused.
-    Pair = _types.KeyCommentPair  # noqa: N806
+    Pair = _types.SSHKeyCommentPair  # noqa: N806
     yield from [
         Pair(DUMMY_KEY1, b'no comment'),
         Pair(DUMMY_KEY2, b'a comment'),
@@ -1476,10 +1479,10 @@ def isolated_vault_exporter_config(
     vault_key: str | None = None,
 ) -> Iterator[None]:
     if TYPE_CHECKING:
-        chdir = contextlib.chdir
+        chdir: Callable[..., AbstractContextManager]
     else:
         try:
-            chdir = contextlib.chdir
+            chdir = contextlib.chdir  # type: ignore[attr]
         except AttributeError:
 
             @contextlib.contextmanager

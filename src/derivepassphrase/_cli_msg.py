@@ -366,9 +366,7 @@ class TranslatableString(NamedTuple):
             ValueError: Missing format string parameters ...
 
         """
-        all_flags = frozenset(
-            f.strip() for f in self.flags.union(extra_flags)
-        )
+        all_flags = frozenset(f.strip() for f in self.flags.union(extra_flags))
         if '{' in self.singular and not bool(
             all_flags & {'python-brace-format', 'no-python-brace-format'}
         ):
@@ -410,9 +408,7 @@ def translatable(
 
     """
     flags = (
-        frozenset(flags)
-        if not isinstance(flags, str)
-        else frozenset({flags})
+        frozenset(flags) if not isinstance(flags, str) else frozenset({flags})
     )
     return (
         TranslatableString(context, single, plural=plural, flags=flags)
@@ -425,11 +421,7 @@ def translatable(
 class TranslatedString:
     def __init__(
         self,
-        template: (
-            str
-            | TranslatableString
-            | MsgTemplate
-        ),
+        template: str | TranslatableString | MsgTemplate,
         args_dict: Mapping[str, Any] = types.MappingProxyType({}),
         /,
         **kwargs: Any,  # noqa: ANN401
@@ -524,10 +516,7 @@ class _TranslatedStringConstructor(Protocol):
     ) -> TranslatableString: ...
 
 
-def _Commented(  # noqa: N802
-    comments: str = '',
-    /
-) -> _TranslatedStringConstructor:
+def _Commented(comments: str = '', /) -> _TranslatedStringConstructor:  # noqa: N802
     """A "decorator" for readably constructing commented enum values.
 
     This is geared towards the quirks of the API documentation extractor
@@ -560,30 +549,26 @@ class Label(enum.Enum):
         'Label :: Diagnostics :: Marker',
         'Warning',
     )
-    CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_GLOBAL = (
-        _Commented(
-            'This is one of two values of the settings_type metavar '
-            'used in the CANNOT_UPDATE_SETTINGS_NO_SETTINGS entry.  '
-            'It is only used there.  '
-            'The full sentence then reads: '
-            '"Cannot update the global settings without any given settings."',
-        )(
-            'Label :: Error message :: Metavar',
-            'global settings',
-        )
+    CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_GLOBAL = _Commented(
+        'This is one of two values of the settings_type metavar '
+        'used in the CANNOT_UPDATE_SETTINGS_NO_SETTINGS entry.  '
+        'It is only used there.  '
+        'The full sentence then reads: '
+        '"Cannot update the global settings without any given settings."',
+    )(
+        'Label :: Error message :: Metavar',
+        'global settings',
     )
-    CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_SERVICE = (
-        _Commented(
-            'This is one of two values of the settings_type metavar '
-            'used in the CANNOT_UPDATE_SETTINGS_NO_SETTINGS entry.  '
-            'It is only used there.  '
-            'The full sentence then reads: '
-            '"Cannot update the service-specific settings without any '
-            'given settings."',
-        )(
-            'Label :: Error message :: Metavar',
-            'service-specific settings',
-        )
+    CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_SERVICE = _Commented(
+        'This is one of two values of the settings_type metavar '
+        'used in the CANNOT_UPDATE_SETTINGS_NO_SETTINGS entry.  '
+        'It is only used there.  '
+        'The full sentence then reads: '
+        '"Cannot update the service-specific settings without any '
+        'given settings."',
+    )(
+        'Label :: Error message :: Metavar',
+        'service-specific settings',
     )
     DERIVEPASSPHRASE_01 = _Commented(
         'This is the first paragraph of the command help text, '
@@ -1901,8 +1886,7 @@ MSG_TEMPLATE_CLASSES = (
 DebugTranslations._load_cache()  # noqa: SLF001
 
 
-
-def _write_po_file(  # noqa: C901
+def _write_po_file(  # noqa: C901,PLR0912
     fileobj: TextIO,
     /,
     *,
@@ -2046,7 +2030,7 @@ def _format_po_info(
 
     for key in sorted(data.keys(), key=_sort_position):
         value = data[key]
-        line = f"{key}: {value}\n"
+        line = f'{key}: {value}\n'
         yield _cstr(line)
 
 
@@ -2113,6 +2097,7 @@ def _cstr(s: str) -> str:  # pragma: no cover
 
 if __name__ == '__main__':
     import argparse
+
     ap = argparse.ArgumentParser()
     ex = ap.add_mutually_exclusive_group()
     ex.add_argument(

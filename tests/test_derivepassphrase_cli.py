@@ -1563,7 +1563,7 @@ contents go here
             def func(
                 *_args: Any,
                 **_kwargs: Any,
-            ) -> list[_types.KeyCommentPair]:
+            ) -> list[_types.SSHKeyCommentPair]:
                 return []
 
             monkeypatch.setattr(ssh_agent.SSHAgentClient, 'list_keys', func)

@@ -297,11 +297,11 @@ class TestStoreroom:
         bucket_item = (
             b'\xff' + bytes(storeroom.ENCRYPTED_KEYPAIR_SIZE) + bytes(3)
         )
-        master_keys: storeroom.MasterKeys = {
-            'encryption_key': bytes(storeroom.KEY_SIZE),
-            'signing_key': bytes(storeroom.KEY_SIZE),
-            'hashing_key': bytes(storeroom.KEY_SIZE),
-        }
+        master_keys = _types.StoreroomMasterKeys(
+            encryption_key=bytes(storeroom.KEY_SIZE),
+            signing_key=bytes(storeroom.KEY_SIZE),
+            hashing_key=bytes(storeroom.KEY_SIZE),
+        )
         with pytest.raises(ValueError, match='Cannot handle version 255'):
             storeroom.decrypt_bucket_item(bucket_item, master_keys)
 
@@ -312,11 +312,11 @@ class TestStoreroom:
         config: str,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        master_keys: storeroom.MasterKeys = {
-            'encryption_key': bytes(storeroom.KEY_SIZE),
-            'signing_key': bytes(storeroom.KEY_SIZE),
-            'hashing_key': bytes(storeroom.KEY_SIZE),
-        }
+        master_keys = _types.StoreroomMasterKeys(
+            encryption_key=bytes(storeroom.KEY_SIZE),
+            signing_key=bytes(storeroom.KEY_SIZE),
+            hashing_key=bytes(storeroom.KEY_SIZE),
+        )
         with tests.isolated_vault_exporter_config(
             monkeypatch=monkeypatch,
             runner=runner,
@@ -443,7 +443,8 @@ class TestStoreroom:
             match=r'Invalid encrypted master keys payload',
         ):
             storeroom.decrypt_master_keys_data(
-                data, {'encryption_key': key, 'signing_key': key}
+                data,
+                _types.StoreroomKeyPair(encryption_key=key, signing_key=key),
             )
         with pytest.raises(
             ValueError,
@@ -451,11 +452,9 @@ class TestStoreroom:
         ):
             storeroom.decrypt_session_keys(
                 data,
-                {
-                    'hashing_key': key,
-                    'encryption_key': key,
-                    'signing_key': key,
-                },
+                _types.StoreroomMasterKeys(
+                    hashing_key=key, encryption_key=key, signing_key=key
+                ),
             )
 
     @tests.hypothesis_settings_coverage_compatible
@@ -472,16 +471,15 @@ class TestStoreroom:
         # such random sampling is astronomically tiny.
         with pytest.raises(cryptography.exceptions.InvalidSignature):
             storeroom.decrypt_master_keys_data(
-                data, {'encryption_key': key, 'signing_key': key}
+                data,
+                _types.StoreroomKeyPair(encryption_key=key, signing_key=key),
             )
         with pytest.raises(cryptography.exceptions.InvalidSignature):
             storeroom.decrypt_session_keys(
                 data,
-                {
-                    'hashing_key': key,
-                    'encryption_key': key,
-                    'signing_key': key,
-                },
+                _types.StoreroomMasterKeys(
+                    hashing_key=key, encryption_key=key, signing_key=key
+                ),
             )
 
 
