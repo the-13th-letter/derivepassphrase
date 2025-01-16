@@ -147,7 +147,7 @@ def derive_master_keys_keys(
     return _types.StoreroomKeyPair(
         encryption_key=encryption_key,
         signing_key=signing_key,
-    )
+    ).toreadonly()
 
 
 def decrypt_master_keys_data(
@@ -201,6 +201,7 @@ def decrypt_master_keys_data(
 
     """
     data = memoryview(data).toreadonly().cast('c')
+    keys = keys.toreadonly()
     ciphertext, claimed_mac = struct.unpack(
         f'{len(data) - MAC_SIZE}s {MAC_SIZE}s', data
     )
@@ -241,7 +242,7 @@ def decrypt_master_keys_data(
         hashing_key=hashing_key,
         encryption_key=encryption_key,
         signing_key=signing_key,
-    )
+    ).toreadonly()
 
 
 def decrypt_session_keys(
@@ -293,6 +294,7 @@ def decrypt_session_keys(
 
     """
     data = memoryview(data).toreadonly().cast('c')
+    master_keys = master_keys.toreadonly()
     ciphertext, claimed_mac = struct.unpack(
         f'{len(data) - MAC_SIZE}s {MAC_SIZE}s', data
     )
@@ -333,7 +335,7 @@ def decrypt_session_keys(
     session_keys = _types.StoreroomKeyPair(
         encryption_key=session_encryption_key,
         signing_key=session_signing_key,
-    )
+    ).toreadonly()
 
     logger.debug(
         _msg.TranslatedString(
@@ -399,6 +401,7 @@ def decrypt_contents(
 
     """
     data = memoryview(data).toreadonly().cast('c')
+    session_keys = session_keys.toreadonly()
     ciphertext, claimed_mac = struct.unpack(
         f'{len(data) - MAC_SIZE}s {MAC_SIZE}s', data
     )
@@ -474,6 +477,7 @@ def decrypt_bucket_item(
 
     """
     bucket_item = memoryview(bucket_item).toreadonly().cast('c')
+    master_keys = master_keys.toreadonly()
     logger.debug(
         _msg.TranslatedString(
             _msg.DebugMsgTemplate.DECRYPT_BUCKET_ITEM_KEY_INFO,
@@ -532,6 +536,7 @@ def decrypt_bucket_file(
         removal.
 
     """
+    master_keys = master_keys.toreadonly()
     with open(
         os.path.join(os.fsdecode(root_dir), filename), 'rb'
     ) as bucket_file:

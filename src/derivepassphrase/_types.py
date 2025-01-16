@@ -11,9 +11,10 @@ import enum
 import json
 import math
 import string
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 from typing_extensions import (
+    Buffer,
     NamedTuple,
     NotRequired,
     TypedDict,
@@ -577,7 +578,10 @@ def clean_up_falsy_vault_config_values(  # noqa: C901,PLR0912
     return cleanup_completed
 
 
-class SSHKeyCommentPair(NamedTuple):
+B = TypeVar('B', bound=Buffer)
+
+
+class SSHKeyCommentPair(NamedTuple, Generic[B]):
     """SSH key plus comment pair.  For typing purposes.
 
     Attributes:
@@ -586,10 +590,17 @@ class SSHKeyCommentPair(NamedTuple):
 
     """
 
-    key: bytes | bytearray
+    key: B
     """"""
-    comment: bytes | bytearray
+    comment: B
     """"""
+
+    def toreadonly(self) -> SSHKeyCommentPair[bytes]:
+        """Return a copy with read-only entries."""
+        return SSHKeyCommentPair(
+            key=bytes(self.key),
+            comment=bytes(self.comment),
+        )
 
 
 class SSH_AGENTC(enum.Enum):  # noqa: N801
@@ -662,7 +673,7 @@ class SSH_AGENT(enum.Enum):  # noqa: N801
     """"""
 
 
-class StoreroomKeyPair(NamedTuple):
+class StoreroomKeyPair(NamedTuple, Generic[B]):
     """A pair of AES256 keys, one for encryption and one for signing.
 
     Attributes:
@@ -674,13 +685,20 @@ class StoreroomKeyPair(NamedTuple):
 
     """
 
-    encryption_key: bytes
+    encryption_key: B
     """"""
-    signing_key: bytes
+    signing_key: B
     """"""
 
+    def toreadonly(self) -> StoreroomKeyPair[bytes]:
+        """Return a copy with read-only entries."""
+        return StoreroomKeyPair(
+            encryption_key=bytes(self.encryption_key),
+            signing_key=bytes(self.signing_key),
+        )
 
-class StoreroomMasterKeys(NamedTuple):
+
+class StoreroomMasterKeys(NamedTuple, Generic[B]):
     """A triple of AES256 keys, for encryption, signing and hashing.
 
     Attributes:
@@ -695,9 +713,17 @@ class StoreroomMasterKeys(NamedTuple):
 
     """
 
-    hashing_key: bytes
+    hashing_key: B
     """"""
-    encryption_key: bytes
+    encryption_key: B
     """"""
-    signing_key: bytes
+    signing_key: B
     """"""
+
+    def toreadonly(self) -> StoreroomMasterKeys[bytes]:
+        """Return a copy with read-only entries."""
+        return StoreroomMasterKeys(
+            hashing_key=bytes(self.hashing_key),
+            encryption_key=bytes(self.encryption_key),
+            signing_key=bytes(self.signing_key),
+        )
