@@ -1203,11 +1203,19 @@ class ZshComplete(click.shell_completion.ZshComplete):
     """Zsh completion class that supports colons.
 
     `click`'s Zsh completion class (at least v8.1.7 and v8.1.8) uses
-    completion helper functions (provided by Zsh) that parse each
+    some completion helper functions (provided by Zsh) that parse each
     completion item into value-description pairs, separated by a colon.
-    Correspondingly, any internal colons in the completion item's value
-    need to be escaped.  `click` doesn't do this.  So, this subclass
-    overrides those parts, and adds the missing escaping.
+    Other completion helper functions don't.  Correspondingly, any
+    internal colons in the completion item's value sometimes need to be
+    escaped, and sometimes don't.
+
+    The "right" way to fix this is to modify the Zsh completion script
+    to only use one type of serialization: either escaped, or unescaped.
+    However, the Zsh completion script itself may already be installed
+    in the user's Zsh settings, and we have no way of knowing that.
+    Therefore, it is better to change the `format_completion` method to
+    adaptively and "smartly" emit colon-escaped output or not, based on
+    whether the completion script will be using it.
 
     """
 
@@ -1219,18 +1227,70 @@ class ZshComplete(click.shell_completion.ZshComplete):
         """Return a suitable serialization of the CompletionItem.
 
         This serialization ensures colons in the item value are properly
-        escaped.
+        escaped if and only if the completion script will attempt to
+        pass a colon-separated key/description pair to the underlying
+        Zsh machinery.  This is the case if and only if the help text is
+        non-degenerate.
 
         """
-        type, value, help = (  # noqa: A001
-            item.type,
-            item.value.replace(':', '\\:'),
-            item.help or '_',
-        )
-        return f'{type}\n{value}\n{help}'
+        help_ = item.help or '_'
+        value = item.value.replace(':', r'\:' if help_ != '_' else ':')
+        return f'{item.type}\n{value}\n{help_}'
 
 
-click.shell_completion.add_completion_class(ZshComplete)
+# Our ZshComplete class depends crucially on the exact shape of the Zsh
+# completion script.  So only fix the completion formatter if the
+# completion script is still the same.
+#
+# (This Zsh script is part of click, and available under the
+# 3-clause-BSD license.)
+_ORIG_SOURCE_TEMPLATE = """\
+#compdef %(prog_name)s
+
+%(complete_func)s() {
+    local -a completions
+    local -a completions_with_descriptions
+    local -a response
+    (( ! $+commands[%(prog_name)s] )) && return 1
+
+    response=("${(@f)$(env COMP_WORDS="${words[*]}" COMP_CWORD=$((CURRENT-1)) \
+%(complete_var)s=zsh_complete %(prog_name)s)}")
+
+    for type key descr in ${response}; do
+        if [[ "$type" == "plain" ]]; then
+            if [[ "$descr" == "_" ]]; then
+                completions+=("$key")
+            else
+                completions_with_descriptions+=("$key":"$descr")
+            fi
+        elif [[ "$type" == "dir" ]]; then
+            _path_files -/
+        elif [[ "$type" == "file" ]]; then
+            _path_files -f
+        fi
+    done
+
+    if [ -n "$completions_with_descriptions" ]; then
+        _describe -V unsorted completions_with_descriptions -U
+    fi
+
+    if [ -n "$completions" ]; then
+        compadd -U -V unsorted -a completions
+    fi
+}
+
+if [[ $zsh_eval_context[-1] == loadautofunc ]]; then
+    # autoload from fpath, call function directly
+    %(complete_func)s "$@"
+else
+    # eval/source/. command, register function for later
+    compdef %(complete_func)s %(prog_name)s
+fi
+"""
+if (
+    click.shell_completion.ZshComplete.source_template == _ORIG_SOURCE_TEMPLATE
+):  # pragma: no cover
+    click.shell_completion.add_completion_class(ZshComplete)
 
 
 # Top-level

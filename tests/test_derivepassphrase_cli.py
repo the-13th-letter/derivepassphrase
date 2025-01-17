@@ -3538,12 +3538,13 @@ def fish_format(item: click.shell_completion.CompletionItem) -> str:
 
 
 def zsh_format(item: click.shell_completion.CompletionItem) -> str:
-    type, value, help = (  # noqa: A001
-        item.type,
-        item.value.replace(':', r'\:'),
-        item.help or '_',
+    empty_help = '_'
+    help_, value = (
+        (item.help, item.value.replace(':', r'\:'))
+        if item.help and item.help == empty_help
+        else (empty_help, item.value)
     )
-    return f'{type}\n{value}\n{help}'
+    return f'{item.type}\n{value}\n{help_}'
 
 
 def completion_item(
