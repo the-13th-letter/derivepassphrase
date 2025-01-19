@@ -264,10 +264,11 @@ def validate_vault_config(  # noqa: C901,PLR0912
             An entry in the vault config is not allowed, or has a
             disallowed value.
 
-    Deprecated:
-        Since v0.4.0: The `allow_derivepassphrase_extensions` keyword
-        argument is deprecated, and will be removed in v1.0.  There are
-        no specified `derivepassphrase` extensions.
+    Warning: Deprecated argument
+        **v0.4.0**:
+            The `allow_derivepassphrase_extensions` keyword argument is
+            deprecated, and will be removed in v1.0.  There are no
+            specified `derivepassphrase` extensions.
 
     """
     err_obj_not_a_dict = 'vault config is not a dict'
