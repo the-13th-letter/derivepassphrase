@@ -86,6 +86,49 @@ __all__ = ('export_vault_native_data',)
 logger = logging.getLogger(__name__)
 
 
+@exporter.register_export_vault_config_data_handler('v0.2', 'v0.3')
+def export_vault_native_data(  # noqa: D417
+    path: str | bytes | os.PathLike | None = None,
+    key: str | Buffer | None = None,
+    *,
+    format: str,  # noqa: A002
+) -> Any:  # noqa: ANN401
+    """Export the full configuration stored in vault native format.
+
+    See [`exporter.ExportVaultConfigDataFunction`][] for an explanation
+    of the call signature, and the exceptions to expect.
+
+    Other Args:
+        format:
+            The only supported formats are `v0.2` and `v0.3`.
+
+    """  # noqa: DOC201,DOC501
+    # Trigger import errors if necessary.
+    importlib.import_module('cryptography')
+    if path is None:
+        path = exporter.get_vault_path()
+    with open(path, 'rb') as infile:
+        contents = base64.standard_b64decode(infile.read())
+    if key is None:
+        key = exporter.get_vault_key()
+    parser_class: type[VaultNativeConfigParser] | None = {
+        'v0.2': VaultNativeV02ConfigParser,
+        'v0.3': VaultNativeV03ConfigParser,
+    }.get(format)
+    if parser_class is None:  # pragma: no cover
+        msg = exporter.INVALID_VAULT_NATIVE_CONFIGURATION_FORMAT.format(
+            fmt=format
+        )
+        raise ValueError(msg)
+    try:
+        return parser_class(contents, key)()
+    except ValueError as exc:
+        raise exporter.NotAVaultConfigError(
+            os.fsdecode(path),
+            format=format,
+        ) from exc
+
+
 def _h(bs: Buffer) -> str:
     return '<{}>'.format(memoryview(bs).hex(' '))
 
@@ -679,49 +722,6 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
         return ciphers.Cipher(
             algorithms.AES256(encryption_key), modes.CBC(iv)
         ).decryptor()
-
-
-@exporter.register_export_vault_config_data_handler('v0.2', 'v0.3')
-def export_vault_native_data(  # noqa: D417
-    path: str | bytes | os.PathLike | None = None,
-    key: str | Buffer | None = None,
-    *,
-    format: str,  # noqa: A002
-) -> Any:  # noqa: ANN401
-    """Export the full configuration stored in vault native format.
-
-    See [`exporter.ExportVaultConfigDataFunction`][] for an explanation
-    of the call signature, and the exceptions to expect.
-
-    Other Args:
-        format:
-            The only supported formats are `v0.2` and `v0.3`.
-
-    """  # noqa: DOC201,DOC501
-    # Trigger import errors if necessary.
-    importlib.import_module('cryptography')
-    if path is None:
-        path = exporter.get_vault_path()
-    with open(path, 'rb') as infile:
-        contents = base64.standard_b64decode(infile.read())
-    if key is None:
-        key = exporter.get_vault_key()
-    parser_class: type[VaultNativeConfigParser] | None = {
-        'v0.2': VaultNativeV02ConfigParser,
-        'v0.3': VaultNativeV03ConfigParser,
-    }.get(format)
-    if parser_class is None:  # pragma: no cover
-        msg = exporter.INVALID_VAULT_NATIVE_CONFIGURATION_FORMAT.format(
-            fmt=format
-        )
-        raise ValueError(msg)
-    try:
-        return parser_class(contents, key)()
-    except ValueError as exc:
-        raise exporter.NotAVaultConfigError(
-            os.fsdecode(path),
-            format=format,
-        ) from exc
 
 
 if __name__ == '__main__':

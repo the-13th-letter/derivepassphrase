@@ -86,6 +86,174 @@ __all__ = ('export_storeroom_data',)
 logger = logging.getLogger(__name__)
 
 
+@exporter.register_export_vault_config_data_handler('storeroom')
+def export_storeroom_data(  # noqa: C901,D417,PLR0912,PLR0914,PLR0915
+    path: str | bytes | os.PathLike | None = None,
+    key: str | Buffer | None = None,
+    *,
+    format: str = 'storeroom',  # noqa: A002
+) -> dict[str, Any]:
+    """Export the full configuration stored in the storeroom.
+
+    See [`exporter.ExportVaultConfigDataFunction`][] for an explanation
+    of the call signature, and the exceptions to expect.
+
+    Other Args:
+        format:
+            The only supported format is `storeroom`.
+
+    """  # noqa: DOC201,DOC501
+    # Trigger import errors if necessary.
+    importlib.import_module('cryptography')
+    if path is None:
+        path = exporter.get_vault_path()
+    if key is None:
+        key = exporter.get_vault_key()
+    if format != 'storeroom':  # pragma: no cover
+        msg = exporter.INVALID_VAULT_NATIVE_CONFIGURATION_FORMAT.format(
+            fmt=format
+        )
+        raise ValueError(msg)
+    try:
+        master_keys_file = open(  # noqa: SIM115
+            os.path.join(os.fsdecode(path), '.keys'),
+            encoding='utf-8',
+        )
+    except FileNotFoundError as exc:
+        raise exporter.NotAVaultConfigError(
+            os.fsdecode(path),
+            format='storeroom',
+        ) from exc
+    with master_keys_file:
+        header = json.loads(master_keys_file.readline())
+        if header != {'version': 1}:
+            msg = 'bad or unsupported keys version header'
+            raise RuntimeError(msg)
+        raw_keys_data = base64.standard_b64decode(master_keys_file.readline())
+        encrypted_keys_params, encrypted_keys = struct.unpack(
+            f'B {len(raw_keys_data) - 1}s', raw_keys_data
+        )
+        if master_keys_file.read():
+            msg = 'trailing data; cannot make sense of .keys file'
+            raise RuntimeError(msg)
+    encrypted_keys_version = encrypted_keys_params >> 4
+    if encrypted_keys_version != 1:
+        msg = f'cannot handle version {encrypted_keys_version} encrypted keys'
+        raise RuntimeError(msg)
+    logger.info(
+        _msg.TranslatedString(_msg.InfoMsgTemplate.PARSING_MASTER_KEYS_DATA)
+    )
+    encrypted_keys_iterations = 2 ** (10 + (encrypted_keys_params & 0x0F))
+    master_keys_keys = _derive_master_keys_keys(key, encrypted_keys_iterations)
+    master_keys = _decrypt_master_keys_data(encrypted_keys, master_keys_keys)
+
+    config_structure: dict[str, Any] = {}
+    json_contents: dict[str, bytes] = {}
+    # Use glob.glob(..., root_dir=...) here once Python 3.9 becomes
+    # unsupported.
+    storeroom_path_str = os.fsdecode(path)
+    valid_hashdirs = [
+        hashdir_name
+        for hashdir_name in os.listdir(storeroom_path_str)
+        if fnmatch.fnmatch(hashdir_name, '[01][0-9a-f]')
+    ]
+    for file in valid_hashdirs:
+        logger.info(
+            _msg.TranslatedString(
+                _msg.InfoMsgTemplate.DECRYPTING_BUCKET,
+                bucket_number=file,
+            )
+        )
+        bucket_contents = [
+            bytes(item)
+            for item in _decrypt_bucket_file(file, master_keys, root_dir=path)
+        ]
+        bucket_index = json.loads(bucket_contents.pop(0))
+        for pos, item in enumerate(bucket_index):
+            json_contents[item] = bucket_contents[pos]
+            logger.debug(
+                _msg.TranslatedString(
+                    _msg.DebugMsgTemplate.BUCKET_ITEM_FOUND,
+                    path=item,
+                    value=bucket_contents[pos],
+                )
+            )
+    dirs_to_check: dict[str, list[str]] = {}
+    json_payload: Any
+    logger.info(
+        _msg.TranslatedString(_msg.InfoMsgTemplate.ASSEMBLING_CONFIG_STRUCTURE)
+    )
+    for item_path, json_content in sorted(json_contents.items()):
+        if item_path.endswith('/'):
+            logger.debug(
+                _msg.TranslatedString(
+                    _msg.DebugMsgTemplate.POSTPONING_DIRECTORY_CONTENTS_CHECK,
+                    path=item_path,
+                    contents=json_content.decode('utf-8'),
+                )
+            )
+            json_payload = json.loads(json_content)
+            if not isinstance(json_payload, list) or any(
+                not isinstance(x, str) for x in json_payload
+            ):
+                msg = (
+                    f'Directory index is not actually an index: '
+                    f'{json_content!r}'
+                )
+                raise RuntimeError(msg)
+            dirs_to_check[item_path] = json_payload
+            logger.debug(
+                _msg.TranslatedString(
+                    _msg.DebugMsgTemplate.SETTING_CONFIG_STRUCTURE_CONTENTS_EMPTY_DIRECTORY,
+                    path=item_path,
+                ),
+            )
+            _store(config_structure, item_path, b'{}')
+        else:
+            logger.debug(
+                _msg.TranslatedString(
+                    _msg.DebugMsgTemplate.SETTING_CONFIG_STRUCTURE_CONTENTS,
+                    path=item_path,
+                    value=json_content.decode('utf-8'),
+                ),
+            )
+            _store(config_structure, item_path, json_content)
+    logger.info(
+        _msg.TranslatedString(
+            _msg.InfoMsgTemplate.CHECKING_CONFIG_STRUCTURE_CONSISTENCY,
+        )
+    )
+    # Sorted order is important; see `maybe_obj` below.
+    for dir_, namelist_ in sorted(dirs_to_check.items()):
+        namelist = [x.rstrip('/') for x in namelist_]
+        obj: dict[Any, Any] = config_structure
+        for part in dir_.split('/'):
+            if part:
+                # Because we iterate paths in sorted order, parent
+                # directories are encountered before child directories.
+                # So parent directories always exist (lest we would have
+                # aborted earlier).
+                #
+                # Of course, the type checker doesn't necessarily know
+                # this, so we need to use assertions anyway.
+                maybe_obj = obj.get(part)
+                assert isinstance(maybe_obj, dict), (
+                    f'Cannot traverse storage path {dir_!r}'
+                )
+                obj = maybe_obj
+        if set(obj.keys()) != set(namelist):
+            msg = f'Object key mismatch for path {dir_!r}'
+            raise RuntimeError(msg)
+        logger.debug(
+            _msg.TranslatedString(
+                _msg.DebugMsgTemplate.DIRECTORY_CONTENTS_CHECK_OK,
+                path=dir_,
+                contents=json.dumps(namelist_),
+            )
+        )
+    return config_structure
+
+
 def _h(bs: Buffer) -> str:
     return '<{}>'.format(memoryview(bs).hex(' '))
 
@@ -583,174 +751,6 @@ def _store(config: dict[str, Any], path: str, json_contents: bytes) -> None:
         config = config.setdefault(part, {})
     if path_parts:
         config[path_parts[-1]] = contents
-
-
-@exporter.register_export_vault_config_data_handler('storeroom')
-def export_storeroom_data(  # noqa: C901,D417,PLR0912,PLR0914,PLR0915
-    path: str | bytes | os.PathLike | None = None,
-    key: str | Buffer | None = None,
-    *,
-    format: str = 'storeroom',  # noqa: A002
-) -> dict[str, Any]:
-    """Export the full configuration stored in the storeroom.
-
-    See [`exporter.ExportVaultConfigDataFunction`][] for an explanation
-    of the call signature, and the exceptions to expect.
-
-    Other Args:
-        format:
-            The only supported format is `storeroom`.
-
-    """  # noqa: DOC201,DOC501
-    # Trigger import errors if necessary.
-    importlib.import_module('cryptography')
-    if path is None:
-        path = exporter.get_vault_path()
-    if key is None:
-        key = exporter.get_vault_key()
-    if format != 'storeroom':  # pragma: no cover
-        msg = exporter.INVALID_VAULT_NATIVE_CONFIGURATION_FORMAT.format(
-            fmt=format
-        )
-        raise ValueError(msg)
-    try:
-        master_keys_file = open(  # noqa: SIM115
-            os.path.join(os.fsdecode(path), '.keys'),
-            encoding='utf-8',
-        )
-    except FileNotFoundError as exc:
-        raise exporter.NotAVaultConfigError(
-            os.fsdecode(path),
-            format='storeroom',
-        ) from exc
-    with master_keys_file:
-        header = json.loads(master_keys_file.readline())
-        if header != {'version': 1}:
-            msg = 'bad or unsupported keys version header'
-            raise RuntimeError(msg)
-        raw_keys_data = base64.standard_b64decode(master_keys_file.readline())
-        encrypted_keys_params, encrypted_keys = struct.unpack(
-            f'B {len(raw_keys_data) - 1}s', raw_keys_data
-        )
-        if master_keys_file.read():
-            msg = 'trailing data; cannot make sense of .keys file'
-            raise RuntimeError(msg)
-    encrypted_keys_version = encrypted_keys_params >> 4
-    if encrypted_keys_version != 1:
-        msg = f'cannot handle version {encrypted_keys_version} encrypted keys'
-        raise RuntimeError(msg)
-    logger.info(
-        _msg.TranslatedString(_msg.InfoMsgTemplate.PARSING_MASTER_KEYS_DATA)
-    )
-    encrypted_keys_iterations = 2 ** (10 + (encrypted_keys_params & 0x0F))
-    master_keys_keys = derive_master_keys_keys(key, encrypted_keys_iterations)
-    master_keys = decrypt_master_keys_data(encrypted_keys, master_keys_keys)
-
-    config_structure: dict[str, Any] = {}
-    json_contents: dict[str, bytes] = {}
-    # Use glob.glob(..., root_dir=...) here once Python 3.9 becomes
-    # unsupported.
-    storeroom_path_str = os.fsdecode(path)
-    valid_hashdirs = [
-        hashdir_name
-        for hashdir_name in os.listdir(storeroom_path_str)
-        if fnmatch.fnmatch(hashdir_name, '[01][0-9a-f]')
-    ]
-    for file in valid_hashdirs:
-        logger.info(
-            _msg.TranslatedString(
-                _msg.InfoMsgTemplate.DECRYPTING_BUCKET,
-                bucket_number=file,
-            )
-        )
-        bucket_contents = [
-            bytes(item)
-            for item in decrypt_bucket_file(file, master_keys, root_dir=path)
-        ]
-        bucket_index = json.loads(bucket_contents.pop(0))
-        for pos, item in enumerate(bucket_index):
-            json_contents[item] = bucket_contents[pos]
-            logger.debug(
-                _msg.TranslatedString(
-                    _msg.DebugMsgTemplate.BUCKET_ITEM_FOUND,
-                    path=item,
-                    value=bucket_contents[pos],
-                )
-            )
-    dirs_to_check: dict[str, list[str]] = {}
-    json_payload: Any
-    logger.info(
-        _msg.TranslatedString(_msg.InfoMsgTemplate.ASSEMBLING_CONFIG_STRUCTURE)
-    )
-    for item_path, json_content in sorted(json_contents.items()):
-        if item_path.endswith('/'):
-            logger.debug(
-                _msg.TranslatedString(
-                    _msg.DebugMsgTemplate.POSTPONING_DIRECTORY_CONTENTS_CHECK,
-                    path=item_path,
-                    contents=json_content.decode('utf-8'),
-                )
-            )
-            json_payload = json.loads(json_content)
-            if not isinstance(json_payload, list) or any(
-                not isinstance(x, str) for x in json_payload
-            ):
-                msg = (
-                    f'Directory index is not actually an index: '
-                    f'{json_content!r}'
-                )
-                raise RuntimeError(msg)
-            dirs_to_check[item_path] = json_payload
-            logger.debug(
-                _msg.TranslatedString(
-                    _msg.DebugMsgTemplate.SETTING_CONFIG_STRUCTURE_CONTENTS_EMPTY_DIRECTORY,
-                    path=item_path,
-                ),
-            )
-            _store(config_structure, item_path, b'{}')
-        else:
-            logger.debug(
-                _msg.TranslatedString(
-                    _msg.DebugMsgTemplate.SETTING_CONFIG_STRUCTURE_CONTENTS,
-                    path=item_path,
-                    value=json_content.decode('utf-8'),
-                ),
-            )
-            _store(config_structure, item_path, json_content)
-    logger.info(
-        _msg.TranslatedString(
-            _msg.InfoMsgTemplate.CHECKING_CONFIG_STRUCTURE_CONSISTENCY,
-        )
-    )
-    # Sorted order is important; see `maybe_obj` below.
-    for dir_, namelist_ in sorted(dirs_to_check.items()):
-        namelist = [x.rstrip('/') for x in namelist_]
-        obj: dict[Any, Any] = config_structure
-        for part in dir_.split('/'):
-            if part:
-                # Because we iterate paths in sorted order, parent
-                # directories are encountered before child directories.
-                # So parent directories always exist (lest we would have
-                # aborted earlier).
-                #
-                # Of course, the type checker doesn't necessarily know
-                # this, so we need to use assertions anyway.
-                maybe_obj = obj.get(part)
-                assert isinstance(maybe_obj, dict), (
-                    f'Cannot traverse storage path {dir_!r}'
-                )
-                obj = maybe_obj
-        if set(obj.keys()) != set(namelist):
-            msg = f'Object key mismatch for path {dir_!r}'
-            raise RuntimeError(msg)
-        logger.debug(
-            _msg.TranslatedString(
-                _msg.DebugMsgTemplate.DIRECTORY_CONTENTS_CHECK_OK,
-                path=dir_,
-                contents=json.dumps(namelist_),
-            )
-        )
-    return config_structure
 
 
 if __name__ == '__main__':
