@@ -548,6 +548,110 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
         """
         return base64.standard_b64encode(self._message)
 
+    @staticmethod
+    def _evp_bytestokey_md5_one_iteration_no_salt(
+        data: bytes, key_size: int, iv_size: int
+    ) -> tuple[bytes, bytes]:
+        """Reimplement OpenSSL's `EVP_BytesToKey` with fixed parameters.
+
+        `EVP_BytesToKey` in general is a key derivation function,
+        i.e., a function that derives key material from an input
+        byte string.  `EVP_BytesToKey` conceptually splits the
+        derived key material into an encryption key and an
+        initialization vector (IV).
+
+        Note: Algorithm description
+            `EVP_BytesToKey` takes an input byte string, two output
+            size (encryption key size and IV size), a message digest
+            function, a salt value and an iteration count.  The
+            derived key material is calculated in blocks, each of
+            which is the output of (iterated application of) the
+            message digest function.  The input to the message
+            digest function is the concatenation of the previous
+            block (if any) with the input byte string and the salt
+            value (if any):
+
+            ~~~~ python
+
+            data = block_input = b''.join([
+                previous_block, input_string, salt
+            ])
+            for i in range(iteration_count):
+                data = message_digest(data)
+            block = data
+
+            ~~~~
+
+            We use as many blocks as are necessary to cover the
+            total output byte string size.  The first few bytes
+            (dictated by the encryption key size) form the
+            encryption key, the other bytes (dictated by the IV
+            size) form the IV.
+
+        We implement exactly the subset of `EVP_BytesToKey` that the
+        Node.js `crypto` library (v21 series and older) uses in its
+        implementation of `crypto.createCipher("aes256", password)`.
+        Specifically, the message digest function is fixed to MD5,
+        the salt is always empty, and the iteration count is fixed
+        at one.
+
+
+        Returns:
+            A 2-tuple containing the derived encryption key and the
+            derived initialization vector.
+
+        Danger: Insecure use of cryptography
+            This function reimplements the OpenSSL function
+            `EVP_BytesToKey`, which generates cryptographically weak
+            keys, without any attempts at mitigating its insecurity.  We
+            provide this function for the purpose of interoperability
+            with existing vault installations.  Do not rely on this
+            system to keep your vault configuration secure against
+            access by even moderately determined attackers!
+
+        """
+        total_size = key_size + iv_size
+        buffer = bytearray()
+        last_block = b''
+        salt = b''
+        logger.debug(
+            _msg.TranslatedString(
+                _msg.DebugMsgTemplate.VAULT_NATIVE_EVP_BYTESTOKEY_INIT,
+                data=_h(data),
+                salt=_h(salt),
+                key_size=key_size,
+                iv_size=iv_size,
+                buffer_length=len(buffer),
+                buffer=_h(buffer),
+            ),
+        )
+        while len(buffer) < total_size:
+            with warnings.catch_warnings():
+                warnings.simplefilter(
+                    'ignore', crypt_utils.CryptographyDeprecationWarning
+                )
+                block = hashes.Hash(hashes.MD5())
+            block.update(last_block)
+            block.update(data)
+            block.update(salt)
+            last_block = block.finalize()
+            buffer.extend(last_block)
+            logger.debug(
+                _msg.TranslatedString(
+                    _msg.DebugMsgTemplate.VAULT_NATIVE_EVP_BYTESTOKEY_ROUND,
+                    buffer_length=len(buffer),
+                    buffer=_h(buffer),
+                ),
+            )
+        logger.debug(
+            _msg.TranslatedString(
+                _msg.DebugMsgTemplate.VAULT_NATIVE_EVP_BYTESTOKEY_RESULT,
+                enc_key=_h(buffer[:key_size]),
+                iv=_h(buffer[key_size:total_size]),
+            ),
+        )
+        return bytes(buffer[:key_size]), bytes(buffer[key_size:total_size])
+
     def _make_decryptor(self) -> ciphers.CipherContext:
         """Return the cipher context object used for decryption.
 
@@ -568,102 +672,8 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
             determined attackers!
 
         """
-
-        def evp_bytestokey_md5_one_iteration_no_salt(
-            data: bytes, key_size: int, iv_size: int
-        ) -> tuple[bytes, bytes]:
-            """Reimplement OpenSSL's `EVP_BytesToKey` with fixed parameters.
-
-            `EVP_BytesToKey` in general is a key derivation function,
-            i.e., a function that derives key material from an input
-            byte string.  `EVP_BytesToKey` conceptually splits the
-            derived key material into an encryption key and an
-            initialization vector (IV).
-
-            Note: Algorithm description
-                `EVP_BytesToKey` takes an input byte string, two output
-                size (encryption key size and IV size), a message digest
-                function, a salt value and an iteration count.  The
-                derived key material is calculated in blocks, each of
-                which is the output of (iterated application of) the
-                message digest function.  The input to the message
-                digest function is the concatenation of the previous
-                block (if any) with the input byte string and the salt
-                value (if any):
-
-                ~~~~ python
-
-                data = block_input = b''.join([
-                    previous_block, input_string, salt
-                ])
-                for i in range(iteration_count):
-                    data = message_digest(data)
-                block = data
-
-                ~~~~
-
-                We use as many blocks as are necessary to cover the
-                total output byte string size.  The first few bytes
-                (dictated by the encryption key size) form the
-                encryption key, the other bytes (dictated by the IV
-                size) form the IV.
-
-            We implement exactly the subset of `EVP_BytesToKey` that the
-            Node.js `crypto` library (v21 series and older) uses in its
-            implementation of `crypto.createCipher("aes256", password)`.
-            Specifically, the message digest function is fixed to MD5,
-            the salt is always empty, and the iteration count is fixed
-            at one.
-
-            Returns:
-                A 2-tuple containing the derived encryption key and the
-                derived initialization vector.
-
-            """
-            total_size = key_size + iv_size
-            buffer = bytearray()
-            last_block = b''
-            salt = b''
-            logger.debug(
-                _msg.TranslatedString(
-                    _msg.DebugMsgTemplate.VAULT_NATIVE_EVP_BYTESTOKEY_INIT,
-                    data=_h(data),
-                    salt=_h(salt),
-                    key_size=key_size,
-                    iv_size=iv_size,
-                    buffer_length=len(buffer),
-                    buffer=_h(buffer),
-                ),
-            )
-            while len(buffer) < total_size:
-                with warnings.catch_warnings():
-                    warnings.simplefilter(
-                        'ignore', crypt_utils.CryptographyDeprecationWarning
-                    )
-                    block = hashes.Hash(hashes.MD5())
-                block.update(last_block)
-                block.update(data)
-                block.update(salt)
-                last_block = block.finalize()
-                buffer.extend(last_block)
-                logger.debug(
-                    _msg.TranslatedString(
-                        _msg.DebugMsgTemplate.VAULT_NATIVE_EVP_BYTESTOKEY_ROUND,
-                        buffer_length=len(buffer),
-                        buffer=_h(buffer),
-                    ),
-                )
-            logger.debug(
-                _msg.TranslatedString(
-                    _msg.DebugMsgTemplate.VAULT_NATIVE_EVP_BYTESTOKEY_RESULT,
-                    enc_key=_h(buffer[:key_size]),
-                    iv=_h(buffer[key_size:total_size]),
-                ),
-            )
-            return bytes(buffer[:key_size]), bytes(buffer[key_size:total_size])
-
         data = base64.standard_b64encode(self._iv + self._encryption_key)
-        encryption_key, iv = evp_bytestokey_md5_one_iteration_no_salt(
+        encryption_key, iv = self._evp_bytestokey_md5_one_iteration_no_salt(
             data, key_size=32, iv_size=16
         )
         return ciphers.Cipher(
