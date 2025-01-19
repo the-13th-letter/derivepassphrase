@@ -2,7 +2,18 @@
 #
 # SPDX-Licence-Identifier: MIT
 
-"""Internal module.  Do not use.  Contains error strings and functions."""
+"""Messages for the command-line interface of `derivepassphrase`.
+
+Also contains some machinery related to internationalization and
+localization.
+
+!!! warning
+
+    Non-public module (implementation detail), provided for didactical and
+    educational purposes only.  Subject to change without notice, including
+    removal.
+
+"""
 
 from __future__ import annotations
 
@@ -209,11 +220,36 @@ class DebugTranslations(gettext.NullTranslations):
 
 
 class TranslatableString(NamedTuple):
+    """Translatable string as used by the `derivepassphrase` command-line.
+
+    For typing purposes.
+
+    Attributes:
+        l10n_context:
+            The localization context, as per [`gettext`][].  Used to
+            disambiguate different uses of the same translatable string.
+        singular:
+            The translatable message, base case.
+        plural:
+            The translatable message, plural case.  Usually unset.
+        translator_comments:
+            Explicit commentary for the translator.
+        flags:
+            `.mo` file flags for this message, e.g. to indicate the
+            string formatting style in use.
+
+    """
+
     l10n_context: str
+    """"""
     singular: str
+    """"""
     plural: str = ''
+    """"""
     flags: frozenset[str] = frozenset()
+    """"""
     translator_comments: str = ''
+    """"""
 
     def fields(self) -> list[str]:
         """Return the replacement fields this template requires.
@@ -404,7 +440,8 @@ def translatable(
     """Return a [`TranslatableString`][] with validated parts.
 
     This factory function is really only there to make the enum
-    definitions more readable.
+    definitions more readable.  It is the main implementation of the
+    [`TranslatableStringConstructor`][].
 
     """
     flags = (
@@ -419,6 +456,13 @@ def translatable(
 
 
 class TranslatedString:
+    """A string object that stringifies to its translation.
+
+    The translation and replacement value rendering is only performed
+    when this string object is actually stringified.
+
+    """
+
     def __init__(
         self,
         template: str | TranslatableString | MsgTemplate,
@@ -426,6 +470,21 @@ class TranslatedString:
         /,
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
+        """Initializer.
+
+        Args:
+            template:
+                A template string, suitable for [`str.format`][].  If
+                a string, use it directly.  If
+                a [`TranslatableString`][], or a known enum value whose
+                value is a `TranslatableString`, then use that string's
+                "singular" entry.
+            args_dict:
+                Keyword arguments to be passed to [`str.format`][].
+            kwargs:
+                More keyword arguments to be passed to [`str.format`][].
+
+        """
         if isinstance(template, MSG_TEMPLATE_CLASSES):
             template = cast('TranslatableString', template.value)
         self.template = template
@@ -433,12 +492,15 @@ class TranslatedString:
         self._rendered: str | None = None
 
     def __bool__(self) -> bool:
+        """Return true if the rendered string is truthy."""
         return bool(str(self))
 
     def __eq__(self, other: object) -> bool:  # pragma: no cover
+        """Return true if the rendered string is equal to `other`."""
         return str(self) == other
 
     def __hash__(self) -> int:  # pragma: no cover
+        """Return the hash of the rendered string."""
         return hash(str(self))
 
     def __repr__(self) -> str:  # pragma: no cover
@@ -448,6 +510,13 @@ class TranslatedString:
         )
 
     def __str__(self) -> str:
+        """Return the rendered translation of this string.
+
+        First, look up the translation of the string's template.  Then
+        fill in the replacement fields.  Cache the result for future
+        calls.
+
+        """
         if self._rendered is None:
             do_escape = False
             if isinstance(self.template, str):
@@ -504,7 +573,9 @@ class TranslatedString:
         return self
 
 
-class _TranslatedStringConstructor(Protocol):
+class TranslatableStringConstructor(Protocol):
+    """Construct a [`TranslatableString`][]."""
+
     def __call__(
         self,
         context: str,
@@ -513,27 +584,45 @@ class _TranslatedStringConstructor(Protocol):
         flags: Iterable[str] = (),
         plural: str = '',
         comments: str = '',
-    ) -> TranslatableString: ...
+    ) -> TranslatableString:
+        """Return a [`TranslatableString`][] from these parts.
+
+        Usually some form of validation or normalization is performed
+        first on these parts.
+
+        The main implementation of this is in [`translatable`][].
+
+        """
 
 
-def _Commented(comments: str = '', /) -> _TranslatedStringConstructor:  # noqa: N802
+def commented(comments: str = '', /) -> TranslatableStringConstructor:
     """A "decorator" for readably constructing commented enum values.
+
+    Returns a partial application of [`translatable`][] with the `comments`
+    argument pre-filled.
 
     This is geared towards the quirks of the API documentation extractor
     `mkdocstrings-python`/`griffe`, which reformat and trim enum value
-    declarations in somewhat weird ways.  Chains of function calls are
-    preserved, though, so use this to our advantage to suggest
+    declarations in predictable but somewhat weird ways.  Chains of function
+    calls are preserved, though, so use this to our advantage to suggest
     a specific formatting.
 
-    This is not necessarily good code style, and it is
-    (quasi-)unnecessarily heavyweight.
+    This is not necessarily good code style, nor is it a lightweight
+    solution.
 
     """  # noqa: DOC201
     return functools.partial(translatable, comments=comments)
 
 
 class Label(enum.Enum):
-    DEPRECATION_WARNING_LABEL = _Commented(
+    """Labels for the `derivepassphrase` command-line.
+
+    Includes help text (long-form and short-form), help metavar names,
+    diagnostic labels and interactive prompts.
+
+    """
+
+    DEPRECATION_WARNING_LABEL = commented(
         'This is a short label that will be prepended to '
         'a warning message, e.g., "Deprecation warning: A subcommand '
         'will be required in v1.0."',
@@ -541,7 +630,8 @@ class Label(enum.Enum):
         'Label :: Diagnostics :: Marker',
         'Deprecation warning',
     )
-    WARNING_LABEL = _Commented(
+    """"""
+    WARNING_LABEL = commented(
         'This is a short label that will be prepended to '
         'a warning message, e.g., "Warning: An empty service name '
         'is not supported by vault(1)."',
@@ -549,7 +639,8 @@ class Label(enum.Enum):
         'Label :: Diagnostics :: Marker',
         'Warning',
     )
-    CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_GLOBAL = _Commented(
+    """"""
+    CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_GLOBAL = commented(
         'This is one of two values of the settings_type metavar '
         'used in the CANNOT_UPDATE_SETTINGS_NO_SETTINGS entry.  '
         'It is only used there.  '
@@ -559,7 +650,8 @@ class Label(enum.Enum):
         'Label :: Error message :: Metavar',
         'global settings',
     )
-    CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_SERVICE = _Commented(
+    """"""
+    CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_SERVICE = commented(
         'This is one of two values of the settings_type metavar '
         'used in the CANNOT_UPDATE_SETTINGS_NO_SETTINGS entry.  '
         'It is only used there.  '
@@ -570,7 +662,8 @@ class Label(enum.Enum):
         'Label :: Error message :: Metavar',
         'service-specific settings',
     )
-    DERIVEPASSPHRASE_01 = _Commented(
+    """"""
+    DERIVEPASSPHRASE_01 = commented(
         'This is the first paragraph of the command help text, '
         'but it also appears (in truncated form, if necessary) '
         'as one-line help text for this command.  '
@@ -580,7 +673,8 @@ class Label(enum.Enum):
         'Label :: Help text :: Explanation',
         'Derive a strong passphrase, deterministically, from a master secret.',
     )
-    DERIVEPASSPHRASE_02 = _Commented(
+    """"""
+    DERIVEPASSPHRASE_02 = commented(
         '',
     )(
         'Label :: Help text :: Explanation',
@@ -590,14 +684,16 @@ class Label(enum.Enum):
         'See the respective `--help` output for instructions.  '
         'If no subcommand is given, we default to "vault".',
     )
-    DERIVEPASSPHRASE_03 = _Commented(
+    """"""
+    DERIVEPASSPHRASE_03 = commented(
         '',
     )(
         'Label :: Help text :: Explanation',
         'Deprecation notice: Defaulting to "vault" is deprecated.  '
         'Starting in v1.0, the subcommand must be specified explicitly.',
     )
-    DERIVEPASSPHRASE_EPILOG_01 = _Commented(
+    """"""
+    DERIVEPASSPHRASE_EPILOG_01 = commented(
         '',
     )(
         'Label :: Help text :: Explanation',
@@ -606,7 +702,8 @@ class Label(enum.Enum):
         '`~/.derivepassphrase` on UNIX-like systems and '
         r'`C:\Users\<user>\AppData\Roaming\Derivepassphrase` on Windows.',
     )
-    DERIVEPASSPHRASE_EXPORT_01 = _Commented(
+    """"""
+    DERIVEPASSPHRASE_EXPORT_01 = commented(
         'This is the first paragraph of the command help text, '
         'but it also appears (in truncated form, if necessary) '
         'as one-line help text for this command.  '
@@ -616,7 +713,8 @@ class Label(enum.Enum):
         'Label :: Help text :: Explanation',
         'Export a foreign configuration to standard output.',
     )
-    DERIVEPASSPHRASE_EXPORT_02 = _Commented(
+    """"""
+    DERIVEPASSPHRASE_EXPORT_02 = commented(
         '',
     )(
         'Label :: Help text :: Explanation',
@@ -624,8 +722,10 @@ class Label(enum.Enum):
         'which implements the vault-native configuration scheme.  '
         'If no subcommand is given, we default to "vault".',
     )
+    """"""
     DERIVEPASSPHRASE_EXPORT_03 = DERIVEPASSPHRASE_03
-    DERIVEPASSPHRASE_EXPORT_VAULT_01 = _Commented(
+    """"""
+    DERIVEPASSPHRASE_EXPORT_VAULT_01 = commented(
         'This is the first paragraph of the command help text, '
         'but it also appears (in truncated form, if necessary) '
         'as one-line help text for this command.  '
@@ -635,7 +735,8 @@ class Label(enum.Enum):
         'Label :: Help text :: Explanation',
         'Export a vault-native configuration to standard output.',
     )
-    DERIVEPASSPHRASE_EXPORT_VAULT_02 = _Commented(
+    """"""
+    DERIVEPASSPHRASE_EXPORT_VAULT_02 = commented(
         '',
     )(
         'Label :: Help text :: Explanation',
@@ -644,7 +745,8 @@ class Label(enum.Enum):
         'We support the vault "v0.2", "v0.3" and "storeroom" formats.',
         flags='python-brace-format',
     )
-    DERIVEPASSPHRASE_EXPORT_VAULT_03 = _Commented(
+    """"""
+    DERIVEPASSPHRASE_EXPORT_VAULT_03 = commented(
         '',
     )(
         'Label :: Help text :: Explanation',
@@ -655,7 +757,8 @@ class Label(enum.Enum):
         'actually named `VAULT_PATH`.)',
         flags='python-brace-format',
     )
-    DERIVEPASSPHRASE_VAULT_01 = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_01 = commented(
         'This is the first paragraph of the command help text, '
         'but it also appears (in truncated form, if necessary) '
         'as one-line help text for this command.  '
@@ -665,7 +768,8 @@ class Label(enum.Enum):
         'Label :: Help text :: Explanation',
         'Derive a passphrase using the vault derivation scheme.',
     )
-    DERIVEPASSPHRASE_VAULT_02 = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_02 = commented(
         '',
     )(
         'Label :: Help text :: Explanation',
@@ -674,7 +778,8 @@ class Label(enum.Enum):
         'Otherwise it is required.',
         flags='python-brace-format',
     )
-    DERIVEPASSPHRASE_VAULT_EPILOG_01 = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_EPILOG_01 = commented(
         '',
     )(
         'Label :: Help text :: Explanation',
@@ -685,14 +790,16 @@ class Label(enum.Enum):
         'You are STRONGLY advised to keep independent backups of '
         'the settings and the SSH key, if any.',
     )
-    DERIVEPASSPHRASE_VAULT_EPILOG_02 = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_EPILOG_02 = commented(
         '',
     )(
         'Label :: Help text :: Explanation',
         'The configuration is NOT encrypted, and you are '
         'STRONGLY discouraged from using a stored passphrase.',
     )
-    DEPRECATED_COMMAND_LABEL = _Commented(
+    """"""
+    DEPRECATED_COMMAND_LABEL = commented(
         'We use this format string to indicate, at the beginning '
         "of a command's help text, that this command is deprecated.",
     )(
@@ -700,13 +807,15 @@ class Label(enum.Enum):
         '(Deprecated) {text}',
         flags='python-brace-format',
     )
-    DEBUG_OPTION_HELP_TEXT = _Commented(
+    """"""
+    DEBUG_OPTION_HELP_TEXT = commented(
         '',
     )(
         'Label :: Help text :: One-line description',
         'also emit debug information (implies --verbose)',
     )
-    EXPORT_VAULT_FORMAT_HELP_TEXT = _Commented(
+    """"""
+    EXPORT_VAULT_FORMAT_HELP_TEXT = commented(
         'The defaults_hint is Label.EXPORT_VAULT_FORMAT_DEFAULTS_HELP_TEXT, '
         'the metavar is Label.EXPORT_VAULT_FORMAT_METAVAR_FMT.',
     )(
@@ -716,7 +825,8 @@ class Label(enum.Enum):
         'formats will be tried in order {defaults_hint!s}',
         flags='python-brace-format',
     )
-    EXPORT_VAULT_FORMAT_DEFAULTS_HELP_TEXT = _Commented(
+    """"""
+    EXPORT_VAULT_FORMAT_DEFAULTS_HELP_TEXT = commented(
         'See EXPORT_VAULT_FORMAT_HELP_TEXT.  '
         'The format names/labels "v0.3", "v0.2" and "storeroom" '
         'should not be translated.',
@@ -724,7 +834,8 @@ class Label(enum.Enum):
         'Label :: Help text :: One-line description',
         '(default: v0.3, v0.2, storeroom)',
     )
-    EXPORT_VAULT_KEY_HELP_TEXT = _Commented(
+    """"""
+    EXPORT_VAULT_KEY_HELP_TEXT = commented(
         'The defaults_hint is Label.EXPORT_VAULT_KEY_DEFAULTS_HELP_TEXT, '
         'the metavar is Label.EXPORT_VAULT_KEY_METAVAR_K.',
     )(
@@ -732,155 +843,178 @@ class Label(enum.Enum):
         'use {metavar!s} as the storage master key {defaults_hint!s}',
         flags='python-brace-format',
     )
-    EXPORT_VAULT_KEY_DEFAULTS_HELP_TEXT = _Commented(
+    """"""
+    EXPORT_VAULT_KEY_DEFAULTS_HELP_TEXT = commented(
         'See EXPORT_VAULT_KEY_HELP_TEXT.',
     )(
         'Label :: Help text :: One-line description',
         '(default: check the `VAULT_KEY`, `LOGNAME`, `USER`, or '
         '`USERNAME` environment variables)',
     )
-    HELP_OPTION_HELP_TEXT = _Commented(
+    """"""
+    HELP_OPTION_HELP_TEXT = commented(
         '',
     )(
         'Label :: Help text :: One-line description',
         'show this help text, then exit',
     )
-    QUIET_OPTION_HELP_TEXT = _Commented(
+    """"""
+    QUIET_OPTION_HELP_TEXT = commented(
         '',
     )(
         'Label :: Help text :: One-line description',
         'suppress even warnings, emit only errors',
     )
-    VERBOSE_OPTION_HELP_TEXT = _Commented(
+    """"""
+    VERBOSE_OPTION_HELP_TEXT = commented(
         '',
     )(
         'Label :: Help text :: One-line description',
         'emit extra/progress information to standard error',
     )
-    VERSION_OPTION_HELP_TEXT = _Commented(
+    """"""
+    VERSION_OPTION_HELP_TEXT = commented(
         '',
     )(
         'Label :: Help text :: One-line description',
         'show applicable version information, then exit',
     )
+    """"""
 
-    DERIVEPASSPHRASE_VAULT_PHRASE_HELP_TEXT = _Commented(
+    DERIVEPASSPHRASE_VAULT_PHRASE_HELP_TEXT = commented(
         '',
     )(
         'Label :: Help text :: One-line description',
         'prompt for a master passphrase',
     )
-    DERIVEPASSPHRASE_VAULT_KEY_HELP_TEXT = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_KEY_HELP_TEXT = commented(
         '',
     )(
         'Label :: Help text :: One-line description',
         'select a suitable SSH key from the SSH agent',
     )
-    DERIVEPASSPHRASE_VAULT_LENGTH_HELP_TEXT = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_LENGTH_HELP_TEXT = commented(
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
         'ensure a passphrase length of {metavar!s} characters',
         flags='python-brace-format',
     )
-    DERIVEPASSPHRASE_VAULT_REPEAT_HELP_TEXT = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_REPEAT_HELP_TEXT = commented(
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
         'forbid any run of {metavar!s} identical characters',
         flags='python-brace-format',
     )
-    DERIVEPASSPHRASE_VAULT_LOWER_HELP_TEXT = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_LOWER_HELP_TEXT = commented(
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
         'ensure at least {metavar!s} lowercase characters',
         flags='python-brace-format',
     )
-    DERIVEPASSPHRASE_VAULT_UPPER_HELP_TEXT = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_UPPER_HELP_TEXT = commented(
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
         'ensure at least {metavar!s} uppercase characters',
         flags='python-brace-format',
     )
-    DERIVEPASSPHRASE_VAULT_NUMBER_HELP_TEXT = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_NUMBER_HELP_TEXT = commented(
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
         'ensure at least {metavar!s} digits',
         flags='python-brace-format',
     )
-    DERIVEPASSPHRASE_VAULT_SPACE_HELP_TEXT = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_SPACE_HELP_TEXT = commented(
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
         'ensure at least {metavar!s} spaces',
         flags='python-brace-format',
     )
-    DERIVEPASSPHRASE_VAULT_DASH_HELP_TEXT = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_DASH_HELP_TEXT = commented(
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
         'ensure at least {metavar!s} "-" or "_" characters',
         flags='python-brace-format',
     )
-    DERIVEPASSPHRASE_VAULT_SYMBOL_HELP_TEXT = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_SYMBOL_HELP_TEXT = commented(
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
         'ensure at least {metavar!s} symbol characters',
         flags='python-brace-format',
     )
+    """"""
 
-    DERIVEPASSPHRASE_VAULT_NOTES_HELP_TEXT = _Commented(
+    DERIVEPASSPHRASE_VAULT_NOTES_HELP_TEXT = commented(
         '',
     )(
         'Label :: Help text :: One-line description',
         'spawn an editor to edit notes for {service_metavar!s}',
         flags='python-brace-format',
     )
-    DERIVEPASSPHRASE_VAULT_CONFIG_HELP_TEXT = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_CONFIG_HELP_TEXT = commented(
         '',
     )(
         'Label :: Help text :: One-line description',
         'save the given settings for {service_metavar!s}, or global',
         flags='python-brace-format',
     )
-    DERIVEPASSPHRASE_VAULT_DELETE_HELP_TEXT = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_DELETE_HELP_TEXT = commented(
         '',
     )(
         'Label :: Help text :: One-line description',
         'delete the settings for {service_metavar!s}',
         flags='python-brace-format',
     )
-    DERIVEPASSPHRASE_VAULT_DELETE_GLOBALS_HELP_TEXT = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_DELETE_GLOBALS_HELP_TEXT = commented(
         '',
     )(
         'Label :: Help text :: One-line description',
         'delete the global settings',
     )
-    DERIVEPASSPHRASE_VAULT_DELETE_ALL_HELP_TEXT = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_DELETE_ALL_HELP_TEXT = commented(
         '',
     )(
         'Label :: Help text :: One-line description',
         'delete all settings',
     )
-    DERIVEPASSPHRASE_VAULT_EXPORT_HELP_TEXT = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_EXPORT_HELP_TEXT = commented(
         'The metavar is Label.STORAGE_MANAGEMENT_METAVAR_SERVICE.',
     )(
         'Label :: Help text :: One-line description',
         'export all saved settings to {metavar!s}',
         flags='python-brace-format',
     )
-    DERIVEPASSPHRASE_VAULT_IMPORT_HELP_TEXT = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_IMPORT_HELP_TEXT = commented(
         'The metavar is Label.STORAGE_MANAGEMENT_METAVAR_SERVICE.',
     )(
         'Label :: Help text :: One-line description',
         'import saved settings from {metavar!s}',
         flags='python-brace-format',
     )
-    DERIVEPASSPHRASE_VAULT_OVERWRITE_HELP_TEXT = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_OVERWRITE_HELP_TEXT = commented(
         'The corresponding option is displayed as '
         '"--overwrite-existing / --merge-existing", so you may want to '
         'hint that the default (merge) is the second of those options.',
@@ -888,7 +1022,8 @@ class Label(enum.Enum):
         'Label :: Help text :: One-line description',
         'overwrite or merge (default) the existing configuration',
     )
-    DERIVEPASSPHRASE_VAULT_UNSET_HELP_TEXT = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_UNSET_HELP_TEXT = commented(
         'The corresponding option is displayed as '
         '"--unset=phrase|key|...|symbol", so the "given setting" is '
         'referring to "phrase", "key", "lower", ..., or "symbol", '
@@ -900,7 +1035,8 @@ class Label(enum.Enum):
         'with --config, also unsets the given setting; '
         'may be specified multiple times',
     )
-    DERIVEPASSPHRASE_VAULT_EXPORT_AS_HELP_TEXT = _Commented(
+    """"""
+    DERIVEPASSPHRASE_VAULT_EXPORT_AS_HELP_TEXT = commented(
         'The corresponding option is displayed as '
         '"--export-as=json|sh", so json refers to the JSON format (default) '
         'and sh refers to the POSIX sh format.',
@@ -908,58 +1044,67 @@ class Label(enum.Enum):
         'Label :: Help text :: One-line description',
         'when exporting, export as JSON (default) or POSIX sh',
     )
+    """"""
 
-    EXPORT_VAULT_FORMAT_METAVAR_FMT = _Commented(
+    EXPORT_VAULT_FORMAT_METAVAR_FMT = commented(
         '',
     )(
         'Label :: Help text :: Metavar :: export vault',
         'FMT',
     )
-    EXPORT_VAULT_KEY_METAVAR_K = _Commented(
+    """"""
+    EXPORT_VAULT_KEY_METAVAR_K = commented(
         'See Label.EXPORT_VAULT_KEY_HELP_TEXT.',
     )(
         'Label :: Help text :: Metavar :: export vault',
         'K',
     )
-    EXPORT_VAULT_METAVAR_PATH = _Commented(
+    """"""
+    EXPORT_VAULT_METAVAR_PATH = commented(
         'Used as "path_metavar" in '
         'Label.DERIVEPASSPHRASE_EXPORT_VAULT_02 and others.',
     )(
         'Label :: Help text :: Metavar :: export vault',
         'PATH',
     )
-    PASSPHRASE_GENERATION_METAVAR_NUMBER = _Commented(
+    """"""
+    PASSPHRASE_GENERATION_METAVAR_NUMBER = commented(
         'This metavar is also used in a matching epilog.',
     )(
         'Label :: Help text :: Metavar :: vault',
         'NUMBER',
     )
-    STORAGE_MANAGEMENT_METAVAR_PATH = _Commented(
+    """"""
+    STORAGE_MANAGEMENT_METAVAR_PATH = commented(
         'This metavar is also used in multiple one-line help texts.',
     )(
         'Label :: Help text :: Metavar :: vault',
         'PATH',
     )
-    VAULT_METAVAR_SERVICE = _Commented(
+    """"""
+    VAULT_METAVAR_SERVICE = commented(
         'This metavar is also used in multiple one-line help texts.',
     )(
         'Label :: Help text :: Metavar :: vault',
         'SERVICE',
     )
-    CONFIGURATION_EPILOG = _Commented(
+    """"""
+    CONFIGURATION_EPILOG = commented(
         '',
     )(
         'Label :: Help text :: Explanation',
         'Use $VISUAL or $EDITOR to configure the spawned editor.',
     )
-    PASSPHRASE_GENERATION_EPILOG = _Commented(
+    """"""
+    PASSPHRASE_GENERATION_EPILOG = commented(
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: Explanation',
         'Use {metavar!s}=0 to exclude a character type from the output.',
         flags='python-brace-format',
     )
-    STORAGE_MANAGEMENT_EPILOG = _Commented(
+    """"""
+    STORAGE_MANAGEMENT_EPILOG = commented(
         'The metavar is Label.STORAGE_MANAGEMENT_METAVAR_PATH.',
     )(
         'Label :: Help text :: Explanation',
@@ -967,62 +1112,72 @@ class Label(enum.Enum):
         'is supported.',
         flags='python-brace-format',
     )
-    COMMANDS_LABEL = _Commented(
+    """"""
+    COMMANDS_LABEL = commented(
         '',
     )(
         'Label :: Help text :: Option group name',
         'Commands',
     )
-    COMPATIBILITY_OPTION_LABEL = _Commented(
+    """"""
+    COMPATIBILITY_OPTION_LABEL = commented(
         '',
     )(
         'Label :: Help text :: Option group name',
         'Compatibility and extension options',
     )
-    CONFIGURATION_LABEL = _Commented(
+    """"""
+    CONFIGURATION_LABEL = commented(
         '',
     )(
         'Label :: Help text :: Option group name',
         'Configuration',
     )
-    LOGGING_LABEL = _Commented(
+    """"""
+    LOGGING_LABEL = commented(
         '',
     )(
         'Label :: Help text :: Option group name',
         'Logging',
     )
-    OPTIONS_LABEL = _Commented(
+    """"""
+    OPTIONS_LABEL = commented(
         '',
     )(
         'Label :: Help text :: Option group name',
         'Options',
     )
-    OTHER_OPTIONS_LABEL = _Commented(
+    """"""
+    OTHER_OPTIONS_LABEL = commented(
         '',
     )(
         'Label :: Help text :: Option group name',
         'Other options',
     )
-    PASSPHRASE_GENERATION_LABEL = _Commented(
+    """"""
+    PASSPHRASE_GENERATION_LABEL = commented(
         '',
     )(
         'Label :: Help text :: Option group name',
         'Passphrase generation',
     )
-    STORAGE_MANAGEMENT_LABEL = _Commented(
+    """"""
+    STORAGE_MANAGEMENT_LABEL = commented(
         '',
     )(
         'Label :: Help text :: Option group name',
         'Storage management',
     )
-    VERSION_INFO_TEXT = _Commented(
+    """"""
+    VERSION_INFO_TEXT = commented(
         '',
     )(
         'Label :: Info Message',
         '{PROG_NAME!s} {__version__}',  # noqa: RUF027
         flags='python-brace-format',
     )
-    CONFIRM_THIS_CHOICE_PROMPT_TEXT = _Commented(
+    """"""
+    CONFIRM_THIS_CHOICE_PROMPT_TEXT = commented(
         'There is no support for "yes" or "no" in other languages '
         'than English, so it is advised that your translation makes it '
         'clear that only the strings "y", "yes", "n" or "no" are supported, '
@@ -1031,23 +1186,28 @@ class Label(enum.Enum):
         'Label :: Interactive prompt',
         'Confirm this choice? (y/N)',
     )
-    SUITABLE_SSH_KEYS_LABEL = _Commented(
+    """"""
+    SUITABLE_SSH_KEYS_LABEL = commented(
         'This label is the heading of the list of suitable SSH keys.',
     )(
         'Label :: Interactive prompt',
         'Suitable SSH keys:',
     )
-    YOUR_SELECTION_PROMPT_TEXT = _Commented(
+    """"""
+    YOUR_SELECTION_PROMPT_TEXT = commented(
         '',
     )(
         'Label :: Interactive prompt',
         'Your selection? (1-{n}, leave empty to abort)',
         flags='python-brace-format',
     )
+    """"""
 
 
 class DebugMsgTemplate(enum.Enum):
-    BUCKET_ITEM_FOUND = _Commented(
+    """Debug messages for the `derivepassphrase` command-line."""
+
+    BUCKET_ITEM_FOUND = commented(
         'This message is emitted by the vault configuration exporter '
         'for "storeroom"-type configuration directories.  '
         'The system stores entries in different "buckets" of a hash table.  '
@@ -1059,7 +1219,8 @@ class DebugMsgTemplate(enum.Enum):
         'Found bucket item: {path} -> {value}',
         flags='python-brace-format',
     )
-    DECRYPT_BUCKET_ITEM_INFO = _Commented(
+    """"""
+    DECRYPT_BUCKET_ITEM_INFO = commented(
         '"AES256-CBC" and "PKCS#7" are, in essence, names of formats, '
         'and should not be translated.  '
         '"IV" means "initialization vector", and is specifically '
@@ -1078,7 +1239,8 @@ Decrypt bucket item contents:
 """,
         flags='python-brace-format',
     )
-    DECRYPT_BUCKET_ITEM_KEY_INFO = _Commented(
+    """"""
+    DECRYPT_BUCKET_ITEM_KEY_INFO = commented(
         '',
     )(
         'Debug message',
@@ -1092,7 +1254,8 @@ Decrypt bucket item:
 """,
         flags='python-brace-format',
     )
-    DECRYPT_BUCKET_ITEM_MAC_INFO = _Commented(
+    """"""
+    DECRYPT_BUCKET_ITEM_MAC_INFO = commented(
         'The MAC stands for "message authentication code", '
         'which guarantees the authenticity of the message to anyone '
         'who holds the corresponding key, similar to a digital signature.  '
@@ -1114,7 +1277,8 @@ Decrypt bucket item contents:
 """,
         flags='python-brace-format',
     )
-    DECRYPT_BUCKET_ITEM_SESSION_KEYS_INFO = _Commented(
+    """"""
+    DECRYPT_BUCKET_ITEM_SESSION_KEYS_INFO = commented(
         '"AES256-CBC" and "PKCS#7" are, in essence, names of formats, '
         'and should not be translated.  '
         '"IV" means "initialization vector", and is specifically '
@@ -1134,7 +1298,8 @@ Decrypt bucket item session keys:
 """,
         flags='python-brace-format',
     )
-    DECRYPT_BUCKET_ITEM_SESSION_KEYS_MAC_INFO = _Commented(
+    """"""
+    DECRYPT_BUCKET_ITEM_SESSION_KEYS_MAC_INFO = commented(
         'The MAC stands for "message authentication code", '
         'which guarantees the authenticity of the message to anyone '
         'who holds the corresponding key, similar to a digital signature.  '
@@ -1156,7 +1321,8 @@ Decrypt bucket item session keys:
 """,
         flags='python-brace-format',
     )
-    DERIVED_MASTER_KEYS_KEYS = _Commented(
+    """"""
+    DERIVED_MASTER_KEYS_KEYS = commented(
         '',
     )(
         'Debug message',
@@ -1171,7 +1337,8 @@ Derived master keys' keys:
 """,  # noqa: E501
         flags='python-brace-format',
     )
-    DIRECTORY_CONTENTS_CHECK_OK = _Commented(
+    """"""
+    DIRECTORY_CONTENTS_CHECK_OK = commented(
         'This message is emitted by the vault configuration exporter '
         'for "storeroom"-type configuration directories, '
         'while "assembling" the items stored in the configuration '
@@ -1186,7 +1353,8 @@ Derived master keys' keys:
         'Directory contents check OK: {path} -> {contents}',
         flags='python-brace-format',
     )
-    MASTER_KEYS_DATA_MAC_INFO = _Commented(
+    """"""
+    MASTER_KEYS_DATA_MAC_INFO = commented(
         'The MAC stands for "message authentication code", '
         'which guarantees the authenticity of the message to anyone '
         'who holds the corresponding key, similar to a digital signature.  '
@@ -1208,7 +1376,8 @@ Master keys data:
 """,
         flags='python-brace-format',
     )
-    POSTPONING_DIRECTORY_CONTENTS_CHECK = _Commented(
+    """"""
+    POSTPONING_DIRECTORY_CONTENTS_CHECK = commented(
         'This message is emitted by the vault configuration exporter '
         'for "storeroom"-type configuration directories, '
         'while "assembling" the items stored in the configuration '
@@ -1223,7 +1392,8 @@ Master keys data:
         'Postponing directory contents check: {path} -> {contents}',
         flags='python-brace-format',
     )
-    SETTING_CONFIG_STRUCTURE_CONTENTS = _Commented(
+    """"""
+    SETTING_CONFIG_STRUCTURE_CONTENTS = commented(
         'This message is emitted by the vault configuration exporter '
         'for "storeroom"-type configuration directories, '
         'while "assembling" the items stored in the configuration '
@@ -1235,7 +1405,8 @@ Master keys data:
         'Setting contents: {path} -> {value}',
         flags='python-brace-format',
     )
-    SETTING_CONFIG_STRUCTURE_CONTENTS_EMPTY_DIRECTORY = _Commented(
+    """"""
+    SETTING_CONFIG_STRUCTURE_CONTENTS_EMPTY_DIRECTORY = commented(
         'This message is emitted by the vault configuration exporter '
         'for "storeroom"-type configuration directories, '
         'while "assembling" the items stored in the configuration '
@@ -1247,7 +1418,8 @@ Master keys data:
         'Setting contents (empty directory): {path}',
         flags='python-brace-format',
     )
-    VAULT_NATIVE_EVP_BYTESTOKEY_INIT = _Commented(
+    """"""
+    VAULT_NATIVE_EVP_BYTESTOKEY_INIT = commented(
         'This message is emitted by the vault configuration exporter '
         'for "native"-type configuration directories: '
         'in v0.2, the non-standard and deprecated "EVP_bytestokey" function '
@@ -1269,7 +1441,8 @@ evp_bytestokey_md5 (initialization):
 """,
         flags='python-brace-format',
     )
-    VAULT_NATIVE_EVP_BYTESTOKEY_RESULT = _Commented(
+    """"""
+    VAULT_NATIVE_EVP_BYTESTOKEY_RESULT = commented(
         'This message is emitted by the vault configuration exporter '
         'for "native"-type configuration directories: '
         'in v0.2, the non-standard and deprecated "EVP_bytestokey" function '
@@ -1288,7 +1461,8 @@ evp_bytestokey_md5 (result):
 """,
         flags='python-brace-format',
     )
-    VAULT_NATIVE_EVP_BYTESTOKEY_ROUND = _Commented(
+    """"""
+    VAULT_NATIVE_EVP_BYTESTOKEY_ROUND = commented(
         'This message is emitted by the vault configuration exporter '
         'for "native"-type configuration directories: '
         'in v0.2, the non-standard and deprecated "EVP_bytestokey" function '
@@ -1308,7 +1482,8 @@ evp_bytestokey_md5 (round update):
 """,
         flags='python-brace-format',
     )
-    VAULT_NATIVE_CHECKING_MAC_DETAILS = _Commented(
+    """"""
+    VAULT_NATIVE_CHECKING_MAC_DETAILS = commented(
         'This message is emitted by the vault configuration exporter '
         'for "native"-type configuration directories.  '
         'It is preceded by the info message '
@@ -1325,7 +1500,8 @@ MAC details:
 """,
         flags='python-brace-format',
     )
-    VAULT_NATIVE_PADDED_PLAINTEXT = _Commented(
+    """"""
+    VAULT_NATIVE_PADDED_PLAINTEXT = commented(
         'This message is emitted by the vault configuration exporter '
         'for "native"-type configuration directories.  '
         '"padding" and "plaintext" are cryptographic terms.',
@@ -1334,7 +1510,8 @@ MAC details:
         'Padded plaintext: {contents}',
         flags='python-brace-format',
     )
-    VAULT_NATIVE_PARSE_BUFFER = _Commented(
+    """"""
+    VAULT_NATIVE_PARSE_BUFFER = commented(
         'This message is emitted by the vault configuration exporter '
         'for "native"-type configuration directories.  '
         'It is preceded by the info message '
@@ -1352,7 +1529,8 @@ Buffer: {contents}
 """,
         flags='python-brace-format',
     )
-    VAULT_NATIVE_PLAINTEXT = _Commented(
+    """"""
+    VAULT_NATIVE_PLAINTEXT = commented(
         'This message is emitted by the vault configuration exporter '
         'for "native"-type configuration directories.  '
         '"plaintext" is a cryptographic term.',
@@ -1361,7 +1539,8 @@ Buffer: {contents}
         'Plaintext: {contents}',
         flags='python-brace-format',
     )
-    VAULT_NATIVE_PBKDF2_CALL = _Commented(
+    """"""
+    VAULT_NATIVE_PBKDF2_CALL = commented(
         '',
     )(
         'Debug message',
@@ -1375,7 +1554,8 @@ Master key derivation:
 """,  # noqa: E501
         flags='python-brace-format',
     )
-    VAULT_NATIVE_V02_PAYLOAD_MAC_POSTPROCESSING = _Commented(
+    """"""
+    VAULT_NATIVE_V02_PAYLOAD_MAC_POSTPROCESSING = commented(
         'This message is emitted by the vault configuration exporter '
         'for "native"-type configuration directories.  '
         'It is preceded by the info message '
@@ -1393,10 +1573,13 @@ Postprocessing buffer (v0.2):
 """,
         flags='python-brace-format',
     )
+    """"""
 
 
 class InfoMsgTemplate(enum.Enum):
-    ASSEMBLING_CONFIG_STRUCTURE = _Commented(
+    """Info messages for the `derivepassphrase` command-line."""
+
+    ASSEMBLING_CONFIG_STRUCTURE = commented(
         'This message is emitted by the vault configuration exporter '
         'for "storeroom"-type configuration directories.  '
         'The system stores entries in different "buckets" of a hash table.  '
@@ -1409,7 +1592,8 @@ class InfoMsgTemplate(enum.Enum):
         'Info message',
         'Assembling config structure',
     )
-    CANNOT_LOAD_AS_VAULT_CONFIG = _Commented(
+    """"""
+    CANNOT_LOAD_AS_VAULT_CONFIG = commented(
         '"fmt" is a string such as "v0.2" or "storeroom", '
         'indicating the format which we tried to load the '
         'vault configuration as.',
@@ -1418,7 +1602,8 @@ class InfoMsgTemplate(enum.Enum):
         'Cannot load {path!r} as a {fmt!s} vault configuration.',
         flags='python-brace-format',
     )
-    CHECKING_CONFIG_STRUCTURE_CONSISTENCY = _Commented(
+    """"""
+    CHECKING_CONFIG_STRUCTURE_CONSISTENCY = commented(
         'This message is emitted by the vault configuration exporter '
         'for "storeroom"-type configuration directories.  '
         'Having "assembled" the configuration items according to '
@@ -1428,7 +1613,8 @@ class InfoMsgTemplate(enum.Enum):
         'Info message',
         'Checking config structure consistency',
     )
-    DECRYPTING_BUCKET = _Commented(
+    """"""
+    DECRYPTING_BUCKET = commented(
         'This message is emitted by the vault configuration exporter '
         'for "storeroom"-type configuration directories.  '
         'The system stores entries in different "buckets" of a hash table.  '
@@ -1440,7 +1626,8 @@ class InfoMsgTemplate(enum.Enum):
         'Decrypting bucket {bucket_number}',
         flags='python-brace-format',
     )
-    PARSING_MASTER_KEYS_DATA = _Commented(
+    """"""
+    PARSING_MASTER_KEYS_DATA = commented(
         'This message is emitted by the vault configuration exporter '
         'for "storeroom"-type configuration directories.  '
         '`.keys` is a filename, from which data about the master keys '
@@ -1449,7 +1636,8 @@ class InfoMsgTemplate(enum.Enum):
         'Info message',
         'Parsing master keys data from .keys',
     )
-    PIP_INSTALL_EXTRA = _Commented(
+    """"""
+    PIP_INSTALL_EXTRA = commented(
         'This message immediately follows an error message about '
         'a missing library that needs to be installed.  '
         'The Python Package Index (PyPI) supports declaring sets of '
@@ -1463,7 +1651,8 @@ class InfoMsgTemplate(enum.Enum):
         'For users installing from PyPI, see the {extra_name!r} extra.',
         flags='python-brace-format',
     )
-    SUCCESSFULLY_MIGRATED = _Commented(
+    """"""
+    SUCCESSFULLY_MIGRATED = commented(
         'This info message immediately follows the '
         '"Using deprecated v0.1-style ..." deprecation warning.',
     )(
@@ -1471,25 +1660,29 @@ class InfoMsgTemplate(enum.Enum):
         'Successfully migrated to {path!r}.',
         flags='python-brace-format',
     )
-    VAULT_NATIVE_CHECKING_MAC = _Commented(
+    """"""
+    VAULT_NATIVE_CHECKING_MAC = commented(
         '',
     )(
         'Info message',
         'Checking MAC',
     )
-    VAULT_NATIVE_DECRYPTING_CONTENTS = _Commented(
+    """"""
+    VAULT_NATIVE_DECRYPTING_CONTENTS = commented(
         '',
     )(
         'Info message',
         'Decrypting contents',
     )
-    VAULT_NATIVE_DERIVING_KEYS = _Commented(
+    """"""
+    VAULT_NATIVE_DERIVING_KEYS = commented(
         '',
     )(
         'Info message',
         'Deriving an encryption and signing key',
     )
-    VAULT_NATIVE_PARSING_IV_PAYLOAD_MAC = _Commented(
+    """"""
+    VAULT_NATIVE_PARSING_IV_PAYLOAD_MAC = commented(
         'This message is emitted by the vault configuration exporter '
         'for "native"-type configuration directories.  '
         '"IV" means "initialization vector", and "MAC" means '
@@ -1504,10 +1697,13 @@ class InfoMsgTemplate(enum.Enum):
         'Info message',
         'Parsing IV, payload and MAC from the file contents',
     )
+    """"""
 
 
 class WarnMsgTemplate(enum.Enum):
-    EMPTY_SERVICE_NOT_SUPPORTED = _Commented(
+    """Warning messages for the `derivepassphrase` command-line."""
+
+    EMPTY_SERVICE_NOT_SUPPORTED = commented(
         '',
     )(
         'Warning message',
@@ -1516,7 +1712,8 @@ class WarnMsgTemplate(enum.Enum):
         'supplied, i.e., it will error out, or operate on global settings.',
         flags='python-brace-format',
     )
-    EMPTY_SERVICE_SETTINGS_INACCESSIBLE = _Commented(
+    """"""
+    EMPTY_SERVICE_SETTINGS_INACCESSIBLE = commented(
         '',
     )(
         'Warning message',
@@ -1527,21 +1724,24 @@ class WarnMsgTemplate(enum.Enum):
         'move them into the "global" section.',
         flags='python-brace-format',
     )
-    FAILED_TO_MIGRATE_CONFIG = _Commented(
+    """"""
+    FAILED_TO_MIGRATE_CONFIG = commented(
         '"error" is supplied by the operating system (errno/strerror).',
     )(
         'Warning message',
         'Failed to migrate to {path!r}: {error!s}: {filename!r}.',
         flags='python-brace-format',
     )
-    GLOBAL_PASSPHRASE_INEFFECTIVE = _Commented(
+    """"""
+    GLOBAL_PASSPHRASE_INEFFECTIVE = commented(
         '',
     )(
         'Warning message',
         'Setting a global passphrase is ineffective '
         'because a key is also set.',
     )
-    PASSPHRASE_NOT_NORMALIZED = _Commented(
+    """"""
+    PASSPHRASE_NOT_NORMALIZED = commented(
         'The key is a (vault) configuration key, in JSONPath syntax, '
         'typically "$.global" for the global passphrase or '
         '"$.services.service_name" or "$.services["service with spaces"]" '
@@ -1561,7 +1761,8 @@ class WarnMsgTemplate(enum.Enum):
         'for unexpected results.',
         flags='python-brace-format',
     )
-    SERVICE_NAME_INCOMPLETABLE = _Commented(
+    """"""
+    SERVICE_NAME_INCOMPLETABLE = commented(
         '',
     )(
         'Warning message',
@@ -1574,7 +1775,8 @@ class WarnMsgTemplate(enum.Enum):
         'service name instead.',
         flags='python-brace-format',
     )
-    SERVICE_PASSPHRASE_INEFFECTIVE = _Commented(
+    """"""
+    SERVICE_PASSPHRASE_INEFFECTIVE = commented(
         'The key that is set need not necessarily be set at the '
         'service level; it may be a global key as well.',
     )(
@@ -1583,21 +1785,24 @@ class WarnMsgTemplate(enum.Enum):
         'because a key is also set: {service!s}.',
         flags='python-brace-format',
     )
-    STEP_REMOVE_INEFFECTIVE_VALUE = _Commented(
+    """"""
+    STEP_REMOVE_INEFFECTIVE_VALUE = commented(
         '',
     )(
         'Warning message',
         'Removing ineffective setting {path!s} = {old!s}.',
         flags='python-brace-format',
     )
-    STEP_REPLACE_INVALID_VALUE = _Commented(
+    """"""
+    STEP_REPLACE_INVALID_VALUE = commented(
         '',
     )(
         'Warning message',
         'Replacing invalid value {old!s} for key {path!s} with {new!s}.',
         flags='python-brace-format',
     )
-    V01_STYLE_CONFIG = _Commented(
+    """"""
+    V01_STYLE_CONFIG = commented(
         '',
     )(
         'Warning message :: Deprecation',
@@ -1606,7 +1811,8 @@ class WarnMsgTemplate(enum.Enum):
         'Support for v0.1-style config filenames will be removed in v1.0.',
         flags='python-brace-format',
     )
-    V10_SUBCOMMAND_REQUIRED = _Commented(
+    """"""
+    V10_SUBCOMMAND_REQUIRED = commented(
         'This deprecation warning may be issued at any level, '
         'i.e. we may actually be talking about subcommands, '
         'or sub-subcommands, or sub-sub-subcommands, etc., '
@@ -1617,16 +1823,20 @@ class WarnMsgTemplate(enum.Enum):
         'See --help for available subcommands.  '
         'Defaulting to subcommand "vault".',
     )
+    """"""
 
 
 class ErrMsgTemplate(enum.Enum):
-    AGENT_REFUSED_LIST_KEYS = _Commented(
+    """Error messages for the `derivepassphrase` command-line."""
+
+    AGENT_REFUSED_LIST_KEYS = commented(
         '"loaded keys" being keys loaded into the agent.',
     )(
         'Error message',
         'The SSH agent failed to or refused to supply a list of loaded keys.',
     )
-    AGENT_REFUSED_SIGNATURE = _Commented(
+    """"""
+    AGENT_REFUSED_SIGNATURE = commented(
         'The message to be signed is the vault UUID, '
         "but there's no space to explain that here, "
         'so ideally the error message does not go into detail.',
@@ -1635,49 +1845,56 @@ class ErrMsgTemplate(enum.Enum):
         'The SSH agent failed to or refused to issue a signature '
         'with the selected key, necessary for deriving a service passphrase.',
     )
-    CANNOT_CONNECT_TO_AGENT = _Commented(
+    """"""
+    CANNOT_CONNECT_TO_AGENT = commented(
         '"error" is supplied by the operating system (errno/strerror).',
     )(
         'Error message',
         'Cannot connect to the SSH agent: {error!s}: {filename!r}.',
         flags='python-brace-format',
     )
-    CANNOT_DECODEIMPORT_VAULT_SETTINGS = _Commented(
+    """"""
+    CANNOT_DECODEIMPORT_VAULT_SETTINGS = commented(
         '"error" is supplied by the operating system (errno/strerror).',
     )(
         'Error message',
         'Cannot import vault settings: cannot decode JSON: {error!s}.',
         flags='python-brace-format',
     )
-    CANNOT_EXPORT_VAULT_SETTINGS = _Commented(
+    """"""
+    CANNOT_EXPORT_VAULT_SETTINGS = commented(
         '"error" is supplied by the operating system (errno/strerror).',
     )(
         'Error message',
         'Cannot export vault settings: {error!s}: {filename!r}.',
         flags='python-brace-format',
     )
-    CANNOT_IMPORT_VAULT_SETTINGS = _Commented(
+    """"""
+    CANNOT_IMPORT_VAULT_SETTINGS = commented(
         '"error" is supplied by the operating system (errno/strerror).',
     )(
         'Error message',
         'Cannot import vault settings: {error!s}: {filename!r}.',
         flags='python-brace-format',
     )
-    CANNOT_LOAD_USER_CONFIG = _Commented(
+    """"""
+    CANNOT_LOAD_USER_CONFIG = commented(
         '"error" is supplied by the operating system (errno/strerror).',
     )(
         'Error message',
         'Cannot load user config: {error!s}: {filename!r}.',
         flags='python-brace-format',
     )
-    CANNOT_LOAD_VAULT_SETTINGS = _Commented(
+    """"""
+    CANNOT_LOAD_VAULT_SETTINGS = commented(
         '"error" is supplied by the operating system (errno/strerror).',
     )(
         'Error message',
         'Cannot load vault settings: {error!s}: {filename!r}.',
         flags='python-brace-format',
     )
-    CANNOT_PARSE_AS_VAULT_CONFIG = _Commented(
+    """"""
+    CANNOT_PARSE_AS_VAULT_CONFIG = commented(
         'Unlike the "Cannot load {path!r} as a {fmt!s} '
         'vault configuration." message, *this* error message is emitted '
         'when we have tried loading the path in each of our '
@@ -1691,7 +1908,8 @@ class ErrMsgTemplate(enum.Enum):
         'configuration file/directory.',
         flags='python-brace-format',
     )
-    CANNOT_PARSE_AS_VAULT_CONFIG_OSERROR = _Commented(
+    """"""
+    CANNOT_PARSE_AS_VAULT_CONFIG_OSERROR = commented(
         '"error" is supplied by the operating system (errno/strerror).',
     )(
         'Error message',
@@ -1699,14 +1917,16 @@ class ErrMsgTemplate(enum.Enum):
         'configuration file/directory: {error!s}: {filename!r}.',
         flags='python-brace-format',
     )
-    CANNOT_STORE_VAULT_SETTINGS = _Commented(
+    """"""
+    CANNOT_STORE_VAULT_SETTINGS = commented(
         '"error" is supplied by the operating system (errno/strerror).',
     )(
         'Error message',
         'Cannot store vault settings: {error!s}: {filename!r}.',
         flags='python-brace-format',
     )
-    CANNOT_UNDERSTAND_AGENT = _Commented(
+    """"""
+    CANNOT_UNDERSTAND_AGENT = commented(
         'This error message is used whenever we cannot make '
         'any sense of a response from the SSH agent '
         'because the response is ill-formed '
@@ -1720,7 +1940,8 @@ class ErrMsgTemplate(enum.Enum):
         "Cannot understand the SSH agent's response because it "
         'violates the communications protocol.',
     )
-    CANNOT_UPDATE_SETTINGS_NO_SETTINGS = _Commented(
+    """"""
+    CANNOT_UPDATE_SETTINGS_NO_SETTINGS = commented(
         'The settings_type metavar contains translations for '
         'either "global settings" or "service-specific settings"; '
         'see the CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_GLOBAL and '
@@ -1739,14 +1960,16 @@ class ErrMsgTemplate(enum.Enum):
         'or --phrase or --key.',
         flags='python-brace-format',
     )
-    INVALID_USER_CONFIG = _Commented(
+    """"""
+    INVALID_USER_CONFIG = commented(
         '"error" is supplied by the operating system (errno/strerror).',
     )(
         'Error message',
         'The user configuration file is invalid.  {error!s}: {filename!r}.',
         flags='python-brace-format',
     )
-    INVALID_VAULT_CONFIG = _Commented(
+    """"""
+    INVALID_VAULT_CONFIG = commented(
         'This error message is a reaction to a validator function '
         'saying *that* the configuration is not valid, '
         'but not *how* it is not valid.  '
@@ -1756,41 +1979,47 @@ class ErrMsgTemplate(enum.Enum):
         'Invalid vault config: {config!r}.',
         flags='python-brace-format',
     )
-    MISSING_MODULE = _Commented(
+    """"""
+    MISSING_MODULE = commented(
         '',
     )(
         'Error message',
         'Cannot load the required Python module {module!r}.',
         flags='python-brace-format',
     )
-    NO_AF_UNIX = _Commented(
+    """"""
+    NO_AF_UNIX = commented(
         '',
     )(
         'Error message',
         'Cannot connect to an SSH agent because this Python version '
         'does not support UNIX domain sockets.',
     )
-    NO_KEY_OR_PHRASE = _Commented(
+    """"""
+    NO_KEY_OR_PHRASE = commented(
         '',
     )(
         'Error message',
         'No passphrase or key was given in the configuration.  '
         'In this case, the --phrase or --key argument is required.',
     )
-    NO_SSH_AGENT_FOUND = _Commented(
+    """"""
+    NO_SSH_AGENT_FOUND = commented(
         '',
     )(
         'Error message',
         'Cannot find any running SSH agent because SSH_AUTH_SOCK is not set.',
     )
-    NO_SUITABLE_SSH_KEYS = _Commented(
+    """"""
+    NO_SUITABLE_SSH_KEYS = commented(
         '',
     )(
         'Error message',
         'The SSH agent contains no keys suitable for {PROG_NAME!s}.',  # noqa: RUF027
         flags='python-brace-format',
     )
-    PARAMS_MUTUALLY_EXCLUSIVE = _Commented(
+    """"""
+    PARAMS_MUTUALLY_EXCLUSIVE = commented(
         'The params are long-form command-line option names.  '
         'Typical example: "--key is mutually exclusive with --phrase."',
     )(
@@ -1798,7 +2027,8 @@ class ErrMsgTemplate(enum.Enum):
         '{param1!s} is mutually exclusive with {param2!s}.',
         flags='python-brace-format',
     )
-    PARAMS_NEEDS_SERVICE_OR_CONFIG = _Commented(
+    """"""
+    PARAMS_NEEDS_SERVICE_OR_CONFIG = commented(
         'The param is a long-form command-line option name, '
         'the metavar is Label.VAULT_METAVAR_SERVICE.',
     )(
@@ -1806,7 +2036,8 @@ class ErrMsgTemplate(enum.Enum):
         '{param!s} requires a {service_metavar!s} or --config.',
         flags='python-brace-format',
     )
-    PARAMS_NEEDS_SERVICE = _Commented(
+    """"""
+    PARAMS_NEEDS_SERVICE = commented(
         'The param is a long-form command-line option name, '
         'the metavar is Label.VAULT_METAVAR_SERVICE.',
     )(
@@ -1814,7 +2045,8 @@ class ErrMsgTemplate(enum.Enum):
         '{param!s} requires a {service_metavar!s}.',
         flags='python-brace-format',
     )
-    PARAMS_NO_SERVICE = _Commented(
+    """"""
+    PARAMS_NO_SERVICE = commented(
         'The param is a long-form command-line option name, '
         'the metavar is Label.VAULT_METAVAR_SERVICE.',
     )(
@@ -1822,14 +2054,16 @@ class ErrMsgTemplate(enum.Enum):
         '{param!s} does not take a {service_metavar!s} argument.',
         flags='python-brace-format',
     )
-    SERVICE_REQUIRED = _Commented(
+    """"""
+    SERVICE_REQUIRED = commented(
         'The metavar is Label.VAULT_METAVAR_SERVICE.',
     )(
         'Error message',
         'Deriving a passphrase requires a {service_metavar!s}.',
         flags='python-brace-format',
     )
-    SET_AND_UNSET_SAME_SETTING = _Commented(
+    """"""
+    SET_AND_UNSET_SAME_SETTING = commented(
         'The rephrasing '
         '"Attempted to unset and set the same setting '
         '(--unset={setting!s} --{setting!s}=...) at the same time."'
@@ -1839,33 +2073,38 @@ class ErrMsgTemplate(enum.Enum):
         'Attempted to unset and set --{setting!s} at the same time.',
         flags='python-brace-format',
     )
-    SSH_KEY_NOT_LOADED = _Commented(
+    """"""
+    SSH_KEY_NOT_LOADED = commented(
         '',
     )(
         'Error message',
         'The requested SSH key is not loaded into the agent.',
     )
-    USER_ABORTED_EDIT = _Commented(
+    """"""
+    USER_ABORTED_EDIT = commented(
         'The user requested to edit the notes for a service, '
         'but aborted the request mid-editing.',
     )(
         'Error message',
         'Not saving any new notes: the user aborted the request.',
     )
-    USER_ABORTED_PASSPHRASE = _Commented(
+    """"""
+    USER_ABORTED_PASSPHRASE = commented(
         'The user was prompted for a master passphrase, '
         'but aborted the request.',
     )(
         'Error message',
         'No passphrase was given; the user aborted the request.',
     )
-    USER_ABORTED_SSH_KEY_SELECTION = _Commented(
+    """"""
+    USER_ABORTED_SSH_KEY_SELECTION = commented(
         'The user was prompted to select a master SSH key, '
         'but aborted the request.',
     )(
         'Error message',
         'No SSH key was selected; the user aborted the request.',
     )
+    """"""
 
 
 MsgTemplate: TypeAlias = Union[
@@ -1875,6 +2114,7 @@ MsgTemplate: TypeAlias = Union[
     WarnMsgTemplate,
     ErrMsgTemplate,
 ]
+"""A type alias for all enums containing translatable strings as values."""
 MSG_TEMPLATE_CLASSES = (
     Label,
     DebugMsgTemplate,
@@ -1882,6 +2122,7 @@ MSG_TEMPLATE_CLASSES = (
     WarnMsgTemplate,
     ErrMsgTemplate,
 )
+"""A collection all enums containing translatable strings as values."""
 
 DebugTranslations._load_cache()  # noqa: SLF001
 
