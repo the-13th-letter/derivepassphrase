@@ -258,7 +258,7 @@ def _h(bs: Buffer) -> str:
     return '<{}>'.format(memoryview(bs).hex(' '))
 
 
-def derive_master_keys_keys(
+def _derive_master_keys_keys(
     password: str | Buffer,
     iterations: int,
 ) -> _types.StoreroomKeyPair:
@@ -318,7 +318,7 @@ def derive_master_keys_keys(
     ).toreadonly()
 
 
-def decrypt_master_keys_data(
+def _decrypt_master_keys_data(
     data: Buffer,
     keys: _types.StoreroomKeyPair,
 ) -> _types.StoreroomMasterKeys:
@@ -348,7 +348,7 @@ def decrypt_master_keys_data(
         keys:
             The encryption and signing keys for the master keys data.
             These should have previously been derived via the
-            [`derive_master_keys_keys`][] function.
+            [`_derive_master_keys_keys`][] function.
 
     Returns:
         The master encryption, signing and hashing keys.
@@ -413,7 +413,7 @@ def decrypt_master_keys_data(
     ).toreadonly()
 
 
-def decrypt_session_keys(
+def _decrypt_session_keys(
     data: Buffer,
     master_keys: _types.StoreroomMasterKeys,
 ) -> _types.StoreroomKeyPair:
@@ -441,7 +441,7 @@ def decrypt_session_keys(
             The encrypted bucket item session key data.
         master_keys:
             The master keys.  Presumably these have previously been
-            obtained via the [`decrypt_master_keys_data`][] function.
+            obtained via the [`_decrypt_master_keys_data`][] function.
 
     Returns:
         The bucket item's encryption and signing keys.
@@ -524,7 +524,7 @@ def decrypt_session_keys(
     return session_keys
 
 
-def decrypt_contents(
+def _decrypt_contents(
     data: Buffer,
     session_keys: _types.StoreroomKeyPair,
 ) -> Buffer:
@@ -547,7 +547,7 @@ def decrypt_contents(
             The encrypted bucket item payload data.
         session_keys:
             The bucket item's session keys.  Presumably these have
-            previously been obtained via the [`decrypt_session_keys`][]
+            previously been obtained via the [`_decrypt_session_keys`][]
             function.
 
     Returns:
@@ -613,7 +613,7 @@ def decrypt_contents(
     return plaintext
 
 
-def decrypt_bucket_item(
+def _decrypt_bucket_item(
     bucket_item: Buffer,
     master_keys: _types.StoreroomMasterKeys,
 ) -> Buffer:
@@ -624,7 +624,7 @@ def decrypt_bucket_item(
             The encrypted bucket item.
         master_keys:
             The master keys.  Presumably these have previously been
-            obtained via the [`decrypt_master_keys_data`][] function.
+            obtained via the [`_decrypt_master_keys_data`][] function.
 
     Returns:
         The decrypted bucket item.
@@ -664,11 +664,11 @@ def decrypt_bucket_item(
     if data_version != 1:
         msg = f'Cannot handle version {data_version} encrypted data'
         raise ValueError(msg)
-    session_keys = decrypt_session_keys(encrypted_session_keys, master_keys)
-    return decrypt_contents(data_contents, session_keys)
+    session_keys = _decrypt_session_keys(encrypted_session_keys, master_keys)
+    return _decrypt_contents(data_contents, session_keys)
 
 
-def decrypt_bucket_file(
+def _decrypt_bucket_file(
     filename: str,
     master_keys: _types.StoreroomMasterKeys,
     *,
@@ -681,7 +681,7 @@ def decrypt_bucket_file(
             The bucket file's filename.
         master_keys:
             The master keys.  Presumably these have previously been
-            obtained via the [`decrypt_master_keys_data`][] function.
+            obtained via the [`_decrypt_master_keys_data`][] function.
         root_dir:
             The root directory of the data store.  The filename is
             interpreted relatively to this directory.
@@ -718,7 +718,7 @@ def decrypt_bucket_file(
             msg = f'Invalid bucket file: {filename}'
             raise ValueError(msg) from None
         for line in bucket_file:
-            yield decrypt_bucket_item(
+            yield _decrypt_bucket_item(
                 base64.standard_b64decode(line), master_keys
             )
 

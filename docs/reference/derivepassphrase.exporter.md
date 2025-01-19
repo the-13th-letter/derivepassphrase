@@ -5,6 +5,15 @@
 ::: derivepassphrase.exporter.storeroom
     options:
       heading_level: 2
+      filters:
+        - "^[A-Za-z0-9]"
+        - "^__[a-zA-Z0-9_-]+__"
+        - "^_derive_master_keys_keys$"
+        - "^_decrypt_master_keys_data$"
+        - "^_decrypt_session_keys$"
+        - "^_decrypt_contents$"
+        - "^_decrypt_bucket_item$"
+        - "^_decrypt_bucket_file$"
 
 ::: derivepassphrase.exporter.vault_native
     options:
