@@ -586,7 +586,7 @@ def _store(config: dict[str, Any], path: str, json_contents: bytes) -> None:
 
 
 @exporter.register_export_vault_config_data_handler('storeroom')
-def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
+def export_storeroom_data(  # noqa: C901,D417,PLR0912,PLR0914,PLR0915
     path: str | bytes | os.PathLike | None = None,
     key: str | Buffer | None = None,
     *,
@@ -594,40 +594,14 @@ def export_storeroom_data(  # noqa: C901,PLR0912,PLR0914,PLR0915
 ) -> dict[str, Any]:
     """Export the full configuration stored in the storeroom.
 
-    Args:
-        path:
-            The path to the vault configuration directory.  If not
-            given, then query [`exporter.get_vault_path`][] for the
-            correct value.
-        key:
-            Encryption key/password for the (master keys file in the)
-            configuration directory, usually the username, or passed via
-            the `VAULT_KEY` environment variable.  If not given, then
-            query [`exporter.get_vault_key`][] for the value.
+    See [`exporter.ExportVaultConfigDataFunction`][] for an explanation
+    of the call signature, and the exceptions to expect.
+
+    Other Args:
         format:
-            The format to attempt parsing as.  If specified, must be
-            `storeroom`.
+            The only supported format is `storeroom`.
 
-    Returns:
-        The vault configuration, as recorded in the configuration
-        directory.
-
-        This may or may not be a valid configuration according to
-        `vault` or `derivepassphrase`.
-
-    Raises:
-        RuntimeError:
-            Something went wrong during data collection, e.g. we
-            encountered unsupported or corrupted data in the storeroom.
-        json.JSONDecodeError:
-            An internal JSON data structure failed to parse from disk.
-            The storeroom is probably corrupted.
-        exporter.NotAVaultConfigError:
-            The directory does contain not a storeroom.
-        ValueError:
-            The requested format is invalid.
-
-    """
+    """  # noqa: DOC201,DOC501
     # Trigger import errors if necessary.
     importlib.import_module('cryptography')
     if path is None:

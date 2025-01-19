@@ -106,13 +106,66 @@ def get_vault_path() -> str | bytes | os.PathLike:
 
 
 class ExportVaultConfigDataFunction(Protocol):  # pragma: no cover
+    """Typing protocol for vault config data export handlers."""
+
     def __call__(
         self,
         path: str | bytes | os.PathLike | None = None,
         key: str | Buffer | None = None,
         *,
         format: str,  # noqa: A002
-    ) -> Any: ...  # noqa: ANN401
+    ) -> Any:  # noqa: ANN401
+        """Export the full vault-native configuration stored in `path`.
+
+        Args:
+            path:
+                The path to the vault configuration file or directory.
+                If not given, then query [`get_vault_path`][] for the
+                correct value.
+            key:
+                Encryption key/password for the configuration file or
+                directory, usually the username, or passed via the
+                `VAULT_KEY` environment variable.  If not given, then
+                query [`get_vault_key`][] for the value.
+            format:
+                The format to attempt parsing as.  Must be `v0.2`,
+                `v0.3` or `storeroom`.
+
+        Returns:
+            The vault configuration, as recorded in the configuration
+            file.
+
+            This may or may not be a valid configuration according to
+            `vault` or `derivepassphrase`.
+
+        Raises:
+            IsADirectoryError:
+                The requested format requires a configuration file, but
+                `path` points to a directory instead.
+            NotADirectoryError:
+                The requested format requires a configuration directory,
+                but `path` points to something else instead.
+            OSError:
+                There was an OS error while accessing the configuration
+                file/directory.
+            RuntimeError:
+                Something went wrong during data collection, e.g. we
+                encountered unsupported or corrupted data in the
+                configuration file/directory.
+            json.JSONDecodeError:
+                An internal JSON data structure failed to parse from
+                disk.  The configuration file/directory is probably
+                corrupted.
+            exporter.NotAVaultConfigError:
+                The file/directory contents are not in the claimed
+                configuration format.
+            ValueError:
+                The requested format is invalid.
+            ModuleNotFoundError:
+                The requested format requires support code, which failed
+                to load because of missing Python libraries.
+
+        """
 
 
 _export_vault_config_data_registry: dict[
@@ -170,53 +223,10 @@ def export_vault_config_data(
 ) -> Any:  # noqa: ANN401
     """Export the full vault-native configuration stored in `path`.
 
-    Args:
-        path:
-            The path to the vault configuration file or directory.  If
-            not given, then query [`get_vault_path`][] for the correct
-            value.
-        key:
-            Encryption key/password for the configuration file or
-            directory, usually the username, or passed via the
-            `VAULT_KEY` environment variable.  If not given, then query
-            [`exporter.get_vault_key`][] for the value.
-        format:
-            The format to attempt parsing as.  Must be `v0.2`, `v0.3` or
-            `storeroom`.
+    See [`ExportVaultConfigDataFunction`][] for an explanation of the
+    call signature, and the exceptions to expect.
 
-    Returns:
-        The vault configuration, as recorded in the configuration file.
-
-        This may or may not be a valid configuration according to
-        `vault` or `derivepassphrase`.
-
-    Raises:
-        IsADirectoryError:
-            The requested format requires a configuration file, but
-            `path` points to a directory instead.
-        NotADirectoryError:
-            The requested format requires a configuration directory, but
-            `path` points to something else instead.
-        OSError:
-            There was an OS error while accessing the configuration
-            file/directory.
-        RuntimeError:
-            Something went wrong during data collection, e.g. we
-            encountered unsupported or corrupted data in the
-            configuration file/directory.
-        json.JSONDecodeError:
-            An internal JSON data structure failed to parse from disk.
-            The configuration file/directory is probably corrupted.
-        exporter.NotAVaultConfigError:
-            The file/directory contents are not in the claimed
-            configuration format.
-        ValueError:
-            The requested format is invalid.
-        ModuleNotFoundError:
-            The requested format requires support code, which failed to
-            load because of missing Python libraries.
-
-    """
+    """  # noqa: DOC201,DOC501
     find_vault_config_data_handlers()
     handler = _export_vault_config_data_registry.get(format)
     if handler is None:

@@ -433,7 +433,7 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
 
 
 @exporter.register_export_vault_config_data_handler('v0.2', 'v0.3')
-def export_vault_native_data(
+def export_vault_native_data(  # noqa: D417
     path: str | bytes | os.PathLike | None = None,
     key: str | Buffer | None = None,
     *,
@@ -441,36 +441,14 @@ def export_vault_native_data(
 ) -> Any:  # noqa: ANN401
     """Export the full configuration stored in vault native format.
 
-    Args:
-        path:
-            The path to the vault configuration file.  If not given,
-            then query [`exporter.get_vault_path`][] for the correct
-            value.
-        key:
-            Encryption key/password for the configuration file, usually
-            the username, or passed via the `VAULT_KEY` environment
-            variable.  If not given, then query
-            [`exporter.get_vault_key`][] for the value.
+    See [`exporter.ExportVaultConfigDataFunction`][] for an explanation
+    of the call signature, and the exceptions to expect.
+
+    Other Args:
         format:
-            The format to attempt parsing as.  Must be `v0.2` or `v0.3`.
+            The only supported formats are `v0.2` and `v0.3`.
 
-    Returns:
-        The vault configuration, as recorded in the configuration file.
-
-        This may or may not be a valid configuration according to
-        `vault` or `derivepassphrase`.
-
-    Raises:
-        json.JSONDecodeError:
-            An internal JSON data structure failed to parse from disk.
-            The encrypted configuration is probably corrupted.
-        exporter.NotAVaultConfigError:
-            The (encrypted) contents are not in the claimed
-            configuration format.
-        ValueError:
-            The requested format is invalid.
-
-    """
+    """  # noqa: DOC201,DOC501
     # Trigger import errors if necessary.
     importlib.import_module('cryptography')
     if path is None:
