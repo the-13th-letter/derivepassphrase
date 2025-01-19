@@ -431,6 +431,46 @@ class StandardOption(OptionGroupOption):
     pass
 
 
+# Portions of this class are based directly on code from click 8.1.
+# (This does not in general include docstrings, unless otherwise noted.)
+# They are subject to the 3-clause BSD license in the following
+# paragraphs.  Modifications to their code are marked with respective
+# comments; they too are released under the same license below.  The
+# original code did not contain any "noqa" or "pragma" comments.
+#
+#     Copyright 2024 Pallets
+#
+#     Redistribution and use in source and binary forms, with or
+#     without modification, are permitted provided that the
+#     following conditions are met:
+#
+#      1. Redistributions of source code must retain the above
+#         copyright notice, this list of conditions and the
+#         following disclaimer.
+#
+#      2. Redistributions in binary form must reproduce the above
+#         copyright notice, this list of conditions and the
+#         following disclaimer in the documentation and/or other
+#         materials provided with the distribution.
+#
+#      3. Neither the name of the copyright holder nor the names
+#         of its contributors may be used to endorse or promote
+#         products derived from this software without specific
+#         prior written permission.
+#
+#     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+#     CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
+#     INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+#     MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+#     DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+#     CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#     SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+#     NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#     LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+#     HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+#     CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+#     OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+#     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class CommandWithHelpGroups(click.Command):
     """A [`click.Command`][] with support for some help text customizations.
 
@@ -452,49 +492,10 @@ class CommandWithHelpGroups(click.Command):
             return '\n\n'.join(str(x) for x in text)
         return str(text)
 
+    # This method is based on click 8.1; see the comment above the class
+    # declaration for license details.
     def collect_usage_pieces(self, ctx: click.Context) -> list[str]:
         """Return the pieces for the usage string.
-
-        Based on code from click 8.1.  Subject to the following license
-        (3-clause BSD license):
-
-            Copyright 2024 Pallets
-
-            Redistribution and use in source and binary forms, with or
-            without modification, are permitted provided that the
-            following conditions are met:
-
-             1. Redistributions of source code must retain the above
-                copyright notice, this list of conditions and the
-                following disclaimer.
-
-             2. Redistributions in binary form must reproduce the above
-                copyright notice, this list of conditions and the
-                following disclaimer in the documentation and/or other
-                materials provided with the distribution.
-
-             3. Neither the name of the copyright holder nor the names
-                of its contributors may be used to endorse or promote
-                products derived from this software without specific
-                prior written permission.
-
-            THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-            CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
-            INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-            MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-            DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
-            CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-            SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-            NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-            LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-            HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-            CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-            OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-            SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-        Modifications are marked with respective comments.  They too are
-        released under the same license above.  The original code did
-        not contain any "noqa" or "pragma" comments.
 
         Args:
             ctx:
@@ -506,52 +507,13 @@ class CommandWithHelpGroups(click.Command):
             rv.extend(str(x) for x in param.get_usage_pieces(ctx))
         return rv
 
+    # This method is based on click 8.1; see the comment above the class
+    # declaration for license details.
     def get_help_option(
         self,
         ctx: click.Context,
     ) -> click.Option | None:
         """Return a standard help option object.
-
-        Based on code from click 8.1.  Subject to the following license
-        (3-clause BSD license):
-
-            Copyright 2024 Pallets
-
-            Redistribution and use in source and binary forms, with or
-            without modification, are permitted provided that the
-            following conditions are met:
-
-             1. Redistributions of source code must retain the above
-                copyright notice, this list of conditions and the
-                following disclaimer.
-
-             2. Redistributions in binary form must reproduce the above
-                copyright notice, this list of conditions and the
-                following disclaimer in the documentation and/or other
-                materials provided with the distribution.
-
-             3. Neither the name of the copyright holder nor the names
-                of its contributors may be used to endorse or promote
-                products derived from this software without specific
-                prior written permission.
-
-            THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-            CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
-            INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-            MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-            DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
-            CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-            SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-            NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-            LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-            HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-            CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-            OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-            SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-        Modifications are marked with respective comments.  They too are
-        released under the same license above.  The original code did
-        not contain any "noqa" or "pragma" comments.
 
         Args:
             ctx:
@@ -583,6 +545,8 @@ class CommandWithHelpGroups(click.Command):
             help=_msg.TranslatedString(_msg.Label.HELP_OPTION_HELP_TEXT),
         )
 
+    # This method is based on click 8.1; see the comment above the class
+    # declaration for license details.
     def get_short_help_str(
         self,
         limit: int = 45,
@@ -590,47 +554,6 @@ class CommandWithHelpGroups(click.Command):
         """Return the short help string for a command.
 
         If only a long help string is given, shorten it.
-
-        Based on code from click 8.1.  Subject to the following license
-        (3-clause BSD license):
-
-            Copyright 2024 Pallets
-
-            Redistribution and use in source and binary forms, with or
-            without modification, are permitted provided that the
-            following conditions are met:
-
-             1. Redistributions of source code must retain the above
-                copyright notice, this list of conditions and the
-                following disclaimer.
-
-             2. Redistributions in binary form must reproduce the above
-                copyright notice, this list of conditions and the
-                following disclaimer in the documentation and/or other
-                materials provided with the distribution.
-
-             3. Neither the name of the copyright holder nor the names
-                of its contributors may be used to endorse or promote
-                products derived from this software without specific
-                prior written permission.
-
-            THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-            CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
-            INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-            MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-            DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
-            CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-            SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-            NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-            LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-            HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-            CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-            OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-            SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-        Modifications are marked with respective comments.  They too are
-        released under the same license above.  The original code did
-        not contain any "noqa" or "pragma" comments.
 
         Args:
             limit:
@@ -658,53 +581,14 @@ class CommandWithHelpGroups(click.Command):
             ).format(text=text)
         return text.strip()
 
+    # This method is based on click 8.1; see the comment above the class
+    # declaration for license details.
     def format_help_text(
         self,
         ctx: click.Context,
         formatter: click.HelpFormatter,
     ) -> None:
         """Format the help text prologue, if any.
-
-        Based on code from click 8.1.  Subject to the following license
-        (3-clause BSD license):
-
-            Copyright 2024 Pallets
-
-            Redistribution and use in source and binary forms, with or
-            without modification, are permitted provided that the
-            following conditions are met:
-
-             1. Redistributions of source code must retain the above
-                copyright notice, this list of conditions and the
-                following disclaimer.
-
-             2. Redistributions in binary form must reproduce the above
-                copyright notice, this list of conditions and the
-                following disclaimer in the documentation and/or other
-                materials provided with the distribution.
-
-             3. Neither the name of the copyright holder nor the names
-                of its contributors may be used to endorse or promote
-                products derived from this software without specific
-                prior written permission.
-
-            THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-            CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
-            INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-            MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-            DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
-            CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-            SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-            NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-            LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-            HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-            CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-            OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-            SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-        Modifications are marked with respective comments.  They too are
-        released under the same license above.  The original code did
-        not contain any "noqa" or "pragma" comments.
 
         Args:
             ctx:
@@ -735,6 +619,10 @@ class CommandWithHelpGroups(click.Command):
             with formatter.indentation():
                 formatter.write_text(text)
 
+    # This method is based on click 8.1; see the comment above the class
+    # declaration for license details.  Consider the whole section
+    # marked as modified; the code modifications are too numerous to
+    # mark individually.
     def format_options(
         self,
         ctx: click.Context,
@@ -756,45 +644,6 @@ class CommandWithHelpGroups(click.Command):
 
         We unconditionally call [`format_commands`][], and rely on it to
         act as a no-op if we aren't actually a [`click.MultiCommand`][].
-
-        Based on code from click 8.1.  Subject to the following license
-        (3-clause BSD license):
-
-            Copyright 2024 Pallets
-
-            Redistribution and use in source and binary forms, with or
-            without modification, are permitted provided that the
-            following conditions are met:
-
-             1. Redistributions of source code must retain the above
-                copyright notice, this list of conditions and the
-                following disclaimer.
-
-             2. Redistributions in binary form must reproduce the above
-                copyright notice, this list of conditions and the
-                following disclaimer in the documentation and/or other
-                materials provided with the distribution.
-
-             3. Neither the name of the copyright holder nor the names
-                of its contributors may be used to endorse or promote
-                products derived from this software without specific
-                prior written permission.
-
-            THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-            CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
-            INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-            MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-            DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
-            CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-            SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-            NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-            LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-            HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-            CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-            OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-            SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-        Modifications are released under the same license above.
 
         Args:
             ctx:
@@ -843,6 +692,10 @@ class CommandWithHelpGroups(click.Command):
                     formatter.write_text(epilog)
         self.format_commands(ctx, formatter)
 
+    # This method is based on click 8.1; see the comment above the class
+    # declaration for license details.  Consider the whole section
+    # marked as modified; the code modifications are too numerous to
+    # mark individually.
     def format_commands(
         self,
         ctx: click.Context,
@@ -852,47 +705,6 @@ class CommandWithHelpGroups(click.Command):
 
         If called on a command object that isn't derived from
         [`click.MultiCommand`][], then do nothing.
-
-        Based on code from click 8.1.  Subject to the following license
-        (3-clause BSD license):
-
-            Copyright 2024 Pallets
-
-            Redistribution and use in source and binary forms, with or
-            without modification, are permitted provided that the
-            following conditions are met:
-
-             1. Redistributions of source code must retain the above
-                copyright notice, this list of conditions and the
-                following disclaimer.
-
-             2. Redistributions in binary form must reproduce the above
-                copyright notice, this list of conditions and the
-                following disclaimer in the documentation and/or other
-                materials provided with the distribution.
-
-             3. Neither the name of the copyright holder nor the names
-                of its contributors may be used to endorse or promote
-                products derived from this software without specific
-                prior written permission.
-
-            THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-            CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
-            INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-            MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-            DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
-            CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-            SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-            NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-            LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-            HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-            CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-            OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-            SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-        Modifications are marked with respective comments.  They too are
-        released under the same license above.  The original code did
-        not contain any "noqa" or "pragma" comments.
 
         Args:
             ctx:
@@ -923,52 +735,14 @@ class CommandWithHelpGroups(click.Command):
                 with formatter.section(commands_label):
                     formatter.write_dl(rows)
 
+    # This method is based on click 8.1; see the comment above the class
+    # declaration for license details.
     def format_epilog(
         self,
         ctx: click.Context,
         formatter: click.HelpFormatter,
     ) -> None:
         """Format the epilog, if any.
-
-        Based on code from click 8.1.  Subject to the following license
-        (3-clause BSD license):
-
-            Copyright 2024 Pallets
-
-            Redistribution and use in source and binary forms, with or
-            without modification, are permitted provided that the
-            following conditions are met:
-
-             1. Redistributions of source code must retain the above
-                copyright notice, this list of conditions and the
-                following disclaimer.
-
-             2. Redistributions in binary form must reproduce the above
-                copyright notice, this list of conditions and the
-                following disclaimer in the documentation and/or other
-                materials provided with the distribution.
-
-             3. Neither the name of the copyright holder nor the names
-                of its contributors may be used to endorse or promote
-                products derived from this software without specific
-                prior written permission.
-
-            THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-            CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
-            INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-            MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-            DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
-            CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-            SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-            NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-            LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-            HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-            CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-            OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-            SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-        Modifications are marked with respective comments.  They too are
-        released under the same license above.
 
         Args:
             ctx:
