@@ -1,5 +1,7 @@
 INHERIT: mkdocs.yml
 
+exclude_docs: ''
+
 plugins:
   offline:
     enabled: true
