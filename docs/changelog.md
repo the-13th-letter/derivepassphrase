@@ -8,22 +8,36 @@
   [KEEP_A_CHANGELOG]: https://keepachangelog.com/en/1.1.0/ 'Keeping a changelog'
   [SEMANTIC_VERSIONING]: https://semver.org/ 'Using Semantic Versioning'
 
+??? info "Definition: the <q>public API</q> of `derivepassphrase`"
+
+    The <dfn>public API</dfn>, as defined by Semantic Versioning, is
+    outlined in the [Reference section][REFERENCE]: the set of documented
+    modules, classes, attributes, methods, functions and function
+    parameters, and the documented behavior, options and arguments of the
+    command-line tools.
+
+    Certain **exceptions to this rule** are explicitly and prominently
+    marked as implementation details/not part of the public API.
+
+??? info "Interpretation of the version number"
+
+    The terminology <b>major</b>, <b>minor</b> and <b>patch</b> follows the
+    Semantic Versioning and Keep a Changelog definitions.
+
+      * For version numbers with major version zero, *any* new release may
+        effectively constitute a new <b>major</b> release.
+      * For version numbers with major version one or higher,
+          * <b>Fixed</b> entries justify a <b>patch</b> release;
+          * <b>Added</b> and <b>Deprecated</b> entries justify
+            a <b>minor</b> release;
+          * <b>Changed</b> and <b>Removed</b> entries justify a <b>major</b>
+            release.
+          * <b>Security</b> can justify any type of release; if <b>major</b>
+            or <b>minor</b>, these are accompanied by corresponding entries
+            of the respective types above.
+
 <aside markdown><small>
-(All entries are from the perspective of a user, not a developer.
-The <q>public API</q>, as defined by Semantic Versioning, is outlined in the
-[Reference section][REFERENCE]: the set of documented modules, classes,
-methods and functions, and the documented behavior, options and arguments of
-the command-line tools.
-As per the Semantic Versioning and the Keep a Changelog terminology,
-<q>Fixed</q> entries justify a <q>patch</q> release,
-<q>Added</q> and <q>Deprecated</q> entries a <q>minor</q> release,
-and <q>Changed</q> and <q>Removed</q> entries a <q>major</q> release.
-<q>Security</q> can justify any type of release;
-if <q>major</q> or <q>minor</q>, these are accompanied by corresponding
-entries of the respective types above.
-Again as per Semantic Versioning, at major version zero, the above
-justification is not yet binding, and <em>any</em> new release may
-effectively constitute a new <q>major</q> release.)
+(All entries are from the perspective of a user, not a developer.)
 </small></aside>
 
   [REFERENCE]: reference/index.md
