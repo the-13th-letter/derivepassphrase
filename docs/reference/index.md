@@ -13,6 +13,7 @@ title: Reference overview
 
 * `derivepassphrase`: Work-alike for vault(1) – deterministic, stateless password manager.
     * [`derivepassphrase.cli`][]: Command-line interface for `derivepassphrase`.
+        * [`derivepassphrase._cli_msg`][]: Messages for the command-line interface of `derivepassphrase`.
     * [`derivepassphrase.exporter`][]: Exporter for other passphrase generator configurations.
         * [`derivepassphrase.exporter.storeroom`][]: Exporter for the vault "storeroom" configuration format.
         * [`derivepassphrase.exporter.vault_native`][]: Exporter for the vault native configuration formats (v0.2 and v0.3).
