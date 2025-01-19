@@ -264,10 +264,11 @@ def validate_vault_config(  # noqa: C901,PLR0912
             An entry in the vault config is not allowed, or has a
             disallowed value.
 
-    Deprecated:
-        Since v0.4.0: The `allow_derivepassphrase_extensions` keyword
-        argument is deprecated, and will be removed in v1.0.  There are
-        no specified `derivepassphrase` extensions.
+    Warning: Deprecated argument
+        **v0.4.0**:
+            The `allow_derivepassphrase_extensions` keyword argument is
+            deprecated, and will be removed in v1.0.  There are no
+            specified `derivepassphrase` extensions.
 
     """
     err_obj_not_a_dict = 'vault config is not a dict'
@@ -578,10 +579,22 @@ def clean_up_falsy_vault_config_values(  # noqa: C901,PLR0912
     return cleanup_completed
 
 
-B = TypeVar('B', bound=Buffer)
+if TYPE_CHECKING:
+    T_Buffer = TypeVar('T_Buffer', bound=Buffer)
+    """
+    A [`TypeVar`][] for classes implementing the [`Buffer`][] interface.
+
+    Warning:
+        Non-public attribute, provided for didactical and educational
+        purposes only.  Subject to change without notice, including
+        removal.
+
+        Additionally, this type variable is inaccessible at runtime.
+
+    """
 
 
-class SSHKeyCommentPair(NamedTuple, Generic[B]):
+class SSHKeyCommentPair(NamedTuple, Generic[T_Buffer]):
     """SSH key plus comment pair.  For typing purposes.
 
     Attributes:
@@ -590,9 +603,9 @@ class SSHKeyCommentPair(NamedTuple, Generic[B]):
 
     """
 
-    key: B
+    key: T_Buffer
     """"""
-    comment: B
+    comment: T_Buffer
     """"""
 
     def toreadonly(self) -> SSHKeyCommentPair[bytes]:
@@ -673,7 +686,7 @@ class SSH_AGENT(enum.Enum):  # noqa: N801
     """"""
 
 
-class StoreroomKeyPair(NamedTuple, Generic[B]):
+class StoreroomKeyPair(NamedTuple, Generic[T_Buffer]):
     """A pair of AES256 keys, one for encryption and one for signing.
 
     Attributes:
@@ -685,9 +698,9 @@ class StoreroomKeyPair(NamedTuple, Generic[B]):
 
     """
 
-    encryption_key: B
+    encryption_key: T_Buffer
     """"""
-    signing_key: B
+    signing_key: T_Buffer
     """"""
 
     def toreadonly(self) -> StoreroomKeyPair[bytes]:
@@ -698,7 +711,7 @@ class StoreroomKeyPair(NamedTuple, Generic[B]):
         )
 
 
-class StoreroomMasterKeys(NamedTuple, Generic[B]):
+class StoreroomMasterKeys(NamedTuple, Generic[T_Buffer]):
     """A triple of AES256 keys, for encryption, signing and hashing.
 
     Attributes:
@@ -713,11 +726,11 @@ class StoreroomMasterKeys(NamedTuple, Generic[B]):
 
     """
 
-    hashing_key: B
+    hashing_key: T_Buffer
     """"""
-    encryption_key: B
+    encryption_key: T_Buffer
     """"""
-    signing_key: B
+    signing_key: T_Buffer
     """"""
 
     def toreadonly(self) -> StoreroomMasterKeys[bytes]:
