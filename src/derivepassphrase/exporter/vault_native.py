@@ -170,6 +170,34 @@ class VaultNativeConfigParser(abc.ABC):
     def _pbkdf2(
         password: str | Buffer, key_size: int, iterations: int
     ) -> bytes:
+        """Generate a key from a password.
+
+        Uses PBKDF2 with HMAC-SHA1, with the vault UUID as a fixed salt
+        value.
+
+        Args:
+            password:
+                The password from which to derive the key.
+            key_size:
+                The size of the output string.  The effective key size
+                (in bytes) is thus half of this output string size.
+            iterations:
+                The PBKDF2 iteration count.
+
+        Returns:
+            The PBKDF2-derived key, encoded as a lowercase ASCII
+            hexadecimal string.
+
+        Danger: Insecure use of cryptography
+            This function is insecure because it uses a fixed salt
+            value, which is not secure against rainbow tables.  It is
+            further difficult to use because the effective key size is
+            only half as large as the "size" parameter (output string
+            size).  Finally, though the use of SHA-1 in HMAC per se is
+            not known to be insecure, SHA-1 is known not to be
+            collision-resistant.
+
+        """
         if isinstance(password, str):
             password = password.encode('utf-8')
         raw_key = pbkdf2.PBKDF2HMAC(
@@ -194,6 +222,16 @@ class VaultNativeConfigParser(abc.ABC):
         return result_key
 
     def _parse_contents(self) -> None:
+        """Parse the contents into IV, payload and MAC.
+
+        This operates on, and sets, multiple internal attributes of the
+        parser.
+
+        Raises:
+            ValueError:
+                The configuration file contents are clearly truncated.
+
+        """
         logger.info(
             _msg.TranslatedString(
                 _msg.InfoMsgTemplate.VAULT_NATIVE_PARSING_IV_PAYLOAD_MAC,
@@ -224,6 +262,12 @@ class VaultNativeConfigParser(abc.ABC):
         )
 
     def _derive_keys(self) -> None:
+        """Derive the signing and encryption keys.
+
+        This is a bookkeeping method.  The actual work is done in
+        [`_generate_keys`][].
+
+        """
         logger.info(
             _msg.TranslatedString(
                 _msg.InfoMsgTemplate.VAULT_NATIVE_DERIVING_KEYS,
@@ -239,9 +283,29 @@ class VaultNativeConfigParser(abc.ABC):
 
     @abc.abstractmethod
     def _generate_keys(self) -> None:
+        """Derive the signing and encryption keys, and set the key sizes.
+
+        Subclasses must override this, as the derivation system is
+        version-specific.  The default implementation raises an error.
+
+        Raises:
+            AssertionError:
+                There is no default implementation.
+
+        """
         raise AssertionError
 
     def _check_signature(self) -> None:
+        """Check for a valid MAC on the encrypted vault configuration.
+
+        The MAC uses HMAC-SHA1, and thus is 32 bytes long, before
+        encoding.
+
+        Raises:
+            ValueError:
+                The MAC is invalid.
+
+        """
         logger.info(
             _msg.TranslatedString(
                 _msg.InfoMsgTemplate.VAULT_NATIVE_CHECKING_MAC,
@@ -265,9 +329,26 @@ class VaultNativeConfigParser(abc.ABC):
 
     @abc.abstractmethod
     def _hmac_input(self) -> bytes:
+        """Return the input the MAC is supposed to verify.
+
+        Subclasses must override this, as the MAC-attested data is
+        version-specific.  The default implementation raises an error.
+
+        Raises:
+            AssertionError:
+                There is no default implementation.
+
+        """
         raise AssertionError
 
     def _decrypt_payload(self) -> Any:  # noqa: ANN401
+        """Return the decrypted vault configuration.
+
+        Requires [`_parse_contents`][] and [`_derive_keys`][] to have
+        run, and relies on [`_check_signature`][] for tampering
+        detection.
+
+        """
         logger.info(
             _msg.TranslatedString(
                 _msg.InfoMsgTemplate.VAULT_NATIVE_DECRYPTING_CONTENTS,
@@ -297,6 +378,16 @@ class VaultNativeConfigParser(abc.ABC):
 
     @abc.abstractmethod
     def _make_decryptor(self) -> ciphers.CipherContext:
+        """Return the cipher context object used for decryption.
+
+        Subclasses must override this, as the cipher setup is
+        version-specific.  The default implementation raises an error.
+
+        Raises:
+            AssertionError:
+                There is no default implementation.
+
+        """
         raise AssertionError
 
 
@@ -313,6 +404,11 @@ class VaultNativeV03ConfigParser(VaultNativeConfigParser):
     """
 
     KEY_SIZE = 32
+    """
+    Key size for both the encryption and the signing key, including the
+    encoding as a hexadecimal string.  (The effective cryptographic
+    strength is half of this value.)
+    """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
         super().__init__(*args, **kwargs)
@@ -320,14 +416,45 @@ class VaultNativeV03ConfigParser(VaultNativeConfigParser):
         self._mac_size = 32
 
     def _generate_keys(self) -> None:
+        """Derive the signing and encryption keys, and set the key sizes.
+
+        Version 0.3 vault configurations use a constant key size; see
+        [`KEY_SIZE`][].  The encryption and signing keys differ in how
+        many rounds of PBKDF2 they use (100 and 200, respectively).
+
+        Danger: Insecure use of cryptography
+            This function makes use of the insecure function
+            [`VaultNativeConfigParser._pbkdf2`][], without any attempts
+            at mitigating its insecurity.  It further uses `_pbkdf2`
+            with the low iteration count of 100 and 200 rounds, which is
+            *drastically* insufficient to defend against password
+            guessing attacks using GPUs or ASICs.  We provide this
+            function for the purpose of interoperability with existing
+            vault installations.  Do not rely on this system to keep
+            your vault configuration secure against access by even
+            moderately determined attackers!
+
+        """
         self._encryption_key = self._pbkdf2(self._password, self.KEY_SIZE, 100)
         self._signing_key = self._pbkdf2(self._password, self.KEY_SIZE, 200)
         self._encryption_key_size = self._signing_key_size = self.KEY_SIZE
 
     def _hmac_input(self) -> bytes:
+        """Return the input the MAC is supposed to verify.
+
+        This includes hexadecimal encoding of the message payload.
+
+        """
         return self._message.hex().lower().encode('ASCII')
 
     def _make_decryptor(self) -> ciphers.CipherContext:
+        """Return the cipher context object used for decryption.
+
+        This is a standard AES256-CBC cipher context using the
+        previously derived encryption key and the IV declared in the
+        (MAC-verified) message payload.
+
+        """
         return ciphers.Cipher(
             algorithms.AES256(self._encryption_key), modes.CBC(self._iv)
         ).decryptor()
@@ -357,6 +484,22 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
         self._mac_size = 64
 
     def _parse_contents(self) -> None:
+        """Parse the contents into IV, payload and MAC.
+
+        Like the base class implementation, this operates on, and sets,
+        multiple internal attributes of the parser.  In version 0.2
+        vault configurations, the payload is encoded in base64 and the
+        message tag (MAC) is encoded in hexadecimal, so unlike the base
+        class implementation, we additionally decode the payload and the
+        MAC.
+
+        Raises:
+            ValueError:
+                The configuration file contents are clearly truncated,
+                or the payload or the message tag cannot be decoded
+                properly.
+
+        """
         super()._parse_contents()
         self._payload = base64.standard_b64decode(self._payload)
         self._message_tag = bytes.fromhex(self._message_tag.decode('ASCII'))
@@ -369,18 +512,114 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
         )
 
     def _generate_keys(self) -> None:
+        """Derive the signing and encryption keys, and set the key sizes.
+
+        Version 0.2 vault configurations use 8-byte encryption keys and
+        16-byte signing keys, including the hexadecimal encoding.  They
+        both use 16 rounds of PBKDF2.  This is due to an oversight in
+        vault, where the author mistakenly supplied the intended
+        iteration count as the key size, and the key size as the
+        iteration count.
+
+        Danger: Insecure use of cryptography
+            This function makes use of the insecure function
+            [`VaultNativeConfigParser._pbkdf2`][], without any attempts
+            at mitigating its insecurity.  It further uses `_pbkdf2`
+            with the low iteration count of 16 rounds, which is
+            *drastically* insufficient to defend against password
+            guessing attacks using GPUs or ASICs, and generates the
+            encryption key as a truncation of the signing key.  We
+            provide this function for the purpose of interoperability
+            with existing vault installations.  Do not rely on this
+            system to keep your vault configuration secure against
+            access by even moderately determined attackers!
+
+        """
         self._encryption_key = self._pbkdf2(self._password, 8, 16)
         self._signing_key = self._pbkdf2(self._password, 16, 16)
         self._encryption_key_size = 8
         self._signing_key_size = 16
 
     def _hmac_input(self) -> bytes:
+        """Return the input the MAC is supposed to verify.
+
+        This includes hexadecimal encoding of the message payload.
+
+        """
         return base64.standard_b64encode(self._message)
 
     def _make_decryptor(self) -> ciphers.CipherContext:
+        """Return the cipher context object used for decryption.
+
+        This is a standard AES256-CBC cipher context. The encryption key
+        and the IV are derived via the OpenSSL `EVP_BytesToKey` function
+        (using MD5, no salt, and one iteration).  This is what the
+        Node.js `crypto` library (v21 series and older) used in its
+        implementation of `crypto.createCipher("aes256", password)`.
+
+        Danger: Insecure use of cryptography
+            This function makes use of (an implementation of) the
+            OpenSSL function `EVP_BytesToKey`, which generates
+            cryptographically weak keys, without any attempts at
+            mitigating its insecurity.  We provide this function for the
+            purpose of interoperability with existing vault
+            installations.  Do not rely on this system to keep your
+            vault configuration secure against access by even moderately
+            determined attackers!
+
+        """
+
         def evp_bytestokey_md5_one_iteration_no_salt(
             data: bytes, key_size: int, iv_size: int
         ) -> tuple[bytes, bytes]:
+            """Reimplement OpenSSL's `EVP_BytesToKey` with fixed parameters.
+
+            `EVP_BytesToKey` in general is a key derivation function,
+            i.e., a function that derives key material from an input
+            byte string.  `EVP_BytesToKey` conceptually splits the
+            derived key material into an encryption key and an
+            initialization vector (IV).
+
+            Note: Algorithm description
+                `EVP_BytesToKey` takes an input byte string, two output
+                size (encryption key size and IV size), a message digest
+                function, a salt value and an iteration count.  The
+                derived key material is calculated in blocks, each of
+                which is the output of (iterated application of) the
+                message digest function.  The input to the message
+                digest function is the concatenation of the previous
+                block (if any) with the input byte string and the salt
+                value (if any):
+
+                ~~~~ python
+
+                data = block_input = b''.join([
+                    previous_block, input_string, salt
+                ])
+                for i in range(iteration_count):
+                    data = message_digest(data)
+                block = data
+
+                ~~~~
+
+                We use as many blocks as are necessary to cover the
+                total output byte string size.  The first few bytes
+                (dictated by the encryption key size) form the
+                encryption key, the other bytes (dictated by the IV
+                size) form the IV.
+
+            We implement exactly the subset of `EVP_BytesToKey` that the
+            Node.js `crypto` library (v21 series and older) uses in its
+            implementation of `crypto.createCipher("aes256", password)`.
+            Specifically, the message digest function is fixed to MD5,
+            the salt is always empty, and the iteration count is fixed
+            at one.
+
+            Returns:
+                A 2-tuple containing the derived encryption key and the
+                derived initialization vector.
+
+            """
             total_size = key_size + iv_size
             buffer = bytearray()
             last_block = b''
