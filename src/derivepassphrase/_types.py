@@ -579,19 +579,16 @@ def clean_up_falsy_vault_config_values(  # noqa: C901,PLR0912
     return cleanup_completed
 
 
-if TYPE_CHECKING:
-    T_Buffer = TypeVar('T_Buffer', bound=Buffer)
-    """
-    A [`TypeVar`][] for classes implementing the [`Buffer`][] interface.
+T_Buffer = TypeVar('T_Buffer', bound=Buffer)
+"""
+A [`TypeVar`][] for classes implementing the [`Buffer`][] interface.
 
-    Warning:
-        Non-public attribute, provided for didactical and educational
-        purposes only.  Subject to change without notice, including
-        removal.
+Warning:
+    Non-public attribute, provided for didactical and educational
+    purposes only.  Subject to change without notice, including
+    removal.
 
-        Additionally, this type variable is inaccessible at runtime.
-
-    """
+"""
 
 
 class SSHKeyCommentPair(NamedTuple, Generic[T_Buffer]):

@@ -303,7 +303,7 @@ class TestStoreroom:
             hashing_key=bytes(storeroom.KEY_SIZE),
         )
         with pytest.raises(ValueError, match='Cannot handle version 255'):
-            storeroom.decrypt_bucket_item(bucket_item, master_keys)
+            storeroom._decrypt_bucket_item(bucket_item, master_keys)
 
     @pytest.mark.parametrize('config', ['xxx', 'null', '{"version": 255}'])
     def test_401_decrypt_bucket_file_bad_json_or_version(
@@ -325,7 +325,7 @@ class TestStoreroom:
             with open('.vault/20', 'w', encoding='UTF-8') as outfile:
                 print(config, file=outfile)
             with pytest.raises(ValueError, match='Invalid bucket file: '):
-                list(storeroom.decrypt_bucket_file('.vault/20', master_keys))
+                list(storeroom._decrypt_bucket_file('.vault/20', master_keys))
 
     @pytest.mark.parametrize(
         ['data', 'err_msg'],
@@ -442,7 +442,7 @@ class TestStoreroom:
             ValueError,
             match=r'Invalid encrypted master keys payload',
         ):
-            storeroom.decrypt_master_keys_data(
+            storeroom._decrypt_master_keys_data(
                 data,
                 _types.StoreroomKeyPair(encryption_key=key, signing_key=key),
             )
@@ -450,7 +450,7 @@ class TestStoreroom:
             ValueError,
             match=r'Invalid encrypted session keys payload',
         ):
-            storeroom.decrypt_session_keys(
+            storeroom._decrypt_session_keys(
                 data,
                 _types.StoreroomMasterKeys(
                     hashing_key=key, encryption_key=key, signing_key=key
@@ -470,12 +470,12 @@ class TestStoreroom:
         # computationally infeasible, and the chance of finding one by
         # such random sampling is astronomically tiny.
         with pytest.raises(cryptography.exceptions.InvalidSignature):
-            storeroom.decrypt_master_keys_data(
+            storeroom._decrypt_master_keys_data(
                 data,
                 _types.StoreroomKeyPair(encryption_key=key, signing_key=key),
             )
         with pytest.raises(cryptography.exceptions.InvalidSignature):
-            storeroom.decrypt_session_keys(
+            storeroom._decrypt_session_keys(
                 data,
                 _types.StoreroomMasterKeys(
                     hashing_key=key, encryption_key=key, signing_key=key
