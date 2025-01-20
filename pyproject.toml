@@ -247,9 +247,7 @@ select = [
     'CPY', 'C4', 'DTZ', 'T10', 'DJ', 'EM', 'EXE', 'FA',
     'ISC', 'ICN', 'LOG', 'G', 'INP', 'PIE', 'T20', 'PYI',
     'PT', 'Q', 'RET', 'SLF', 'SLOT', 'SIM', 'TID', 'TC',
-    'INT', 'ARG',
-    # We currently do not use pathlib. Disable 'PTH'.
-    'TD',
+    'INT', 'ARG', 'PTH', 'TD',
     # We use TODOs and FIXMEs as notes for later, and don't want the
     # linter to nag about every occurrence.  Disable 'FIX'.
     #

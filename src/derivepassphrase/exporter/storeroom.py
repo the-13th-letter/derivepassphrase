@@ -25,12 +25,12 @@ should *not* be used or relied on.
 from __future__ import annotations
 
 import base64
-import fnmatch
 import importlib
 import json
 import logging
 import os
 import os.path
+import pathlib
 import struct
 from typing import TYPE_CHECKING, Any
 
@@ -107,6 +107,8 @@ def export_storeroom_data(  # noqa: C901,D417,PLR0912,PLR0914,PLR0915
     importlib.import_module('cryptography')
     if path is None:
         path = exporter.get_vault_path()
+    else:
+        path = pathlib.Path(os.fsdecode(path))
     if key is None:
         key = exporter.get_vault_key()
     if format != 'storeroom':  # pragma: no cover
@@ -115,15 +117,11 @@ def export_storeroom_data(  # noqa: C901,D417,PLR0912,PLR0914,PLR0915
         )
         raise ValueError(msg)
     try:
-        master_keys_file = open(  # noqa: SIM115
-            os.path.join(os.fsdecode(path), '.keys'),
+        master_keys_file = pathlib.Path(path, '.keys').open(  # noqa: SIM115
             encoding='utf-8',
         )
     except FileNotFoundError as exc:
-        raise exporter.NotAVaultConfigError(
-            os.fsdecode(path),
-            format='storeroom',
-        ) from exc
+        raise exporter.NotAVaultConfigError(path, format='storeroom') from exc
     with master_keys_file:
         header = json.loads(master_keys_file.readline())
         if header != {'version': 1}:
@@ -149,14 +147,7 @@ def export_storeroom_data(  # noqa: C901,D417,PLR0912,PLR0914,PLR0915
 
     config_structure: dict[str, Any] = {}
     json_contents: dict[str, bytes] = {}
-    # Use glob.glob(..., root_dir=...) here once Python 3.9 becomes
-    # unsupported.
-    storeroom_path_str = os.fsdecode(path)
-    valid_hashdirs = [
-        hashdir_name
-        for hashdir_name in os.listdir(storeroom_path_str)
-        if fnmatch.fnmatch(hashdir_name, '[01][0-9a-f]')
-    ]
+    valid_hashdirs = list(path.glob('[01][0-9a-f]'))
     for file in valid_hashdirs:
         logger.info(
             _msg.TranslatedString(
@@ -165,8 +156,7 @@ def export_storeroom_data(  # noqa: C901,D417,PLR0912,PLR0914,PLR0915
             )
         )
         bucket_contents = [
-            bytes(item)
-            for item in _decrypt_bucket_file(file, master_keys, root_dir=path)
+            bytes(item) for item in _decrypt_bucket_file(file, master_keys)
         ]
         bucket_index = json.loads(bucket_contents.pop(0))
         for pos, item in enumerate(bucket_index):
@@ -669,7 +659,7 @@ def _decrypt_bucket_item(
 
 
 def _decrypt_bucket_file(
-    filename: str,
+    filename: str | bytes | os.PathLike,
     master_keys: _types.StoreroomMasterKeys,
     *,
     root_dir: str | bytes | os.PathLike = '.',
@@ -705,9 +695,9 @@ def _decrypt_bucket_file(
 
     """
     master_keys = master_keys.toreadonly()
-    with open(
-        os.path.join(os.fsdecode(root_dir), filename), 'rb'
-    ) as bucket_file:
+    root_dir = pathlib.Path(os.fsdecode(root_dir))
+    filename = pathlib.Path(os.fsdecode(filename))
+    with (root_dir / filename).open('rb') as bucket_file:
         header_line = bucket_file.readline()
         try:
             header = json.loads(header_line)

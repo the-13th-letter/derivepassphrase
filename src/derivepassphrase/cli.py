@@ -17,6 +17,7 @@ import inspect
 import json
 import logging
 import os
+import pathlib
 import shlex
 import sys
 import unicodedata
@@ -50,7 +51,6 @@ else:
     import tomli as tomllib
 
 if TYPE_CHECKING:
-    import pathlib
     import socket
     import types
     from collections.abc import (
@@ -1468,7 +1468,7 @@ def derivepassphrase_export_vault(
 
 def _config_filename(
     subsystem: str | None = 'old settings.json',
-) -> str | bytes | pathlib.Path:
+) -> pathlib.Path:
     """Return the filename of the configuration file for the subsystem.
 
     The (implicit default) file is currently named `settings.json`,
@@ -1495,9 +1495,9 @@ def _config_filename(
         The subsystem will be mandatory to specify.
 
     """
-    path: str | bytes | pathlib.Path
-    path = os.getenv(PROG_NAME.upper() + '_PATH') or click.get_app_dir(
-        PROG_NAME, force_posix=True
+    path = pathlib.Path(
+        os.getenv(PROG_NAME.upper() + '_PATH')
+        or click.get_app_dir(PROG_NAME, force_posix=True)
     )
     # Use match/case here once Python 3.9 becomes unsupported.
     if subsystem is None:
@@ -1511,7 +1511,7 @@ def _config_filename(
     else:  # pragma: no cover
         msg = f'Unknown configuration subsystem: {subsystem!r}'
         raise AssertionError(msg)
-    return os.path.join(path, filename)
+    return path / filename
 
 
 def _load_config() -> _types.VaultConfig:
@@ -1532,7 +1532,7 @@ def _load_config() -> _types.VaultConfig:
 
     """
     filename = _config_filename(subsystem='vault')
-    with open(filename, 'rb') as fileobj:
+    with filename.open('rb') as fileobj:
         data = json.load(fileobj)
     if not _types.is_vault_config(data):
         raise ValueError(_INVALID_VAULT_CONFIG)
@@ -1563,12 +1563,12 @@ def _migrate_and_load_old_config() -> tuple[
     """
     new_filename = _config_filename(subsystem='vault')
     old_filename = _config_filename(subsystem='old settings.json')
-    with open(old_filename, 'rb') as fileobj:
+    with old_filename.open('rb') as fileobj:
         data = json.load(fileobj)
     if not _types.is_vault_config(data):
         raise ValueError(_INVALID_VAULT_CONFIG)
     try:
-        os.replace(old_filename, new_filename)
+        old_filename.rename(new_filename)
     except OSError as exc:
         return data, exc
     else:
@@ -1591,17 +1591,13 @@ def _save_config(config: _types.VaultConfig, /) -> None:
         ValueError:
             The data cannot be stored as a vault(1)-compatible config.
 
-    """  # noqa: DOC501
+    """
     if not _types.is_vault_config(config):
         raise ValueError(_INVALID_VAULT_CONFIG)
     filename = _config_filename(subsystem='vault')
-    filedir = os.path.dirname(os.path.abspath(filename))
-    try:
-        os.makedirs(filedir, exist_ok=False)
-    except FileExistsError:
-        if not os.path.isdir(filedir):
-            raise
-    with open(filename, 'w', encoding='UTF-8') as fileobj:
+    filedir = filename.resolve().parent
+    filedir.mkdir(parents=True, exist_ok=True)
+    with filename.open('w', encoding='UTF-8') as fileobj:
         json.dump(config, fileobj)
 
 
@@ -1622,7 +1618,7 @@ def _load_user_config() -> dict[str, Any]:
 
     """
     filename = _config_filename(subsystem='user configuration')
-    with open(filename, 'rb') as fileobj:
+    with filename.open('rb') as fileobj:
         return tomllib.load(fileobj)
 
 
@@ -2489,8 +2485,8 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     delete_service_settings: bool = False,
     delete_globals: bool = False,
     clear_all_settings: bool = False,
-    export_settings: TextIO | pathlib.Path | os.PathLike[str] | None = None,
-    import_settings: TextIO | pathlib.Path | os.PathLike[str] | None = None,
+    export_settings: TextIO | os.PathLike[str] | None = None,
+    import_settings: TextIO | os.PathLike[str] | None = None,
     overwrite_config: bool = False,
     unset_settings: Sequence[str] = (),
     export_as: Literal['json', 'sh'] = 'json',
@@ -2676,10 +2672,8 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 backup_config, exc = _migrate_and_load_old_config()
             except FileNotFoundError:
                 return {'services': {}}
-            old_name = os.path.basename(
-                _config_filename(subsystem='old settings.json')
-            )
-            new_name = os.path.basename(_config_filename(subsystem='vault'))
+            old_name = _config_filename(subsystem='old settings.json').name
+            new_name = _config_filename(subsystem='vault').name
             deprecation.warning(
                 _msg.TranslatedString(
                     _msg.WarnMsgTemplate.V01_STYLE_CONFIG,
