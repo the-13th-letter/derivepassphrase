@@ -24,6 +24,7 @@ import functools
 import gettext
 import inspect
 import os
+import pathlib
 import string
 import sys
 import textwrap
@@ -48,7 +49,7 @@ PROG_NAME = 'derivepassphrase'
 
 
 def load_translations(
-    localedirs: list[str] | None = None,
+    localedirs: list[str | bytes | os.PathLike] | None = None,
     languages: Sequence[str] | None = None,
     class_: type[gettext.NullTranslations] | None = None,
 ) -> gettext.NullTranslations:  # pragma: no cover
@@ -71,29 +72,36 @@ def load_translations(
     Returns:
         A (potentially dummy) translation catalog.
 
+    Raises:
+        RuntimeError:
+            `APPDATA` (on Windows) or `XDG_DATA_HOME` (otherwise) is not
+            set.  We attempted to compute the default value, but failed
+            to determine the home directory.
+
     """
     if localedirs is None:
         if sys.platform.startswith('win'):
-            xdg_data_home = os.environ.get(
-                'APPDATA',
-                os.path.expanduser('~'),
+            xdg_data_home = (
+                pathlib.Path(os.environ['APPDATA'])
+                if os.environ.get('APPDATA')
+                else pathlib.Path('~').expanduser()
             )
         elif os.environ.get('XDG_DATA_HOME'):
-            xdg_data_home = os.environ['XDG_DATA_HOME']
+            xdg_data_home = pathlib.Path(os.environ['XDG_DATA_HOME'])
         else:
-            xdg_data_home = os.path.join(
-                os.path.expanduser('~'), '.local', 'share'
+            xdg_data_home = (
+                pathlib.Path('~').expanduser() / '.local' / '.share'
             )
         localedirs = [
-            os.path.join(xdg_data_home, 'locale'),
-            os.path.join(sys.prefix, 'share', 'locale'),
-            os.path.join(sys.base_prefix, 'share', 'locale'),
+            pathlib.Path(xdg_data_home, 'locale'),
+            pathlib.Path(sys.prefix, 'share', 'locale'),
+            pathlib.Path(sys.base_prefix, 'share', 'locale'),
         ]
     for localedir in localedirs:
         with contextlib.suppress(OSError):
             return gettext.translation(
                 PROG_NAME,
-                localedir=localedir,
+                localedir=os.fsdecode(localedir),
                 languages=languages,
                 class_=class_,
             )

@@ -7,7 +7,7 @@ from __future__ import annotations
 import base64
 import contextlib
 import json
-import os
+import pathlib
 from typing import TYPE_CHECKING
 
 import click.testing
@@ -180,11 +180,12 @@ class TestCLI:
             vault_config='',
             vault_key=tests.VAULT_MASTER_KEY,
         ):
-            os.remove('.vault')
-            os.mkdir('.vault')
+            p = pathlib.Path('.vault')
+            p.unlink()
+            p.mkdir()
             result_ = runner.invoke(
                 cli.derivepassphrase_export_vault,
-                ['.vault'],
+                [str(p)],
             )
         result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
@@ -322,10 +323,11 @@ class TestStoreroom:
             runner=runner,
             vault_config=tests.VAULT_STOREROOM_CONFIG_ZIPPED,
         ):
-            with open('.vault/20', 'w', encoding='UTF-8') as outfile:
+            p = pathlib.Path('.vault', '20')
+            with p.open('w', encoding='UTF-8') as outfile:
                 print(config, file=outfile)
             with pytest.raises(ValueError, match='Invalid bucket file: '):
-                list(storeroom._decrypt_bucket_file('.vault/20', master_keys))
+                list(storeroom._decrypt_bucket_file(p, master_keys))
 
     @pytest.mark.parametrize(
         ['data', 'err_msg'],
@@ -356,7 +358,8 @@ class TestStoreroom:
             vault_config=tests.VAULT_STOREROOM_CONFIG_ZIPPED,
             vault_key=tests.VAULT_MASTER_KEY,
         ):
-            with open('.vault/.keys', 'w', encoding='UTF-8') as outfile:
+            p = pathlib.Path('.vault', '.keys')
+            with p.open('w', encoding='UTF-8') as outfile:
                 print(data, file=outfile)
             with pytest.raises(RuntimeError, match=err_msg):
                 handler(format='storeroom')

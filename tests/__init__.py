@@ -12,6 +12,7 @@ import importlib.util
 import json
 import logging
 import os
+import pathlib
 import re
 import shlex
 import stat
@@ -1440,18 +1441,16 @@ def isolated_config(
         stack.enter_context(
             cli.StandardCLILogging.ensure_standard_warnings_logging()
         )
-        monkeypatch.setenv('HOME', os.getcwd())
-        monkeypatch.setenv('USERPROFILE', os.getcwd())
+        cwd = str(pathlib.Path.cwd().resolve())
+        monkeypatch.setenv('HOME', cwd)
+        monkeypatch.setenv('USERPROFILE', cwd)
         monkeypatch.delenv(env_name, raising=False)
         config_dir = cli._config_filename(subsystem=None)
-        os.makedirs(config_dir, exist_ok=True)
+        config_dir.mkdir(parents=True, exist_ok=True)
         if isinstance(main_config_str, str):
-            with open(
-                cli._config_filename('user configuration'),
-                'w',
-                encoding='UTF-8',
-            ) as outfile:
-                outfile.write(main_config_str)
+            cli._config_filename('user configuration').write_text(
+                main_config_str, encoding='UTF-8'
+            )
         yield
 
 
@@ -1466,7 +1465,7 @@ def isolated_vault_config(
         monkeypatch=monkeypatch, runner=runner, main_config_str=main_config_str
     ):
         config_filename = cli._config_filename(subsystem='vault')
-        with open(config_filename, 'w', encoding='UTF-8') as outfile:
+        with config_filename.open('w', encoding='UTF-8') as outfile:
             json.dump(vault_config, outfile)
         yield
 
@@ -1486,15 +1485,18 @@ def isolated_vault_exporter_config(
         except AttributeError:
 
             @contextlib.contextmanager
-            def chdir(newpath: str) -> Iterator[None]:  # pragma: no branch
-                oldpath = os.getcwd()
+            def chdir(
+                newpath: str | bytes | os.PathLike,
+            ) -> Iterator[None]:  # pragma: no branch
+                oldpath = pathlib.Path.cwd().resolve()
                 os.chdir(newpath)
                 yield
                 os.chdir(oldpath)
 
     with runner.isolated_filesystem():
-        monkeypatch.setenv('HOME', os.getcwd())
-        monkeypatch.setenv('USERPROFILE', os.getcwd())
+        cwd = str(pathlib.Path.cwd().resolve())
+        monkeypatch.setenv('HOME', cwd)
+        monkeypatch.setenv('USERPROFILE', cwd)
         monkeypatch.delenv('VAULT_PATH', raising=False)
         monkeypatch.delenv('VAULT_KEY', raising=False)
         monkeypatch.delenv('LOGNAME', raising=False)
@@ -1502,16 +1504,16 @@ def isolated_vault_exporter_config(
         monkeypatch.delenv('USERNAME', raising=False)
         if vault_key is not None:
             monkeypatch.setenv('VAULT_KEY', vault_key)
+        vault_config_path = pathlib.Path('.vault').resolve()
         # Use match/case here once Python 3.9 becomes unsupported.
         if isinstance(vault_config, str):
-            with open('.vault', 'w', encoding='UTF-8') as outfile:
-                print(vault_config, file=outfile)
+            vault_config_path.write_text(f'{vault_config}\n', encoding='UTF-8')
         elif isinstance(vault_config, bytes):
-            os.makedirs('.vault', mode=0o700, exist_ok=True)
+            vault_config_path.mkdir(parents=True, mode=0o700, exist_ok=True)
             # Use parenthesized context manager expressions here once
             # Python 3.9 becomes unsupported.
             with contextlib.ExitStack() as stack:
-                stack.enter_context(chdir('.vault'))
+                stack.enter_context(chdir(vault_config_path))
                 tmpzipfile = stack.enter_context(
                     tempfile.NamedTemporaryFile(suffix='.zip')
                 )
@@ -1562,7 +1564,7 @@ def make_file_readonly(
     and are susceptible to race conditions.
 
     """
-    fname: int | str | bytes | os.PathLike[str]
+    fname: int | str | bytes | os.PathLike
     if try_race_free_implementation and {os.stat, os.chmod} <= os.supports_fd:
         fname = os.open(
             pathname,
@@ -1573,13 +1575,13 @@ def make_file_readonly(
     else:
         fname = pathname
     try:
-        orig_mode = os.stat(fname).st_mode
+        orig_mode = os.stat(fname).st_mode  # noqa: PTH116
         new_mode = (
             orig_mode & ~stat.S_IWUSR & ~stat.S_IWGRP & ~stat.S_IWOTH
             | stat.S_IREAD
         )
-        os.chmod(fname, stat.S_IREAD)
-        os.chmod(fname, new_mode)
+        os.chmod(fname, stat.S_IREAD)  # noqa: PTH101
+        os.chmod(fname, new_mode)  # noqa: PTH101
     finally:
         if isinstance(fname, int):
             os.close(fname)

@@ -12,6 +12,7 @@ import io
 import json
 import logging
 import os
+import pathlib
 import shlex
 import shutil
 import socket
@@ -926,8 +927,8 @@ class TestCLI:
                 input=json.dumps(config),
                 catch_exceptions=False,
             )
-            with open(
-                cli._config_filename(subsystem='vault'), encoding='UTF-8'
+            with cli._config_filename(subsystem='vault').open(
+                encoding='UTF-8'
             ) as infile:
                 config2 = json.load(infile)
         result = tests.ReadableResult.parse(result_)
@@ -965,8 +966,8 @@ class TestCLI:
                 input=json.dumps(config),
                 catch_exceptions=False,
             )
-            with open(
-                cli._config_filename(subsystem='vault'), encoding='UTF-8'
+            with cli._config_filename(subsystem='vault').open(
+                encoding='UTF-8'
             ) as infile:
                 config3 = json.load(infile)
         result = tests.ReadableResult.parse(result_)
@@ -1020,10 +1021,9 @@ class TestCLI:
         # configuration file ourselves afterwards, inside the context.
         # We also might as well use `isolated_config` instead.
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
-            with open(
-                cli._config_filename(subsystem='vault'), 'w', encoding='UTF-8'
-            ) as outfile:
-                print('This string is not valid JSON.', file=outfile)
+            cli._config_filename(subsystem='vault').write_text(
+                'This string is not valid JSON.\n', encoding='UTF-8'
+            )
             dname = cli._config_filename(subsystem=None)
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -1049,8 +1049,7 @@ class TestCLI:
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
-            with contextlib.suppress(FileNotFoundError):
-                os.remove(cli._config_filename(subsystem='vault'))
+            cli._config_filename(subsystem='vault').unlink(missing_ok=True)
             result_ = runner.invoke(
                 # Test parent context navigation by not calling
                 # `cli.derivepassphrase_vault` directly.  Used e.g. in
@@ -1104,9 +1103,9 @@ class TestCLI:
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
-            with contextlib.suppress(FileNotFoundError):
-                os.remove(cli._config_filename(subsystem='vault'))
-            os.makedirs(cli._config_filename(subsystem='vault'))
+            config_file = cli._config_filename(subsystem='vault')
+            config_file.unlink(missing_ok=True)
+            config_file.mkdir(parents=True, exist_ok=True)
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--export', '-', *export_options],
@@ -1158,10 +1157,10 @@ class TestCLI:
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
+            config_dir = cli._config_filename(subsystem=None)
             with contextlib.suppress(FileNotFoundError):
-                shutil.rmtree('.derivepassphrase')
-            with open('.derivepassphrase', 'w', encoding='UTF-8') as outfile:
-                print('Obstruction!!', file=outfile)
+                shutil.rmtree(config_dir)
+            config_dir.write_text('Obstruction!!\n')
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--export', '-', *export_options],
@@ -1197,8 +1196,8 @@ contents go here
             )
             result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(empty_stderr=True), 'expected clean exit'
-            with open(
-                cli._config_filename(subsystem='vault'), encoding='UTF-8'
+            with cli._config_filename(subsystem='vault').open(
+                encoding='UTF-8'
             ) as infile:
                 config = json.load(infile)
             assert config == {
@@ -1223,8 +1222,8 @@ contents go here
             )
             result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(empty_stderr=True), 'expected clean exit'
-            with open(
-                cli._config_filename(subsystem='vault'), encoding='UTF-8'
+            with cli._config_filename(subsystem='vault').open(
+                encoding='UTF-8'
             ) as infile:
                 config = json.load(infile)
             assert config == {'global': {'phrase': 'abc'}, 'services': {}}
@@ -1246,8 +1245,8 @@ contents go here
             )
             result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(empty_stderr=True), 'expected clean exit'
-            with open(
-                cli._config_filename(subsystem='vault'), encoding='UTF-8'
+            with cli._config_filename(subsystem='vault').open(
+                encoding='UTF-8'
             ) as infile:
                 config = json.load(infile)
             assert config == {
@@ -1274,8 +1273,8 @@ contents go here
             assert result.error_exit(error='the user aborted the request'), (
                 'expected known error message'
             )
-            with open(
-                cli._config_filename(subsystem='vault'), encoding='UTF-8'
+            with cli._config_filename(subsystem='vault').open(
+                encoding='UTF-8'
             ) as infile:
                 config = json.load(infile)
             assert config == {'global': {'phrase': 'abc'}, 'services': {}}
@@ -1346,8 +1345,8 @@ contents go here
             )
             result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(), 'expected clean exit'
-            with open(
-                cli._config_filename(subsystem='vault'), encoding='UTF-8'
+            with cli._config_filename(subsystem='vault').open(
+                encoding='UTF-8'
             ) as infile:
                 config = json.load(infile)
             assert config == result_config, (
@@ -1457,7 +1456,8 @@ contents go here
             runner=runner,
             vault_config={'global': {'phrase': 'abc'}, 'services': {}},
         ):
-            monkeypatch.setenv('SSH_AUTH_SOCK', os.getcwd())
+            cwd = pathlib.Path.cwd().resolve()
+            monkeypatch.setenv('SSH_AUTH_SOCK', str(cwd))
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--key', '--config'],
@@ -1674,16 +1674,8 @@ contents go here
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            shutil.rmtree('.derivepassphrase')
-            os_makedirs_called = False
-            real_os_makedirs = os.makedirs
-
-            def makedirs(*args: Any, **kwargs: Any) -> Any:
-                nonlocal os_makedirs_called
-                os_makedirs_called = True
-                return real_os_makedirs(*args, **kwargs)
-
-            monkeypatch.setattr(os, 'makedirs', makedirs)
+            with contextlib.suppress(FileNotFoundError):
+                shutil.rmtree(cli._config_filename(subsystem=None))
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '-p'],
@@ -1695,9 +1687,8 @@ contents go here
             assert result.stderr == 'Passphrase:', (
                 'program unexpectedly failed?!'
             )
-            assert os_makedirs_called, 'os.makedirs has not been called?!'
-            with open(
-                cli._config_filename(subsystem='vault'), encoding='UTF-8'
+            with cli._config_filename(subsystem='vault').open(
+                encoding='UTF-8'
             ) as infile:
                 config_readback = json.load(infile)
             assert config_readback == {
@@ -1717,12 +1708,10 @@ contents go here
             save_config_ = cli._save_config
 
             def obstruct_config_saving(*args: Any, **kwargs: Any) -> Any:
+                config_dir = cli._config_filename(subsystem=None)
                 with contextlib.suppress(FileNotFoundError):
-                    shutil.rmtree('.derivepassphrase')
-                with open(
-                    '.derivepassphrase', 'w', encoding='UTF-8'
-                ) as outfile:
-                    print('Obstruction!!', file=outfile)
+                    shutil.rmtree(config_dir)
+                config_dir.write_text('Obstruction!!\n')
                 monkeypatch.setattr(cli, '_save_config', save_config_)
                 return save_config_(*args, **kwargs)
 
@@ -2089,7 +2078,7 @@ class TestCLIUtils:
             monkeypatch=monkeypatch, runner=runner, vault_config=config
         ):
             config_filename = cli._config_filename(subsystem='vault')
-            with open(config_filename, encoding='UTF-8') as fileobj:
+            with config_filename.open(encoding='UTF-8') as fileobj:
                 assert json.load(fileobj) == config
             assert cli._load_config() == config
 
@@ -2600,8 +2589,8 @@ Boo.
                 assert result.clean_exit(empty_stderr=True), (
                     'expected clean exit'
                 )
-                with open(
-                    cli._config_filename(subsystem='vault'), encoding='UTF-8'
+                with cli._config_filename(subsystem='vault').open(
+                    encoding='UTF-8'
                 ) as infile:
                     config_readback = json.load(infile)
                 assert config_readback == result_config
@@ -2844,11 +2833,9 @@ class TestCLITransition:
     ) -> None:
         runner = click.testing.CliRunner()
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
-            config_filename = cli._config_filename(
-                subsystem='old settings.json'
+            cli._config_filename(subsystem='old settings.json').write_text(
+                json.dumps(config, indent=2) + '\n', encoding='UTF-8'
             )
-            with open(config_filename, 'w', encoding='UTF-8') as fileobj:
-                print(json.dumps(config, indent=2), file=fileobj)
             assert cli._migrate_and_load_old_config()[0] == config
 
     @pytest.mark.parametrize(
@@ -2875,11 +2862,9 @@ class TestCLITransition:
     ) -> None:
         runner = click.testing.CliRunner()
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
-            config_filename = cli._config_filename(
-                subsystem='old settings.json'
+            cli._config_filename(subsystem='old settings.json').write_text(
+                json.dumps(config, indent=2) + '\n', encoding='UTF-8'
             )
-            with open(config_filename, 'w', encoding='UTF-8') as fileobj:
-                print(json.dumps(config, indent=2), file=fileobj)
             assert cli._migrate_and_load_old_config() == (config, None)
 
     @pytest.mark.parametrize(
@@ -2906,12 +2891,12 @@ class TestCLITransition:
     ) -> None:
         runner = click.testing.CliRunner()
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
-            config_filename = cli._config_filename(
-                subsystem='old settings.json'
+            cli._config_filename(subsystem='old settings.json').write_text(
+                json.dumps(config, indent=2) + '\n', encoding='UTF-8'
             )
-            with open(config_filename, 'w', encoding='UTF-8') as fileobj:
-                print(json.dumps(config, indent=2), file=fileobj)
-            os.mkdir(cli._config_filename(subsystem='vault'))
+            cli._config_filename(subsystem='vault').mkdir(
+                parents=True, exist_ok=True
+            )
             config2, err = cli._migrate_and_load_old_config()
             assert config2 == config
             assert isinstance(err, OSError)
@@ -2941,11 +2926,9 @@ class TestCLITransition:
     ) -> None:
         runner = click.testing.CliRunner()
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
-            config_filename = cli._config_filename(
-                subsystem='old settings.json'
+            cli._config_filename(subsystem='old settings.json').write_text(
+                json.dumps(config, indent=2) + '\n', encoding='UTF-8'
             )
-            with open(config_filename, 'w', encoding='UTF-8') as fileobj:
-                print(json.dumps(config, indent=2), file=fileobj)
             with pytest.raises(ValueError, match=cli._INVALID_VAULT_CONFIG):
                 cli._migrate_and_load_old_config()
 
@@ -3077,18 +3060,14 @@ class TestCLITransition:
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            with open(
-                cli._config_filename(subsystem='old settings.json'),
-                'w',
-                encoding='UTF-8',
-            ) as fileobj:
-                print(
-                    json.dumps(
-                        {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
-                        indent=2,
-                    ),
-                    file=fileobj,
+            cli._config_filename(subsystem='old settings.json').write_text(
+                json.dumps(
+                    {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
+                    indent=2,
                 )
+                + '\n',
+                encoding='UTF-8',
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--export', '-'],
@@ -3113,18 +3092,14 @@ class TestCLITransition:
             monkeypatch=monkeypatch,
             runner=runner,
         ):
-            with open(
-                cli._config_filename(subsystem='old settings.json'),
-                'w',
-                encoding='UTF-8',
-            ) as fileobj:
-                print(
-                    json.dumps(
-                        {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
-                        indent=2,
-                    ),
-                    file=fileobj,
+            cli._config_filename(subsystem='old settings.json').write_text(
+                json.dumps(
+                    {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
+                    indent=2,
                 )
+                + '\n',
+                encoding='UTF-8',
+            )
 
             def raiser(*_args: Any, **_kwargs: Any) -> None:
                 raise OSError(
@@ -3134,6 +3109,7 @@ class TestCLITransition:
                 )
 
             monkeypatch.setattr(os, 'replace', raiser)
+            monkeypatch.setattr(pathlib.Path, 'rename', raiser)
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--export', '-'],
@@ -3161,9 +3137,8 @@ class TestCLITransition:
         ):
             old_name = cli._config_filename(subsystem='old settings.json')
             new_name = cli._config_filename(subsystem='vault')
-            with contextlib.suppress(FileNotFoundError):
-                os.remove(old_name)
-            os.rename(new_name, old_name)
+            old_name.unlink(missing_ok=True)
+            new_name.rename(old_name)
             assert cli._shell_complete_service(
                 click.Context(cli.derivepassphrase),
                 click.Argument(['some_parameter']),
@@ -4183,7 +4158,7 @@ class TestShellCompletion:
             runner=runner,
             vault_config={'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
         ):
-            os.remove(cli._config_filename(subsystem='vault'))
+            cli._config_filename(subsystem='vault').unlink(missing_ok=True)
             assert not cli._shell_complete_service(
                 click.Context(cli.derivepassphrase),
                 click.Argument(['some_parameter']),

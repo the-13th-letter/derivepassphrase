@@ -31,6 +31,7 @@ import importlib
 import json
 import logging
 import os
+import pathlib
 import warnings
 from typing import TYPE_CHECKING
 
@@ -107,7 +108,9 @@ def export_vault_native_data(  # noqa: D417
     importlib.import_module('cryptography')
     if path is None:
         path = exporter.get_vault_path()
-    with open(path, 'rb') as infile:
+    else:
+        path = pathlib.Path(os.fsdecode(path))
+    with path.open('rb') as infile:
         contents = base64.standard_b64decode(infile.read())
     if key is None:
         key = exporter.get_vault_key()
@@ -123,10 +126,7 @@ def export_vault_native_data(  # noqa: D417
     try:
         return parser_class(contents, key)()
     except ValueError as exc:
-        raise exporter.NotAVaultConfigError(
-            os.fsdecode(path),
-            format=format,
-        ) from exc
+        raise exporter.NotAVaultConfigError(path, format=format) from exc
 
 
 def _h(bs: Buffer) -> str:
@@ -615,14 +615,10 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
             value (if any):
 
             ~~~~ python
-
-            data = block_input = b''.join([
-                previous_block, input_string, salt
-            ])
+            data = block_input = b''.join([previous_block, input_string, salt])
             for i in range(iteration_count):
                 data = message_digest(data)
             block = data
-
             ~~~~
 
             We use as many blocks as are necessary to cover the
@@ -728,7 +724,7 @@ if __name__ == '__main__':
     import os
 
     logging.basicConfig(level=('DEBUG' if os.getenv('DEBUG') else 'WARNING'))
-    with open(exporter.get_vault_path(), 'rb') as infile:
+    with exporter.get_vault_path().open('rb') as infile:
         contents = base64.standard_b64decode(infile.read())
     password = exporter.get_vault_key()
     try:

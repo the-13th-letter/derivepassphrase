@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import os
+import pathlib
 from typing import TYPE_CHECKING, Any
 
 import click.testing
@@ -65,26 +66,29 @@ class Test001ExporterUtils:
     @pytest.mark.parametrize(
         ['expected', 'path'],
         [
-            ('/tmp', '/tmp'),
-            ('~', os.path.curdir),
-            ('~/.vault', None),
+            (pathlib.Path('/tmp'), pathlib.Path('/tmp')),
+            (pathlib.Path('~'), pathlib.Path()),
+            (pathlib.Path('~/.vault'), None),
         ],
     )
     def test_210_get_vault_path(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        expected: str,
-        path: str | None,
+        expected: pathlib.Path,
+        path: str | os.PathLike[str] | None,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
             monkeypatch=monkeypatch, runner=runner
         ):
             if path:
-                monkeypatch.setenv('VAULT_PATH', path)
-            assert os.fsdecode(
-                os.path.realpath(exporter.get_vault_path())
-            ) == os.path.realpath(os.path.expanduser(expected))
+                monkeypatch.setenv(
+                    'VAULT_PATH', os.fspath(path) if path is not None else None
+                )
+            assert (
+                exporter.get_vault_path().resolve()
+                == expected.expanduser().resolve()
+            )
 
     def test_220_register_export_vault_config_data_handler(
         self, monkeypatch: pytest.MonkeyPatch
@@ -126,7 +130,11 @@ class Test001ExporterUtils:
     def test_310_get_vault_path_without_home(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setattr(os.path, 'expanduser', lambda x: x)
+        def raiser(*_args: Any, **_kwargs: Any) -> Any:
+            raise RuntimeError('Cannot determine home directory.')  # noqa: EM101,TRY003
+
+        monkeypatch.setattr(pathlib.Path, 'expanduser', raiser)
+        monkeypatch.setattr(os.path, 'expanduser', raiser)
         with pytest.raises(
             RuntimeError, match=r'[Cc]annot determine home directory'
         ):

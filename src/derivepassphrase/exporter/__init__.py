@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import importlib
 import os
+import pathlib
 from typing import TYPE_CHECKING, Protocol
 
 import derivepassphrase as dpp
@@ -34,10 +35,10 @@ class NotAVaultConfigError(ValueError):
 
     def __init__(
         self,
-        path: str | bytes,
+        path: str | bytes | os.PathLike,
         format: str | None = None,  # noqa: A002
     ) -> None:
-        self.path = path
+        self.path = os.fspath(path)
         self.format = format
 
     def __str__(self) -> str:  # pragma: no cover
@@ -79,7 +80,7 @@ def get_vault_key() -> bytes:
     return username
 
 
-def get_vault_path() -> str | bytes | os.PathLike:
+def get_vault_path() -> pathlib.Path:
     """Automatically determine the vault(1) configuration path.
 
     Query the `VAULT_PATH` environment variable, or default to
@@ -96,13 +97,9 @@ def get_vault_path() -> str | bytes | os.PathLike:
             manually to the correct value.
 
     """
-    result = os.path.join(
-        os.path.expanduser('~'), os.environ.get('VAULT_PATH', '.vault')
-    )
-    if result.startswith('~'):
-        msg = 'Cannot determine home directory'
-        raise RuntimeError(msg)
-    return result
+    return pathlib.Path(
+        '~', os.environ.get('VAULT_PATH', '.vault')
+    ).expanduser()
 
 
 class ExportVaultConfigDataFunction(Protocol):  # pragma: no cover
