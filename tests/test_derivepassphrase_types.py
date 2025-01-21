@@ -73,7 +73,7 @@ def test_100_js_truthiness(value: Any) -> None:
     [
         conf
         for conf in tests.TEST_CONFIGS
-        if conf.validation_settings in {None, (True, True)}
+        if conf.validation_settings in {None, (True,)}
     ],
     ids=tests._test_config_ids,
 )

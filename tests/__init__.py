@@ -321,7 +321,7 @@ def is_valid_test_config(conf: VaultTestConfig, /) -> bool:
     """
     return not conf.comment and conf.validation_settings in {
         None,
-        (True, True),
+        (True,),
     }
 
 
