@@ -11,6 +11,7 @@ import enum
 import json
 import math
 import string
+import warnings
 from typing import TYPE_CHECKING, Generic, TypeVar
 
 from typing_extensions import (
@@ -19,6 +20,7 @@ from typing_extensions import (
     NotRequired,
     TypedDict,
     deprecated,
+    get_overloads,
     overload,
 )
 
@@ -39,6 +41,14 @@ __all__ = (
     'VaultConfig',
     'is_vault_config',
 )
+
+
+class _Omitted:  # pragma: no cover
+    def __bool__(self) -> bool:
+        return False
+
+    def __repr__(self) -> str:
+        return '...'
 
 
 class VaultConfigGlobalSettings(TypedDict, total=False):
@@ -244,7 +254,7 @@ def validate_vault_config(  # noqa: C901,PLR0912
     /,
     *,
     allow_unknown_settings: bool = False,
-    allow_derivepassphrase_extensions: bool = False,
+    allow_derivepassphrase_extensions: bool = _Omitted(),  # type: ignore[assignment]
 ) -> None:
     """Check that `obj` is a valid vault config.
 
@@ -271,6 +281,16 @@ def validate_vault_config(  # noqa: C901,PLR0912
             specified `derivepassphrase` extensions.
 
     """
+    # TODO(the-13th-letter): Add tests that trigger the deprecation warning,
+    # then include this in coverage.
+    if not isinstance(
+        allow_derivepassphrase_extensions, _Omitted
+    ):  # pragma: no cover
+        warnings.warn(
+            get_overloads(validate_vault_config)[0].__deprecated__,  # type: ignore[attr-defined]
+            DeprecationWarning,
+            stacklevel=2,
+        )
     err_obj_not_a_dict = 'vault config is not a dict'
     err_non_str_service_name = (
         'vault config contains non-string service name {!r}'
@@ -377,7 +397,6 @@ def is_vault_config(obj: Any) -> TypeIs[VaultConfig]:  # noqa: ANN401
         validate_vault_config(
             obj,
             allow_unknown_settings=True,
-            allow_derivepassphrase_extensions=True,
         )
     except (TypeError, ValueError) as exc:
         if 'vault config ' not in str(exc):  # pragma: no cover
