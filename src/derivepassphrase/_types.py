@@ -6,12 +6,12 @@
 
 from __future__ import annotations
 
-import collections
 import enum
 import json
 import math
 import string
-from typing import TYPE_CHECKING, Generic, TypeVar
+import warnings
+from typing import TYPE_CHECKING, Generic, TypeVar, cast
 
 from typing_extensions import (
     Buffer,
@@ -19,11 +19,12 @@ from typing_extensions import (
     NotRequired,
     TypedDict,
     deprecated,
+    get_overloads,
     overload,
 )
 
 if TYPE_CHECKING:
-    from collections.abc import MutableSequence, Sequence
+    from collections.abc import Iterator, Sequence
     from typing import Literal
 
     from typing_extensions import (
@@ -39,6 +40,14 @@ __all__ = (
     'VaultConfig',
     'is_vault_config',
 )
+
+
+class _Omitted:  # pragma: no cover
+    def __bool__(self) -> bool:
+        return False
+
+    def __repr__(self) -> str:
+        return '...'
 
 
 class VaultConfigGlobalSettings(TypedDict, total=False):
@@ -216,6 +225,180 @@ def json_path(path: Sequence[str | int], /) -> str:
     return ''.join(chunks)
 
 
+class _VaultConfigValidator:
+    INVALID_CONFIG_ERROR = 'vault config is invalid'
+
+    def __init__(self, maybe_config: Any) -> None:  # noqa: ANN401
+        self.maybe_config = maybe_config
+
+    def traverse_path(self, path: tuple[str, ...]) -> Any:  # noqa: ANN401
+        obj = self.maybe_config
+        for key in path:
+            obj = obj[key]
+        return obj
+
+    def walk_subconfigs(
+        self,
+    ) -> Iterator[tuple[tuple[str] | tuple[str, str], str, Any]]:
+        obj = cast('dict[str, dict[str, Any]]', self.maybe_config)
+        if isinstance(obj.get('global', False), dict):
+            for k, v in list(obj['global'].items()):
+                yield ('global',), k, v
+        for sv_name, sv_obj in list(obj['services'].items()):
+            for k, v in list(sv_obj.items()):
+                yield ('services', sv_name), k, v
+
+    def validate(  # noqa: C901,PLR0912
+        self,
+        *,
+        allow_unknown_settings: bool = False,
+    ) -> None:
+        err_obj_not_a_dict = 'vault config is not a dict'
+        err_non_str_service_name = (
+            'vault config contains non-string service name {sv_name!r}'
+        )
+        err_not_a_dict = 'vault config entry {json_path_str} is not a dict'
+        err_not_a_string = 'vault config entry {json_path_str} is not a string'
+        err_not_an_int = 'vault config entry {json_path_str} is not an integer'
+        err_unknown_setting = (
+            'vault config entry {json_path_str} uses unknown setting {key!r}'
+        )
+        err_bad_number0 = 'vault config entry {json_path_str} is negative'
+        err_bad_number1 = 'vault config entry {json_path_str} is not positive'
+
+        kwargs: dict[str, Any] = {
+            'allow_unknown_settings': allow_unknown_settings,
+        }
+        if not isinstance(self.maybe_config, dict):
+            raise TypeError(err_obj_not_a_dict.format(**kwargs))
+        if 'global' in self.maybe_config:
+            o_global = self.maybe_config['global']
+            if not isinstance(o_global, dict):
+                kwargs['json_path_str'] = json_path(['global'])
+                raise TypeError(err_not_a_dict.format(**kwargs))
+        if not isinstance(self.maybe_config.get('services'), dict):
+            kwargs['json_path_str'] = json_path(['services'])
+            raise TypeError(err_not_a_dict.format(**kwargs))
+        for sv_name, service in self.maybe_config['services'].items():
+            if not isinstance(sv_name, str):
+                kwargs['sv_name'] = sv_name
+                raise TypeError(err_non_str_service_name.format(**kwargs))
+            if not isinstance(service, dict):
+                kwargs['json_path_str'] = json_path(['services', sv_name])
+                raise TypeError(err_not_a_dict.format(**kwargs))
+        for path, key, value in self.walk_subconfigs():
+            kwargs['path'] = path
+            kwargs['key'] = key
+            kwargs['value'] = value
+            kwargs['json_path_str'] = json_path([*path, key])
+            # Use match/case here once Python 3.9 becomes unsupported.
+            if key in {'key', 'phrase'}:
+                if not isinstance(value, str):
+                    raise TypeError(err_not_a_string.format(**kwargs))
+            elif key == 'unicode_normalization_form' and path == (
+                'global',
+            ):
+                if not isinstance(value, str):
+                    raise TypeError(err_not_a_string.format(**kwargs))
+                if not allow_unknown_settings:
+                    raise ValueError(err_unknown_setting.format(**kwargs))
+            elif key == 'notes' and path != ('global',):
+                if not isinstance(value, str):
+                    raise TypeError(err_not_a_string.format(**kwargs))
+            elif key in {
+                'length',
+                'repeat',
+                'lower',
+                'upper',
+                'number',
+                'space',
+                'dash',
+                'symbol',
+            }:
+                if not isinstance(value, int):
+                    raise TypeError(err_not_an_int.format(**kwargs))
+                if key == 'length' and value < 1:
+                    raise ValueError(err_bad_number1.format(**kwargs))
+                if key != 'length' and value < 0:
+                    raise ValueError(err_bad_number0.format(**kwargs))
+            elif not allow_unknown_settings:
+                raise ValueError(err_unknown_setting.format(**kwargs))
+
+    def clean_up_falsy_values(self) -> Iterator[CleanupStep]:  # noqa: C901
+        obj = self.maybe_config
+        if (
+            not isinstance(obj, dict)
+            or 'services' not in obj
+            or not isinstance(obj['services'], dict)
+        ):
+            raise ValueError(self.INVALID_CONFIG_ERROR)  # pragma: no cover
+        if 'global' in obj and not isinstance(obj['global'], dict):
+            raise ValueError(self.INVALID_CONFIG_ERROR)  # pragma: no cover
+        if not all(
+            isinstance(service_obj, dict)
+            for service_obj in obj['services'].values()
+        ):
+            raise ValueError(self.INVALID_CONFIG_ERROR)  # pragma: no cover
+
+        def falsy(value: Any) -> bool:  # noqa: ANN401
+            return not js_truthiness(value)
+
+        def falsy_but_not_zero(value: Any) -> bool:  # noqa: ANN401
+            return not js_truthiness(value) and not (
+                isinstance(value, int) and value == 0
+            )
+
+        def falsy_but_not_string(value: Any) -> bool:  # noqa: ANN401
+            return not js_truthiness(value) and value != ''  # noqa: PLC1901
+
+        for path, key, value in self.walk_subconfigs():
+            service_obj = self.traverse_path(path)
+            # Use match/case here once Python 3.9 becomes unsupported.
+            if key == 'phrase' and falsy_but_not_string(value):
+                yield CleanupStep(
+                    (*path, key), service_obj[key], 'replace', ''
+                )
+                service_obj[key] = ''
+            elif key == 'notes' and falsy(value):
+                yield CleanupStep(
+                    (*path, key), service_obj[key], 'remove', None
+                )
+                service_obj.pop(key)
+            elif key == 'key' and falsy(value):
+                if path == ('global',):
+                    yield CleanupStep(
+                        (*path, key), service_obj[key], 'remove', None
+                    )
+                    service_obj.pop(key)
+                else:
+                    yield CleanupStep(
+                        (*path, key), service_obj[key], 'replace', ''
+                    )
+                    service_obj[key] = ''
+            elif key == 'length' and falsy(value):
+                yield CleanupStep(
+                    (*path, key), service_obj[key], 'replace', 20
+                )
+                service_obj[key] = 20
+            elif key == 'repeat' and falsy_but_not_zero(value):
+                yield CleanupStep(
+                    (*path, key), service_obj[key], 'replace', 0
+                )
+                service_obj[key] = 0
+            elif key in {
+                'lower',
+                'upper',
+                'number',
+                'space',
+                'dash',
+                'symbol',
+            } and falsy_but_not_zero(value):
+                yield CleanupStep(
+                    (*path, key), service_obj[key], 'remove', None
+                )
+                service_obj.pop(key)
+
+
 @overload
 @deprecated(
     'allow_derivepassphrase_extensions argument is deprecated since v0.4.0, '
@@ -239,12 +422,12 @@ def validate_vault_config(
 ) -> None: ...
 
 
-def validate_vault_config(  # noqa: C901,PLR0912
+def validate_vault_config(
     obj: Any,
     /,
     *,
     allow_unknown_settings: bool = False,
-    allow_derivepassphrase_extensions: bool = False,
+    allow_derivepassphrase_extensions: bool = _Omitted(),  # type: ignore[assignment]
 ) -> None:
     """Check that `obj` is a valid vault config.
 
@@ -271,96 +454,20 @@ def validate_vault_config(  # noqa: C901,PLR0912
             specified `derivepassphrase` extensions.
 
     """
-    err_obj_not_a_dict = 'vault config is not a dict'
-    err_non_str_service_name = (
-        'vault config contains non-string service name {!r}'
+    # TODO(the-13th-letter): Add tests that trigger the deprecation warning,
+    # then include this in coverage.
+    if not isinstance(
+        allow_derivepassphrase_extensions, _Omitted
+    ):  # pragma: no cover
+        warnings.warn(
+            get_overloads(validate_vault_config)[0].__deprecated__,  # type: ignore[attr-defined]
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+    return _VaultConfigValidator(obj).validate(
+        allow_unknown_settings=allow_unknown_settings
     )
-
-    def err_not_a_dict(path: Sequence[str], /) -> str:
-        json_path_str = json_path(path)
-        return f'vault config entry {json_path_str} is not a dict'
-
-    def err_not_a_string(path: Sequence[str], /) -> str:
-        json_path_str = json_path(path)
-        return f'vault config entry {json_path_str} is not a string'
-
-    def err_not_an_int(path: Sequence[str], /) -> str:
-        json_path_str = json_path(path)
-        return f'vault config entry {json_path_str} is not an integer'
-
-    def err_unknown_setting(key: str, path: Sequence[str], /) -> str:
-        json_path_str = json_path(path)
-        return (
-            f'vault config entry {json_path_str} uses unknown setting {key!r}'
-        )
-
-    def err_bad_number(
-        key: str,
-        path: Sequence[str],
-        /,
-        *,
-        strictly_positive: bool = False,
-    ) -> str:
-        json_path_str = json_path((*path, key))
-        return f'vault config entry {json_path_str} is ' + (
-            'not positive' if strictly_positive else 'negative'
-        )
-
-    if not isinstance(obj, dict):
-        raise TypeError(err_obj_not_a_dict)
-    queue_to_check: list[tuple[dict[str, Any], tuple[str, ...]]] = []
-    if 'global' in obj:
-        o_global = obj['global']
-        if not isinstance(o_global, dict):
-            raise TypeError(err_not_a_dict(['global']))
-        queue_to_check.append((o_global, ('global',)))
-    if not isinstance(obj.get('services'), dict):
-        raise TypeError(err_not_a_dict(['services']))
-    for sv_name, service in obj['services'].items():
-        if not isinstance(sv_name, str):
-            raise TypeError(err_non_str_service_name.format(sv_name))
-        if not isinstance(service, dict):
-            raise TypeError(err_not_a_dict(['services', sv_name]))
-        queue_to_check.append((service, ('services', sv_name)))
-    for settings, path in queue_to_check:
-        for key, value in settings.items():
-            # Use match/case here once Python 3.9 becomes unsupported.
-            if key in {'key', 'phrase'}:
-                if not isinstance(value, str):
-                    raise TypeError(err_not_a_string((*path, key)))
-            elif key == 'unicode_normalization_form' and path == ('global',):
-                if not isinstance(value, str):
-                    raise TypeError(err_not_a_string((*path, key)))
-                if (
-                    not allow_derivepassphrase_extensions
-                    and not allow_unknown_settings
-                ):
-                    raise ValueError(err_unknown_setting(key, path))
-            elif key == 'notes' and path != ('global',):
-                if not isinstance(value, str):
-                    raise TypeError(err_not_a_string((*path, key)))
-            elif key in {
-                'length',
-                'repeat',
-                'lower',
-                'upper',
-                'number',
-                'space',
-                'dash',
-                'symbol',
-            }:
-                if not isinstance(value, int):
-                    raise TypeError(err_not_an_int((*path, key)))
-                if key == 'length' and value < 1:
-                    raise ValueError(
-                        err_bad_number(key, path, strictly_positive=True)
-                    )
-                if key != 'length' and value < 0:
-                    raise ValueError(
-                        err_bad_number(key, path, strictly_positive=False)
-                    )
-            elif not allow_unknown_settings:
-                raise ValueError(err_unknown_setting(key, path))
 
 
 def is_vault_config(obj: Any) -> TypeIs[VaultConfig]:  # noqa: ANN401
@@ -377,7 +484,6 @@ def is_vault_config(obj: Any) -> TypeIs[VaultConfig]:  # noqa: ANN401
         validate_vault_config(
             obj,
             allow_unknown_settings=True,
-            allow_derivepassphrase_extensions=True,
         )
     except (TypeError, ValueError) as exc:
         if 'vault config ' not in str(exc):  # pragma: no cover
@@ -451,7 +557,7 @@ class CleanupStep(NamedTuple):
     """"""
 
 
-def clean_up_falsy_vault_config_values(  # noqa: C901,PLR0912
+def clean_up_falsy_vault_config_values(
     obj: Any,  # noqa: ANN401
 ) -> Sequence[CleanupStep] | None:
     """Convert falsy values in a vault config to correct types, in-place.
@@ -481,102 +587,10 @@ def clean_up_falsy_vault_config_values(  # noqa: C901,PLR0912
         vault configuration, then `None` is returned, directly.
 
     """
-    if (  # pragma: no cover
-        not isinstance(obj, dict)
-        or 'services' not in obj
-        or not isinstance(obj['services'], dict)
-    ):
-        # config is invalid
+    try:
+        return list(_VaultConfigValidator(obj).clean_up_falsy_values())
+    except ValueError:
         return None
-    service_objects: MutableSequence[
-        tuple[Sequence[str | int], dict[str, Any]]
-    ] = collections.deque()
-    if 'global' in obj:
-        if isinstance(obj['global'], dict):
-            service_objects.append((['global'], obj['global']))
-        else:  # pragma: no cover
-            # config is invalid
-            return None
-    service_objects.extend(
-        (['services', sv], val) for sv, val in obj['services'].items()
-    )
-    if not all(  # pragma: no cover
-        isinstance(service_obj, dict) for _, service_obj in service_objects
-    ):
-        # config is invalid
-        return None
-    cleanup_completed: MutableSequence[CleanupStep] = collections.deque()
-    for path, service_obj in service_objects:
-        for key, value in list(service_obj.items()):
-            # Use match/case here once Python 3.9 becomes unsupported.
-            if key == 'phrase':
-                if not js_truthiness(value) and value != '':  # noqa: PLC1901
-                    cleanup_completed.append(
-                        CleanupStep(
-                            (*path, key), service_obj[key], 'replace', ''
-                        )
-                    )
-                    service_obj[key] = ''
-            elif key == 'notes':
-                if not js_truthiness(value):
-                    cleanup_completed.append(
-                        CleanupStep(
-                            (*path, key), service_obj[key], 'remove', None
-                        )
-                    )
-                    service_obj.pop(key)
-            elif key == 'key':
-                if not js_truthiness(value):
-                    if path == ['global']:
-                        cleanup_completed.append(
-                            CleanupStep(
-                                (*path, key), service_obj[key], 'remove', None
-                            )
-                        )
-                        service_obj.pop(key)
-                    else:
-                        cleanup_completed.append(
-                            CleanupStep(
-                                (*path, key), service_obj[key], 'replace', ''
-                            )
-                        )
-                        service_obj[key] = ''
-            elif key == 'length':
-                if not js_truthiness(value):
-                    cleanup_completed.append(
-                        CleanupStep(
-                            (*path, key), service_obj[key], 'replace', 20
-                        )
-                    )
-                    service_obj[key] = 20
-            elif key == 'repeat':
-                if not js_truthiness(value) and not (
-                    isinstance(value, int) and value == 0
-                ):
-                    cleanup_completed.append(
-                        CleanupStep(
-                            (*path, key), service_obj[key], 'replace', 0
-                        )
-                    )
-                    service_obj[key] = 0
-            elif key in {  # noqa: SIM102
-                'lower',
-                'upper',
-                'number',
-                'space',
-                'dash',
-                'symbol',
-            }:
-                if not js_truthiness(value) and not (
-                    isinstance(value, int) and value == 0
-                ):
-                    cleanup_completed.append(
-                        CleanupStep(
-                            (*path, key), service_obj[key], 'remove', None
-                        )
-                    )
-                    service_obj.pop(key)
-    return cleanup_completed
 
 
 T_Buffer = TypeVar('T_Buffer', bound=Buffer)

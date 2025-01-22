@@ -12,7 +12,7 @@ import os
 import socket
 from typing import TYPE_CHECKING, overload
 
-from typing_extensions import Self, assert_never
+from typing_extensions import Never, Self, assert_type
 
 from derivepassphrase import _types
 
@@ -335,7 +335,7 @@ class SSHAgentClient:
             with SSHAgentClient(socket=conn) as client:
                 yield client
         else:  # pragma: no cover
-            assert_never(conn)
+            assert_type(conn, Never)
             msg = f'invalid connection hint: {conn!r}'
             raise TypeError(msg)
 
