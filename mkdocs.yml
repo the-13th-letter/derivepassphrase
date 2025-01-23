@@ -115,7 +115,10 @@ nav:
   - Design & Background:
     - explanation/index.md
     - '"altered versions" license requirement': explanation/faq-altered-versions.md
-  - Changelog: changelog.md
+  - Changelog:
+    - Changelog: changelog.md
+    - Upgrade notes: upgrade-notes.md
+    - Python compatibility: pycompatibility.md
 exclude_docs: |
   changelog.d
 not_in_nav: |
