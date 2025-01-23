@@ -119,9 +119,8 @@ nav:
     - Changelog: changelog.md
     - Upgrade notes: upgrade-notes.md
     - Python compatibility: pycompatibility.md
-exclude_docs: |
+draft_docs: |
   changelog.d
-not_in_nav: |
   _future.md
 
 markdown_extensions:

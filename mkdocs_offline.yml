@@ -1,6 +1,9 @@
 INHERIT: mkdocs.yml
 
-exclude_docs: ''
+draft_docs: |
+  _future.md
+not_in_nav: |
+  changelog.d
 
 plugins:
   offline:
