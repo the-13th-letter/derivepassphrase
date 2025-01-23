@@ -590,8 +590,9 @@ class TestAgentInteraction:
     ) -> None:
         del running_ssh_agent
 
-        # Use parenthesized context manager expressions once Python 3.9
-        # becomes unsupported.
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             stack.enter_context(pytest.raises(exc_type, match=exc_pattern))
             client = stack.enter_context(ssh_agent.SSHAgentClient())
@@ -652,8 +653,9 @@ class TestAgentInteraction:
                 assert single_code in response_codes
             return response_data  # pragma: no cover
 
-        # Use parenthesized context manager expressions once Python 3.9
-        # becomes unsupported.
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             monkeypatch2 = stack.enter_context(monkeypatch.context())
             client = stack.enter_context(ssh_agent.SSHAgentClient())

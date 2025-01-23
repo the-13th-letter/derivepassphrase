@@ -1433,8 +1433,8 @@ def isolated_config(
 ) -> Iterator[None]:
     prog_name = cli.PROG_NAME
     env_name = prog_name.replace(' ', '_').upper() + '_PATH'
-    # Use parenthesized context manager expressions once Python 3.9
-    # becomes unsupported.
+    # TODO(the-13th-letter): Rewrite using parenthesized with-statements.
+    # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
     with contextlib.ExitStack() as stack:
         stack.enter_context(runner.isolated_filesystem())
         stack.enter_context(cli.StandardCLILogging.ensure_standard_logging())
@@ -1477,6 +1477,8 @@ def isolated_vault_exporter_config(
     vault_config: str | bytes | None = None,
     vault_key: str | None = None,
 ) -> Iterator[None]:
+    # TODO(the-13th-letter): Remove the fallback implementation.
+    # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.10
     if TYPE_CHECKING:
         chdir: Callable[..., AbstractContextManager]
     else:
@@ -1505,13 +1507,15 @@ def isolated_vault_exporter_config(
         if vault_key is not None:
             monkeypatch.setenv('VAULT_KEY', vault_key)
         vault_config_path = pathlib.Path('.vault').resolve()
-        # Use match/case here once Python 3.9 becomes unsupported.
+        # TODO(the-13th-letter): Rewrite using structural pattern matching.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         if isinstance(vault_config, str):
             vault_config_path.write_text(f'{vault_config}\n', encoding='UTF-8')
         elif isinstance(vault_config, bytes):
             vault_config_path.mkdir(parents=True, mode=0o700, exist_ok=True)
-            # Use parenthesized context manager expressions here once
-            # Python 3.9 becomes unsupported.
+            # TODO(the-13th-letter): Rewrite using parenthesized
+            # with-statements.
+            # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
             with contextlib.ExitStack() as stack:
                 stack.enter_context(chdir(vault_config_path))
                 tmpzipfile = stack.enter_context(
@@ -1647,7 +1651,8 @@ class ReadableResult(NamedTuple):
                 else error.match(line) is not None
             )
 
-        # Use match/case here once Python 3.9 becomes unsupported.
+        # TODO(the-13th-letter): Rewrite using structural pattern matching.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         if isinstance(error, type):
             return isinstance(self.exception, error)
         else:  # noqa: RET505

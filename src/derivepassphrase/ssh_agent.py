@@ -44,7 +44,8 @@ class SSHAgentFailedError(RuntimeError):
     """The SSH agent failed to complete the requested operation."""
 
     def __str__(self) -> str:
-        # Use match/case here once Python 3.9 becomes unsupported.
+        # TODO(the-13th-letter): Rewrite using structural pattern matching.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         if self.args == (  # pragma: no branch
             _types.SSH_AGENT.FAILURE.value,
             b'',
@@ -327,7 +328,8 @@ class SSHAgentClient:
                 setting up a socket connection to the agent.
 
         """  # noqa: DOC501
-        # Use match/case here once Python 3.9 becomes unsupported.
+        # TODO(the-13th-letter): Rewrite using structural pattern matching.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         if isinstance(conn, SSHAgentClient):
             with contextlib.nullcontext():
                 yield conn
