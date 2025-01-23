@@ -1071,6 +1071,46 @@ if (
 # =========
 
 
+# Portions of this class are based directly on code from click 8.1.
+# (This does not in general include docstrings, unless otherwise noted.)
+# They are subject to the 3-clause BSD license in the following
+# paragraphs.  Modifications to their code are marked with respective
+# comments; they too are released under the same license below.  The
+# original code did not contain any "noqa" or "pragma" comments.
+#
+#     Copyright 2024 Pallets
+#
+#     Redistribution and use in source and binary forms, with or
+#     without modification, are permitted provided that the
+#     following conditions are met:
+#
+#      1. Redistributions of source code must retain the above
+#         copyright notice, this list of conditions and the
+#         following disclaimer.
+#
+#      2. Redistributions in binary form must reproduce the above
+#         copyright notice, this list of conditions and the
+#         following disclaimer in the documentation and/or other
+#         materials provided with the distribution.
+#
+#      3. Neither the name of the copyright holder nor the names
+#         of its contributors may be used to endorse or promote
+#         products derived from this software without specific
+#         prior written permission.
+#
+#     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+#     CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
+#     INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+#     MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+#     DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+#     CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#     SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+#     NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#     LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+#     HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+#     CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+#     OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+#     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class _DefaultToVaultGroup(CommandWithHelpGroups, click.Group):
     """A helper class to implement the default-to-"vault"-subcommand behavior.
 
@@ -1082,51 +1122,7 @@ class _DefaultToVaultGroup(CommandWithHelpGroups, click.Group):
     def resolve_command(
         self, ctx: click.Context, args: list[str]
     ) -> tuple[str | None, click.Command | None, list[str]]:
-        """Resolve a command, but default to "vault" instead of erroring out.
-
-        Based on code from click 8.1, which appears to be essentially
-        untouched since at least click 3.2.  Subject to the following
-        license (3-clause BSD license):
-
-            Copyright 2024 Pallets
-
-            Redistribution and use in source and binary forms, with or
-            without modification, are permitted provided that the following
-            conditions are met:
-
-             1. Redistributions of source code must retain the above
-                copyright notice, this list of conditions and the following
-                disclaimer.
-
-             2. Redistributions in binary form must reproduce the above
-                copyright notice, this list of conditions and the following
-                disclaimer in the documentation and/or other materials
-                provided with the distribution.
-
-             3. Neither the name of the copyright holder nor the names of
-                its contributors may be used to endorse or promote products
-                derived from this software without specific prior written
-                permission.
-
-            THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-            CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
-            INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-            MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-            DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
-            CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-            SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-            LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
-            USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
-            AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-            LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
-            IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-            THE POSSIBILITY OF SUCH DAMAGE.
-
-        Modifications to this routine are marked with "modifications for
-        derivepassphrase".  Furthermore, all "pragma" and "noqa" comments
-        are also modifications for derivepassphrase.
-
-        """  # noqa: DOC201
+        """Resolve a command, defaulting to "vault" instead of erroring out."""  # noqa: DOC201
         cmd_name = click.utils.make_str(args[0])
 
         # Get the command
@@ -1465,6 +1461,13 @@ def derivepassphrase_export_vault(
 # Vault
 # =====
 
+_config_filename_table = {
+    None: '.',
+    'vault': 'vault.json',
+    'user configuration': 'config.toml',
+    'old settings.json': 'settings.json',
+}
+
 
 def _config_filename(
     subsystem: str | None = 'old settings.json',
@@ -1499,18 +1502,11 @@ def _config_filename(
         os.getenv(PROG_NAME.upper() + '_PATH')
         or click.get_app_dir(PROG_NAME, force_posix=True)
     )
-    # Use match/case here once Python 3.9 becomes unsupported.
-    if subsystem is None:
-        return path
-    elif subsystem == 'vault':  # noqa: RET505
-        filename = f'{subsystem}.json'
-    elif subsystem == 'user configuration':
-        filename = 'config.toml'
-    elif subsystem == 'old settings.json':
-        filename = 'settings.json'
-    else:  # pragma: no cover
+    try:
+        filename = _config_filename_table[subsystem]
+    except (KeyError, TypeError):  # pragma: no cover
         msg = f'Unknown configuration subsystem: {subsystem!r}'
-        raise AssertionError(msg)
+        raise AssertionError(msg) from None
     return path / filename
 
 
@@ -2160,20 +2156,6 @@ def _validate_length(
     return int_value
 
 
-DEFAULT_NOTES_TEMPLATE = """\
-# Enter notes below the line with the cut mark (ASCII scissors and
-# dashes).  Lines above the cut mark (such as this one) will be ignored.
-#
-# If you wish to clear the notes, leave everything beyond the cut mark
-# blank.  However, if you leave the *entire* file blank, also removing
-# the cut mark, then the edit is aborted, and the old notes contents are
-# retained.
-#
-# - - - - - >8 - - - - - >8 - - - - - >8 - - - - - >8 - - - - -
-"""
-DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
-
-
 @derivepassphrase.command(
     'vault',
     context_settings={'help_option_names': ['-h', '--help']},
@@ -2591,23 +2573,23 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     for param in ctx.command.params:
         if isinstance(param, click.Option):
             group: type[click.Option]
-            # Use match/case here once Python 3.9 becomes unsupported.
-            if isinstance(param, PassphraseGenerationOption):
-                group = PassphraseGenerationOption
-            elif isinstance(param, ConfigurationOption):
-                group = ConfigurationOption
-            elif isinstance(param, StorageManagementOption):
-                group = StorageManagementOption
-            elif isinstance(param, LoggingOption):
-                group = LoggingOption
-            elif isinstance(param, CompatibilityOption):
-                group = CompatibilityOption
-            elif isinstance(param, StandardOption):
-                group = StandardOption
-            elif isinstance(param, OptionGroupOption):  # pragma: no cover
-                raise AssertionError(  # noqa: TRY003,TRY004
-                    f'Unknown option group for {param!r}'  # noqa: EM102
-                )
+            known_option_groups = [
+                PassphraseGenerationOption,
+                ConfigurationOption,
+                StorageManagementOption,
+                LoggingOption,
+                CompatibilityOption,
+                StandardOption,
+            ]
+            if isinstance(param, OptionGroupOption):
+                for class_ in known_option_groups:
+                    if isinstance(param, class_):
+                        group = class_
+                        break
+                else:  # pragma: no cover
+                    raise AssertionError(  # noqa: TRY003
+                        f'Unknown option group for {param!r}'  # noqa: EM102
+                    )
             else:
                 group = click.Option
             options_in_group.setdefault(group, []).append(param)
@@ -2826,15 +2808,24 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     if edit_notes:
         assert service is not None
         configuration = get_config()
-        text = DEFAULT_NOTES_TEMPLATE + configuration['services'].get(
+        notes_instructions = _msg.TranslatedString(
+            _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_INSTRUCTION_TEXT
+        )
+        notes_marker = _msg.TranslatedString(
+            _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_MARKER
+        )
+        old_notes_value = configuration['services'].get(
             service, cast('_types.VaultConfigServicesSettings', {})
         ).get('notes', '')
+        text = '\n'.join([
+            str(notes_instructions), str(notes_marker), old_notes_value
+        ])
         notes_value = click.edit(text=text)
         if notes_value is not None:
             notes_lines = collections.deque(notes_value.splitlines(True))  # noqa: FBT003
             while notes_lines:
                 line = notes_lines.popleft()
-                if line.startswith(DEFAULT_NOTES_MARKER):
+                if line.startswith(str(notes_marker)):
                     notes_value = ''.join(notes_lines)
                     break
             else:
@@ -3248,7 +3239,6 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 for k, v in settings.items()
                 if k in service_keys and v is not None
             }
-
             if use_phrase:
                 try:
                     _check_for_misleading_passphrase(
@@ -3265,7 +3255,6 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                             filename=None,
                         ).maybe_without_filename(),
                     )
-
             # If either --key or --phrase are given, use that setting.
             # Otherwise, if both key and phrase are set in the config,
             # use the key.  Otherwise, if only one of key and phrase is
