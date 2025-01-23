@@ -2086,8 +2086,9 @@ class TestCLIUtils:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         runner = click.testing.CliRunner()
-        # Use parenthesized context manager expressions here once Python
-        # 3.9 becomes unsupported.
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             stack.enter_context(
                 tests.isolated_vault_config(
@@ -2632,7 +2633,9 @@ Boo.
                 ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
             hint: ssh_agent.SSHAgentClient | socket.socket | None
-            # Use match/case here once Python 3.9 becomes unsupported.
+            # TODO(the-13th-letter): Rewrite using structural pattern
+            # matching.
+            # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
             if conn_hint == 'client':
                 hint = ssh_agent.SSHAgentClient()
             elif conn_hint == 'socket':
@@ -2737,6 +2740,8 @@ Boo.
                 cli._key_to_phrase(loaded_key, error_callback=err)
 
 
+# TODO(the-13th-letter): Remove this class in v1.0.
+# https://the13thletter.info/derivepassphrase/latest/upgrade-notes/#upgrading-to-v1.0
 class TestCLITransition:
     def test_100_help_output(self, monkeypatch: pytest.MonkeyPatch) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)

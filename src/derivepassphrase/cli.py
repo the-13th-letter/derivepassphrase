@@ -1111,6 +1111,9 @@ if (
 #     CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 #     OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 #     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# TODO(the-13th-letter): Remove this class and license block in v1.0.
+# https://the13thletter.info/derivepassphrase/latest/upgrade-notes/#v1.0-implied-subcommands
 class _DefaultToVaultGroup(CommandWithHelpGroups, click.Group):
     """A helper class to implement the default-to-"vault"-subcommand behavior.
 
@@ -1166,6 +1169,9 @@ class _DefaultToVaultGroup(CommandWithHelpGroups, click.Group):
         return cmd_name if cmd else None, cmd, args[1:]
 
 
+# TODO(the-13th-letter): Base this class on CommandWithHelpGroups and
+# click.Group in v1.0.
+# https://the13thletter.info/derivepassphrase/latest/upgrade-notes/#v1.0-implied-subcommands
 class _TopLevelCLIEntryPoint(_DefaultToVaultGroup):
     """A minor variation of _DefaultToVaultGroup for the top-level command.
 
@@ -1227,6 +1233,8 @@ def derivepassphrase(ctx: click.Context, /) -> None:
     [CLICK]: https://pypi.org/package/click/
 
     """
+    # TODO(the-13th-letter): Turn this callback into a no-op in v1.0.
+    # https://the13thletter.info/derivepassphrase/latest/upgrade-notes/#v1.0-implied-subcommands
     deprecation = logging.getLogger(f'{PROG_NAME}.deprecation')
     if ctx.invoked_subcommand is None:
         deprecation.warning(
@@ -1280,6 +1288,8 @@ def derivepassphrase_export(ctx: click.Context, /) -> None:
     [CLICK]: https://pypi.org/package/click/
 
     """
+    # TODO(the-13th-letter): Turn this callback into a no-op in v1.0.
+    # https://the13thletter.info/derivepassphrase/latest/upgrade-notes/#v1.0-implied-subcommands
     deprecation = logging.getLogger(f'{PROG_NAME}.deprecation')
     if ctx.invoked_subcommand is None:
         deprecation.warning(
@@ -1465,6 +1475,8 @@ _config_filename_table = {
     None: '.',
     'vault': 'vault.json',
     'user configuration': 'config.toml',
+    # TODO(the-13th-letter): Remove the old settings.json file.
+    # https://the13thletter.info/derivepassphrase/latest/upgrade-notes.html#v1.0-old-settings-file
     'old settings.json': 'settings.json',
 }
 
@@ -1535,6 +1547,8 @@ def _load_config() -> _types.VaultConfig:
     return data
 
 
+# TODO(the-13th-letter): Remove this function.
+# https://the13thletter.info/derivepassphrase/latest/upgrade-notes.html#v1.0-old-settings-file
 def _migrate_and_load_old_config() -> tuple[
     _types.VaultConfig, OSError | None
 ]:

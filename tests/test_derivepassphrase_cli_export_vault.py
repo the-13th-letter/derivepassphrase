@@ -404,8 +404,9 @@ class TestStoreroom:
         handler: exporter.ExportVaultConfigDataFunction,
     ) -> None:
         runner = click.testing.CliRunner(mix_stderr=False)
-        # Use parenthesized context manager expressions once Python 3.9
-        # becomes unsupported.
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             stack.enter_context(
                 tests.isolated_vault_exporter_config(

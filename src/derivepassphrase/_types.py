@@ -291,7 +291,9 @@ class _VaultConfigValidator:
             kwargs['key'] = key
             kwargs['value'] = value
             kwargs['json_path_str'] = json_path([*path, key])
-            # Use match/case here once Python 3.9 becomes unsupported.
+            # TODO(the-13th-letter): Rewrite using structural pattern
+            # matching.
+            # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
             if key in {'key', 'phrase'}:
                 if not isinstance(value, str):
                     raise TypeError(err_not_a_string.format(**kwargs))
@@ -353,7 +355,9 @@ class _VaultConfigValidator:
 
         for path, key, value in self.walk_subconfigs():
             service_obj = self.traverse_path(path)
-            # Use match/case here once Python 3.9 becomes unsupported.
+            # TODO(the-13th-letter): Rewrite using structural pattern
+            # matching.
+            # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
             if key == 'phrase' and falsy_but_not_string(value):
                 yield CleanupStep(
                     (*path, key), service_obj[key], 'replace', ''
@@ -454,6 +458,8 @@ def validate_vault_config(
             specified `derivepassphrase` extensions.
 
     """
+    # TODO(the-13th-letter): Remove this block in v1.0.
+    # https://the13thletter.info/derivepassphrase/latest/upgrade-notes/#v1.0-allow-derivepassphrase-extensions
     # TODO(the-13th-letter): Add tests that trigger the deprecation warning,
     # then include this in coverage.
     if not isinstance(
@@ -593,6 +599,8 @@ def clean_up_falsy_vault_config_values(
         return None
 
 
+# TODO(the-13th-letter): Use type variables local to each class.
+# https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.11
 T_Buffer = TypeVar('T_Buffer', bound=Buffer)
 """
 A [`TypeVar`][] for classes implementing the [`Buffer`][] interface.

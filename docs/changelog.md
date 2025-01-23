@@ -44,9 +44,9 @@
 
 <!-- scriv changelog start -->
 
-## 0.4.0 (2025-01-07)
+## 0.4.0 (2025-01-07)  {#v0.4.0}
 
-### Added
+### Added  {#added-in-v0.4.0}
 
   - Both `derivepassphrase vault` and `derivepassphrase export vault` now
     support changing the amount of diagnostic output they emit via new
@@ -96,7 +96,7 @@
 
 [tomli]: https://pypi.org/project/tomli/
 
-### Changed
+### Changed  {#changed-in-v0.4.0}
 
   - Calling
     [`derivepassphrase_export`][derivepassphrase.cli.derivepassphrase_export],
@@ -125,9 +125,9 @@
 [MIT]: https://spdx.org/licenses/MIT.html
 [zlib/libpng]: https://spdx.org/licenses/Zlib.html
 
-## 0.3.3 (2024-11-28)
+## 0.3.3 (2024-11-28)  {#v0.3.3}
 
-### Added
+### Added  {#added-in-v0.3.3}
 
   - Checking whether an SSH key is suitable now also depends on the SSH
     agent in use.
@@ -137,33 +137,33 @@
     If not given, then the old behavior is retained: SSH keys are suitable
     if they are suitable under any (conforming) SSH agent.
 
-### Fixed
+### Fixed  {#fixed-in-v0.3.3}
 
   - If the SSH agent supports deterministic DSA/ECDSA signatures (e.g.
     [RFC 6979][]), then mark DSA and ECDSA SSH keys as suitable.
 
 [RFC 6979]: https://www.rfc-editor.org/rfc/rfc6979
 
-## 0.3.2 (2024-10-21)
+## 0.3.2 (2024-10-21)  {#v0.3.2}
 
-### Fixed
+### Fixed  {#fixed-in-v0.3.2}
 
   - _*Actually* actually_ remove the `derivepassphrase_export` program,
     which was turned into a subcommand in v0.2.0 and supposed to have been
     removed in v0.3.1 already.
     Removed on disk is not the same as removed in version control.
 
-## 0.3.1 (2024-10-21)
+## 0.3.1 (2024-10-21)  {#v0.3.1}
 
-### Fixed
+### Fixed  {#fixed-in-v0.3.1}
 
   - Fix PyPI classification: Python 3.9 is supported.
   - *Actually* remove the `derivepassphrase_export` program, which was
     turned into a subcommand in v0.2.0.
 
-## 0.3.0 (2024-10-15)
+## 0.3.0 (2024-10-15)  {#v0.3.0}
 
-### Added
+### Added  {#added-in-v0.3.0}
 
   - Convert changelog management from towncrier to [scriv][].
   - Add SSH agent spawning support to the test suite.
@@ -190,7 +190,7 @@
 [hypothesis]: https://pypi.org/project/hypothesis/
 [scriv]: https://pypi.org/project/scriv
 
-### Changed
+### Changed  {#changed-in-v0.3.0}
 
   - Change links to point to public project repositories, if possible.
     For legal reasons.
@@ -260,15 +260,15 @@
 [#16]: https://github.com/the-13th-letter/derivepassphrase/issues/16
 [#17]: https://github.com/the-13th-letter/derivepassphrase/issues/17
 
-### Fixed
+### Fixed  {#fixed-in-v0.3.0}
 
   - Fixed the textual description of the return value for
     [`SSHAgentClient.request`][derivepassphrase.ssh_agent.SSHAgentClient.request],
     which didn't match the declared type annotation.
 
-## 0.2.0 (2024-09-12)
+## 0.2.0 (2024-09-12)  {#v0.2.0}
 
-### Added
+### Added  {#added-in-v0.2.0}
 
   - Support configuration data export from `vault` in v0.2, v0.3 and
     storeroom formats.
@@ -279,7 +279,7 @@
 
 [#1]: https://github.com/the-13th-letter/derivepassphrase/1
 
-### Fixed
+### Fixed  {#fixed-in-v0.2.0}
 
   - Deploy versioned documentation with [mike][].
     Set up a "latest" tag and the "0.<var>x</var>" version of the
@@ -287,7 +287,7 @@
 
 [mike]: https://pypi.org/project/mike
 
-### Changed
+### Changed  {#changed-in-v0.2.0}
 
   - Changed `sequin` and `ssh_agent_client` to be submodules of
     `derivepassphrase`.
@@ -329,15 +329,15 @@
 [#10]: https://github.com/the-13th-letter/derivepassphrase/10
 [#11]: https://github.com/the-13th-letter/derivepassphrase/11
 
-### Deprecated
+### Deprecated  {#deprecated-in-v0.2.0}
 
-  - Using the implied subcommand or the implied global configuration file is
+  - Using the implied subcommand or the implied global settings file is
     deprecated, and will be removed in v1.0.
 
 
-## 0.1.3 (2024-07-28)
+## 0.1.3 (2024-07-28)  {#v0.1.3}
 
-### Fixed
+### Fixed  {#fixed-in-v0.1.3}
 
   - Do not crash upon selecting a key on the command-line if there already
     is a key stored in the configuration.
@@ -358,9 +358,9 @@
 [#8]: https://github.com/the-13th-letter/derivepassphrase/8
 
 
-## 0.1.2 (2024-07-22)
+## 0.1.2 (2024-07-22)  {#v0.1.2}
 
-### Fixed
+### Fixed  {#fixed-in-v0.1.2}
 
   - Include and exclude the correct files in the `sdist` and `wheel`
     distributions.
@@ -376,9 +376,9 @@
     [towncrier](https://pypi.org/package/towncrier).
 
 
-## 0.1.1 (2024-07-14)
+## 0.1.1 (2024-07-14)  {#v0.1.1}
 
-### Fixed
+### Fixed  {#fixed-in-v0.1.1}
 
   - Restore the `__version__` attribute in all top-level packages.
   - Declare compatibility with Python 3.10 in project metadata, and include
@@ -387,8 +387,8 @@
     metadata and the Python package metadata.
 
 
-## 0.1.0 (2024-07-14)
+## 0.1.0 (2024-07-14)  {#v0.1.0}
 
-### Added
+### Added  {#added-in-v0.1.0}
 
   - Initial release.
