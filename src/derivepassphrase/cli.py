@@ -1071,6 +1071,46 @@ if (
 # =========
 
 
+# Portions of this class are based directly on code from click 8.1.
+# (This does not in general include docstrings, unless otherwise noted.)
+# They are subject to the 3-clause BSD license in the following
+# paragraphs.  Modifications to their code are marked with respective
+# comments; they too are released under the same license below.  The
+# original code did not contain any "noqa" or "pragma" comments.
+#
+#     Copyright 2024 Pallets
+#
+#     Redistribution and use in source and binary forms, with or
+#     without modification, are permitted provided that the
+#     following conditions are met:
+#
+#      1. Redistributions of source code must retain the above
+#         copyright notice, this list of conditions and the
+#         following disclaimer.
+#
+#      2. Redistributions in binary form must reproduce the above
+#         copyright notice, this list of conditions and the
+#         following disclaimer in the documentation and/or other
+#         materials provided with the distribution.
+#
+#      3. Neither the name of the copyright holder nor the names
+#         of its contributors may be used to endorse or promote
+#         products derived from this software without specific
+#         prior written permission.
+#
+#     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+#     CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
+#     INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+#     MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+#     DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+#     CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#     SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+#     NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#     LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+#     HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+#     CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+#     OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+#     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class _DefaultToVaultGroup(CommandWithHelpGroups, click.Group):
     """A helper class to implement the default-to-"vault"-subcommand behavior.
 
@@ -1082,51 +1122,7 @@ class _DefaultToVaultGroup(CommandWithHelpGroups, click.Group):
     def resolve_command(
         self, ctx: click.Context, args: list[str]
     ) -> tuple[str | None, click.Command | None, list[str]]:
-        """Resolve a command, but default to "vault" instead of erroring out.
-
-        Based on code from click 8.1, which appears to be essentially
-        untouched since at least click 3.2.  Subject to the following
-        license (3-clause BSD license):
-
-            Copyright 2024 Pallets
-
-            Redistribution and use in source and binary forms, with or
-            without modification, are permitted provided that the following
-            conditions are met:
-
-             1. Redistributions of source code must retain the above
-                copyright notice, this list of conditions and the following
-                disclaimer.
-
-             2. Redistributions in binary form must reproduce the above
-                copyright notice, this list of conditions and the following
-                disclaimer in the documentation and/or other materials
-                provided with the distribution.
-
-             3. Neither the name of the copyright holder nor the names of
-                its contributors may be used to endorse or promote products
-                derived from this software without specific prior written
-                permission.
-
-            THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-            CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
-            INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-            MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-            DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
-            CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-            SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-            LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
-            USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
-            AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-            LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
-            IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-            THE POSSIBILITY OF SUCH DAMAGE.
-
-        Modifications to this routine are marked with "modifications for
-        derivepassphrase".  Furthermore, all "pragma" and "noqa" comments
-        are also modifications for derivepassphrase.
-
-        """  # noqa: DOC201
+        """Resolve a command, defaulting to "vault" instead of erroring out."""  # noqa: DOC201
         cmd_name = click.utils.make_str(args[0])
 
         # Get the command
