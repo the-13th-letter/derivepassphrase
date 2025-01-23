@@ -34,6 +34,7 @@ class TestStaticFunctionality:
             (val.public_key, val.public_key_data)
             for val in tests.SUPPORTED_KEYS.values()
         ],
+        ids=list(tests.SUPPORTED_KEYS.keys()),
     )
     def test_100_key_decoding(
         self, public_key: bytes, public_key_data: bytes
@@ -46,52 +47,71 @@ class TestStaticFunctionality:
     @pytest.mark.parametrize(
         ['line', 'env_name', 'value'],
         [
-            (
+            pytest.param(
                 'SSH_AUTH_SOCK=/tmp/pageant.user/pageant.27170; export SSH_AUTH_SOCK;',
                 'SSH_AUTH_SOCK',
                 '/tmp/pageant.user/pageant.27170',
+                id='value-export-semicolon-pageant',
             ),
-            (
+            pytest.param(
                 'SSH_AUTH_SOCK=/tmp/ssh-3CSTC1W5M22A/agent.27270; export SSH_AUTH_SOCK;',
                 'SSH_AUTH_SOCK',
                 '/tmp/ssh-3CSTC1W5M22A/agent.27270',
+                id='value-export-semicolon-openssh',
             ),
-            (
+            pytest.param(
                 'SSH_AUTH_SOCK=/tmp/pageant.user/pageant.27170; export SSH_AUTH_SOCK',
                 'SSH_AUTH_SOCK',
                 '/tmp/pageant.user/pageant.27170',
+                id='value-export-pageant',
             ),
-            (
+            pytest.param(
                 'export SSH_AUTH_SOCK=/tmp/ssh-3CSTC1W5M22A/agent.27270;',
                 'SSH_AUTH_SOCK',
                 '/tmp/ssh-3CSTC1W5M22A/agent.27270',
+                id='export-value-semicolon-openssh',
             ),
-            (
+            pytest.param(
                 'export SSH_AUTH_SOCK=/tmp/pageant.user/pageant.27170',
                 'SSH_AUTH_SOCK',
                 '/tmp/pageant.user/pageant.27170',
+                id='export-value-pageant',
             ),
-            (
+            pytest.param(
                 'SSH_AGENT_PID=27170; export SSH_AGENT_PID;',
                 'SSH_AGENT_PID',
                 '27170',
+                id='pid-export-semicolon',
             ),
-            (
+            pytest.param(
                 'SSH_AGENT_PID=27170; export SSH_AGENT_PID',
                 'SSH_AGENT_PID',
                 '27170',
+                id='pid-export',
             ),
-            ('export SSH_AGENT_PID=27170;', 'SSH_AGENT_PID', '27170'),
-            ('export SSH_AGENT_PID=27170', 'SSH_AGENT_PID', '27170'),
-            (
+            pytest.param(
+                'export SSH_AGENT_PID=27170;',
+                'SSH_AGENT_PID',
+                '27170',
+                id='export-pid-semicolon',
+            ),
+            pytest.param(
+                'export SSH_AGENT_PID=27170',
+                'SSH_AGENT_PID',
+                '27170',
+                id='export-pid',
+            ),
+            pytest.param(
                 'export VARIABLE=value; export OTHER_VARIABLE=other_value;',
                 'VARIABLE',
                 None,
+                id='export-too-much',
             ),
-            (
+            pytest.param(
                 'VARIABLE=value',
                 'VARIABLE',
                 None,
+                id='no-export',
             ),
         ],
     )
@@ -119,7 +139,7 @@ class TestStaticFunctionality:
     @pytest.mark.parametrize(
         ['input', 'expected'],
         [
-            (16777216, b'\x01\x00\x00\x00'),
+            pytest.param(16777216, b'\x01\x00\x00\x00', id='16777216'),
         ],
     )
     def test_210_uint32(self, input: int, expected: bytes | bytearray) -> None:
@@ -129,11 +149,20 @@ class TestStaticFunctionality:
     @pytest.mark.parametrize(
         ['input', 'expected'],
         [
-            (b'ssh-rsa', b'\x00\x00\x00\x07ssh-rsa'),
-            (b'ssh-ed25519', b'\x00\x00\x00\x0bssh-ed25519'),
-            (
+            pytest.param(
+                b'ssh-rsa',
+                b'\x00\x00\x00\x07ssh-rsa',
+                id='ssh-rsa',
+            ),
+            pytest.param(
+                b'ssh-ed25519',
+                b'\x00\x00\x00\x0bssh-ed25519',
+                id='ssh-ed25519',
+            ),
+            pytest.param(
                 ssh_agent.SSHAgentClient.string(b'ssh-ed25519'),
                 b'\x00\x00\x00\x0f\x00\x00\x00\x0bssh-ed25519',
+                id='string(ssh-ed25519)',
             ),
         ],
     )
@@ -146,10 +175,15 @@ class TestStaticFunctionality:
     @pytest.mark.parametrize(
         ['input', 'expected'],
         [
-            (b'\x00\x00\x00\x07ssh-rsa', b'ssh-rsa'),
-            (
+            pytest.param(
+                b'\x00\x00\x00\x07ssh-rsa',
+                b'ssh-rsa',
+                id='ssh-rsa',
+            ),
+            pytest.param(
                 ssh_agent.SSHAgentClient.string(b'ssh-ed25519'),
                 b'ssh-ed25519',
+                id='ssh-ed25519',
             ),
         ],
     )
@@ -167,8 +201,18 @@ class TestStaticFunctionality:
     @pytest.mark.parametrize(
         ['value', 'exc_type', 'exc_pattern'],
         [
-            (10000000000000000, OverflowError, 'int too big to convert'),
-            (-1, OverflowError, "can't convert negative int to unsigned"),
+            pytest.param(
+                10000000000000000,
+                OverflowError,
+                'int too big to convert',
+                id='10000000000000000',
+            ),
+            pytest.param(
+                -1,
+                OverflowError,
+                "can't convert negative int to unsigned",
+                id='-1',
+            ),
         ],
     )
     def test_310_uint32_exceptions(
@@ -181,7 +225,9 @@ class TestStaticFunctionality:
     @pytest.mark.parametrize(
         ['input', 'exc_type', 'exc_pattern'],
         [
-            ('some string', TypeError, 'invalid payload type'),
+            pytest.param(
+                'some string', TypeError, 'invalid payload type', id='str'
+            ),
         ],
     )
     def test_311_string_exceptions(
@@ -194,20 +240,29 @@ class TestStaticFunctionality:
     @pytest.mark.parametrize(
         ['input', 'exc_type', 'exc_pattern', 'has_trailer', 'parts'],
         [
-            (b'ssh', ValueError, 'malformed SSH byte string', False, None),
-            (
+            pytest.param(
+                b'ssh',
+                ValueError,
+                'malformed SSH byte string',
+                False,
+                None,
+                id='unencoded',
+            ),
+            pytest.param(
                 b'\x00\x00\x00\x08ssh-rsa',
                 ValueError,
                 'malformed SSH byte string',
                 False,
                 None,
+                id='truncated',
             ),
-            (
+            pytest.param(
                 b'\x00\x00\x00\x04XXX trailing text',
                 ValueError,
                 'malformed SSH byte string',
                 True,
                 (b'XXX ', b'trailing text'),
+                id='trailing-data',
             ),
         ],
     )
@@ -293,6 +348,7 @@ class TestAgentInteraction:
             for value in tests.SUPPORTED_KEYS.values()
         ]
         + [(tests.list_keys_singleton()[0].key, True)],
+        ids=[*tests.SUPPORTED_KEYS.keys(), 'singleton'],
     )
     def test_210_ssh_key_selector(
         self,
@@ -389,6 +445,7 @@ class TestAgentInteraction:
             b'\x00\x00',
             b'\x00\x00\x00\x1f some bytes missing',
         ],
+        ids=['in-header', 'in-body'],
     )
     def test_310_truncated_server_response(
         self,
@@ -415,23 +472,26 @@ class TestAgentInteraction:
     @pytest.mark.parametrize(
         ['response_code', 'response', 'exc_type', 'exc_pattern'],
         [
-            (
+            pytest.param(
                 _types.SSH_AGENT.FAILURE,
                 b'',
                 ssh_agent.SSHAgentFailedError,
                 'failed to complete the request',
+                id='failed-to-complete',
             ),
-            (
+            pytest.param(
                 _types.SSH_AGENT.IDENTITIES_ANSWER,
                 b'\x00\x00\x00\x01',
                 EOFError,
                 'truncated response',
+                id='truncated-response',
             ),
-            (
+            pytest.param(
                 _types.SSH_AGENT.IDENTITIES_ANSWER,
                 b'\x00\x00\x00\x00abc',
                 ssh_agent.TrailingDataError,
                 'Overlong response',
+                id='overlong-response',
             ),
         ],
     )
@@ -493,21 +553,23 @@ class TestAgentInteraction:
             'exc_pattern',
         ],
         [
-            (
+            pytest.param(
                 b'invalid-key',
                 True,
                 _types.SSH_AGENT.FAILURE,
                 b'',
                 KeyError,
                 'target SSH key not loaded into agent',
+                id='key-not-loaded',
             ),
-            (
+            pytest.param(
                 tests.SUPPORTED_KEYS['ed25519'].public_key_data,
                 True,
                 _types.SSH_AGENT.FAILURE,
                 b'',
                 ssh_agent.SSHAgentFailedError,
                 'failed to complete the request',
+                id='failed-to-complete',
             ),
         ],
     )
@@ -572,11 +634,12 @@ class TestAgentInteraction:
     @pytest.mark.parametrize(
         ['request_code', 'response_code', 'exc_type', 'exc_pattern'],
         [
-            (
+            pytest.param(
                 _types.SSH_AGENTC.REQUEST_IDENTITIES,
                 _types.SSH_AGENT.SUCCESS,
                 ssh_agent.SSHAgentFailedError,
                 f'[Code {_types.SSH_AGENT.IDENTITIES_ANSWER.value}]',
+                id='REQUEST_IDENTITIES-expect-SUCCESS',
             ),
         ],
     )
@@ -601,10 +664,17 @@ class TestAgentInteraction:
     @pytest.mark.parametrize(
         'response_data',
         [
-            b'\xde\xad\xbe\xef',
-            b'\x00\x00\x00\x0fwrong extension',
-            b'\x00\x00\x00\x05query\xde\xad\xbe\xef',
-            b'\x00\x00\x00\x05query\x00\x00\x00\x04ext1\x00\x00',
+            pytest.param(b'\xde\xad\xbe\xef', id='truncated'),
+            pytest.param(
+                b'\x00\x00\x00\x0fwrong extension', id='wrong-extension'
+            ),
+            pytest.param(
+                b'\x00\x00\x00\x05query\xde\xad\xbe\xef', id='with-trailer'
+            ),
+            pytest.param(
+                b'\x00\x00\x00\x05query\x00\x00\x00\x04ext1\x00\x00',
+                id='with-extra-fields',
+            ),
         ],
     )
     def test_350_query_extensions_malformed_responses(

@@ -39,7 +39,7 @@ class Test001ExporterUtils:
             ('1vault_key', '1vault_key', '2logname', '3user', '4username'),
         ],
     )
-    def test200_get_vault_key(
+    def test_200_get_vault_key(
         self,
         monkeypatch: pytest.MonkeyPatch,
         expected: str,

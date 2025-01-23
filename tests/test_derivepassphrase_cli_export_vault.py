@@ -332,9 +332,21 @@ class TestStoreroom:
     @pytest.mark.parametrize(
         ['data', 'err_msg'],
         [
-            ('{"version": 255}', 'bad or unsupported keys version header'),
-            ('{"version": 1}\nAAAA\nAAAA', 'trailing data; cannot make sense'),
-            ('{"version": 1}\nAAAA', 'cannot handle version 0 encrypted keys'),
+            pytest.param(
+                '{"version": 255}',
+                'bad or unsupported keys version header',
+                id='v255',
+            ),
+            pytest.param(
+                '{"version": 1}\nAAAA\nAAAA',
+                'trailing data; cannot make sense',
+                id='trailing-data',
+            ),
+            pytest.param(
+                '{"version": 1}\nAAAA',
+                'cannot handle version 0 encrypted keys',
+                id='v0-keys',
+            ),
         ],
     )
     @pytest.mark.parametrize(
@@ -491,8 +503,8 @@ class TestVaultNativeConfig:
     @pytest.mark.parametrize(
         ['iterations', 'result'],
         [
-            (100, b'6ede361e81e9c061efcdd68aeb768b80'),
-            (200, b'bcc7d01e075b9ffb69e702bf701187c1'),
+            pytest.param(100, b'6ede361e81e9c061efcdd68aeb768b80', id='100'),
+            pytest.param(200, b'bcc7d01e075b9ffb69e702bf701187c1', id='200'),
         ],
     )
     def test_200_pbkdf2_manually(self, iterations: int, result: bytes) -> None:

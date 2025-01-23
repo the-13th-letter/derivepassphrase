@@ -288,17 +288,53 @@ class TestAllCLI:
     @pytest.mark.parametrize(
         ['command', 'non_eager_arguments'],
         [
-            ([], []),
-            ([], ['export']),
-            (['export'], []),
-            (['export'], ['vault']),
-            (['export', 'vault'], []),
-            (['export', 'vault'], ['--format', 'this-format-doesnt-exist']),
-            (['vault'], []),
-            (['vault'], ['--export', './']),
+            pytest.param(
+                [],
+                [],
+                id='top-nothing',
+            ),
+            pytest.param(
+                [],
+                ['export'],
+                id='top-export',
+            ),
+            pytest.param(
+                ['export'],
+                [],
+                id='export-nothing',
+            ),
+            pytest.param(
+                ['export'],
+                ['vault'],
+                id='export-vault',
+            ),
+            pytest.param(
+                ['export', 'vault'],
+                [],
+                id='export-vault-nothing',
+            ),
+            pytest.param(
+                ['export', 'vault'],
+                ['--format', 'this-format-doesnt-exist'],
+                id='export-vault-args',
+            ),
+            pytest.param(
+                ['vault'],
+                [],
+                id='vault-nothing',
+            ),
+            pytest.param(
+                ['vault'],
+                ['--export', './'],
+                id='vault-args',
+            ),
         ],
     )
-    @pytest.mark.parametrize('arguments', [['--help'], ['--version']])
+    @pytest.mark.parametrize(
+        'arguments',
+        [['--help'], ['--version']],
+        ids=['help', 'version'],
+    )
     def test_200_eager_options(
         self,
         monkeypatch: pytest.MonkeyPatch,
@@ -319,9 +355,21 @@ class TestAllCLI:
             result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
-    @pytest.mark.parametrize('no_color', [False, True])
-    @pytest.mark.parametrize('force_color', [False, True])
-    @pytest.mark.parametrize('isatty', [False, True])
+    @pytest.mark.parametrize(
+        'no_color',
+        [False, True],
+        ids=['yescolor', 'nocolor'],
+    )
+    @pytest.mark.parametrize(
+        'force_color',
+        [False, True],
+        ids=['noforce', 'force'],
+    )
+    @pytest.mark.parametrize(
+        'isatty',
+        [False, True],
+        ids=['notty', 'tty'],
+    )
     @pytest.mark.parametrize(
         ['command_line', 'input'],
         [
@@ -330,6 +378,7 @@ class TestAllCLI:
                 '{"services": {"": {"length": 20}}}',
             ),
         ],
+        ids=['cmd'],
     )
     def test_201_no_color_force_color(
         self,
@@ -761,7 +810,13 @@ class TestCLI:
     @pytest.mark.parametrize(
         ['options', 'service', 'input', 'check_success'],
         [
-            (o.options, o.needs_service, o.input, o.check_success)
+            pytest.param(
+                o.options,
+                o.needs_service,
+                o.input,
+                o.check_success,
+                id=' '.join(o.options),
+            )
             for o in INTERESTING_OPTION_COMBINATIONS
             if not o.incompatible
         ],
@@ -874,7 +929,7 @@ class TestCLI:
     @pytest.mark.parametrize(
         ['options', 'service'],
         [
-            (o.options, o.needs_service)
+            pytest.param(o.options, o.needs_service, id=' '.join(o.options))
             for o in INTERESTING_OPTION_COMBINATIONS
             if o.incompatible
         ],
@@ -1282,42 +1337,47 @@ contents go here
     @pytest.mark.parametrize(
         ['command_line', 'input', 'result_config'],
         [
-            (
+            pytest.param(
                 ['--phrase'],
                 'my passphrase\n',
                 {'global': {'phrase': 'my passphrase'}, 'services': {}},
+                id='phrase',
             ),
-            (
+            pytest.param(
                 ['--key'],
                 '1\n',
                 {
                     'global': {'key': DUMMY_KEY1_B64, 'phrase': 'abc'},
                     'services': {},
                 },
+                id='key',
             ),
-            (
+            pytest.param(
                 ['--phrase', '--', 'sv'],
                 'my passphrase\n',
                 {
                     'global': {'phrase': 'abc'},
                     'services': {'sv': {'phrase': 'my passphrase'}},
                 },
+                id='phrase-sv',
             ),
-            (
+            pytest.param(
                 ['--key', '--', 'sv'],
                 '1\n',
                 {
                     'global': {'phrase': 'abc'},
                     'services': {'sv': {'key': DUMMY_KEY1_B64}},
                 },
+                id='key-sv',
             ),
-            (
+            pytest.param(
                 ['--key', '--length', '15', '--', 'sv'],
                 '1\n',
                 {
                     'global': {'phrase': 'abc'},
                     'services': {'sv': {'key': DUMMY_KEY1_B64, 'length': 15}},
                 },
+                id='key-length-sv',
             ),
         ],
     )
@@ -1356,18 +1416,30 @@ contents go here
     @pytest.mark.parametrize(
         ['command_line', 'input', 'err_text'],
         [
-            (
+            pytest.param(
                 [],
                 '',
                 'Cannot update the global settings without any given settings',
+                id='None',
             ),
-            (
+            pytest.param(
                 ['--', 'sv'],
                 '',
                 'Cannot update the service-specific settings without any given settings',
+                id='None-sv',
             ),
-            (['--phrase', '--', 'sv'], '', 'No passphrase was given'),
-            (['--key'], '', 'No SSH key was selected'),
+            pytest.param(
+                ['--phrase', '--', 'sv'],
+                '',
+                'No passphrase was given',
+                id='phrase-sv',
+            ),
+            pytest.param(
+                ['--key'],
+                '',
+                'No SSH key was selected',
+                id='key-sv',
+            ),
         ],
     )
     def test_225_store_config_fail(
@@ -2544,26 +2616,29 @@ Boo.
     @pytest.mark.parametrize(
         ['command_line', 'config', 'result_config'],
         [
-            (
+            pytest.param(
                 ['--delete-globals'],
                 {'global': {'phrase': 'abc'}, 'services': {}},
                 {'services': {}},
+                id='globals',
             ),
-            (
+            pytest.param(
                 ['--delete', '--', DUMMY_SERVICE],
                 {
                     'global': {'phrase': 'abc'},
                     'services': {DUMMY_SERVICE: {'notes': '...'}},
                 },
                 {'global': {'phrase': 'abc'}, 'services': {}},
+                id='service',
             ),
-            (
+            pytest.param(
                 ['--clear'],
                 {
                     'global': {'phrase': 'abc'},
                     'services': {DUMMY_SERVICE: {'notes': '...'}},
                 },
                 {'services': {}},
+                id='all',
             ),
         ],
     )
