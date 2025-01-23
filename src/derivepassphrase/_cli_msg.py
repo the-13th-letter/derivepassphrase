@@ -807,6 +807,25 @@ class Label(enum.Enum):
         'STRONGLY discouraged from using a stored passphrase.',
     )
     """"""
+    DERIVEPASSPHRASE_VAULT_NOTES_INSTRUCTION_TEXT = commented(
+        "This instruction text is shown above the user's old stored notes "
+        'for this service, if any.  '
+        'The next line is the cut marking defined in '
+        'Label.DERIVEPASSPHRASE_VAULT_NOTES_MARKER.'
+    )(
+        'Label :: Help text :: Explanation',
+        """\
+# Enter notes below the line with the cut mark (ASCII scissors and
+# dashes).  Lines above the cut mark (such as this one) will be ignored.
+#
+# If you wish to clear the notes, leave everything beyond the cut mark
+# blank.  However, if you leave the *entire* file blank, also removing
+# the cut mark, then the edit is aborted, and the old notes contents are
+# retained.
+#
+""",
+    )
+    """"""
     DEPRECATED_COMMAND_LABEL = commented(
         'We use this format string to indicate, at the beginning '
         "of a command's help text, that this command is deprecated.",
@@ -814,6 +833,16 @@ class Label(enum.Enum):
         'Label :: Help text :: Marker',
         '(Deprecated) {text}',
         flags='python-brace-format',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_NOTES_MARKER = commented(
+        'The marker for separating the text from '
+        'Label.DERIVEPASSPHRASE_VAULT_NOTES_INSTRUCTION_TEXT '
+        "from the user's input (below the marker).  "
+        'The first line starting with this label marks the separation point.',
+    )(
+        'Label :: Help text :: Marker',
+        '# - - - - - >8 - - - - - >8 - - - - - >8 - - - - - >8 - - - - -',
     )
     """"""
     DEBUG_OPTION_HELP_TEXT = commented(

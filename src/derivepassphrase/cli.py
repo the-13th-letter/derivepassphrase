@@ -2160,20 +2160,6 @@ def _validate_length(
     return int_value
 
 
-DEFAULT_NOTES_TEMPLATE = """\
-# Enter notes below the line with the cut mark (ASCII scissors and
-# dashes).  Lines above the cut mark (such as this one) will be ignored.
-#
-# If you wish to clear the notes, leave everything beyond the cut mark
-# blank.  However, if you leave the *entire* file blank, also removing
-# the cut mark, then the edit is aborted, and the old notes contents are
-# retained.
-#
-# - - - - - >8 - - - - - >8 - - - - - >8 - - - - - >8 - - - - -
-"""
-DEFAULT_NOTES_MARKER = '# - - - - - >8 - - - - -'
-
-
 @derivepassphrase.command(
     'vault',
     context_settings={'help_option_names': ['-h', '--help']},
@@ -2826,15 +2812,24 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     if edit_notes:
         assert service is not None
         configuration = get_config()
-        text = DEFAULT_NOTES_TEMPLATE + configuration['services'].get(
+        notes_instructions = _msg.TranslatedString(
+            _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_INSTRUCTION_TEXT
+        )
+        notes_marker = _msg.TranslatedString(
+            _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_MARKER
+        )
+        old_notes_value = configuration['services'].get(
             service, cast('_types.VaultConfigServicesSettings', {})
         ).get('notes', '')
+        text = '\n'.join([
+            str(notes_instructions), str(notes_marker), old_notes_value
+        ])
         notes_value = click.edit(text=text)
         if notes_value is not None:
             notes_lines = collections.deque(notes_value.splitlines(True))  # noqa: FBT003
             while notes_lines:
                 line = notes_lines.popleft()
-                if line.startswith(DEFAULT_NOTES_MARKER):
+                if line.startswith(str(notes_marker)):
                     notes_value = ''.join(notes_lines)
                     break
             else:
