@@ -81,6 +81,7 @@ plugins:
           scoped_crossrefs: true
         paths:
           - src
+          - .
   mike:
     alias_type: symlink
     canonical_version: '0.x'
@@ -122,6 +123,7 @@ nav:
 draft_docs: |
   changelog.d
   _future.md
+  reference/tests.*
 
 markdown_extensions:
   - abbr
