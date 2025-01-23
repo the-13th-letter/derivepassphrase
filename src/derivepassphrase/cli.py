@@ -1465,6 +1465,13 @@ def derivepassphrase_export_vault(
 # Vault
 # =====
 
+_config_filename_table = {
+    None: '.',
+    'vault': 'vault.json',
+    'user configuration': 'config.toml',
+    'old settings.json': 'settings.json',
+}
+
 
 def _config_filename(
     subsystem: str | None = 'old settings.json',
@@ -1499,18 +1506,11 @@ def _config_filename(
         os.getenv(PROG_NAME.upper() + '_PATH')
         or click.get_app_dir(PROG_NAME, force_posix=True)
     )
-    # Use match/case here once Python 3.9 becomes unsupported.
-    if subsystem is None:
-        return path
-    elif subsystem == 'vault':  # noqa: RET505
-        filename = f'{subsystem}.json'
-    elif subsystem == 'user configuration':
-        filename = 'config.toml'
-    elif subsystem == 'old settings.json':
-        filename = 'settings.json'
-    else:  # pragma: no cover
+    try:
+        filename = _config_filename_table[subsystem]
+    except (KeyError, TypeError):  # pragma: no cover
         msg = f'Unknown configuration subsystem: {subsystem!r}'
-        raise AssertionError(msg)
+        raise AssertionError(msg) from None
     return path / filename
 
 
@@ -2577,23 +2577,23 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     for param in ctx.command.params:
         if isinstance(param, click.Option):
             group: type[click.Option]
-            # Use match/case here once Python 3.9 becomes unsupported.
-            if isinstance(param, PassphraseGenerationOption):
-                group = PassphraseGenerationOption
-            elif isinstance(param, ConfigurationOption):
-                group = ConfigurationOption
-            elif isinstance(param, StorageManagementOption):
-                group = StorageManagementOption
-            elif isinstance(param, LoggingOption):
-                group = LoggingOption
-            elif isinstance(param, CompatibilityOption):
-                group = CompatibilityOption
-            elif isinstance(param, StandardOption):
-                group = StandardOption
-            elif isinstance(param, OptionGroupOption):  # pragma: no cover
-                raise AssertionError(  # noqa: TRY003,TRY004
-                    f'Unknown option group for {param!r}'  # noqa: EM102
-                )
+            known_option_groups = [
+                PassphraseGenerationOption,
+                ConfigurationOption,
+                StorageManagementOption,
+                LoggingOption,
+                CompatibilityOption,
+                StandardOption,
+            ]
+            if isinstance(param, OptionGroupOption):
+                for class_ in known_option_groups:
+                    if isinstance(param, class_):
+                        group = class_
+                        break
+                else:  # pragma: no cover
+                    raise AssertionError(  # noqa: TRY003
+                        f'Unknown option group for {param!r}'  # noqa: EM102
+                    )
             else:
                 group = click.Option
             options_in_group.setdefault(group, []).append(param)
@@ -3243,7 +3243,6 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 for k, v in settings.items()
                 if k in service_keys and v is not None
             }
-
             if use_phrase:
                 try:
                     _check_for_misleading_passphrase(
@@ -3260,7 +3259,6 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                             filename=None,
                         ).maybe_without_filename(),
                     )
-
             # If either --key or --phrase are given, use that setting.
             # Otherwise, if both key and phrase are set in the config,
             # use the key.  Otherwise, if only one of key and phrase is
