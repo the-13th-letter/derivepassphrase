@@ -78,9 +78,23 @@ class SSHTestKey(NamedTuple):
     derived_passphrase: bytes | str | None = None
     """"""
 
-    def is_suitable(self) -> bool:
-        """Return if this key is suitable for use with vault."""
-        return vault.Vault.is_suitable_ssh_key(self.public_key_data)
+    def is_suitable(
+        self,
+        *,
+        client: ssh_agent.SSHAgentClient | None = None,
+    ) -> bool:
+        """Return if this key is suitable for use with vault.
+
+        Args:
+            client:
+                An optional SSH agent client to check for additional
+                deterministic key types. If not given, assume no such
+                types.
+
+        """
+        return vault.Vault.is_suitable_ssh_key(
+            self.public_key_data, client=client
+        )
 
 
 class ValidationSettings(NamedTuple):
