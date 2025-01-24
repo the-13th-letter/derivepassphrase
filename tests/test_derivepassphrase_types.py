@@ -16,48 +16,58 @@ import tests
 from derivepassphrase import _types
 
 
-@tests.hypothesis_settings_coverage_compatible
-@hypothesis.given(
-    value=strategies.one_of(
-        strategies.recursive(
-            strategies.one_of(
-                strategies.none(),
-                strategies.booleans(),
-                strategies.integers(),
-                strategies.floats(allow_nan=False, allow_infinity=False),
-                strategies.text(max_size=100),
-                strategies.binary(max_size=100),
-            ),
-            lambda s: strategies.one_of(
-                strategies.frozensets(s, max_size=100),
-                strategies.builds(
-                    tuple, strategies.frozensets(s, max_size=100)
+@strategies.composite
+def js_atoms_strategy(
+    draw: strategies.DrawFn,
+) -> int | float | str | bytes | bool | None:
+    """Yield a JS atom."""
+    return draw(
+        strategies.one_of(
+            strategies.integers(),
+            strategies.floats(allow_nan=False, allow_infinity=False),
+            strategies.text(max_size=100),
+            strategies.binary(max_size=100),
+            strategies.booleans(),
+            strategies.none(),
+        ),
+    )
+
+
+@strategies.composite
+def js_nested_strategy(draw: strategies.DrawFn) -> Any:
+    """Yield an arbitrary and perhaps nested JS value."""
+    return draw(
+        strategies.one_of(
+            js_atoms_strategy(),
+            strategies.builds(tuple),
+            strategies.builds(list),
+            strategies.builds(dict),
+            strategies.builds(set),
+            strategies.builds(frozenset),
+            strategies.recursive(
+                js_atoms_strategy(),
+                lambda s: strategies.one_of(
+                    strategies.frozensets(s, max_size=100),
+                    strategies.builds(
+                        tuple, strategies.frozensets(s, max_size=100)
+                    ),
                 ),
+                max_leaves=8,
             ),
-            max_leaves=8,
+            strategies.recursive(
+                js_atoms_strategy(),
+                lambda s: strategies.one_of(
+                    strategies.lists(s, max_size=100),
+                    strategies.dictionaries(strategies.text(max_size=100), s),
+                ),
+                max_leaves=25,
+            ),
         ),
-        strategies.recursive(
-            strategies.one_of(
-                strategies.none(),
-                strategies.booleans(),
-                strategies.integers(),
-                strategies.floats(allow_nan=False, allow_infinity=False),
-                strategies.text(max_size=100),
-                strategies.binary(max_size=100),
-            ),
-            lambda s: strategies.one_of(
-                strategies.lists(s, max_size=100),
-                strategies.dictionaries(strategies.text(max_size=100), s),
-            ),
-            max_leaves=25,
-        ),
-        strategies.builds(tuple),
-        strategies.builds(list),
-        strategies.builds(dict),
-        strategies.builds(set),
-        strategies.builds(frozenset),
-    ),
-)
+    )
+
+
+@tests.hypothesis_settings_coverage_compatible
+@hypothesis.given(value=js_nested_strategy())
 @hypothesis.example(float('nan'))
 def test_100_js_truthiness(value: Any) -> None:
     """Determine the truthiness of a value according to JavaScript.
