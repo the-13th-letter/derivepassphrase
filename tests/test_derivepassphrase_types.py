@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import copy
+import math
 
 import hypothesis
 import pytest
@@ -57,6 +58,7 @@ from derivepassphrase import _types
         strategies.builds(frozenset),
     ),
 )
+@hypothesis.example(float('nan'))
 def test_100_js_truthiness(value: Any) -> None:
     """Determine the truthiness of a value according to JavaScript.
 
@@ -69,6 +71,7 @@ def test_100_js_truthiness(value: Any) -> None:
         and value != 0
         and value != 0.0
         and value != ''
+        and not (isinstance(value, float) and math.isnan(value))
     )
     assert _types.js_truthiness(value) == expected
 
