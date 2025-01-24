@@ -21,7 +21,7 @@ import tests
 from derivepassphrase import _types, ssh_agent
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterator, Sequence
 
 startup_ssh_auth_sock = os.environ.get('SSH_AUTH_SOCK', None)
 
@@ -94,7 +94,7 @@ class SpawnFunc(Protocol):
         """
 
 
-def _spawn_pageant(  # pragma: no cover
+def spawn_pageant(  # pragma: no cover
     executable: str | None, env: dict[str, str]
 ) -> subprocess.Popen[str] | None:
     """Spawn an isolated Pageant, if possible.
@@ -166,7 +166,7 @@ def _spawn_pageant(  # pragma: no cover
     )
 
 
-def _spawn_openssh_agent(  # pragma: no cover
+def spawn_openssh_agent(  # pragma: no cover
     executable: str | None, env: dict[str, str]
 ) -> subprocess.Popen[str] | None:
     """Spawn an isolated OpenSSH agent, if possible.
@@ -200,16 +200,16 @@ def _spawn_openssh_agent(  # pragma: no cover
     )
 
 
-def _spawn_noop(  # pragma: no cover
+def spawn_noop(  # pragma: no cover
     executable: str | None, env: dict[str, str]
 ) -> None:
     """Placeholder function. Does nothing."""
 
 
-_spawn_handlers = [
-    ('pageant', _spawn_pageant, tests.KnownSSHAgent.Pageant),
-    ('ssh-agent', _spawn_openssh_agent, tests.KnownSSHAgent.OpenSSHAgent),
-    ('(system)', _spawn_noop, tests.KnownSSHAgent.UNKNOWN),
+spawn_handlers: Sequence[tuple[str, SpawnFunc, tests.KnownSSHAgent]] = [
+    ('pageant', spawn_pageant, tests.KnownSSHAgent.Pageant),
+    ('ssh-agent', spawn_openssh_agent, tests.KnownSSHAgent.OpenSSHAgent),
+    ('(system)', spawn_noop, tests.KnownSSHAgent.UNKNOWN),
 ]
 """
 The standard registry of agent spawning functions.
@@ -219,7 +219,7 @@ Popen = TypeVar('Popen', bound=subprocess.Popen)
 
 
 @contextlib.contextmanager
-def _terminate_on_exit(proc: Popen) -> Iterator[Popen]:
+def terminate_on_exit(proc: Popen) -> Iterator[Popen]:
     """Terminate and wait for the subprocess upon exiting the context.
 
     Args:
@@ -243,7 +243,7 @@ class CannotSpawnError(RuntimeError):
     """Cannot spawn the SSH agent."""
 
 
-def _spawn_named_agent(
+def spawn_named_agent(
     exec_name: str,
     spawn_func: SpawnFunc,
     agent_type: tests.KnownSSHAgent,
@@ -301,13 +301,13 @@ def _spawn_named_agent(
     ssh_auth_sock = agent_env.pop('SSH_AUTH_SOCK', None)
     proc = spawn_func(executable=shutil.which(exec_name), env=agent_env)
     with exit_stack:
-        if spawn_func is _spawn_noop:
+        if spawn_func is spawn_noop:
             ssh_auth_sock = os.environ['SSH_AUTH_SOCK']
         elif proc is None:  # pragma: no cover
             err_msg = f'Cannot spawn usable {exec_name}'
             raise CannotSpawnError(err_msg)
         else:
-            exit_stack.enter_context(_terminate_on_exit(proc))
+            exit_stack.enter_context(terminate_on_exit(proc))
             assert os.environ.get('SSH_AUTH_SOCK') == startup_ssh_auth_sock, (
                 f'SSH_AUTH_SOCK mismatch after spawning {exec_name}'
             )
@@ -334,7 +334,7 @@ def _spawn_named_agent(
         )
         client.list_keys()  # sanity test
         yield tests.SpawnedSSHAgentInfo(
-            agent_type, client, spawn_func is not _spawn_noop
+            agent_type, client, spawn_func is not spawn_noop
         )
     assert os.environ.get('SSH_AUTH_SOCK', None) == startup_ssh_auth_sock, (
         f'SSH_AUTH_SOCK mismatch after tearing down {exec_name}'
@@ -379,9 +379,9 @@ def running_ssh_agent(  # pragma: no cover
             monkeypatch.setenv('SSH_AUTH_SOCK', startup_ssh_auth_sock)
         else:
             monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
-        for exec_name, spawn_func, agent_type in _spawn_handlers:
+        for exec_name, spawn_func, agent_type in spawn_handlers:
             try:
-                for _agent_info in _spawn_named_agent(
+                for _agent_info in spawn_named_agent(
                     exec_name, spawn_func, agent_type
                 ):
                     yield tests.RunningSSHAgentInfo(
@@ -393,7 +393,7 @@ def running_ssh_agent(  # pragma: no cover
         pytest.skip('No SSH agent running or spawnable')
 
 
-@pytest.fixture(params=_spawn_handlers, ids=operator.itemgetter(0))
+@pytest.fixture(params=spawn_handlers, ids=operator.itemgetter(0))
 def spawn_ssh_agent(
     request: pytest.FixtureRequest,
     skip_if_no_af_unix_support: None,
@@ -429,7 +429,7 @@ def spawn_ssh_agent(
         else:  # pragma: no cover
             monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
         try:
-            yield from _spawn_named_agent(*request.param)
+            yield from spawn_named_agent(*request.param)
         except (KeyError, OSError, CannotSpawnError) as exc:
             pytest.skip(exc.args[0])
         return

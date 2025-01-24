@@ -1304,7 +1304,7 @@ The parsed vault configuration stored in
 [`VAULT_STOREROOM_CONFIG_ZIPPED`][].
 """
 
-_VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED_JAVASCRIPT_SOURCE = """
+VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED_JAVASCRIPT_SOURCE = """
 // Executed in the top-level directory of the vault project code, in Node.js.
 const storeroom = require('storeroom')
 const Store = require('./lib/store.js')
@@ -1360,11 +1360,11 @@ and then encoded in base64.
 The archive contains a directory `/services/array/` that claims to have
 two child items 'entry1' and 'entry2', but no such child items are
 present in the archive.  See
-[`_VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED_JAVASCRIPT_SOURCE`][] for
+[`VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED_JAVASCRIPT_SOURCE`][] for
 the exact script that created this archive.
 """
 
-_VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED2_JAVASCRIPT_SOURCE = """
+VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED2_JAVASCRIPT_SOURCE = """
 // Executed in the top-level directory of the vault project code, in Node.js.
 const storeroom = require('storeroom')
 const Store = require('./lib/store.js')
@@ -1424,11 +1424,11 @@ and then encoded in base64.
 
 The archive contains a directory `/services/array/` whose list of child
 items does not adhere to the serialization format.  See
-[`_VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED2_JAVASCRIPT_SOURCE`][] for
+[`VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED2_JAVASCRIPT_SOURCE`][] for
 the exact script that created this archive.
 """
 
-_VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED3_JAVASCRIPT_SOURCE = """
+VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED3_JAVASCRIPT_SOURCE = """
 // Executed in the top-level directory of the vault project code, in Node.js.
 const storeroom = require('storeroom')
 const Store = require('./lib/store.js')
@@ -1488,11 +1488,11 @@ and then encoded in base64.
 
 The archive contains a directory `/services/array/` whose list of child
 items are not all valid item names.  See
-[`_VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED3_JAVASCRIPT_SOURCE`][] for
+[`VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED3_JAVASCRIPT_SOURCE`][] for
 the exact script that created this archive.
 """
 
-_VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED4_JAVASCRIPT_SOURCE = """
+VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED4_JAVASCRIPT_SOURCE = """
 // Executed in the top-level directory of the vault project code, in Node.js.
 const storeroom = require('storeroom')
 const Store = require('./lib/store.js')
@@ -1554,7 +1554,7 @@ and then encoded in base64.
 The archive contains two directories `/dir/` and `/dir/subdir/`, where
 `/dir/subdir/` is a correctly serialized directory, but `/dir/` does not
 contain `/dir/subdir/` in its list of child items.  See
-[`_VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED4_JAVASCRIPT_SOURCE`][] for
+[`VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED4_JAVASCRIPT_SOURCE`][] for
 the exact script that created this archive.
 """
 
