@@ -28,6 +28,10 @@ if TYPE_CHECKING:
 
 
 class TestStaticFunctionality:
+    """Test the static functionality of the `ssh_agent` module."""
+
+    # TODO(the-13th-letter): Re-evaluate if this check is worth keeping.
+    # It cannot provide true tamper-resistence, but probably appears to.
     @pytest.mark.parametrize(
         ['public_key', 'public_key_data'],
         [
@@ -39,6 +43,7 @@ class TestStaticFunctionality:
     def test_100_key_decoding(
         self, public_key: bytes, public_key_data: bytes
     ) -> None:
+        """The [`tests.ALL_KEYS`][] public key data looks sane."""
         keydata = base64.b64decode(public_key.split(None, 2)[1])
         assert keydata == public_key_data, (
             "recorded public key data doesn't match"
@@ -118,6 +123,7 @@ class TestStaticFunctionality:
     def test_190_sh_export_line_parsing(
         self, line: str, env_name: str, value: str | None
     ) -> None:
+        """[`tests.parse_sh_export_line`][] works."""
         if value is not None:
             assert tests.parse_sh_export_line(line, env_name=env_name) == value
         else:
@@ -129,6 +135,7 @@ class TestStaticFunctionality:
         monkeypatch: pytest.MonkeyPatch,
         skip_if_no_af_unix_support: None,
     ) -> None:
+        """Abort if the running agent cannot be located."""
         del skip_if_no_af_unix_support
         monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
         with pytest.raises(
@@ -143,6 +150,7 @@ class TestStaticFunctionality:
         ],
     )
     def test_210_uint32(self, input: int, expected: bytes | bytearray) -> None:
+        """`uint32` encoding works."""
         uint32 = ssh_agent.SSHAgentClient.uint32
         assert uint32(input) == expected
 
@@ -169,6 +177,7 @@ class TestStaticFunctionality:
     def test_211_string(
         self, input: bytes | bytearray, expected: bytes | bytearray
     ) -> None:
+        """SSH string encoding works."""
         string = ssh_agent.SSHAgentClient.string
         assert bytes(string(input)) == expected
 
@@ -190,6 +199,7 @@ class TestStaticFunctionality:
     def test_212_unstring(
         self, input: bytes | bytearray, expected: bytes | bytearray
     ) -> None:
+        """SSH string decoding works."""
         unstring = ssh_agent.SSHAgentClient.unstring
         unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
         assert bytes(unstring(input)) == expected
@@ -218,6 +228,7 @@ class TestStaticFunctionality:
     def test_310_uint32_exceptions(
         self, value: int, exc_type: type[Exception], exc_pattern: str
     ) -> None:
+        """`uint32` encoding fails for out-of-bound values."""
         uint32 = ssh_agent.SSHAgentClient.uint32
         with pytest.raises(exc_type, match=exc_pattern):
             uint32(value)
@@ -233,6 +244,7 @@ class TestStaticFunctionality:
     def test_311_string_exceptions(
         self, input: Any, exc_type: type[Exception], exc_pattern: str
     ) -> None:
+        """SSH string encoding fails for non-strings."""
         string = ssh_agent.SSHAgentClient.string
         with pytest.raises(exc_type, match=exc_pattern):
             string(input)
@@ -274,6 +286,7 @@ class TestStaticFunctionality:
         has_trailer: bool,
         parts: tuple[bytes | bytearray, bytes | bytearray] | None,
     ) -> None:
+        """SSH string decoding fails for invalid values."""
         unstring = ssh_agent.SSHAgentClient.unstring
         unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
         with pytest.raises(exc_type, match=exc_pattern):
@@ -286,6 +299,11 @@ class TestStaticFunctionality:
 
 
 class TestAgentInteraction:
+    """Test actually talking to the SSH agent."""
+
+    # TODO(the-13th-letter): Convert skip into xfail, and include the
+    # key type in the skip/xfail message.  This means the key type needs
+    # to be passed to the test function as well.
     @pytest.mark.parametrize(
         'ssh_test_key',
         list(tests.SUPPORTED_KEYS.values()),
@@ -296,6 +314,13 @@ class TestAgentInteraction:
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
         ssh_test_key: tests.SSHTestKey,
     ) -> None:
+        """Signing data with specific SSH keys works.
+
+        Single tests may abort early (skip) if the indicated key is not
+        loaded in the agent.  Presumably this means the key type is
+        unsupported.
+
+        """
         client = ssh_agent_client_with_test_keys_loaded
         key_comment_pairs = {bytes(k): bytes(c) for k, c in client.list_keys()}
         public_key_data = ssh_test_key.public_key_data
@@ -318,6 +343,9 @@ class TestAgentInteraction:
             == derived_passphrase
         ), 'SSH signature mismatch'
 
+    # TODO(the-13th-letter): Include the key type in the skip message.
+    # This means the key type needs to be passed to the test function as
+    # well.
     @pytest.mark.parametrize(
         'ssh_test_key',
         list(tests.UNSUITABLE_KEYS.values()),
@@ -328,6 +356,15 @@ class TestAgentInteraction:
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
         ssh_test_key: tests.SSHTestKey,
     ) -> None:
+        """Using an unsuitable key with [`vault.Vault`][] fails.
+
+        Single tests may abort early (skip) if the indicated key is not
+        loaded in the agent.  Presumably this means the key type is
+        unsupported.  Single tests may also abort early if the agent
+        ensures that the generally unsuitable key is actually suitable
+        under this agent.
+
+        """
         client = ssh_agent_client_with_test_keys_loaded
         key_comment_pairs = {bytes(k): bytes(c) for k, c in client.list_keys()}
         public_key_data = ssh_test_key.public_key_data
@@ -357,9 +394,16 @@ class TestAgentInteraction:
         key: bytes,
         single: bool,
     ) -> None:
+        """The key selector presents exactly the suitable keys.
+
+        "Suitable" here means suitability for this SSH agent
+        specifically.
+
+        """
         client = ssh_agent_client_with_test_keys_loaded
 
         def key_is_suitable(key: bytes) -> bool:
+            """Stub out [`vault.Vault.key_is_suitable`][]."""
             always = {v.public_key_data for v in tests.SUPPORTED_KEYS.values()}
             dsa = {
                 v.public_key_data
@@ -370,6 +414,11 @@ class TestAgentInteraction:
                 client.has_deterministic_dsa_signatures() and key in dsa
             )
 
+        # TODO(the-13th-letter): Handle the unlikely(?) case that only
+        # one test key is loaded, but `single` is False.  Rename the
+        # `index` variable to `input`, store the `input` in there, and
+        # make the definition of `text` in the else block dependent on
+        # `n` being singular or non-singular.
         if single:
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient,
@@ -399,9 +448,12 @@ class TestAgentInteraction:
 
         @click.command()
         def driver() -> None:
+            """Call `cli._select_ssh_key` directly, as a command."""
             key = cli._select_ssh_key()
             click.echo(base64.standard_b64encode(key).decode('ASCII'))
 
+        # TODO(the-13th-letter): (Continued from above.)  Update input
+        # data to use `index`/`input` directly and unconditionally.
         runner = click.testing.CliRunner(mix_stderr=True)
         result_ = runner.invoke(
             driver,
@@ -418,6 +470,7 @@ class TestAgentInteraction:
         monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
+        """Fail if the agent address is invalid."""
         with monkeypatch.context() as monkeypatch2:
             monkeypatch2.setenv(
                 'SSH_AUTH_SOCK', running_ssh_agent.socket + '~'
@@ -430,6 +483,7 @@ class TestAgentInteraction:
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Fail without [`socket.AF_UNIX`][] support."""
         with monkeypatch.context() as monkeypatch2:
             monkeypatch2.setenv('SSH_AUTH_SOCK', "the value doesn't matter")
             monkeypatch2.delattr(socket, 'AF_UNIX', raising=False)
@@ -453,6 +507,7 @@ class TestAgentInteraction:
         running_ssh_agent: tests.RunningSSHAgentInfo,
         response: bytes,
     ) -> None:
+        """Fail on truncated responses from the SSH agent."""
         del running_ssh_agent
         client = ssh_agent.SSHAgentClient()
         response_stream = io.BytesIO(response)
@@ -504,6 +559,16 @@ class TestAgentInteraction:
         exc_type: type[Exception],
         exc_pattern: str,
     ) -> None:
+        """Fail on problems during key listing.
+
+        Known problems:
+
+          - The agent refuses, or otherwise indicates the operation
+            failed.
+          - The agent response is truncated.
+          - The agent response is overlong.
+
+        """
         del running_ssh_agent
 
         passed_response_code = response_code
@@ -584,6 +649,15 @@ class TestAgentInteraction:
         exc_type: type[Exception],
         exc_pattern: str,
     ) -> None:
+        """Fail on problems during signing.
+
+        Known problems:
+
+          - The key is not loaded into the agent.
+          - The agent refuses, or otherwise indicates the operation
+            failed.
+
+        """
         del running_ssh_agent
         passed_response_code = response_code
 
@@ -651,6 +725,15 @@ class TestAgentInteraction:
         exc_type: type[Exception],
         exc_pattern: str,
     ) -> None:
+        """Fail on problems during signing.
+
+        Known problems:
+
+          - The key is not loaded into the agent.
+          - The agent refuses, or otherwise indicates the operation
+            failed.
+
+        """
         del running_ssh_agent
 
         # TODO(the-13th-letter): Rewrite using parenthesized
@@ -683,6 +766,7 @@ class TestAgentInteraction:
         running_ssh_agent: tests.RunningSSHAgentInfo,
         response_data: bytes,
     ) -> None:
+        """Fail on malformed responses while querying extensions."""
         del running_ssh_agent
 
         def request(
@@ -738,17 +822,21 @@ class TestAgentInteraction:
 
 
 class TestHypotheses:
+    """Test properties via hypothesis."""
+
     @hypothesis.given(strategies.integers(min_value=0, max_value=0xFFFFFFFF))
     # standard example value
     @hypothesis.example(0xDEADBEEF)
-    def test_210_uint32(self, num: int) -> None:
+    def test_210a_uint32_from_number(self, num: int) -> None:
+        """`uint32` encoding works, starting from numbers."""
         uint32 = ssh_agent.SSHAgentClient.uint32
         assert int.from_bytes(uint32(num), 'big', signed=False) == num
 
     @hypothesis.given(strategies.binary(min_size=4, max_size=4))
     # standard example value
     @hypothesis.example(b'\xde\xad\xbe\xef')
-    def test_210a_uint32(self, bytestring: bytes) -> None:
+    def test_210b_uint32_from_bytestring(self, bytestring: bytes) -> None:
+        """`uint32` encoding works, starting from length four byte strings."""
         uint32 = ssh_agent.SSHAgentClient.uint32
         assert (
             uint32(int.from_bytes(bytestring, 'big', signed=False))
@@ -758,7 +846,8 @@ class TestHypotheses:
     @hypothesis.given(strategies.binary(max_size=0x0001FFFF))
     # example: highest order bit is set
     @hypothesis.example(b'DEADBEEF' * 10000)
-    def test_211_string(self, bytestring: bytes) -> None:
+    def test_211a_string_from_bytestring(self, bytestring: bytes) -> None:
+        """SSH string encoding works, starting from a byte string."""
         res = ssh_agent.SSHAgentClient.string(bytestring)
         assert res.startswith((b'\x00\x00', b'\x00\x01'))
         assert int.from_bytes(res[:4], 'big', signed=False) == len(bytestring)
@@ -768,6 +857,7 @@ class TestHypotheses:
     # example: check for double-deserialization
     @hypothesis.example(b'\x00\x00\x00\x07ssh-rsa')
     def test_212_string_unstring(self, bytestring: bytes) -> None:
+        """SSH string decoding of encoded SSH strings works."""
         string = ssh_agent.SSHAgentClient.string
         unstring = ssh_agent.SSHAgentClient.unstring
         unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix

@@ -19,6 +19,8 @@ def bitseq(string: str) -> list[int]:
 
 
 class TestStaticFunctionality:
+    """Test the static functionality in the `sequin` module."""
+
     @pytest.mark.parametrize(
         ['sequence', 'base', 'expected'],
         [
@@ -32,6 +34,11 @@ class TestStaticFunctionality:
     def test_200_big_endian_number(
         self, sequence: list[int], base: int, expected: int
     ) -> None:
+        """Conversion to big endian numbers in any base works.
+
+        See [`sequin.Sequin.generate`][] for where this is used.
+
+        """
         assert (
             sequin.Sequin._big_endian_number(sequence, base=base)
         ) == expected
@@ -51,11 +58,18 @@ class TestStaticFunctionality:
         sequence: list[int],
         base: int,
     ) -> None:
+        """Nonsensical conversion of numbers in a given base raises.
+
+        See [`sequin.Sequin.generate`][] for where this is used.
+
+        """
         with pytest.raises(exc_type, match=exc_pattern):
             sequin.Sequin._big_endian_number(sequence, base=base)
 
 
 class TestSequin:
+    """Test the `Sequin` class."""
+
     @pytest.mark.parametrize(
         ['sequence', 'is_bitstring', 'expected'],
         [
@@ -75,10 +89,12 @@ class TestSequin:
         is_bitstring: bool,
         expected: list[int],
     ) -> None:
+        """The constructor handles both bit and integer sequences."""
         seq = sequin.Sequin(sequence, is_bitstring=is_bitstring)
         assert seq.bases == {2: collections.deque(expected)}
 
     def test_201_generating(self) -> None:
+        """The sequin generates deterministic sequences."""
         seq = sequin.Sequin(
             [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1], is_bitstring=True
         )
@@ -97,6 +113,7 @@ class TestSequin:
             seq.generate(0)
 
     def test_210_internal_generating(self) -> None:
+        """The sequin internals generate deterministic sequences."""
         seq = sequin.Sequin(
             [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1], is_bitstring=True
         )
@@ -115,6 +132,12 @@ class TestSequin:
             seq._generate_inner(16, base=1)
 
     def test_211_shifting(self) -> None:
+        """The sequin manages the pool of remaining entropy for each base.
+
+        Specifically, the sequin implements all-or-nothing fixed-length
+        draws from the entropy pool.
+
+        """
         seq = sequin.Sequin([1, 0, 1, 0, 0, 1, 0, 0, 0, 1], is_bitstring=True)
         assert seq.bases == {
             2: collections.deque([1, 0, 1, 0, 0, 1, 0, 0, 0, 1])
@@ -149,5 +172,6 @@ class TestSequin:
         exc_type: type[Exception],
         exc_pattern: str,
     ) -> None:
+        """The sequin raises on invalid bit and integer sequences."""
         with pytest.raises(exc_type, match=exc_pattern):
             sequin.Sequin(sequence, is_bitstring=is_bitstring)

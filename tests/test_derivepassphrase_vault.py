@@ -24,9 +24,20 @@ Vault: TypeAlias = derivepassphrase.vault.Vault
 
 
 class TestVault:
+    """Test passphrase derivation with the "vault" scheme."""
+
     phrase = b'She cells C shells bye the sea shoars'
+    """The standard passphrase from <i>vault</i>(1)'s test suite."""
     google_phrase = rb': 4TVH#5:aZl8LueOT\{'
+    """
+    The standard derived passphrase for the "google" service, from
+    <i>vault</i>(1)'s test suite.
+    """
     twitter_phrase = rb"[ (HN_N:lI&<ro=)3'g9"
+    """
+    The standard derived passphrase for the "twitter" service, from
+    <i>vault</i>(1)'s test suite.
+    """
 
     @pytest.mark.parametrize(
         ['service', 'expected'],
@@ -38,30 +49,36 @@ class TestVault:
     def test_200_basic_configuration(
         self, service: bytes | str, expected: bytes
     ) -> None:
+        """Deriving a passphrase principally works."""
         assert Vault(phrase=self.phrase).generate(service) == expected
 
     def test_201_phrase_dependence(self) -> None:
+        """The derived passphrase is dependent on the master passphrase."""
         assert (
             Vault(phrase=(self.phrase + b'X')).generate('google')
             == b'n+oIz6sL>K*lTEWYRO%7'
         )
 
     def test_202_reproducibility_and_bytes_service_name(self) -> None:
+        """Deriving a passphrase works equally for byte strings."""
         assert Vault(phrase=self.phrase).generate(b'google') == Vault(
             phrase=self.phrase
         ).generate('google')
 
     def test_203_reproducibility_and_bytearray_service_name(self) -> None:
+        """Deriving a passphrase works equally for byte arrays."""
         assert Vault(phrase=self.phrase).generate(b'google') == Vault(
             phrase=self.phrase
         ).generate(bytearray(b'google'))
 
     def test_210_nonstandard_length(self) -> None:
+        """Deriving a passphrase adheres to imposed length limits."""
         assert (
             Vault(phrase=self.phrase, length=4).generate('google') == b'xDFu'
         )
 
     def test_211_repetition_limit(self) -> None:
+        """Deriving a passphrase adheres to imposed repetition limits."""
         assert (
             Vault(
                 phrase=b'', length=24, symbol=0, number=0, repeat=1
@@ -70,36 +87,44 @@ class TestVault:
         )
 
     def test_212_without_symbols(self) -> None:
+        """Deriving a passphrase adheres to imposed limits on symbols."""
         assert (
             Vault(phrase=self.phrase, symbol=0).generate('google')
             == b'XZ4wRe0bZCazbljCaMqR'
         )
 
     def test_213_no_numbers(self) -> None:
+        """Deriving a passphrase adheres to imposed limits on numbers."""
         assert (
             Vault(phrase=self.phrase, number=0).generate('google')
             == b'_*$TVH.%^aZl(LUeOT?>'
         )
 
     def test_214_no_lowercase_letters(self) -> None:
+        """
+        Deriving a passphrase adheres to imposed limits on lowercase letters.
+        """
         assert (
             Vault(phrase=self.phrase, lower=0).generate('google')
             == b':{?)+7~@OA:L]!0E$)(+'
         )
 
     def test_215_at_least_5_digits(self) -> None:
+        """Deriving a passphrase adheres to imposed counts of numbers."""
         assert (
             Vault(phrase=self.phrase, length=8, number=5).generate('songkick')
             == b'i0908.7['
         )
 
     def test_216_lots_of_spaces(self) -> None:
+        """Deriving a passphrase adheres to imposed counts of spaces."""
         assert (
             Vault(phrase=self.phrase, space=12).generate('songkick')
             == b' c   6 Bq  % 5fR    '
         )
 
     def test_217_all_character_classes(self) -> None:
+        """Deriving a passphrase adheres to imposed counts of all types."""
         assert (
             Vault(
                 phrase=self.phrase,
@@ -114,6 +139,11 @@ class TestVault:
         )
 
     def test_218_only_numbers_and_very_high_repetition_limit(self) -> None:
+        """Deriving a passphrase adheres to imposed repetition limits.
+
+        This example is checked explicitly against forbidden substrings.
+
+        """
         generated = Vault(
             phrase=b'',
             length=40,
@@ -140,12 +170,14 @@ class TestVault:
             assert substring not in generated
 
     def test_219_very_limited_character_set(self) -> None:
+        """Deriving a passphrase works even with limited character sets."""
         generated = Vault(
             phrase=b'', length=24, lower=0, upper=0, space=0, symbol=0
         ).generate('testing')
         assert generated == b'763252593304946694588866'
 
     def test_220_character_set_subtraction(self) -> None:
+        """Removing allowed characters internally works."""
         assert Vault._subtract(b'be', b'abcdef') == bytearray(b'acdf')
 
     @pytest.mark.parametrize(
@@ -170,6 +202,7 @@ class TestVault:
     def test_221_entropy(
         self, length: int, settings: dict[str, int], entropy: int
     ) -> None:
+        """Estimating the entropy and sufficient hash length works."""
         v = Vault(length=length, **settings)  # type: ignore[arg-type]
         assert math.isclose(v._entropy(), entropy)
         assert v._estimate_sufficient_hash_length() > 0
@@ -180,6 +213,9 @@ class TestVault:
         assert v._estimate_sufficient_hash_length(8.0) >= entropy
 
     def test_222_hash_length_estimation(self) -> None:
+        """
+        Estimating the entropy and hash length for degenerate cases works.
+        """
         v = Vault(
             phrase=self.phrase,
             lower=0,
@@ -205,6 +241,9 @@ class TestVault:
         service: str | bytes,
         expected: bytes,
     ) -> None:
+        """
+        Estimating the entropy and hash length for the degenerate case works.
+        """
         v = Vault(phrase=self.phrase)
         monkeypatch.setattr(
             v,
@@ -226,6 +265,7 @@ class TestVault:
         ],
     )
     def test_224_binary_strings(self, s: str | bytes | bytearray) -> None:
+        """Byte string conversion is idempotent."""
         binstr = Vault._get_binary_string
         if isinstance(s, str):
             assert binstr(s) == s.encode('UTF-8')
@@ -235,12 +275,14 @@ class TestVault:
             assert binstr(binstr(s)) == bytes(s)
 
     def test_310_too_many_symbols(self) -> None:
+        """Deriving short passphrases with large length constraints fails."""
         with pytest.raises(
             ValueError, match='requested passphrase length too short'
         ):
             Vault(phrase=self.phrase, symbol=100)
 
     def test_311_no_viable_characters(self) -> None:
+        """Deriving passphrases without allowed characters fails."""
         with pytest.raises(ValueError, match='no allowed characters left'):
             Vault(
                 phrase=self.phrase,
@@ -253,12 +295,14 @@ class TestVault:
             )
 
     def test_320_character_set_subtraction_duplicate(self) -> None:
+        """Character sets do not contain duplicate characters."""
         with pytest.raises(ValueError, match='duplicate characters'):
             Vault._subtract(b'abcdef', b'aabbccddeeff')
         with pytest.raises(ValueError, match='duplicate characters'):
             Vault._subtract(b'aabbccddeeff', b'abcdef')
 
     def test_322_hash_length_estimation(self) -> None:
+        """Hash length estimation rejects invalid safety factors."""
         v = Vault(phrase=self.phrase)
         with pytest.raises(ValueError, match='invalid safety factor'):
             assert v._estimate_sufficient_hash_length(-1.0)
@@ -269,6 +313,8 @@ class TestVault:
 
 
 class TestHypotheses:
+    """Test properties via hypothesis."""
+
     @tests.hypothesis_settings_coverage_compatible
     @hypothesis.given(
         phrase=strategies.one_of(
@@ -328,6 +374,7 @@ class TestHypotheses:
         config: dict[str, int],
         service: str,
     ) -> None:
+        """Derived passphrases obey character and occurrence restraints."""
         try:
             password = Vault(phrase=phrase, **config).generate(service)
         except ValueError as exc:
@@ -386,6 +433,7 @@ class TestHypotheses:
         length: int,
         service: str,
     ) -> None:
+        """Derived passphrases have the requested length."""
         password = Vault(phrase=phrase, length=length).generate(service)
         assert len(password) == length
 
@@ -412,6 +460,7 @@ class TestHypotheses:
         repeat: int,
         service: str,
     ) -> None:
+        """Derived passphrases obey the given occurrence constraint."""
         password = Vault(phrase=phrase, length=length, repeat=repeat).generate(
             service
         )

@@ -70,7 +70,28 @@ class SpawnFunc(Protocol):
         self,
         executable: str | None,
         env: dict[str, str],
-    ) -> subprocess.Popen[str] | None: ...
+    ) -> subprocess.Popen[str] | None:
+        """Spawn the SSH agent.
+
+        Args:
+            executable:
+                The respective SSH agent executable.
+            env:
+                The new environment for the respective agent.  Should
+                typically not include an SSH_AUTH_SOCK variable.
+
+        Returns:
+            The spawned SSH agent subprocess.  If the executable is
+            `None`, then return `None` directly.
+
+            It is the caller's responsibility to clean up the spawned
+            subprocess.
+
+        Raises:
+            OSError:
+                The [`subprocess.Popen`][] call failed.  See there.
+
+        """
 
 
 def _spawn_pageant(  # pragma: no cover
@@ -190,12 +211,27 @@ _spawn_handlers = [
     ('ssh-agent', _spawn_openssh_agent, tests.KnownSSHAgent.OpenSSHAgent),
     ('(system)', _spawn_noop, tests.KnownSSHAgent.UNKNOWN),
 ]
+"""
+The standard registry of agent spawning functions.
+"""
 
 Popen = TypeVar('Popen', bound=subprocess.Popen)
 
 
 @contextlib.contextmanager
 def _terminate_on_exit(proc: Popen) -> Iterator[Popen]:
+    """Terminate and wait for the subprocess upon exiting the context.
+
+    Args:
+        proc:
+            The subprocess to manage.
+
+    Returns:
+        A context manager.  Upon entering the manager, return the
+        managed subprocess.  Upon exiting the manager, terminate the
+        process and wait for it.
+
+    """
     try:
         yield proc
     finally:
@@ -204,7 +240,7 @@ def _terminate_on_exit(proc: Popen) -> Iterator[Popen]:
 
 
 class CannotSpawnError(RuntimeError):
-    pass
+    """Cannot spawn the SSH agent."""
 
 
 def _spawn_named_agent(
@@ -212,6 +248,41 @@ def _spawn_named_agent(
     spawn_func: SpawnFunc,
     agent_type: tests.KnownSSHAgent,
 ) -> Iterator[tests.SpawnedSSHAgentInfo]:  # pragma: no cover
+    """Spawn the named SSH agent and check that it is operational.
+
+    Using the correct agent-specific spawn function from the
+    [`spawn_handlers`][] registry, spawn the named SSH agent (according
+    to its declared type), then set up the communication channel and
+    yield an SSH agent client connected to this agent.  After resuming,
+    tear down the communication channel and terminate the SSH agent.
+
+    The SSH agent's instructions for setting up the communication
+    channel are parsed with [`tests.parse_sh_export_line`][].  See the
+    caveats there.
+
+    Args:
+        exec_name:
+            The executable to spawn.
+        spawn_func:
+            The agent-specific spawn function.
+        agent_type:
+            The agent type.
+
+    Yields:
+        A 3-tuple containing the agent type, an SSH agent client
+        connected to this agent, and a boolean indicating whether this
+        agent was actually spawned in an isolated manner.
+
+        Only one tuple will ever be yielded.  After resuming, the
+        connected client will be torn down, as will the agent if it was
+        isolated.
+
+    Raises:
+        CannotSpawnError:
+            We failed to spawn the agent or otherwise set up the
+            environment/communication channel/etc.
+
+    """
     # pytest's fixture system does not seem to guarantee that
     # environment variables are set up correctly if nested and
     # parametrized fixtures are used: it is possible that "outer"

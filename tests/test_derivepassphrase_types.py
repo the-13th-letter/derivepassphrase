@@ -58,6 +58,11 @@ from derivepassphrase import _types
     ),
 )
 def test_100_js_truthiness(value: Any) -> None:
+    """Determine the truthiness of a value according to JavaScript.
+
+    Use hypothesis to generate test values.
+
+    """
     expected = (
         value is not None  # noqa: PLR1714
         and value != False  # noqa: E712
@@ -78,6 +83,15 @@ def test_100_js_truthiness(value: Any) -> None:
     ids=tests._test_config_ids,
 )
 def test_200_is_vault_config(test_config: tests.VaultTestConfig) -> None:
+    """Is this vault configuration recognized as valid/invalid?
+
+    Check all test configurations that do not need custom validation
+    settings.
+
+    This primarily tests the [`_types.is_vault_config`][] and
+    [`_types.clean_up_falsy_vault_config_values`][] functions.
+
+    """
     obj, comment, _ = test_config
     obj = copy.deepcopy(obj)
     _types.clean_up_falsy_vault_config_values(obj)
@@ -99,6 +113,15 @@ def test_200_is_vault_config(test_config: tests.VaultTestConfig) -> None:
 def test_200a_is_vault_config_smudged(
     test_config: tests.VaultTestConfig,
 ) -> None:
+    """Is this vault configuration recognized as valid/invalid?
+
+    Generate test data via hypothesis by smudging all valid test
+    configurations.
+
+    This primarily tests the [`_types.is_vault_config`][] and
+    [`_types.clean_up_falsy_vault_config_values`][] functions.
+
+    """
     obj_, comment, _ = test_config
     obj = copy.deepcopy(obj_)
     did_cleanup = _types.clean_up_falsy_vault_config_values(obj)
@@ -116,6 +139,15 @@ def test_200a_is_vault_config_smudged(
     'test_config', tests.TEST_CONFIGS, ids=tests._test_config_ids
 )
 def test_400_validate_vault_config(test_config: tests.VaultTestConfig) -> None:
+    """Validate this vault configuration.
+
+    Check all test configurations, including those with non-standard
+    validation settings.
+
+    This primarily tests the [`_types.validate_vault_config`][] and
+    [`_types.clean_up_falsy_vault_config_values`][] functions.
+
+    """
     obj, comment, validation_settings = test_config
     (allow_unknown_settings,) = validation_settings or (True,)
     obj = copy.deepcopy(obj)
@@ -147,6 +179,15 @@ def test_400_validate_vault_config(test_config: tests.VaultTestConfig) -> None:
 def test_400a_validate_vault_config_smudged(
     test_config: tests.VaultTestConfig,
 ) -> None:
+    """Validate this vault configuration.
+
+    Generate test data via hypothesis by smudging all smudgable test
+    configurations.
+
+    This primarily tests the [`_types.validate_vault_config`][] and
+    [`_types.clean_up_falsy_vault_config_values`][] functions.
+
+    """
     obj_, comment, validation_settings = test_config
     (allow_unknown_settings,) = validation_settings or (True,)
     obj = copy.deepcopy(obj_)

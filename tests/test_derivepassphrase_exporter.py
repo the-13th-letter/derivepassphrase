@@ -19,6 +19,8 @@ if TYPE_CHECKING:
 
 
 class Test001ExporterUtils:
+    """Test the utility functions in the `exporter` subpackage."""
+
     @pytest.mark.parametrize(
         ['expected', 'vault_key', 'logname', 'user', 'username'],
         [
@@ -48,6 +50,12 @@ class Test001ExporterUtils:
         user: str | None,
         username: str | None,
     ) -> None:
+        """Look up the vault key in `VAULT_KEY`/`LOGNAME`/`USER`/`USERNAME`.
+
+        The correct environment variable value is used, according to
+        their relative priorities.
+
+        """
         priority_list = [
             ('VAULT_KEY', vault_key),
             ('LOGNAME', logname),
@@ -77,6 +85,11 @@ class Test001ExporterUtils:
         expected: pathlib.Path,
         path: str | os.PathLike[str] | None,
     ) -> None:
+        """Determine the vault path from `VAULT_PATH`.
+
+        Handle relative paths, absolute paths, and missing paths.
+
+        """
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
             monkeypatch=monkeypatch, runner=runner
@@ -93,6 +106,8 @@ class Test001ExporterUtils:
     def test_220_register_export_vault_config_data_handler(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Register vault config data export handlers."""
+
         def handler(  # pragma: no cover
             path: str | bytes | os.PathLike | None = None,
             key: str | Buffer | None = None,
@@ -120,6 +135,7 @@ class Test001ExporterUtils:
     def test_300_get_vault_key_without_envs(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Fail to look up the vault key in the empty environment."""
         monkeypatch.delenv('VAULT_KEY', raising=False)
         monkeypatch.delenv('LOGNAME', raising=False)
         monkeypatch.delenv('USER', raising=False)
@@ -130,6 +146,8 @@ class Test001ExporterUtils:
     def test_310_get_vault_path_without_home(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Fail to look up the vault path without `HOME`."""
+
         def raiser(*_args: Any, **_kwargs: Any) -> Any:
             raise RuntimeError('Cannot determine home directory.')  # noqa: EM101,TRY003
 
@@ -162,6 +180,13 @@ class Test001ExporterUtils:
         namelist: tuple[str, ...],
         err_pat: str,
     ) -> None:
+        """Fail to register a vault config data export handler.
+
+        Fail because e.g. the associated name is missing, or already
+        present in the handler registry.
+
+        """
+
         def handler(  # pragma: no cover
             path: str | bytes | os.PathLike | None = None,
             key: str | Buffer | None = None,
@@ -183,6 +208,7 @@ class Test001ExporterUtils:
     def test_321_export_vault_config_data_bad_handler(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Fail to export vault config data without known handlers."""
         monkeypatch.setattr(exporter, '_export_vault_config_data_registry', {})
         monkeypatch.setattr(
             exporter, 'find_vault_config_data_handlers', lambda: None
@@ -195,10 +221,13 @@ class Test001ExporterUtils:
 
 
 class Test002CLI:
+    """Test the command-line functionality of the `exporter` subpackage."""
+
     def test_300_invalid_format(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Reject invalid vault configuration format names."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
             monkeypatch=monkeypatch,
@@ -249,6 +278,7 @@ class Test002CLI:
         config: str | bytes,
         key: str,
     ) -> None:
+        """Abort export call if no cryptography is available."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
             monkeypatch=monkeypatch,

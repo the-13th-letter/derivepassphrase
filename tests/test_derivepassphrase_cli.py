@@ -242,6 +242,15 @@ def vault_config_exporter_shell_interpreter(  # noqa: C901
     command: click.BaseCommand | None = None,
     runner: click.testing.CliRunner | None = None,
 ) -> Iterator[click.testing.Result]:
+    """A rudimentary sh(1) interpreter for `--export-as=sh` output.
+
+    Assumes a script as emitted by `derivepassphrase vault
+    --export-as=sh --export -` and interprets the calls to
+    `derivepassphrase vault` within.  (One call per line, skips all
+    other lines.)  Also has rudimentary support for (quoted)
+    here-documents using `HERE` as the marker.
+
+    """
     if isinstance(script, str):  # pragma: no cover
         script = script.splitlines(False)
     if prog_name_list is None:  # pragma: no cover
@@ -285,6 +294,8 @@ def vault_config_exporter_shell_interpreter(  # noqa: C901
 
 
 class TestAllCLI:
+    """Tests uniformly for all command-line interfaces."""
+
     @pytest.mark.parametrize(
         ['command', 'non_eager_arguments'],
         [
@@ -342,6 +353,7 @@ class TestAllCLI:
         arguments: list[str],
         non_eager_arguments: list[str],
     ) -> None:
+        """Eager options terminate option and argument processing."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -389,6 +401,7 @@ class TestAllCLI:
         command_line: list[str],
         input: str | None,
     ) -> None:
+        """Respect the `NO_COLOR` and `FORCE_COLOR` environment variables."""
         # Force color on if force_color.  Otherwise force color off if
         # no_color.  Otherwise set color if and only if we have a TTY.
         color = force_color or not no_color if isatty else force_color
@@ -420,10 +433,13 @@ class TestAllCLI:
 
 
 class TestCLI:
+    """Tests for the `derivepassphrase vault` command-line interface."""
+
     def test_200_help_output(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """The `--help` option emits help text."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -446,6 +462,7 @@ class TestCLI:
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """The `--version` option emits version information."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -470,6 +487,7 @@ class TestCLI:
     def test_201_disable_character_set(
         self, monkeypatch: pytest.MonkeyPatch, charset_name: str
     ) -> None:
+        """Named character classes can be disabled on the command-line."""
         monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
         option = f'--{charset_name}'
         charset = vault.Vault._CHARSETS[charset_name].decode('ascii')
@@ -494,6 +512,7 @@ class TestCLI:
     def test_202_disable_repetition(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Character repetition can be disabled on the command-line."""
         monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -546,6 +565,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
         config: _types.VaultConfig,
     ) -> None:
+        """A stored configured SSH key will be used."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch, runner=runner, vault_config=config
@@ -573,6 +593,7 @@ class TestCLI:
     def test_204b_key_from_command_line(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """An SSH key requested on the command-line will be used."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -633,6 +654,7 @@ class TestCLI:
         config: dict[str, Any],
         key_index: int,
     ) -> None:
+        """A command-line SSH key will override the configured key."""
         with monkeypatch.context():
             monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket)
             monkeypatch.setattr(
@@ -661,6 +683,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
+        """A command-line passphrase will override the configured key."""
         with monkeypatch.context():
             monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket)
             monkeypatch.setattr(
@@ -738,6 +761,7 @@ class TestCLI:
         config: _types.VaultConfig,
         command_line: list[str],
     ) -> None:
+        """Configuring a passphrase atop an SSH key works, but warns."""
         with monkeypatch.context():
             monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket)
             monkeypatch.setattr(
@@ -790,6 +814,7 @@ class TestCLI:
     def test_210_invalid_argument_range(
         self, monkeypatch: pytest.MonkeyPatch, option: str
     ) -> None:
+        """Requesting invalidly many characters from a class fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -829,6 +854,7 @@ class TestCLI:
         input: str | None,
         check_success: bool,
     ) -> None:
+        """We require or forbid a service argument, depending on options."""
         monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
@@ -879,6 +905,12 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
+        """Using an empty service name (where permissible) warns.
+
+        Only the `--config` option can optionally take a service name.
+
+        """
+
         def is_expected_warning(record: tuple[str, int, str]) -> bool:
             return is_harmless_config_import_warning(
                 record
@@ -940,6 +972,7 @@ class TestCLI:
         options: list[str],
         service: bool | None,
     ) -> None:
+        """Incompatible options are detected."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -970,6 +1003,7 @@ class TestCLI:
         caplog: pytest.LogCaptureFixture,
         config: Any,
     ) -> None:
+        """Importing a configuration works."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -1006,6 +1040,11 @@ class TestCLI:
         caplog: pytest.LogCaptureFixture,
         conf: tests.VaultTestConfig,
     ) -> None:
+        """Importing a smudged configuration works.
+
+        Tested via hypothesis.
+
+        """
         config = conf.config
         config2 = copy.deepcopy(config)
         _types.clean_up_falsy_vault_config_values(config2)
@@ -1036,6 +1075,7 @@ class TestCLI:
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Importing an invalid config fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             result_ = runner.invoke(
@@ -1053,6 +1093,7 @@ class TestCLI:
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Importing an invalid config fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             result_ = runner.invoke(
@@ -1070,6 +1111,7 @@ class TestCLI:
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Importing an invalid config fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         # `isolated_vault_config` validates the configuration.  So, to
         # pass an actual broken configuration, we must open the
@@ -1102,6 +1144,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
         export_options: list[str],
     ) -> None:
+        """Exporting the default, empty config works."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             cli._config_filename(subsystem='vault').unlink(missing_ok=True)
@@ -1129,6 +1172,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
         export_options: list[str],
     ) -> None:
+        """Exporting an invalid config fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch, runner=runner, vault_config={}
@@ -1156,6 +1200,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
         export_options: list[str],
     ) -> None:
+        """Exporting an invalid config fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             config_file = cli._config_filename(subsystem='vault')
@@ -1184,6 +1229,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
         export_options: list[str],
     ) -> None:
+        """Exporting an invalid config fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             dname = cli._config_filename(subsystem=None)
@@ -1210,6 +1256,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
         export_options: list[str],
     ) -> None:
+        """Exporting an invalid config fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             config_dir = cli._config_filename(subsystem=None)
@@ -1232,6 +1279,7 @@ class TestCLI:
     def test_220_edit_notes_successfully(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Editing notes works."""
         edit_result = """
 
 # - - - - - >8 - - - - - >8 - - - - - >8 - - - - - >8 - - - - -
@@ -1263,6 +1311,7 @@ contents go here
     def test_221_edit_notes_noop(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Abandoning edited notes works."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -1283,9 +1332,16 @@ contents go here
                 config = json.load(infile)
             assert config == {'global': {'phrase': 'abc'}, 'services': {}}
 
+    # TODO(the-13th-letter): Keep this behavior or not, with or without
+    # warning?
     def test_222_edit_notes_marker_removed(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Removing the notes marker still saves the notes.
+
+        TODO: Keep this behavior or not, with or without warning?
+
+        """
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -1312,6 +1368,7 @@ contents go here
     def test_223_edit_notes_abort(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Aborting editing notes works."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -1388,6 +1445,7 @@ contents go here
         input: str,
         result_config: Any,
     ) -> None:
+        """Storing valid settings via `--config` works."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -1449,6 +1507,7 @@ contents go here
         input: str,
         err_text: str,
     ) -> None:
+        """Storing invalid settings via `--config` fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -1473,6 +1532,7 @@ contents go here
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Not selecting an SSH key during `--config --key` fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -1500,6 +1560,7 @@ contents go here
         monkeypatch: pytest.MonkeyPatch,
         skip_if_no_af_unix_support: None,
     ) -> None:
+        """Not running an SSH agent during `--config --key` fails."""
         del skip_if_no_af_unix_support
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
@@ -1522,6 +1583,7 @@ contents go here
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Not running a reachable SSH agent during `--config --key` fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -1546,6 +1608,7 @@ contents go here
         monkeypatch: pytest.MonkeyPatch,
         try_race_free_implementation: bool,
     ) -> None:
+        """Using a read-only configuration file with `--config` fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -1570,6 +1633,7 @@ contents go here
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """OS-erroring with `--config` fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -1597,6 +1661,7 @@ contents go here
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Issuing conflicting settings to `--config` fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -1624,6 +1689,7 @@ contents go here
         monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
+        """Not holding any SSH keys during `--config --key` fails."""
         del running_ssh_agent
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
@@ -1654,6 +1720,7 @@ contents go here
         monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
+        """The SSH agent erroring during `--config --key` fails."""
         del running_ssh_agent
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
@@ -1681,6 +1748,7 @@ contents go here
         monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
+        """The SSH agent refusing during `--config --key` fails."""
         del running_ssh_agent
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
@@ -1706,6 +1774,7 @@ contents go here
         )
 
     def test_226_no_arguments(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Calling `derivepassphrase vault` without any arguments fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -1722,6 +1791,7 @@ contents go here
     def test_226a_no_passphrase_or_key(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Deriving a passphrase without a passphrase or key fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -1740,7 +1810,13 @@ contents go here
     def test_230_config_directory_nonexistant(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """https://github.com/the-13th-letter/derivepassphrase/issues/6"""
+        """Running without an existing config directory works.
+
+        This is a regression test; see [issue\u00a0#6][] for context.
+
+        [issue #6]: https://github.com/the-13th-letter/derivepassphrase/issues/6
+
+        """
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -1771,7 +1847,16 @@ contents go here
     def test_230a_config_directory_not_a_file(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """https://github.com/the-13th-letter/derivepassphrase/issues/6"""
+        """Erroring without an existing config directory errors normally.
+
+        That is, the missing configuration directory does not cause any
+        errors by itself.
+
+        This is a regression test; see [issue\u00a0#6][] for context.
+
+        [issue #6]: https://github.com/the-13th-letter/derivepassphrase/issues/6
+
+        """
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -1802,6 +1887,7 @@ contents go here
     def test_230b_store_config_custom_error(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Storing the configuration reacts even to weird errors."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -1933,6 +2019,7 @@ contents go here
         input: str | None,
         warning_message: str,
     ) -> None:
+        """Using unnormalized Unicode passphrases warns."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -2003,6 +2090,7 @@ contents go here
         input: str | None,
         error_message: str,
     ) -> None:
+        """Using unknown Unicode normalization forms fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -2044,6 +2132,7 @@ contents go here
         monkeypatch: pytest.MonkeyPatch,
         command_line: list[str],
     ) -> None:
+        """Using unknown Unicode normalization forms in the config fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -2077,6 +2166,7 @@ contents go here
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Loading a user configuration file in an invalid format fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -2101,6 +2191,7 @@ contents go here
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Querying the SSH agent without `AF_UNIX` support fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -2123,6 +2214,8 @@ contents go here
 
 
 class TestCLIUtils:
+    """Tests for command-line utility functions."""
+
     @pytest.mark.parametrize(
         'config',
         [
@@ -2145,6 +2238,7 @@ class TestCLIUtils:
     def test_100_load_config(
         self, monkeypatch: pytest.MonkeyPatch, config: Any
     ) -> None:
+        """`cli._load_config` works for valid configurations."""
         runner = click.testing.CliRunner()
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch, runner=runner, vault_config=config
@@ -2157,6 +2251,7 @@ class TestCLIUtils:
     def test_110_save_bad_config(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """`cli._save_config` fails for bad configurations."""
         runner = click.testing.CliRunner()
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -2173,6 +2268,7 @@ class TestCLIUtils:
             cli._save_config(None)  # type: ignore[arg-type]
 
     def test_111_prompt_for_selection_multiple(self) -> None:
+        """`cli._prompt_for_selection` works in the "multiple" case."""
         @click.command()
         @click.option('--heading', default='Our menu:')
         @click.argument('items', nargs=-1)
@@ -2248,6 +2344,7 @@ Your selection? (1-10, leave empty to abort):\x20
         ), 'expected known output'
 
     def test_112_prompt_for_selection_single(self) -> None:
+        """`cli._prompt_for_selection` works in the "single" case."""
         @click.command()
         @click.option('--item', default='baked beans')
         @click.argument('prompt')
@@ -2295,6 +2392,7 @@ Boo.
     def test_113_prompt_for_passphrase(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """`cli._prompt_for_passphrase` works."""
         monkeypatch.setattr(
             click,
             'prompt',
@@ -2315,6 +2413,12 @@ Boo.
         caplog: pytest.LogCaptureFixture,
         capsys: pytest.CaptureFixture[str],
     ) -> None:
+        """The standard logging context manager works.
+
+        It registers its handlers, once, and emits formatted calls to
+        standard error prefixed with the program name.
+
+        """
         prog_name = cli.StandardCLILogging.prog_name
         package_name = cli.StandardCLILogging.package_name
         logger = logging.getLogger(package_name)
@@ -2371,6 +2475,14 @@ Boo.
         caplog: pytest.LogCaptureFixture,
         capsys: pytest.CaptureFixture[str],
     ) -> None:
+        """The standard warnings logging context manager works.
+
+        It registers its handlers, once, and emits formatted calls to
+        standard error prefixed with the program name.  It also adheres
+        to the global warnings filter concerning which messages it
+        actually emits to standard error.
+
+        """
         warnings_cm = cli.StandardCLILogging.ensure_standard_warnings_logging()
         THE_FUTURE = 'the future will be here sooner than you think'  # noqa: N806
         JUST_TESTING = 'just testing whether warnings work'  # noqa: N806
@@ -2419,6 +2531,19 @@ Boo.
         self,
         config: Any,
     ) -> None:
+        """Emits a config in sh(1) format, then reads it back to verify it.
+
+        This function exports the configuration, sets up a new
+        enviroment, then calls
+        [`vault_config_exporter_shell_interpreter`][] on the export
+        script, verifying that each command ran successfully and that
+        the final configuration matches the initial one.
+
+        Args:
+            config:
+                The configuration to emit and read back.
+
+        """
         prog_name_list = ('derivepassphrase', 'vault')
         with io.StringIO() as outfile:
             cli._print_config_as_sh_script(
@@ -2464,6 +2589,15 @@ Boo.
         global_config_settable: _types.VaultConfigServicesSettings,
         global_config_importable: _types.VaultConfigServicesSettings,
     ) -> None:
+        """Exporting configurations as sh(1) script works.
+
+        Here, we check global-only configurations which use both
+        settings settable via `--config` and settings requiring
+        `--import`.
+
+        The actual verification is done by [`_export_as_sh_helper`][].
+
+        """
         config: _types.VaultConfig = {
             'global': global_config_settable | global_config_importable,
             'services': {},
@@ -2497,6 +2631,14 @@ Boo.
         self,
         global_config_importable: _types.VaultConfigServicesSettings,
     ) -> None:
+        """Exporting configurations as sh(1) script works.
+
+        Here, we check global-only configurations which only use
+        settings requiring `--import`.
+
+        The actual verification is done by [`_export_as_sh_helper`][].
+
+        """
         config: _types.VaultConfig = {
             'global': global_config_importable,
             'services': {},
@@ -2551,6 +2693,15 @@ Boo.
         service_config_settable: _types.VaultConfigServicesSettings,
         service_config_importable: _types.VaultConfigServicesSettings,
     ) -> None:
+        """Exporting configurations as sh(1) script works.
+
+        Here, we check service-only configurations which use both
+        settings settable via `--config` and settings requiring
+        `--import`.
+
+        The actual verification is done by [`_export_as_sh_helper`][].
+
+        """
         config: _types.VaultConfig = {
             'services': {
                 service_name: (
@@ -2604,6 +2755,14 @@ Boo.
         service_name: str,
         service_config_importable: _types.VaultConfigServicesSettings,
     ) -> None:
+        """Exporting configurations as sh(1) script works.
+
+        Here, we check service-only configurations which only use
+        settings requiring `--import`.
+
+        The actual verification is done by [`_export_as_sh_helper`][].
+
+        """
         config: _types.VaultConfig = {
             'services': {
                 service_name: service_config_importable,
@@ -2649,6 +2808,7 @@ Boo.
         config: _types.VaultConfig,
         result_config: _types.VaultConfig,
     ) -> None:
+        """Repeatedly removing the same parts of a configuration works."""
         runner = click.testing.CliRunner(mix_stderr=False)
         for start_config in [config, result_config]:
             with tests.isolated_vault_config(
@@ -2672,6 +2832,7 @@ Boo.
                 assert config_readback == result_config
 
     def test_204_phrase_from_key_manually(self) -> None:
+        """The dummy service, key and config settings are consistent."""
         assert (
             vault.Vault(
                 phrase=DUMMY_PHRASE_FROM_KEY1, **DUMMY_CONFIG_SETTINGS
@@ -2691,6 +2852,7 @@ Boo.
         vfunc: Callable[[click.Context, click.Parameter, Any], int | None],
         input: int,
     ) -> None:
+        """Command-line argument constraint validation works."""
         ctx = cli.derivepassphrase_vault.make_context(cli.PROG_NAME, [])
         param = cli.derivepassphrase_vault.params[0]
         assert vfunc(ctx, param, input) == input
@@ -2702,6 +2864,7 @@ Boo.
         running_ssh_agent: tests.RunningSSHAgentInfo,
         conn_hint: str,
     ) -> None:
+        """`cli._get_suitable_ssh_keys` works."""
         with monkeypatch.context():
             monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket)
             monkeypatch.setattr(
@@ -2737,6 +2900,8 @@ Boo.
         skip_if_no_af_unix_support: None,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
     ) -> None:
+        """All errors in `cli._key_to_phrase` are handled."""
+
         class ErrCallback(BaseException):
             def __init__(self, *args: Any, **kwargs: Any) -> None:
                 super().__init__(*args[:1])
@@ -2818,7 +2983,10 @@ Boo.
 # TODO(the-13th-letter): Remove this class in v1.0.
 # https://the13thletter.info/derivepassphrase/latest/upgrade-notes/#upgrading-to-v1.0
 class TestCLITransition:
+    """Transition tests for the command-line interface up to v1.0."""
+
     def test_100_help_output(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """The top-level help text mentions subcommands."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -2835,6 +3003,7 @@ class TestCLITransition:
     def test_101_help_output_export(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """The "export" subcommand help text mentions subcommands."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -2853,6 +3022,7 @@ class TestCLITransition:
     def test_102_help_output_export_vault(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """The "export vault" subcommand help text has known content."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -2871,6 +3041,7 @@ class TestCLITransition:
     def test_103_help_output_vault(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """The "vault" subcommand help text has known content."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -2911,6 +3082,7 @@ class TestCLITransition:
     def test_110_load_config_backup(
         self, monkeypatch: pytest.MonkeyPatch, config: Any
     ) -> None:
+        """Loading the old settings file works."""
         runner = click.testing.CliRunner()
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             cli._config_filename(subsystem='old settings.json').write_text(
@@ -2940,6 +3112,7 @@ class TestCLITransition:
     def test_111_migrate_config(
         self, monkeypatch: pytest.MonkeyPatch, config: Any
     ) -> None:
+        """Migrating the old settings file works."""
         runner = click.testing.CliRunner()
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             cli._config_filename(subsystem='old settings.json').write_text(
@@ -2969,6 +3142,7 @@ class TestCLITransition:
     def test_112_migrate_config_error(
         self, monkeypatch: pytest.MonkeyPatch, config: Any
     ) -> None:
+        """Migrating the old settings file atop a directory fails."""
         runner = click.testing.CliRunner()
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             cli._config_filename(subsystem='old settings.json').write_text(
@@ -3004,6 +3178,7 @@ class TestCLITransition:
     def test_113_migrate_config_error_bad_config_value(
         self, monkeypatch: pytest.MonkeyPatch, config: Any
     ) -> None:
+        """Migrating an invalid old settings file fails."""
         runner = click.testing.CliRunner()
         with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
             cli._config_filename(subsystem='old settings.json').write_text(
@@ -3017,6 +3192,7 @@ class TestCLITransition:
         monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
+        """Forwarding arguments from "export" to "export vault" works."""
         pytest.importorskip('cryptography', minversion='38.0')
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
@@ -3045,6 +3221,7 @@ class TestCLITransition:
         monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
+        """Deferring from "export" to "export vault" works."""
         pytest.importorskip('cryptography', minversion='38.0')
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -3075,6 +3252,7 @@ class TestCLITransition:
         caplog: pytest.LogCaptureFixture,
         charset_name: str,
     ) -> None:
+        """Forwarding arguments from top-level to "vault" works."""
         monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
         option = f'--{charset_name}'
         charset = vault.Vault._CHARSETS[charset_name].decode('ascii')
@@ -3107,6 +3285,7 @@ class TestCLITransition:
         monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
+        """Deferring from top-level to "vault" works."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -3134,6 +3313,7 @@ class TestCLITransition:
         monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
+        """Exporting from (and migrating) the old settings file works."""
         caplog.set_level(logging.INFO)
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
@@ -3167,6 +3347,7 @@ class TestCLITransition:
         monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
+        """Exporting from (and not migrating) the old settings file fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_config(
             monkeypatch=monkeypatch,
@@ -3208,6 +3389,7 @@ class TestCLITransition:
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Completing service names from the old settings file works."""
         runner = click.testing.CliRunner(mix_stderr=False)
         config = {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}}
         with tests.isolated_vault_config(
@@ -3227,6 +3409,7 @@ class TestCLITransition:
 
 
 _known_services = (DUMMY_SERVICE, 'email', 'bank', 'work')
+"""Known service names.  Used for the [`ConfigManagementStateMachine`][]."""
 _valid_properties = (
     'length',
     'repeat',
@@ -3237,12 +3420,22 @@ _valid_properties = (
     'dash',
     'symbol',
 )
+"""Known vault properties.  Used for the [`ConfigManagementStateMachine`][]."""
 
 
 def _build_reduced_vault_config_settings(
     config: _types.VaultConfigServicesSettings,
     keys_to_purge: frozenset[str],
 ) -> _types.VaultConfigServicesSettings:
+    """Return a service settings object with certain keys pruned.
+
+    Args:
+        config:
+            The original service settings object.
+        keys_to_purge:
+            The keys to purge from the settings object.
+
+    """
     config2 = copy.deepcopy(config)
     for key in keys_to_purge:
         config2.pop(key, None)  # type: ignore[misc]
@@ -3257,12 +3450,14 @@ _services_strategy = strategies.builds(
         max_size=7,
     ),
 )
+"""A hypothesis strategy to build incomplete service configurations."""
 
 
 def _assemble_config(
     global_data: _types.VaultConfigGlobalSettings,
     service_data: list[tuple[str, _types.VaultConfigServicesSettings]],
 ) -> _types.VaultConfig:
+    """Return a vault config using the global and service data."""
     services_dict = dict(service_data)
     return (
         {'global': global_data, 'services': services_dict}
@@ -3276,6 +3471,21 @@ def _draw_service_name_and_data(
     draw: hypothesis.strategies.DrawFn,
     num_entries: int,
 ) -> tuple[tuple[str, _types.VaultConfigServicesSettings], ...]:
+    """Draw a service name and settings, as a hypothesis strategy.
+
+    Will draw service names from [`_known_services`][] and service
+    settings via [`_services_strategy`][].
+
+    Args:
+        draw:
+            The `draw` function, as provided for by hypothesis.
+        num_entries:
+            The number of services to draw.
+
+    Returns:
+        A sequence of pairs of service names and service settings.
+
+    """
     possible_services = list(_known_services)
     selected_services: list[str] = []
     for _ in range(num_entries):
@@ -3296,11 +3506,26 @@ _vault_full_config = strategies.builds(
         max_value=4,
     ).flatmap(_draw_service_name_and_data),
 )
+"""A hypothesis strategy to build full vault configurations."""
 
 
 @tests.hypothesis_settings_coverage_compatible
 class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
+    """A state machine recording changes in the vault configuration.
+
+    Record possible configuration states in bundles, then in each rule,
+    take a configuration and manipulate it somehow.
+
+    Attributes:
+        setting:
+            A bundle for single-service settings.
+        configuration:
+            A bundle for full vault configurations.
+
+    """
+
     def __init__(self) -> None:
+        """Initialize self, set up context managers and enter them."""
         super().__init__()
         self.runner = click.testing.CliRunner(mix_stderr=False)
         self.exit_stack = contextlib.ExitStack().__enter__()
@@ -3315,8 +3540,14 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             )
         )
 
-    setting = stateful.Bundle('setting')
-    configuration = stateful.Bundle('configuration')
+    setting: stateful.Bundle[_types.VaultConfigServicesSettings] = (
+        stateful.Bundle('setting')
+    )
+    """"""
+    configuration: stateful.Bundle[_types.VaultConfig] = stateful.Bundle(
+        'configuration'
+    )
+    """"""
 
     @stateful.initialize(
         target=configuration,
@@ -3329,7 +3560,8 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     def declare_initial_configs(
         self,
         configs: Iterable[_types.VaultConfig],
-    ) -> Iterable[_types.VaultConfig]:
+    ) -> stateful.MultipleResults[_types.VaultConfig]:
+        """Initialize the configuration bundle with eight configurations."""
         return stateful.multiple(*configs)
 
     @stateful.initialize(
@@ -3343,7 +3575,8 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     def extract_initial_settings(
         self,
         configs: list[_types.VaultConfig],
-    ) -> Iterable[_types.VaultConfigServicesSettings]:
+    ) -> stateful.MultipleResults[_types.VaultConfigServicesSettings]:
+        """Initialize the settings bundle with four service settings."""
         settings: list[_types.VaultConfigServicesSettings] = []
         for c in configs:
             settings.extend(c['services'].values())
@@ -3381,6 +3614,26 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         maybe_unset: set[str],
         overwrite: bool,
     ) -> _types.VaultConfig:
+        """Set the global settings of a configuration.
+
+        Args:
+            config:
+                The configuration to edit.
+            setting:
+                The new global settings.
+            maybe_unset:
+                Settings keys to additionally unset, if not already
+                present in the new settings.  Corresponds to the
+                `--unset` command-line argument.
+            overwrite:
+                Overwrite the settings object if true, or merge if
+                false.  Corresponds to the `--overwrite-existing` and
+                `--merge-existing` command-line arguments.
+
+        Returns:
+            The amended configuration.
+
+        """
         cli._save_config(config)
         config_global = config.get('global', {})
         maybe_unset = set(maybe_unset) - setting.keys()
@@ -3432,6 +3685,28 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         maybe_unset: set[str],
         overwrite: bool,
     ) -> _types.VaultConfig:
+        """Set the named service settings for a configuration.
+
+        Args:
+            config:
+                The configuration to edit.
+            service:
+                The name of the service to set.
+            setting:
+                The new service settings.
+            maybe_unset:
+                Settings keys to additionally unset, if not already
+                present in the new settings.  Corresponds to the
+                `--unset` command-line argument.
+            overwrite:
+                Overwrite the settings object if true, or merge if
+                false.  Corresponds to the `--overwrite-existing` and
+                `--merge-existing` command-line arguments.
+
+        Returns:
+            The amended configuration.
+
+        """
         cli._save_config(config)
         config_service = config['services'].get(service, {})
         maybe_unset = set(maybe_unset) - setting.keys()
@@ -3473,6 +3748,16 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         self,
         config: _types.VaultConfig,
     ) -> _types.VaultConfig:
+        """Purge the globals of a configuration.
+
+        Args:
+            config:
+                The configuration to edit.
+
+        Returns:
+            The pruned configuration.
+
+        """
         cli._save_config(config)
         config.pop('global', None)
         result_ = self.runner.invoke(
@@ -3501,6 +3786,17 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         self,
         config_and_service: tuple[_types.VaultConfig, str],
     ) -> _types.VaultConfig:
+        """Purge the settings of a named service in a configuration.
+
+        Args:
+            config_and_service:
+                A 2-tuple containing the configuration to edit, and the
+                service name to purge.
+
+        Returns:
+            The pruned configuration.
+
+        """
         config, service = config_and_service
         cli._save_config(config)
         config['services'].pop(service, None)
@@ -3523,6 +3819,16 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         self,
         config: _types.VaultConfig,
     ) -> _types.VaultConfig:
+        """Purge the entire configuration.
+
+        Args:
+            config:
+                The configuration to edit.
+
+        Returns:
+            The empty configuration.
+
+        """
         cli._save_config(config)
         config = {'services': {}}
         result_ = self.runner.invoke(
@@ -3548,6 +3854,22 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         config_to_import: _types.VaultConfig,
         overwrite: bool,
     ) -> _types.VaultConfig:
+        """Import the given configuration into a base configuration.
+
+        Args:
+            base_config:
+                The configuration to import into.
+            config_to_import:
+                The configuration to import.
+            overwrite:
+                Overwrite the base configuration if true, or merge if
+                false.  Corresponds to the `--overwrite-existing` and
+                `--merge-existing` command-line arguments.
+
+        Returns:
+            The imported or merged configuration.
+
+        """
         cli._save_config(base_config)
         config = (
             self.fold_configs(config_to_import, base_config)
@@ -3569,13 +3891,20 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         return config
 
     def teardown(self) -> None:
+        """Upon teardown, exit all contexts entered in `__init__`."""
         self.exit_stack.close()
 
 
 TestConfigManagement = ConfigManagementStateMachine.TestCase
+"""The [`unittest.TestCase`][] class that will actually be run."""
 
 
 def bash_format(item: click.shell_completion.CompletionItem) -> str:
+    """A formatter for `bash`-style shell completion items.
+
+    The format is `type,value`, and is dictated by [`click`][].
+
+    """
     type, value = (  # noqa: A001
         item.type,
         item.value,
@@ -3584,6 +3913,11 @@ def bash_format(item: click.shell_completion.CompletionItem) -> str:
 
 
 def fish_format(item: click.shell_completion.CompletionItem) -> str:
+    r"""A formatter for `fish`-style shell completion items.
+
+    The format is `type,value<tab>help`, and is dictated by [`click`][].
+
+    """
     type, value, help = (  # noqa: A001
         item.type,
         item.value,
@@ -3593,6 +3927,19 @@ def fish_format(item: click.shell_completion.CompletionItem) -> str:
 
 
 def zsh_format(item: click.shell_completion.CompletionItem) -> str:
+    r"""A formatter for `zsh`-style shell completion items.
+
+    The format is `type<newline>value<newline>help<newline>`, and is
+    dictated by [`click`][].  Upstream `click` currently (v8.2.0) does
+    not deal with colons in the value correctly when the help text is
+    non-degenerate.  Our formatter here does, provided the upstream
+    `zsh` completion script is used; see the [`cli.ZshComplete`][]
+    class.  A request is underway to merge this change into upstream
+    `click`; see [`pallets/click#2846`][PR2846].
+
+    [PR2846]: https://github.com/pallets/click/pull/2846
+
+    """
     empty_help = '_'
     help_, value = (
         (item.help, item.value.replace(':', r'\:'))
@@ -3605,6 +3952,7 @@ def zsh_format(item: click.shell_completion.CompletionItem) -> str:
 def completion_item(
     item: str | click.shell_completion.CompletionItem,
 ) -> click.shell_completion.CompletionItem:
+    """Convert a string to a completion item, if necessary."""
     return (
         click.shell_completion.CompletionItem(item, type='plain')
         if isinstance(item, str)
@@ -3615,21 +3963,41 @@ def completion_item(
 def assertable_item(
     item: str | click.shell_completion.CompletionItem,
 ) -> tuple[str, Any, str | None]:
+    """Convert a completion item into a pretty-printable item.
+
+    Intended to make completion items introspectable in pytest's
+    `assert` output.
+
+    """
     item = completion_item(item)
     return (item.type, item.value, item.help)
 
 
 class TestShellCompletion:
+    """Tests for the shell completion machinery."""
+
     class Completions:
+        """A deferred completion call."""
+
         def __init__(
             self,
             args: Sequence[str],
             incomplete: str,
         ) -> None:
+            """Initialize the object.
+
+            Args:
+                args:
+                    The sequence of complete command-line arguments.
+                incomplete:
+                    The final, incomplete, partial argument.
+
+            """
             self.args = tuple(args)
             self.incomplete = incomplete
 
         def __call__(self) -> Sequence[click.shell_completion.CompletionItem]:
+            """Return the completion items."""
             args = list(self.args)
             completion = click.shell_completion.ShellComplete(
                 cli=cli.derivepassphrase,
@@ -3640,6 +4008,7 @@ class TestShellCompletion:
             return completion.get_completions(args, self.incomplete)
 
         def get_words(self) -> Sequence[str]:
+            """Return the completion items' values, as a sequence."""
             return tuple(c.value for c in self())
 
     @pytest.mark.parametrize(
@@ -3661,6 +4030,7 @@ class TestShellCompletion:
         partial: str,
         is_completable: bool,
     ) -> None:
+        """Our `_is_completable_item` predicate for service names works."""
         assert cli._is_completable_item(partial) == is_completable
 
     @pytest.mark.parametrize(
@@ -3769,6 +4139,7 @@ class TestShellCompletion:
         incomplete: str,
         completions: AbstractSet[str],
     ) -> None:
+        """Our completion machinery works for all commands' options."""
         comp = self.Completions(command_prefix, incomplete)
         assert frozenset(comp.get_words()) == completions
 
@@ -3795,6 +4166,7 @@ class TestShellCompletion:
         incomplete: str,
         completions: AbstractSet[str],
     ) -> None:
+        """Our completion machinery works for all commands' subcommands."""
         comp = self.Completions(command_prefix, incomplete)
         assert frozenset(comp.get_words()) == completions
 
@@ -3821,6 +4193,7 @@ class TestShellCompletion:
         command_prefix: Sequence[str],
         incomplete: str,
     ) -> None:
+        """Our completion machinery works for all commands' paths."""
         file = click.shell_completion.CompletionItem('', type='file')
         completions = frozenset({(file.type, file.value, file.help)})
         comp = self.Completions(command_prefix, incomplete)
@@ -3870,6 +4243,7 @@ class TestShellCompletion:
         incomplete: str,
         completions: AbstractSet[str],
     ) -> None:
+        """Our completion machinery works for vault service names."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -3994,6 +4368,7 @@ class TestShellCompletion:
         incomplete: str,
         results: list[str | click.shell_completion.CompletionItem],
     ) -> None:
+        """Custom completion functions work for all shells."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -4196,6 +4571,7 @@ class TestShellCompletion:
         incomplete: str,
         completions: AbstractSet[str],
     ) -> None:
+        """Completion skips incompletable items."""
         runner = click.testing.CliRunner(mix_stderr=False)
         vault_config = config if mode == 'config' else {'services': {}}
         with tests.isolated_vault_config(
@@ -4232,6 +4608,7 @@ class TestShellCompletion:
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Service name completion quietly fails on missing configuration."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,
@@ -4251,6 +4628,7 @@ class TestShellCompletion:
         monkeypatch: pytest.MonkeyPatch,
         exc_type: type[Exception],
     ) -> None:
+        """Service name completion quietly fails on configuration errors."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_config(
             monkeypatch=monkeypatch,

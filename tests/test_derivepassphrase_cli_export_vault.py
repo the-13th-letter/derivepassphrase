@@ -40,7 +40,16 @@ if TYPE_CHECKING:
 
 
 class TestCLI:
+    """Test the command-line interface for `derivepassphrase export vault`."""
+
     def test_200_path_parameter(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """The path `VAULT_PATH` is supported.
+
+        Using `VAULT_PATH` as the path looks up the actual path in the
+        `VAULT_PATH` environment variable.  See
+        [`exporter.get_vault_path`][] for details.
+
+        """
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
             monkeypatch=monkeypatch,
@@ -58,6 +67,7 @@ class TestCLI:
         assert json.loads(result.output) == tests.VAULT_V03_CONFIG_DATA
 
     def test_201_key_parameter(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """The `--key` option is supported."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
             monkeypatch=monkeypatch,
@@ -102,6 +112,12 @@ class TestCLI:
         config: str | bytes,
         config_data: dict[str, Any],
     ) -> None:
+        """Passing a specific format works.
+
+        Passing a specific format name causes `derivepassphrase export
+        vault` to only attempt decoding in that named format.
+
+        """
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
             monkeypatch=monkeypatch,
@@ -124,6 +140,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
+        """Fail when trying to decode non-existant files/directories."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
             monkeypatch=monkeypatch,
@@ -150,6 +167,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
+        """Fail to parse invalid vault configurations (files)."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
             monkeypatch=monkeypatch,
@@ -173,6 +191,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
+        """Fail to parse invalid vault configurations (directories)."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
             monkeypatch=monkeypatch,
@@ -199,6 +218,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
+        """Fail to parse vault configurations with invalid integrity checks."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
             monkeypatch=monkeypatch,
@@ -222,6 +242,7 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
+        """The decoded vault configuration data is valid."""
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
             monkeypatch=monkeypatch,
@@ -251,6 +272,8 @@ class TestCLI:
 
 
 class TestStoreroom:
+    """Test the "storeroom" handler and handler machinery."""
+
     @pytest.mark.parametrize('path', ['.vault', None])
     @pytest.mark.parametrize(
         'key',
@@ -282,6 +305,12 @@ class TestStoreroom:
         key: str | Buffer | None,
         handler: exporter.ExportVaultConfigDataFunction,
     ) -> None:
+        """Support different argument types.
+
+        The [`exporter.export_vault_config_data`][] dispatcher supports
+        them as well.
+
+        """
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
             monkeypatch=monkeypatch,
@@ -295,6 +324,7 @@ class TestStoreroom:
             )
 
     def test_400_decrypt_bucket_item_unknown_version(self) -> None:
+        """Fail on unknown versions of the master keys file."""
         bucket_item = (
             b'\xff' + bytes(storeroom.ENCRYPTED_KEYPAIR_SIZE) + bytes(3)
         )
@@ -312,6 +342,12 @@ class TestStoreroom:
         monkeypatch: pytest.MonkeyPatch,
         config: str,
     ) -> None:
+        """Fail on bad or unsupported bucket file contents.
+
+        These include unknown versions, invalid JSON, or JSON of the
+        wrong shape.
+
+        """
         runner = click.testing.CliRunner(mix_stderr=False)
         master_keys = _types.StoreroomMasterKeys(
             encryption_key=bytes(storeroom.KEY_SIZE),
@@ -363,6 +399,11 @@ class TestStoreroom:
         err_msg: str,
         handler: exporter.ExportVaultConfigDataFunction,
     ) -> None:
+        """Fail on bad or unsupported master keys file contents.
+
+        These include unknown versions, and data of the wrong shape.
+
+        """
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
             monkeypatch=monkeypatch,
@@ -415,6 +456,20 @@ class TestStoreroom:
         error_text: str,
         handler: exporter.ExportVaultConfigDataFunction,
     ) -> None:
+        """Fail on bad decoded directory structures.
+
+        If the decoded configuration contains directories whose
+        structures are inconsistent, it detects this and fails:
+
+          - The key indicates a directory, but the contents don't.
+          - The directory indicates children with invalid path names.
+          - The directory indicates children that are missing from the
+            configuration entirely.
+          - The configuration contains nested subdirectories, but the
+            higher-level directories don't indicate their
+            subdirectories.
+
+        """
         runner = click.testing.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -432,6 +487,15 @@ class TestStoreroom:
             handler(format='storeroom')
 
     def test_404_decrypt_keys_wrong_data_length(self) -> None:
+        """Fail on internal structural data of the wrong size.
+
+        Specifically, fail on internal structural data such as master
+        keys or session keys that is correctly encrypted according to
+        its MAC, but is of the wrong shape.  (Since the data usually are
+        keys and thus are opaque, the only detectable shape violation is
+        the wrong size of the data.)
+
+        """
         payload = (
             b"Any text here, as long as it isn't exactly 64 or 96 bytes long."
         )
@@ -480,6 +544,7 @@ class TestStoreroom:
         ),
     )
     def test_405_decrypt_keys_invalid_signature(self, data: bytes) -> None:
+        """Fail on bad MAC values."""
         key = b'DEADBEEFdeadbeefDeAdBeEfdEaDbEeF'
         # Guessing a correct payload plus MAC would be a pre-image
         # attack on the underlying hash function (SHA-256), i.e. is
@@ -500,6 +565,8 @@ class TestStoreroom:
 
 
 class TestVaultNativeConfig:
+    """Test the vault-native handler and handler machinery."""
+
     @pytest.mark.parametrize(
         ['iterations', 'result'],
         [
@@ -508,6 +575,7 @@ class TestVaultNativeConfig:
         ],
     )
     def test_200_pbkdf2_manually(self, iterations: int, result: bytes) -> None:
+        """The PBKDF2 helper function works."""
         assert (
             vault_native.VaultNativeConfigParser._pbkdf2(
                 tests.VAULT_MASTER_KEY.encode('utf-8'), 32, iterations
@@ -551,7 +619,7 @@ class TestVaultNativeConfig:
             pytest.param(exporter.export_vault_config_data, id='dispatcher'),
         ],
     )
-    def test_201_export_vault_native_data_no_arguments(
+    def test_201_export_vault_native_data_explicit_version(
         self,
         monkeypatch: pytest.MonkeyPatch,
         config: str,
@@ -559,6 +627,16 @@ class TestVaultNativeConfig:
         result: _types.VaultConfig | type[Exception],
         handler: exporter.ExportVaultConfigDataFunction,
     ) -> None:
+        """Accept data only of the correct version.
+
+        Note: Historic behavior
+            `derivepassphrase` versions prior to 0.5 automatically tried
+            to parse vault-native configurations as v0.3-type, then
+            v0.2-type.  Since `derivepassphrase` 0.5, the command-line
+            interface still tries multi-version parsing, but the API
+            no longer does.
+
+        """
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
             monkeypatch=monkeypatch,
@@ -604,6 +682,12 @@ class TestVaultNativeConfig:
         key: str | Buffer | None,
         handler: exporter.ExportVaultConfigDataFunction,
     ) -> None:
+        """The handler supports different argument types.
+
+        The [`exporter.export_vault_config_data`][] dispatcher supports
+        them as well.
+
+        """
         runner = click.testing.CliRunner(mix_stderr=False)
         with tests.isolated_vault_exporter_config(
             monkeypatch=monkeypatch,
@@ -640,6 +724,8 @@ class TestVaultNativeConfig:
         config: str,
         result: dict[str, Any],
     ) -> None:
+        """Cache the results of decrypting/decoding a configuration."""
+
         def null_func(name: str) -> Callable[..., None]:
             def func(*_args: Any, **_kwargs: Any) -> None:  # pragma: no cover
                 msg = f'disallowed and stubbed out function {name} called'
@@ -675,5 +761,6 @@ class TestVaultNativeConfig:
             assert super_call(parser) == result
 
     def test_400_no_password(self) -> None:
+        """Fail on empty master keys/master passphrases."""
         with pytest.raises(ValueError, match='Password must not be empty'):
             vault_native.VaultNativeV03ConfigParser(b'', b'')
