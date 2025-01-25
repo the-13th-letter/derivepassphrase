@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import base64
 import contextlib
+import datetime
 import operator
 import os
 import shutil
@@ -30,6 +31,9 @@ hypothesis.settings.register_profile('ci', max_examples=1000)
 hypothesis.settings.register_profile('dev', max_examples=10)
 hypothesis.settings.register_profile(
     'debug', max_examples=10, verbosity=hypothesis.Verbosity.verbose
+)
+hypothesis.settings.register_profile(
+    'flaky', deadline=datetime.timedelta(milliseconds=150)
 )
 
 

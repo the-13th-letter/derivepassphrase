@@ -2562,6 +2562,7 @@ Boo.
                 assert result.clean_exit()
             assert cli._load_config() == config
 
+    @tests.hypothesis_settings_coverage_compatible
     @hypothesis.given(
         global_config_settable=tests.vault_full_service_config(),
         global_config_importable=strategies.fixed_dictionaries(
