@@ -10,6 +10,7 @@ import contextlib
 import errno
 import gettext
 import os
+import re
 import string
 from typing import TYPE_CHECKING, cast
 
@@ -59,6 +60,7 @@ def monkeypatched_null_translations() -> Iterator[None]:
 @pytest.mark.usefixtures('use_debug_translations')
 class TestL10nMachineryWithDebugTranslations:
     """Test the localization machinery together with debug translations."""
+
     error_codes = tuple(
         sorted(errno.errorcode, key=errno.errorcode.__getitem__)
     )
@@ -215,25 +217,27 @@ class TestL10nMachineryWithDebugTranslations:
         """
         with monkeypatched_null_translations():
             ts1 = msg.TranslatedString(s)
-            with pytest.raises((KeyError, ValueError)) as excinfo:
-                str(ts1)
-            if '{spam}' in s:
-                assert isinstance(excinfo.value, KeyError)
-                assert excinfo.value.args[0] == 'spam'
-            else:
-                assert isinstance(excinfo.value, ValueError)
-                assert excinfo.value.args[0].startswith('Single ')
-                assert excinfo.value.args[0].endswith(
-                    ' encountered in format string'
-                )
             ts2 = msg.TranslatedString(s, spam='eggs')
-            try:
+            if '{spam}' in s:
+                with pytest.raises(KeyError, match=r'spam'):
+                    str(ts1)
                 assert str(ts2) == s.replace('{spam}', 'eggs')
-            except ValueError as exc:
-                assert exc.args[0].startswith('Single ')  # noqa: PT017
-                assert exc.args[0].endswith(  # noqa: PT017
-                    ' encountered in format string'
+            else:
+                # Known error message variations:
+                #
+                # * Single { encountered in the pattern string
+                # * Single } encountered in the pattern string
+                # * Single '{' encountered in the pattern string
+                # * Single '}' encountered in the pattern string
+                # * Single '{'
+                # * Single '}'
+                pattern = re.compile(
+                    r"Single (?:\{|\}|'\{'|'\}')(?: encountered in the pattern string)?"
                 )
+                with pytest.raises(ValueError, match=pattern):
+                    str(ts1)
+                with pytest.raises(ValueError, match=pattern):
+                    str(ts2)
 
     @hypothesis.given(
         s=strategies.text(
