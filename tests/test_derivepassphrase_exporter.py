@@ -4,12 +4,17 @@
 
 from __future__ import annotations
 
+import contextlib
+import operator
 import os
 import pathlib
-from typing import TYPE_CHECKING, Any
+import string
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import click.testing
+import hypothesis
 import pytest
+from hypothesis import strategies
 
 import tests
 from derivepassphrase import cli, exporter
@@ -21,33 +26,143 @@ if TYPE_CHECKING:
 class Test001ExporterUtils:
     """Test the utility functions in the `exporter` subpackage."""
 
-    @pytest.mark.parametrize(
-        ['expected', 'vault_key', 'logname', 'user', 'username'],
-        [
-            ('4username', None, None, None, '4username'),
-            ('3user', None, None, '3user', None),
-            ('3user', None, None, '3user', '4username'),
-            ('2logname', None, '2logname', None, None),
-            ('2logname', None, '2logname', None, '4username'),
-            ('2logname', None, '2logname', '3user', None),
-            ('2logname', None, '2logname', '3user', '4username'),
-            ('1vault_key', '1vault_key', None, None, None),
-            ('1vault_key', '1vault_key', None, None, '4username'),
-            ('1vault_key', '1vault_key', None, '3user', None),
-            ('1vault_key', '1vault_key', None, '3user', '4username'),
-            ('1vault_key', '1vault_key', '2logname', None, None),
-            ('1vault_key', '1vault_key', '2logname', None, '4username'),
-            ('1vault_key', '1vault_key', '2logname', '3user', None),
-            ('1vault_key', '1vault_key', '2logname', '3user', '4username'),
-        ],
+    class VaultKeyEnvironment(NamedTuple):
+        """An environment configuration for vault key determination.
+
+        Attributes:
+            expected:
+                The correct vault key value.
+            vault_key:
+                The value for the `VAULT_KEY` environment variable.
+            logname:
+                The value for the `LOGNAME` environment variable.
+            user:
+                The value for the `USER` environment variable.
+            username:
+                The value for the `USERNAME` environment variable.
+
+        """
+
+        expected: str | None
+        """"""
+        vault_key: str | None
+        """"""
+        logname: str | None
+        """"""
+        user: str | None
+        """"""
+        username: str | None
+        """"""
+
+        @strategies.composite
+        @staticmethod
+        def strategy(
+            draw: strategies.DrawFn,
+            allow_missing: bool = False,
+        ) -> Test001ExporterUtils.VaultKeyEnvironment:
+            """Return a vault key environment configuration."""
+            text_strategy = strategies.text(
+                strategies.characters(min_codepoint=32, max_codepoint=127),
+                min_size=1,
+                max_size=24,
+            )
+            env_var_strategy = strategies.one_of(
+                strategies.none(),
+                text_strategy,
+            )
+            num_fields = sum(
+                1
+                for f in Test001ExporterUtils.VaultKeyEnvironment._fields
+                if f != 'expected'
+            )
+            env_vars: list[str | None] = draw(
+                strategies.builds(
+                    operator.add,
+                    strategies.lists(
+                        env_var_strategy,
+                        min_size=num_fields - 1,
+                        max_size=num_fields - 1,
+                    ),
+                    strategies.lists(
+                        text_strategy
+                        if not allow_missing
+                        else env_var_strategy,
+                        min_size=1,
+                        max_size=1,
+                    ),
+                )
+            )
+            expected: str | None = None
+            for value in reversed(env_vars):
+                if value is not None:
+                    expected = value
+            return Test001ExporterUtils.VaultKeyEnvironment(
+                expected, *env_vars
+            )
+
+    @hypothesis.example(
+        VaultKeyEnvironment('4username', None, None, None, '4username')
+    ).via('manual, pre-hypothesis parametrization value')
+    @hypothesis.example(
+        VaultKeyEnvironment('3user', None, None, '3user', None)
+    ).via('manual, pre-hypothesis parametrization value')
+    @hypothesis.example(
+        VaultKeyEnvironment('3user', None, None, '3user', '4username')
+    ).via('manual, pre-hypothesis parametrization value')
+    @hypothesis.example(
+        VaultKeyEnvironment('2logname', None, '2logname', None, None)
+    ).via('manual, pre-hypothesis parametrization value')
+    @hypothesis.example(
+        VaultKeyEnvironment('2logname', None, '2logname', None, '4username')
+    ).via('manual, pre-hypothesis parametrization value')
+    @hypothesis.example(
+        VaultKeyEnvironment('2logname', None, '2logname', '3user', None)
+    ).via('manual, pre-hypothesis parametrization value')
+    @hypothesis.example(
+        VaultKeyEnvironment('2logname', None, '2logname', '3user', '4username')
+    ).via('manual, pre-hypothesis parametrization value')
+    @hypothesis.example(
+        VaultKeyEnvironment('1vault_key', '1vault_key', None, None, None)
+    ).via('manual, pre-hypothesis parametrization value')
+    @hypothesis.example(
+        VaultKeyEnvironment(
+            '1vault_key', '1vault_key', None, None, '4username'
+        )
+    ).via('manual, pre-hypothesis parametrization value')
+    @hypothesis.example(
+        VaultKeyEnvironment('1vault_key', '1vault_key', None, '3user', None)
+    ).via('manual, pre-hypothesis parametrization value')
+    @hypothesis.example(
+        VaultKeyEnvironment(
+            '1vault_key', '1vault_key', None, '3user', '4username'
+        )
+    ).via('manual, pre-hypothesis parametrization value')
+    @hypothesis.example(
+        VaultKeyEnvironment('1vault_key', '1vault_key', '2logname', None, None)
+    ).via('manual, pre-hypothesis parametrization value')
+    @hypothesis.example(
+        VaultKeyEnvironment(
+            '1vault_key', '1vault_key', '2logname', None, '4username'
+        )
+    ).via('manual, pre-hypothesis parametrization value')
+    @hypothesis.example(
+        VaultKeyEnvironment(
+            '1vault_key', '1vault_key', '2logname', '3user', None
+        )
+    ).via('manual, pre-hypothesis parametrization value')
+    @hypothesis.example(
+        VaultKeyEnvironment(
+            '1vault_key', '1vault_key', '2logname', '3user', '4username'
+        )
+    ).via('manual, pre-hypothesis parametrization value')
+    @hypothesis.given(
+        vault_key_env=VaultKeyEnvironment.strategy().filter(
+            lambda env: bool(env.expected)
+        ),
     )
     def test_200_get_vault_key(
         self,
-        expected: str,
-        vault_key: str | None,
-        logname: str | None,
-        user: str | None,
-        username: str | None,
+        vault_key_env: VaultKeyEnvironment,
     ) -> None:
         """Look up the vault key in `VAULT_KEY`/`LOGNAME`/`USER`/`USERNAME`.
 
@@ -55,6 +170,8 @@ class Test001ExporterUtils:
         their relative priorities.
 
         """
+        expected, vault_key, logname, user, username = vault_key_env
+        assert expected is not None
         priority_list = [
             ('VAULT_KEY', vault_key),
             ('LOGNAME', logname),
@@ -115,7 +232,32 @@ class Test001ExporterUtils:
                 == expected.expanduser().resolve()
             )
 
-    def test_220_register_export_vault_config_data_handler(self) -> None:
+    @hypothesis.given(
+        name_data=strategies.lists(
+            strategies.integers(min_value=1, max_value=3),
+            min_size=2,
+            max_size=2,
+        ).flatmap(
+            lambda nm: strategies.lists(
+                strategies.builds(
+                    operator.add,
+                    strategies.sampled_from(string.ascii_letters),
+                    strategies.text(
+                        string.ascii_letters + string.digits + '_-',
+                        max_size=23,
+                    ),
+                ),
+                min_size=sum(nm),
+                max_size=sum(nm),
+                unique=True,
+            ).flatmap(
+                lambda list_: strategies.just((list_[nm[0] :], list_[: nm[0]]))
+            )
+        ),
+    )
+    def test_220_register_export_vault_config_data_handler(
+        self, name_data: tuple[list[str], list[str]]
+    ) -> None:
         """Register vault config data export handlers."""
 
         def handler(  # pragma: no cover
@@ -127,21 +269,16 @@ class Test001ExporterUtils:
             del path, key
             raise ValueError(format)
 
+        names1, names2 = name_data
+
         with pytest.MonkeyPatch.context() as monkeypatch:
-            registry = {'dummy': handler}
+            registry = dict.fromkeys(names1, handler)
             monkeypatch.setattr(
                 exporter, '_export_vault_config_data_registry', registry
             )
-            dec = exporter.register_export_vault_config_data_handler(
-                'name1',
-                'name2',
-            )
+            dec = exporter.register_export_vault_config_data_handler(*names2)
             assert dec(handler) == handler
-            assert registry == {
-                'dummy': handler,
-                'name1': handler,
-                'name2': handler,
-            }
+            assert registry == dict.fromkeys(names1 + names2, handler)
 
     def test_300_get_vault_key_without_envs(self) -> None:
         """Fail to look up the vault key in the empty environment."""
