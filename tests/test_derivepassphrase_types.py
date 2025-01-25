@@ -118,9 +118,11 @@ def test_200_is_vault_config(test_config: tests.VaultTestConfig) -> None:
 @tests.hypothesis_settings_coverage_compatible
 @hypothesis.given(
     test_config=tests.smudged_vault_test_config(
-        config=strategies.sampled_from(tests.TEST_CONFIGS).filter(
-            tests.is_valid_test_config
-        )
+        config=strategies.sampled_from([
+            conf
+            for conf in tests.TEST_CONFIGS
+            if tests.is_valid_test_config(conf)
+        ])
     )
 )
 def test_200a_is_vault_config_smudged(
@@ -184,9 +186,11 @@ def test_400_validate_vault_config(test_config: tests.VaultTestConfig) -> None:
 @tests.hypothesis_settings_coverage_compatible
 @hypothesis.given(
     test_config=tests.smudged_vault_test_config(
-        config=strategies.sampled_from(tests.TEST_CONFIGS).filter(
-            tests.is_smudgable_vault_test_config
-        )
+        config=strategies.sampled_from([
+            conf
+            for conf in tests.TEST_CONFIGS
+            if tests.is_smudgable_vault_test_config(conf)
+        ])
     )
 )
 def test_400a_validate_vault_config_smudged(

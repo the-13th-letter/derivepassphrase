@@ -1030,9 +1030,11 @@ class TestCLI:
     @tests.hypothesis_settings_coverage_compatible_with_caplog
     @hypothesis.given(
         conf=tests.smudged_vault_test_config(
-            strategies.sampled_from(TEST_CONFIGS).filter(
-                tests.is_valid_test_config
-            )
+            strategies.sampled_from([
+                conf
+                for conf in tests.TEST_CONFIGS
+                if tests.is_valid_test_config(conf)
+            ])
         )
     )
     def test_213a_import_config_success(
