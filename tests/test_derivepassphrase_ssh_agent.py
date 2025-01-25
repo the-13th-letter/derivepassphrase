@@ -132,16 +132,16 @@ class TestStaticFunctionality:
 
     def test_200_constructor_no_running_agent(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         skip_if_no_af_unix_support: None,
     ) -> None:
         """Abort if the running agent cannot be located."""
         del skip_if_no_af_unix_support
-        monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
-        with pytest.raises(
-            KeyError, match='SSH_AUTH_SOCK environment variable'
-        ):
-            ssh_agent.SSHAgentClient()
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
+            with pytest.raises(
+                KeyError, match='SSH_AUTH_SOCK environment variable'
+            ):
+                ssh_agent.SSHAgentClient()
 
     @pytest.mark.parametrize(
         ['input', 'expected'],
@@ -467,26 +467,20 @@ class TestAgentInteraction:
 
     def test_300_constructor_bad_running_agent(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
         """Fail if the agent address is invalid."""
-        with monkeypatch.context() as monkeypatch2:
-            monkeypatch2.setenv(
-                'SSH_AUTH_SOCK', running_ssh_agent.socket + '~'
-            )
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket + '~')
             sock = socket.socket(family=socket.AF_UNIX)
             with pytest.raises(OSError):  # noqa: PT011
                 ssh_agent.SSHAgentClient(socket=sock)
 
-    def test_301_constructor_no_af_unix_support(
-        self,
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
+    def test_301_constructor_no_af_unix_support(self) -> None:
         """Fail without [`socket.AF_UNIX`][] support."""
-        with monkeypatch.context() as monkeypatch2:
-            monkeypatch2.setenv('SSH_AUTH_SOCK', "the value doesn't matter")
-            monkeypatch2.delattr(socket, 'AF_UNIX', raising=False)
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setenv('SSH_AUTH_SOCK', "the value doesn't matter")
+            monkeypatch.delattr(socket, 'AF_UNIX', raising=False)
             with pytest.raises(
                 NotImplementedError,
                 match='UNIX domain sockets',
@@ -503,7 +497,6 @@ class TestAgentInteraction:
     )
     def test_310_truncated_server_response(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: tests.RunningSSHAgentInfo,
         response: bytes,
     ) -> None:
@@ -520,9 +513,10 @@ class TestAgentInteraction:
                 return response_stream.read(*args, **kwargs)
 
         pseudo_socket = PseudoSocket()
-        monkeypatch.setattr(client, '_connection', pseudo_socket)
-        with pytest.raises(EOFError):
-            client.request(255, b'')
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(client, '_connection', pseudo_socket)
+            with pytest.raises(EOFError):
+                client.request(255, b'')
 
     @pytest.mark.parametrize(
         ['response_code', 'response', 'exc_type', 'exc_pattern'],
@@ -552,7 +546,6 @@ class TestAgentInteraction:
     )
     def test_320_list_keys_error_responses(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: tests.RunningSSHAgentInfo,
         response_code: _types.SSH_AGENT,
         response: bytes | bytearray,
@@ -602,9 +595,9 @@ class TestAgentInteraction:
                 )
             return response
 
-        with monkeypatch.context() as monkeypatch2:
+        with pytest.MonkeyPatch.context() as monkeypatch:
             client = ssh_agent.SSHAgentClient()
-            monkeypatch2.setattr(client, 'request', request)
+            monkeypatch.setattr(client, 'request', request)
             with pytest.raises(exc_type, match=exc_pattern):
                 client.list_keys()
 
@@ -640,7 +633,6 @@ class TestAgentInteraction:
     )
     def test_330_sign_error_responses(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: tests.RunningSSHAgentInfo,
         key: bytes | bytearray,
         check: bool,
@@ -692,16 +684,16 @@ class TestAgentInteraction:
                 )
             return response  # pragma: no cover
 
-        with monkeypatch.context() as monkeypatch2:
+        with pytest.MonkeyPatch.context() as monkeypatch:
             client = ssh_agent.SSHAgentClient()
-            monkeypatch2.setattr(client, 'request', request)
+            monkeypatch.setattr(client, 'request', request)
             Pair = _types.SSHKeyCommentPair  # noqa: N806
             com = b'no comment'
             loaded_keys = [
                 Pair(v.public_key_data, com).toreadonly()
                 for v in tests.SUPPORTED_KEYS.values()
             ]
-            monkeypatch2.setattr(client, 'list_keys', lambda: loaded_keys)
+            monkeypatch.setattr(client, 'list_keys', lambda: loaded_keys)
             with pytest.raises(exc_type, match=exc_pattern):
                 client.sign(key, b'abc', check_if_key_loaded=check)
 
