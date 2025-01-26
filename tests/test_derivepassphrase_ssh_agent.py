@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import contextlib
 import io
+import re
 import socket
 from typing import TYPE_CHECKING
 
@@ -704,7 +705,9 @@ class TestAgentInteraction:
                 _types.SSH_AGENTC.REQUEST_IDENTITIES,
                 _types.SSH_AGENT.SUCCESS,
                 ssh_agent.SSHAgentFailedError,
-                f'[Code {_types.SSH_AGENT.IDENTITIES_ANSWER.value}]',
+                re.escape(
+                    f'[Code {_types.SSH_AGENT.IDENTITIES_ANSWER.value}]'
+                ),
                 id='REQUEST_IDENTITIES-expect-SUCCESS',
             ),
         ],
