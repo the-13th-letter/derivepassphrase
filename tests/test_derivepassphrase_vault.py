@@ -59,17 +59,42 @@ class TestVault:
             == b'n+oIz6sL>K*lTEWYRO%7'
         )
 
-    def test_202_reproducibility_and_bytes_service_name(self) -> None:
+    def test_202a_reproducibility_and_bytes_service_name(self) -> None:
         """Deriving a passphrase works equally for byte strings."""
         assert Vault(phrase=self.phrase).generate(b'google') == Vault(
             phrase=self.phrase
         ).generate('google')
 
-    def test_203_reproducibility_and_bytearray_service_name(self) -> None:
+    def test_202b_reproducibility_and_bytearray_service_name(self) -> None:
         """Deriving a passphrase works equally for byte arrays."""
         assert Vault(phrase=self.phrase).generate(b'google') == Vault(
             phrase=self.phrase
         ).generate(bytearray(b'google'))
+
+    @hypothesis.given(
+        phrase=strategies.text(
+            strategies.characters(min_codepoint=32, max_codepoint=126),
+            min_size=1,
+            max_size=32,
+        ),
+        service=strategies.text(
+            strategies.characters(min_codepoint=32, max_codepoint=126),
+            min_size=1,
+            max_size=32,
+        ),
+    )
+    def test_202c_reproducibility_and_binary_service_name(
+        self,
+        phrase: str,
+        service: str,
+    ) -> None:
+        """Deriving a passphrase works equally for byte arrays/strings."""
+        assert Vault(phrase=phrase).generate(service) == Vault(
+            phrase=phrase
+        ).generate(service.encode('utf-8'))
+        assert Vault(phrase=phrase).generate(service) == Vault(
+            phrase=phrase
+        ).generate(bytearray(service.encode('utf-8')))
 
     def test_210_nonstandard_length(self) -> None:
         """Deriving a passphrase adheres to imposed length limits."""
