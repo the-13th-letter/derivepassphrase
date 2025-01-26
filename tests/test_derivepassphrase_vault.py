@@ -221,8 +221,14 @@ class TestVault:
         try:
             password = Vault(phrase=phrase, **config).generate(service)
         except ValueError as exc:
-            if 'no allowed characters left' in exc.args:
-                return
+            # The service configuration strategy attempts to only
+            # generate satisfiable configurations.  It is possible,
+            # though rare, that this fails, and that unsatisfiability is
+            # only recognized when actually deriving a passphrase.  In
+            # that case, reject the generated configuration.
+            hypothesis.assume('no allowed characters left' not in exc.args)
+            # Otherwise it's a genuine bug in the test case or the
+            # implementation, and should be raised.
             raise  # pragma: no cover
         n = len(password)
         assert n == config['length'], 'Password has wrong length.'
