@@ -169,7 +169,6 @@ class TestVault:
         config=tests.vault_full_service_config(),
         service=strategies.text(min_size=1),
     )
-    # regression test
     @hypothesis.example(
         phrase=b'\x00',
         config={
@@ -183,8 +182,7 @@ class TestVault:
             'length': 3,
         },
         service='0',
-    )
-    # regression test
+    ).via('regression test')
     @hypothesis.example(
         phrase=b'\x00',
         config={
@@ -198,8 +196,7 @@ class TestVault:
             'length': 5,
         },
         service='0',
-    )
-    # branch coverage: case `repeat = 0` in `if config[repeat]` below
+    ).via('regression test')
     @hypothesis.example(
         phrase=b'\x00',
         config={
@@ -213,7 +210,7 @@ class TestVault:
             'length': 5,
         },
         service='0',
-    )
+    ).via('branch coverage (test function): "no repeats" case')
     def test_217a_all_length_character_and_occurrence_constraints_satisfied(
         self,
         phrase: str | bytes,
