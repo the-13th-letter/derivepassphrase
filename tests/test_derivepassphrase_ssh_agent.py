@@ -819,17 +819,33 @@ class TestAgentInteraction:
 class TestHypotheses:
     """Test properties via hypothesis."""
 
+    @staticmethod
+    def as_ssh_string(bytestring: bytes) -> bytes:
+        return int.to_bytes(len(bytestring), 4, 'big') + bytestring
+
+    @staticmethod
+    def canonicalize1(data: bytes) -> bytes:
+        return ssh_agent.SSHAgentClient.string(
+            ssh_agent.SSHAgentClient.unstring(data)
+        )
+
+    @staticmethod
+    def canonicalize2(data: bytes) -> bytes:
+        unstringed, trailer = ssh_agent.SSHAgentClient.unstring_prefix(data)
+        assert not trailer
+        return ssh_agent.SSHAgentClient.string(unstringed)
+
     @hypothesis.given(strategies.integers(min_value=0, max_value=0xFFFFFFFF))
-    # standard example value
-    @hypothesis.example(0xDEADBEEF)
+    @hypothesis.example(0xDEADBEEF).via('manual, pre-hypothesis example')
     def test_210a_uint32_from_number(self, num: int) -> None:
         """`uint32` encoding works, starting from numbers."""
         uint32 = ssh_agent.SSHAgentClient.uint32
         assert int.from_bytes(uint32(num), 'big', signed=False) == num
 
     @hypothesis.given(strategies.binary(min_size=4, max_size=4))
-    # standard example value
-    @hypothesis.example(b'\xde\xad\xbe\xef')
+    @hypothesis.example(b'\xde\xad\xbe\xef').via(
+        'manual, pre-hypothesis example'
+    )
     def test_210b_uint32_from_bytestring(self, bytestring: bytes) -> None:
         """`uint32` encoding works, starting from length four byte strings."""
         uint32 = ssh_agent.SSHAgentClient.uint32
@@ -839,8 +855,9 @@ class TestHypotheses:
         )
 
     @hypothesis.given(strategies.binary(max_size=0x0001FFFF))
-    # example: highest order bit is set
-    @hypothesis.example(b'DEADBEEF' * 10000)
+    @hypothesis.example(b'DEADBEEF' * 10000).via(
+        'manual, pre-hypothesis example with highest order bit set'
+    )
     def test_211a_string_from_bytestring(self, bytestring: bytes) -> None:
         """SSH string encoding works, starting from a byte string."""
         res = ssh_agent.SSHAgentClient.string(bytestring)
@@ -849,10 +866,22 @@ class TestHypotheses:
         assert res[4:] == bytestring
 
     @hypothesis.given(strategies.binary(max_size=0x00FFFFFF))
-    # example: check for double-deserialization
-    @hypothesis.example(b'\x00\x00\x00\x07ssh-rsa')
-    def test_212_string_unstring(self, bytestring: bytes) -> None:
-        """SSH string decoding of encoded SSH strings works."""
+    @hypothesis.example(b'\x00\x00\x00\x07ssh-rsa').via(
+        'manual, pre-hypothesis example to attempt to detect double-decoding'
+    )
+    @hypothesis.example(b'\x00\x00\x00\x01').via(
+        'detect no-op encoding via ill-formed SSH string'
+    )
+    def test_212a_unstring_of_string_of_data(self, bytestring: bytes) -> None:
+        """SSH string decoding of encoded SSH strings works.
+
+        References:
+
+          * [David R. MacIver: The Encode/Decode invariant][ENCODE_DECODE]
+
+        [ENCODE_DECODE]: https://hypothesis.works/articles/encode-decode-invariant/
+
+        """
         string = ssh_agent.SSHAgentClient.string
         unstring = ssh_agent.SSHAgentClient.unstring
         unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
@@ -862,3 +891,28 @@ class TestHypotheses:
         trailing_data = b'  trailing data'
         encoded2 = string(bytestring) + trailing_data
         assert unstring_prefix(encoded2) == (bytestring, trailing_data)
+
+    @hypothesis.given(
+        strategies.binary(max_size=0x00FFFFFF).map(
+            # Scoping issues, and the fact that staticmethod objects
+            # (before class finalization) are not callable, necessitate
+            # wrapping this staticmethod call in a lambda.
+            lambda x: TestHypotheses.as_ssh_string(x)  # noqa: PLW0108
+        ),
+    )
+    def test_212b_string_of_unstring_of_data(self, encoded: bytes) -> None:
+        """SSH string decoding of encoded SSH strings works.
+
+        References:
+
+          * [David R. MacIver: Another invariant to test for
+            encoders][DECODE_ENCODE]
+
+        [DECODE_ENCODE]: https://hypothesis.works/articles/canonical-serialization/
+
+        """
+        canonical_functions = [self.canonicalize1, self.canonicalize2]
+        for canon1 in canonical_functions:
+            for canon2 in canonical_functions:
+                assert canon1(encoded) == canon2(encoded)
+                assert canon1(canon2(encoded)) == canon1(encoded)
