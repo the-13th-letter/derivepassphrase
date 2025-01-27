@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import collections
 import hashlib
+import hmac
 import math
 import types
 from typing import TYPE_CHECKING
@@ -588,6 +589,83 @@ class Vault:
         _keytype, trailer = ssh_agent.SSHAgentClient.unstring_prefix(raw_sig)
         signature_blob = ssh_agent.SSHAgentClient.unstring(trailer)
         return bytes(base64.standard_b64encode(signature_blob))
+
+    @classmethod
+    def phrases_are_interchangable(
+        cls,
+        phrase1: bytes | bytearray,
+        phrase2: bytes | bytearray,
+        /,
+    ) -> bool:
+        """Return true if the passphrases are interchangable to Vault.
+
+        Vault internally passes the passphrase as the key to HMAC-SHA1.
+        HMAC requires keys to have a certain fixed length, and therefore
+        transforms keys of other lengths suitably.  Because of this, in
+        general, there exist multiple passphrases that behave
+        identically under Vault.
+
+        Note: HMAC key transformation
+            Keys strictly larger than the SHA1 block size (64 bytes) are
+            first hashed with SHA1, then the digest is used in place of
+            the original key.  Then, any keys/digests smaller than the
+            block size are padded with NUL bytes on the right, up to the
+            block size.
+
+            As a result, keys smaller than the block size are padded,
+            keys larger than the block size are hashed and then padded,
+            and keys exactly as large as the block size are used as-is.
+
+        Args:
+            phrase1:
+                A passphrase to compare.  Must be a binary string to
+                mitigate timing attacks.
+            phrase2:
+                A passphrase to compare.  Must be a binary string to
+                mitigate timing attacks.
+
+        Warning: Likely non-resistant to timing attacks
+            This method makes some effort to be resistant to timing
+            attacks, but cannot guarantee that Python
+            micro-optimizations, version or platform differences affect
+            the effectiveness of these efforts.
+
+            Callers can definitely observe timing differences due to the
+            length of the passphrase passed in.
+
+        """
+        to_key = cls._phrase_to_hmac_key
+        return hmac.compare_digest(to_key(phrase1), to_key(phrase2))
+
+    @classmethod
+    def _phrase_to_hmac_key(
+        cls,
+        phrase: bytes | bytearray | str,
+        /,
+    ) -> bytes:
+        r"""Return the HMAC key belonging to a passphrase.
+
+        This is the actual HMAC key this passphrase would be transformed
+        into when used within Vault.
+
+        See [`phrases_are_interchangable`][] for further explanations
+        and warnings about timing attack resistance.
+
+        Args:
+            phrase:
+                A passphrase to compare.  Must be a binary string to
+                mitigate timing attacks.
+
+        """
+        phrase = cls._get_binary_string(phrase)
+        h = hashlib.sha1(phrase, usedforsecurity=False)
+        try:
+            key = bytearray(h.block_size)
+            for i, byte in enumerate(phrase):
+                key[i] = byte
+            return bytes(key)
+        except IndexError:
+            return h.digest() + b'\x00' * (h.block_size - h.digest_size)
 
     @staticmethod
     def _subtract(

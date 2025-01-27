@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
 from typing import TYPE_CHECKING
 
@@ -21,6 +22,43 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
 
 Vault: TypeAlias = derivepassphrase.vault.Vault
+
+BLOCK_SIZE = hashlib.sha1().block_size
+DIGEST_SIZE = hashlib.sha1().digest_size
+
+
+def phrases_are_interchangable(
+    phrase1: bytes | bytearray | str,
+    phrase2: bytes | bytearray | str,
+    /,
+) -> bool:
+    """Work-alike of [`Vault.phrases_are_interchangable`][].
+
+    This version is not resistant to timing attacks, but faster, and
+    supports strings directly.
+
+    Args:
+        phrase1:
+            A passphrase to compare.
+        phrase2:
+            A passphrase to compare.
+
+    Returns:
+        True if the phrases behave identically under [`Vault`][],
+        false otherwise.
+
+    """
+
+    def canon(bs: bytes, /) -> bytes:
+        return (
+            hashlib.sha1(bs).digest() + b'\x00' * (BLOCK_SIZE - DIGEST_SIZE)
+            if len(bs) > BLOCK_SIZE
+            else bs.rstrip(b'\x00')
+        )
+
+    phrase1 = canon(Vault._get_binary_string(phrase1))
+    phrase2 = canon(Vault._get_binary_string(phrase2))
+    return phrase1 == phrase2
 
 
 class TestVault:
@@ -38,6 +76,130 @@ class TestVault:
     The standard derived passphrase for the "twitter" service, from
     <i>vault</i>(1)'s test suite.
     """
+
+    @hypothesis.given(
+        phrases=strategies.lists(
+            strategies.binary(min_size=1, max_size=BLOCK_SIZE // 2),
+            min_size=2,
+            max_size=2,
+            unique=True,
+        ).filter(
+            lambda tup: not phrases_are_interchangable(*tup)
+        ),
+        service=strategies.text(
+            strategies.characters(min_codepoint=32, max_codepoint=126),
+            min_size=1,
+            max_size=BLOCK_SIZE // 2,
+        ),
+    )
+    def test_100a_create_hash_phrase_dependence_small(
+        self,
+        phrases: list[bytes],
+        service: str,
+    ) -> None:
+        """The internal hash is dependent on the master passphrase.
+
+        We filter out interchangable passphrases during generation.
+
+        """
+        assert Vault.create_hash(
+            phrase=phrases[0], service=service
+        ) != Vault.create_hash(phrase=phrases[1], service=service)
+
+    @hypothesis.given(
+        phrases=strategies.lists(
+            strategies.binary(min_size=BLOCK_SIZE, max_size=BLOCK_SIZE),
+            min_size=2,
+            max_size=2,
+            unique=True,
+        ).filter(
+            lambda tup: not phrases_are_interchangable(*tup)
+        ),
+        service=strategies.text(
+            strategies.characters(min_codepoint=32, max_codepoint=126),
+            min_size=1,
+            max_size=BLOCK_SIZE // 2,
+        ),
+    )
+    def test_100b_create_hash_phrase_dependence_medium(
+        self,
+        phrases: list[bytes],
+        service: str,
+    ) -> None:
+        """The internal hash is dependent on the master passphrase.
+
+        We filter out interchangable passphrases during generation.
+
+        """
+        assert Vault.create_hash(
+            phrase=phrases[0], service=service
+        ) != Vault.create_hash(phrase=phrases[1], service=service)
+
+    @hypothesis.given(
+        phrases=strategies.lists(
+            strategies.binary(
+                min_size=BLOCK_SIZE + 1, max_size=BLOCK_SIZE + 8
+            ),
+            min_size=2,
+            max_size=2,
+            unique=True,
+        ).filter(
+            lambda tup: not phrases_are_interchangable(*tup)
+        ),
+        service=strategies.text(
+            strategies.characters(min_codepoint=32, max_codepoint=126),
+            min_size=1,
+            max_size=BLOCK_SIZE // 2,
+        ),
+    )
+    def test_100c_create_hash_phrase_dependence_large(
+        self,
+        phrases: tuple[bytes, bytes],
+        service: str,
+    ) -> None:
+        """The internal hash is dependent on the master passphrase.
+
+        We filter out interchangable passphrases during generation.
+
+        """
+        assert Vault.create_hash(
+            phrase=phrases[0], service=service
+        ) != Vault.create_hash(phrase=phrases[1], service=service)
+
+    @hypothesis.given(
+        phrases=strategies.lists(
+            strategies.one_of(
+                strategies.binary(min_size=1, max_size=BLOCK_SIZE // 2),
+                strategies.binary(min_size=BLOCK_SIZE, max_size=BLOCK_SIZE),
+                strategies.binary(
+                    min_size=BLOCK_SIZE + 1, max_size=BLOCK_SIZE + 8
+                ),
+            ),
+            min_size=2,
+            max_size=2,
+            unique=True,
+        ).filter(
+            lambda tup: not phrases_are_interchangable(*tup)
+        ),
+        service=strategies.text(
+            strategies.characters(min_codepoint=32, max_codepoint=126),
+            min_size=1,
+            max_size=BLOCK_SIZE // 2,
+        ),
+    )
+    def test_100d_create_hash_phrase_dependence_mixed(
+        self,
+        phrases: list[bytes],
+        service: str,
+    ) -> None:
+        """The internal hash is dependent on the master passphrase.
+
+        We filter out interchangable passphrases during generation.
+
+        """
+        assert Vault.create_hash(
+            phrase=phrases[0], service=service
+        ) != Vault.create_hash(phrase=phrases[1], service=service)
 
     @hypothesis.given(
         phrase=strategies.text(
@@ -62,6 +224,66 @@ class TestVault:
             phrase=phrase, service=services[0]
         ) != Vault.create_hash(phrase=phrase, service=services[1])
 
+    @tests.hypothesis_settings_coverage_compatible
+    @hypothesis.given(
+        phrases=strategies.binary(max_size=BLOCK_SIZE // 2).flatmap(
+            lambda bs: strategies.tuples(
+                strategies.just(bs),
+                strategies.integers(
+                    min_value=1,
+                    max_value=BLOCK_SIZE - len(bs),
+                ).map(lambda num: bs + b'\x00' * num)
+            )
+        ),
+        service=strategies.text(
+            strategies.characters(min_codepoint=32, max_codepoint=126),
+            min_size=1,
+            max_size=32,
+        ),
+    )
+    def test_102a_interchangable_phrases_small(
+        self,
+        phrases: tuple[bytes, bytes],
+        service: str,
+    ) -> None:
+        """Claimed interchangable passphrases are actually interchangable."""
+        assert Vault.phrases_are_interchangable(*phrases)
+        assert Vault.create_hash(
+            phrase=phrases[0], service=service
+        ) == Vault.create_hash(phrase=phrases[1], service=service)
+
+    @tests.hypothesis_settings_coverage_compatible
+    @hypothesis.given(
+        phrases=strategies.binary(
+            min_size=BLOCK_SIZE + 1, max_size=BLOCK_SIZE + 8
+        ).flatmap(
+            lambda bs: strategies.tuples(
+                strategies.just(bs),
+                strategies.just(hashlib.sha1(bs).digest()).flatmap(
+                    lambda h: strategies.integers(
+                        min_value=1,
+                        max_value=BLOCK_SIZE - DIGEST_SIZE,
+                    ).map(lambda num: h + b'\x00' * num)
+                ),
+            )
+        ),
+        service=strategies.text(
+            strategies.characters(min_codepoint=32, max_codepoint=126),
+            min_size=1,
+            max_size=32,
+        ),
+    )
+    def test_102b_interchangable_phrases_large(
+        self,
+        phrases: tuple[bytes, bytes],
+        service: str,
+    ) -> None:
+        """Claimed interchangable passphrases are actually interchangable."""
+        assert Vault.phrases_are_interchangable(*phrases)
+        assert Vault.create_hash(
+            phrase=phrases[0], service=service
+        ) == Vault.create_hash(phrase=phrases[1], service=service)
+
     @pytest.mark.parametrize(
         ['service', 'expected'],
         [
@@ -81,6 +303,60 @@ class TestVault:
             Vault(phrase=(self.phrase + b'X')).generate('google')
             == b'n+oIz6sL>K*lTEWYRO%7'
         )
+
+    @hypothesis.given(
+        phrases=strategies.lists(
+            strategies.binary(min_size=1, max_size=32),
+            min_size=2,
+            max_size=2,
+            unique=True,
+        ).filter(
+            lambda tup: not phrases_are_interchangable(*tup)
+        ),
+        service=strategies.text(
+            strategies.characters(min_codepoint=32, max_codepoint=126),
+            min_size=1,
+            max_size=32,
+        ),
+    )
+    @hypothesis.example(phrases=[b'\x00', b'\x00\x00'], service='0').xfail(
+        reason='phrases are interchangable',
+        raises=AssertionError,
+    )
+    @hypothesis.example(
+        phrases=[
+            (
+                b'plnlrtfpijpuhqylxbgqiiyipieyxvfs'
+                b'avzgxbbcfusqkozwpngsyejqlmjsytrmd'
+            ),
+            b"eBkXQTfuBqp'cTcar&g*",
+        ],
+        service='any service name here',
+    ).xfail(
+        reason=(
+            'phrases are interchangable (Wikipedia example:'
+            'https://en.wikipedia.org/w/index.php?title=PBKDF2&oldid=1264881215#HMAC_collisions'
+            ')'
+        ),
+        raises=AssertionError,
+    )
+    def test_201a_phrase_dependence(
+        self,
+        phrases: list[bytes],
+        service: str,
+    ) -> None:
+        """The derived passphrase is dependent on the master passphrase.
+
+        Certain pairs of master passphrases are known to be
+        interchangable; see [`Vault.phrases_are_interchangable`][].
+        These are excluded from consideration by the hypothesis
+        strategy.
+
+        """
+        # See test_100_create_hash_phrase_dependence for context.
+        assert Vault(phrase=phrases[0]).generate(
+            service
+        ) != Vault(phrase=phrases[1]).generate(service)
 
     def test_202a_reproducibility_and_bytes_service_name(self) -> None:
         """Deriving a passphrase works equally for byte strings."""
