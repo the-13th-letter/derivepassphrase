@@ -39,6 +39,29 @@ class TestVault:
     <i>vault</i>(1)'s test suite.
     """
 
+    @hypothesis.given(
+        phrase=strategies.text(
+            strategies.characters(min_codepoint=32, max_codepoint=126),
+            min_size=1,
+            max_size=32,
+        ),
+        services=strategies.lists(
+            strategies.binary(min_size=1, max_size=32),
+            min_size=2,
+            max_size=2,
+            unique=True,
+        ),
+    )
+    def test_101_create_hash_service_name_dependence(
+        self,
+        phrase: str,
+        services: list[bytes],
+    ) -> None:
+        """The internal hash is dependent on the service name."""
+        assert Vault.create_hash(
+            phrase=phrase, service=services[0]
+        ) != Vault.create_hash(phrase=phrase, service=services[1])
+
     @pytest.mark.parametrize(
         ['service', 'expected'],
         [
@@ -95,6 +118,66 @@ class TestVault:
         assert Vault(phrase=phrase).generate(service) == Vault(
             phrase=phrase
         ).generate(bytearray(service.encode('utf-8')))
+
+    @hypothesis.given(
+        phrase=strategies.text(
+            strategies.characters(min_codepoint=32, max_codepoint=126),
+            min_size=1,
+            max_size=32,
+        ),
+        services=strategies.lists(
+            strategies.binary(min_size=1, max_size=32),
+            min_size=2,
+            max_size=2,
+            unique=True,
+        ),
+    )
+    def test_203a_service_name_dependence(
+        self,
+        phrase: str,
+        services: list[bytes],
+    ) -> None:
+        """The derived passphrase is dependent on the service name."""
+        assert Vault(phrase=phrase).generate(
+            services[0]
+        ) != Vault(phrase=phrase).generate(services[1])
+
+    @tests.hypothesis_settings_coverage_compatible
+    @hypothesis.given(
+        phrase=strategies.text(
+            strategies.characters(min_codepoint=32, max_codepoint=126),
+            min_size=1,
+            max_size=32,
+        ),
+        config=tests.vault_full_service_config(),
+        services=strategies.lists(
+            strategies.binary(min_size=1, max_size=32),
+            min_size=2,
+            max_size=2,
+            unique=True,
+        ),
+    )
+    def test_203b_service_name_dependence_with_config(
+        self,
+        phrase: str,
+        config: dict[str, int],
+        services: list[bytes],
+    ) -> None:
+        """The derived passphrase is dependent on the service name."""
+        try:
+            assert Vault(phrase=phrase, **config).generate(
+                services[0]
+            ) != Vault(phrase=phrase, **config).generate(services[1])
+        except ValueError as exc:
+            # The service configuration strategy attempts to only
+            # generate satisfiable configurations.  It is possible,
+            # though rare, that this fails, and that unsatisfiability is
+            # only recognized when actually deriving a passphrase.  In
+            # that case, reject the generated configuration.
+            hypothesis.assume('no allowed characters left' not in exc.args)
+            # Otherwise it's a genuine bug in the test case or the
+            # implementation, and should be raised.
+            raise  # pragma: no cover
 
     def test_210_nonstandard_length(self) -> None:
         """Deriving a passphrase adheres to imposed length limits."""
