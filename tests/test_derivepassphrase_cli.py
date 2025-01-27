@@ -2907,7 +2907,7 @@ Boo.
             assert f'FutureWarning: {THE_FUTURE}' in record_tuples[1][2]
             assert f'UserWarning: {JUST_TESTING}' in record_tuples[2][2]
 
-    def _export_as_sh_helper(
+    def export_as_sh_helper(
         self,
         config: Any,
     ) -> None:
@@ -2982,7 +2982,7 @@ Boo.
         settings settable via `--config` and settings requiring
         `--import`.
 
-        The actual verification is done by [`_export_as_sh_helper`][].
+        The actual verification is done by [`export_as_sh_helper`][].
 
         """
         config: _types.VaultConfig = {
@@ -2991,7 +2991,7 @@ Boo.
         }
         assert _types.clean_up_falsy_vault_config_values(config) is not None
         assert _types.is_vault_config(config)
-        return self._export_as_sh_helper(config)
+        return self.export_as_sh_helper(config)
 
     @hypothesis.given(
         global_config_importable=strategies.fixed_dictionaries(
@@ -3023,7 +3023,7 @@ Boo.
         Here, we check global-only configurations which only use
         settings requiring `--import`.
 
-        The actual verification is done by [`_export_as_sh_helper`][].
+        The actual verification is done by [`export_as_sh_helper`][].
 
         """
         config: _types.VaultConfig = {
@@ -3034,7 +3034,7 @@ Boo.
         assert _types.is_vault_config(config)
         if not config['global']:
             config.pop('global')
-        return self._export_as_sh_helper(config)
+        return self.export_as_sh_helper(config)
 
     @hypothesis.given(
         service_name=strategies.text(
@@ -3086,7 +3086,7 @@ Boo.
         settings settable via `--config` and settings requiring
         `--import`.
 
-        The actual verification is done by [`_export_as_sh_helper`][].
+        The actual verification is done by [`export_as_sh_helper`][].
 
         """
         config: _types.VaultConfig = {
@@ -3098,7 +3098,7 @@ Boo.
         }
         assert _types.clean_up_falsy_vault_config_values(config) is not None
         assert _types.is_vault_config(config)
-        return self._export_as_sh_helper(config)
+        return self.export_as_sh_helper(config)
 
     @hypothesis.given(
         service_name=strategies.text(
@@ -3147,7 +3147,7 @@ Boo.
         Here, we check service-only configurations which only use
         settings requiring `--import`.
 
-        The actual verification is done by [`_export_as_sh_helper`][].
+        The actual verification is done by [`export_as_sh_helper`][].
 
         """
         config: _types.VaultConfig = {
@@ -3157,7 +3157,7 @@ Boo.
         }
         assert _types.clean_up_falsy_vault_config_values(config) is not None
         assert _types.is_vault_config(config)
-        return self._export_as_sh_helper(config)
+        return self.export_as_sh_helper(config)
 
     @pytest.mark.parametrize(
         ['command_line', 'config', 'result_config'],
@@ -3920,9 +3920,9 @@ class TestCLITransition:
             ) == [DUMMY_SERVICE]
 
 
-_known_services = (DUMMY_SERVICE, 'email', 'bank', 'work')
+KNOWN_SERVICES = (DUMMY_SERVICE, 'email', 'bank', 'work')
 """Known service names.  Used for the [`ConfigManagementStateMachine`][]."""
-_valid_properties = (
+VALID_PROPERTIES = (
     'length',
     'repeat',
     'upper',
@@ -3935,37 +3935,44 @@ _valid_properties = (
 """Known vault properties.  Used for the [`ConfigManagementStateMachine`][]."""
 
 
-def _build_reduced_vault_config_settings(
+def build_reduced_vault_config_settings(
     config: _types.VaultConfigServicesSettings,
-    keys_to_purge: frozenset[str],
+    keys_to_prune: frozenset[str],
 ) -> _types.VaultConfigServicesSettings:
     """Return a service settings object with certain keys pruned.
 
     Args:
         config:
             The original service settings object.
-        keys_to_purge:
-            The keys to purge from the settings object.
+        keys_to_prune:
+            The keys to prune from the settings object.
 
     """
     config2 = copy.deepcopy(config)
-    for key in keys_to_purge:
+    for key in keys_to_prune:
         config2.pop(key, None)  # type: ignore[misc]
     return config2
 
 
-_services_strategy = strategies.builds(
-    _build_reduced_vault_config_settings,
+SERVICES_STRATEGY = strategies.builds(
+    build_reduced_vault_config_settings,
     tests.vault_full_service_config(),
     strategies.sets(
-        strategies.sampled_from(_valid_properties),
+        strategies.sampled_from(VALID_PROPERTIES),
         max_size=7,
     ),
 )
 """A hypothesis strategy to build incomplete service configurations."""
 
 
-def _assemble_config(
+def services_strategy() -> strategies.SearchStrategy[
+    _types.VaultConfigServicesSettings
+]:
+    """Return a strategy to build incomplete service configurations."""
+    return SERVICES_STRATEGY
+
+
+def assemble_config(
     global_data: _types.VaultConfigGlobalSettings,
     service_data: list[tuple[str, _types.VaultConfigServicesSettings]],
 ) -> _types.VaultConfig:
@@ -3979,14 +3986,14 @@ def _assemble_config(
 
 
 @strategies.composite
-def _draw_service_name_and_data(
+def draw_service_name_and_data(
     draw: hypothesis.strategies.DrawFn,
     num_entries: int,
 ) -> tuple[tuple[str, _types.VaultConfigServicesSettings], ...]:
     """Draw a service name and settings, as a hypothesis strategy.
 
-    Will draw service names from [`_known_services`][] and service
-    settings via [`_services_strategy`][].
+    Will draw service names from [`KNOWN_SERVICES`][] and service
+    settings via [`services_strategy`][].
 
     Args:
         draw:
@@ -3998,7 +4005,7 @@ def _draw_service_name_and_data(
         A sequence of pairs of service names and service settings.
 
     """
-    possible_services = list(_known_services)
+    possible_services = list(KNOWN_SERVICES)
     selected_services: list[str] = []
     for _ in range(num_entries):
         selected_services.append(
@@ -4006,19 +4013,24 @@ def _draw_service_name_and_data(
         )
         possible_services.remove(selected_services[-1])
     return tuple(
-        (service, draw(_services_strategy)) for service in selected_services
+        (service, draw(services_strategy())) for service in selected_services
     )
 
 
-_vault_full_config = strategies.builds(
-    _assemble_config,
-    _services_strategy,
+VAULT_FULL_CONFIG = strategies.builds(
+    assemble_config,
+    services_strategy(),
     strategies.integers(
         min_value=2,
         max_value=4,
-    ).flatmap(_draw_service_name_and_data),
+    ).flatmap(draw_service_name_and_data),
 )
 """A hypothesis strategy to build full vault configurations."""
+
+
+def vault_full_config() -> strategies.SearchStrategy[_types.VaultConfig]:
+    """Return a strategy to build full vault configurations."""
+    return VAULT_FULL_CONFIG
 
 
 @tests.hypothesis_settings_coverage_compatible
@@ -4064,7 +4076,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     @stateful.initialize(
         target=configuration,
         configs=strategies.lists(
-            _vault_full_config,
+            vault_full_config(),
             min_size=8,
             max_size=8,
         ),
@@ -4079,7 +4091,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     @stateful.initialize(
         target=setting,
         configs=strategies.lists(
-            _vault_full_config,
+            vault_full_config(),
             min_size=4,
             max_size=4,
         ),
@@ -4114,7 +4126,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         config=configuration,
         setting=setting.filter(bool),
         maybe_unset=strategies.sets(
-            strategies.sampled_from(_valid_properties),
+            strategies.sampled_from(VALID_PROPERTIES),
             max_size=3,
         ),
         overwrite=strategies.booleans(),
@@ -4169,7 +4181,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             + [
                 f'--{key}={value}'
                 for key, value in setting.items()
-                if key in _valid_properties
+                if key in VALID_PROPERTIES
             ],
             catch_exceptions=False,
         )
@@ -4181,10 +4193,10 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     @stateful.rule(
         target=configuration,
         config=configuration,
-        service=strategies.sampled_from(_known_services),
+        service=strategies.sampled_from(KNOWN_SERVICES),
         setting=setting.filter(bool),
         maybe_unset=strategies.sets(
-            strategies.sampled_from(_valid_properties),
+            strategies.sampled_from(VALID_PROPERTIES),
             max_size=3,
         ),
         overwrite=strategies.booleans(),
@@ -4242,7 +4254,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             + [
                 f'--{key}={value}'
                 for key, value in setting.items()
-                if key in _valid_properties
+                if key in VALID_PROPERTIES
             ]
             + ['--', service],
             catch_exceptions=False,
