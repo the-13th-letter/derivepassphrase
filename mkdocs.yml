@@ -61,6 +61,7 @@ plugins:
           - 'https://click.palletsprojects.com/en/8.1.x/objects.inv'
           - 'https://typing-extensions.readthedocs.io/en/latest/objects.inv'
           - 'https://cryptography.readthedocs.io/en/latest/objects.inv'
+          - 'https://hypothesis.readthedocs.io/en/latest/objects.inv'
         options:
           docstring_options:
             ignore_init_summary: true
@@ -81,6 +82,7 @@ plugins:
           scoped_crossrefs: true
         paths:
           - src
+          - .
   mike:
     alias_type: symlink
     canonical_version: '0.x'
@@ -119,10 +121,10 @@ nav:
     - Changelog: changelog.md
     - Upgrade notes: upgrade-notes.md
     - Python compatibility: pycompatibility.md
-exclude_docs: |
+draft_docs: |
   changelog.d
-not_in_nav: |
   _future.md
+  reference/tests.*
 
 markdown_extensions:
   - abbr

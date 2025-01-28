@@ -242,6 +242,15 @@ def vault_config_exporter_shell_interpreter(  # noqa: C901
     command: click.BaseCommand | None = None,
     runner: click.testing.CliRunner | None = None,
 ) -> Iterator[click.testing.Result]:
+    """A rudimentary sh(1) interpreter for `--export-as=sh` output.
+
+    Assumes a script as emitted by `derivepassphrase vault
+    --export-as=sh --export -` and interprets the calls to
+    `derivepassphrase vault` within.  (One call per line, skips all
+    other lines.)  Also has rudimentary support for (quoted)
+    here-documents using `HERE` as the marker.
+
+    """
     if isinstance(script, str):  # pragma: no cover
         script = script.splitlines(False)
     if prog_name_list is None:  # pragma: no cover
@@ -285,32 +294,204 @@ def vault_config_exporter_shell_interpreter(  # noqa: C901
 
 
 class TestAllCLI:
+    """Tests uniformly for all command-line interfaces."""
+
+    # TODO(the-13th-letter): Do we actually need this?  What should we
+    # check for?
+    def test_100_help_output(self) -> None:
+        """The top-level help text mentions subcommands.
+
+        TODO: Do we actually need this?  What should we check for?
+
+        """
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
+            result_ = runner.invoke(
+                cli.derivepassphrase, ['--help'], catch_exceptions=False
+            )
+            result = tests.ReadableResult.parse(result_)
+        assert result.clean_exit(
+            empty_stderr=True, output='currently implemented subcommands'
+        ), 'expected clean exit, and known help text'
+
+    # TODO(the-13th-letter): Do we actually need this?  What should we
+    # check for?
+    def test_101_help_output_export(
+        self,
+    ) -> None:
+        """The "export" subcommand help text mentions subcommands.
+
+        TODO: Do we actually need this?  What should we check for?
+
+        """
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
+            result_ = runner.invoke(
+                cli.derivepassphrase,
+                ['export', '--help'],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(result_)
+        assert result.clean_exit(
+            empty_stderr=True, output='only available subcommand'
+        ), 'expected clean exit, and known help text'
+
+    # TODO(the-13th-letter): Do we actually need this?  What should we
+    # check for?
+    def test_102_help_output_export_vault(
+        self,
+    ) -> None:
+        """The "export vault" subcommand help text has known content.
+
+        TODO: Do we actually need this?  What should we check for?
+
+        """
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
+            result_ = runner.invoke(
+                cli.derivepassphrase,
+                ['export', 'vault', '--help'],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(result_)
+        assert result.clean_exit(
+            empty_stderr=True, output='Export a vault-native configuration'
+        ), 'expected clean exit, and known help text'
+
+    # TODO(the-13th-letter): Do we actually need this?  What should we
+    # check for?
+    def test_103_help_output_vault(
+        self,
+    ) -> None:
+        """The "vault" subcommand help text has known content.
+
+        TODO: Do we actually need this?  What should we check for?
+
+        """
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
+            result_ = runner.invoke(
+                cli.derivepassphrase,
+                ['vault', '--help'],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(result_)
+        assert result.clean_exit(
+            empty_stderr=True, output='Passphrase generation:\n'
+        ), 'expected clean exit, and option groups in help text'
+        assert result.clean_exit(
+            empty_stderr=True, output='Use $VISUAL or $EDITOR to configure'
+        ), 'expected clean exit, and option group epilog in help text'
+
     @pytest.mark.parametrize(
         ['command', 'non_eager_arguments'],
         [
-            ([], []),
-            ([], ['export']),
-            (['export'], []),
-            (['export'], ['vault']),
-            (['export', 'vault'], []),
-            (['export', 'vault'], ['--format', 'this-format-doesnt-exist']),
-            (['vault'], []),
-            (['vault'], ['--export', './']),
+            pytest.param(
+                [],
+                [],
+                id='top-nothing',
+            ),
+            pytest.param(
+                [],
+                ['export'],
+                id='top-export',
+            ),
+            pytest.param(
+                ['export'],
+                [],
+                id='export-nothing',
+            ),
+            pytest.param(
+                ['export'],
+                ['vault'],
+                id='export-vault',
+            ),
+            pytest.param(
+                ['export', 'vault'],
+                [],
+                id='export-vault-nothing',
+            ),
+            pytest.param(
+                ['export', 'vault'],
+                ['--format', 'this-format-doesnt-exist'],
+                id='export-vault-args',
+            ),
+            pytest.param(
+                ['vault'],
+                [],
+                id='vault-nothing',
+            ),
+            pytest.param(
+                ['vault'],
+                ['--export', './'],
+                id='vault-args',
+            ),
         ],
     )
-    @pytest.mark.parametrize('arguments', [['--help'], ['--version']])
+    @pytest.mark.parametrize(
+        'arguments',
+        [['--help'], ['--version']],
+        ids=['help', 'version'],
+    )
     def test_200_eager_options(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         command: list[str],
         arguments: list[str],
         non_eager_arguments: list[str],
     ) -> None:
+        """Eager options terminate option and argument processing."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase,
                 [*command, *arguments, *non_eager_arguments],
@@ -319,9 +500,21 @@ class TestAllCLI:
             result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
-    @pytest.mark.parametrize('no_color', [False, True])
-    @pytest.mark.parametrize('force_color', [False, True])
-    @pytest.mark.parametrize('isatty', [False, True])
+    @pytest.mark.parametrize(
+        'no_color',
+        [False, True],
+        ids=['yescolor', 'nocolor'],
+    )
+    @pytest.mark.parametrize(
+        'force_color',
+        [False, True],
+        ids=['noforce', 'force'],
+    )
+    @pytest.mark.parametrize(
+        'isatty',
+        [False, True],
+        ids=['notty', 'tty'],
+    )
     @pytest.mark.parametrize(
         ['command_line', 'input'],
         [
@@ -330,24 +523,32 @@ class TestAllCLI:
                 '{"services": {"": {"length": 20}}}',
             ),
         ],
+        ids=['cmd'],
     )
     def test_201_no_color_force_color(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         no_color: bool,
         force_color: bool,
         isatty: bool,
         command_line: list[str],
         input: str | None,
     ) -> None:
+        """Respect the `NO_COLOR` and `FORCE_COLOR` environment variables."""
         # Force color on if force_color.  Otherwise force color off if
         # no_color.  Otherwise set color if and only if we have a TTY.
         color = force_color or not no_color if isatty else force_color
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             if no_color:
                 monkeypatch.setenv('NO_COLOR', 'yes')
             if force_color:
@@ -371,15 +572,24 @@ class TestAllCLI:
 
 
 class TestCLI:
+    """Tests for the `derivepassphrase vault` command-line interface."""
+
     def test_200_help_output(
         self,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """The `--help` option emits help text."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--help'],
@@ -395,13 +605,20 @@ class TestCLI:
 
     def test_200a_version_output(
         self,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """The `--version` option emits version information."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--version'],
@@ -419,16 +636,27 @@ class TestCLI:
         'charset_name', ['lower', 'upper', 'number', 'space', 'dash', 'symbol']
     )
     def test_201_disable_character_set(
-        self, monkeypatch: pytest.MonkeyPatch, charset_name: str
+        self,
+        charset_name: str,
     ) -> None:
-        monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
+        """Named character classes can be disabled on the command-line."""
         option = f'--{charset_name}'
         charset = vault.Vault._CHARSETS[charset_name].decode('ascii')
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
+            monkeypatch.setattr(
+                cli, '_prompt_for_passphrase', tests.auto_prompt
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 [option, '0', '-p', '--', DUMMY_SERVICE],
@@ -443,14 +671,24 @@ class TestCLI:
             )
 
     def test_202_disable_repetition(
-        self, monkeypatch: pytest.MonkeyPatch
+        self,
     ) -> None:
-        monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
+        """Character repetition can be disabled on the command-line."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
+            monkeypatch.setattr(
+                cli, '_prompt_for_passphrase', tests.auto_prompt
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--repeat', '0', '-p', '--', DUMMY_SERVICE],
@@ -494,13 +732,22 @@ class TestCLI:
     )
     def test_204a_key_from_config(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         config: _types.VaultConfig,
     ) -> None:
+        """A stored configured SSH key will be used."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch, runner=runner, vault_config=config
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config=config,
+                )
+            )
             monkeypatch.setattr(
                 vault.Vault, 'phrase_from_key', tests.phrase_from_key
             )
@@ -522,14 +769,24 @@ class TestCLI:
         )
 
     def test_204b_key_from_command_line(
-        self, monkeypatch: pytest.MonkeyPatch
+        self,
     ) -> None:
+        """An SSH key requested on the command-line will be used."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={
+                        'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}
+                    },
+                )
+            )
             monkeypatch.setattr(
                 cli, '_get_suitable_ssh_keys', tests.suitable_ssh_keys
             )
@@ -579,26 +836,34 @@ class TestCLI:
     @pytest.mark.parametrize('key_index', [1, 2, 3], ids=lambda i: f'index{i}')
     def test_204c_key_override_on_command_line(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: tests.RunningSSHAgentInfo,
         config: dict[str, Any],
         key_index: int,
     ) -> None:
-        with monkeypatch.context():
+        """A command-line SSH key will override the configured key."""
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config=config,
+                )
+            )
             monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket)
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
             monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', tests.sign)
-            runner = click.testing.CliRunner(mix_stderr=False)
-            with tests.isolated_vault_config(
-                monkeypatch=monkeypatch, runner=runner, vault_config=config
-            ):
-                result_ = runner.invoke(
-                    cli.derivepassphrase_vault,
-                    ['-k', '--', DUMMY_SERVICE],
-                    input=f'{key_index}\n',
-                )
+            result_ = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['-k', '--', DUMMY_SERVICE],
+                input=f'{key_index}\n',
+            )
         result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(), 'expected clean exit'
         assert result.output, 'expected program output'
@@ -609,34 +874,40 @@ class TestCLI:
 
     def test_205_service_phrase_if_key_in_global_config(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
-        with monkeypatch.context():
+        """A command-line passphrase will override the configured key."""
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={
+                        'global': {'key': DUMMY_KEY1_B64},
+                        'services': {
+                            DUMMY_SERVICE: {
+                                'phrase': DUMMY_PASSPHRASE.rstrip('\n'),
+                                **DUMMY_CONFIG_SETTINGS,
+                            }
+                        },
+                    },
+                )
+            )
             monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket)
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
             monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', tests.sign)
-            runner = click.testing.CliRunner(mix_stderr=False)
-            with tests.isolated_vault_config(
-                monkeypatch=monkeypatch,
-                runner=runner,
-                vault_config={
-                    'global': {'key': DUMMY_KEY1_B64},
-                    'services': {
-                        DUMMY_SERVICE: {
-                            'phrase': DUMMY_PASSPHRASE.rstrip('\n'),
-                            **DUMMY_CONFIG_SETTINGS,
-                        }
-                    },
-                },
-            ):
-                result_ = runner.invoke(
-                    cli.derivepassphrase_vault,
-                    ['--', DUMMY_SERVICE],
-                    catch_exceptions=False,
-                )
+            result_ = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--', DUMMY_SERVICE],
+                catch_exceptions=False,
+            )
         result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(), 'expected clean exit'
         assert result_.stdout_bytes, 'expected program output'
@@ -683,30 +954,36 @@ class TestCLI:
     )
     def test_206_setting_phrase_thus_overriding_key_in_config(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: tests.RunningSSHAgentInfo,
         caplog: pytest.LogCaptureFixture,
         config: _types.VaultConfig,
         command_line: list[str],
     ) -> None:
-        with monkeypatch.context():
+        """Configuring a passphrase atop an SSH key works, but warns."""
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config=config,
+                )
+            )
             monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket)
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
             monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', tests.sign)
-            runner = click.testing.CliRunner(mix_stderr=False)
-            with tests.isolated_vault_config(
-                monkeypatch=monkeypatch,
-                runner=runner,
-                vault_config=config,
-            ):
-                result_ = runner.invoke(
-                    cli.derivepassphrase_vault,
-                    command_line,
-                    input=DUMMY_PASSPHRASE,
-                    catch_exceptions=False,
-                )
+            result_ = runner.invoke(
+                cli.derivepassphrase_vault,
+                command_line,
+                input=DUMMY_PASSPHRASE,
+                catch_exceptions=False,
+            )
         result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(), 'expected clean exit'
         assert not result.output.strip(), 'expected no program output'
@@ -739,13 +1016,22 @@ class TestCLI:
         ],
     )
     def test_210_invalid_argument_range(
-        self, monkeypatch: pytest.MonkeyPatch, option: str
+        self,
+        option: str,
     ) -> None:
+        """Requesting invalidly many characters from a class fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             for value in '-42', 'invalid':
                 result_ = runner.invoke(
                     cli.derivepassphrase_vault,
@@ -761,26 +1047,41 @@ class TestCLI:
     @pytest.mark.parametrize(
         ['options', 'service', 'input', 'check_success'],
         [
-            (o.options, o.needs_service, o.input, o.check_success)
+            pytest.param(
+                o.options,
+                o.needs_service,
+                o.input,
+                o.check_success,
+                id=' '.join(o.options),
+            )
             for o in INTERESTING_OPTION_COMBINATIONS
             if not o.incompatible
         ],
     )
     def test_211_service_needed(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         options: list[str],
         service: bool | None,
         input: str | None,
         check_success: bool,
     ) -> None:
-        monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
+        """We require or forbid a service argument, depending on options."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                )
+            )
+            monkeypatch.setattr(
+                cli, '_prompt_for_passphrase', tests.auto_prompt
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 options if service else [*options, '--', DUMMY_SERVICE],
@@ -802,11 +1103,18 @@ class TestCLI:
                     'expected clean exit'
                 )
         if check_success:
-            with tests.isolated_vault_config(
-                monkeypatch=monkeypatch,
-                runner=runner,
-                vault_config={'global': {'phrase': 'abc'}, 'services': {}},
-            ):
+            # TODO(the-13th-letter): Rewrite using parenthesized
+            # with-statements.
+            # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+            with contextlib.ExitStack() as stack:
+                monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+                stack.enter_context(
+                    tests.isolated_vault_config(
+                        monkeypatch=monkeypatch,
+                        runner=runner,
+                        vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    )
+                )
                 monkeypatch.setattr(
                     cli, '_prompt_for_passphrase', tests.auto_prompt
                 )
@@ -821,9 +1129,14 @@ class TestCLI:
 
     def test_211a_empty_service_name_causes_warning(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
+        """Using an empty service name (where permissible) warns.
+
+        Only the `--config` option can optionally take a service name.
+
+        """
+
         def is_expected_warning(record: tuple[str, int, str]) -> bool:
             return is_harmless_config_import_warning(
                 record
@@ -831,13 +1144,22 @@ class TestCLI:
                 'An empty SERVICE is not supported by vault(1)', [record]
             )
 
-        monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'services': {}},
+                )
+            )
+            monkeypatch.setattr(
+                cli, '_prompt_for_passphrase', tests.auto_prompt
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '--length=30', '--', ''],
@@ -874,22 +1196,29 @@ class TestCLI:
     @pytest.mark.parametrize(
         ['options', 'service'],
         [
-            (o.options, o.needs_service)
+            pytest.param(o.options, o.needs_service, id=' '.join(o.options))
             for o in INTERESTING_OPTION_COMBINATIONS
             if o.incompatible
         ],
     )
     def test_212_incompatible_options(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         options: list[str],
         service: bool | None,
     ) -> None:
+        """Incompatible options are detected."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 [*options, '--', DUMMY_SERVICE] if service else options,
@@ -911,16 +1240,23 @@ class TestCLI:
     )
     def test_213_import_config_success(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
         config: Any,
     ) -> None:
+        """Importing a configuration works."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'services': {}},
+                )
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', '-'],
@@ -941,9 +1277,11 @@ class TestCLI:
     @tests.hypothesis_settings_coverage_compatible_with_caplog
     @hypothesis.given(
         conf=tests.smudged_vault_test_config(
-            strategies.sampled_from(TEST_CONFIGS).filter(
-                tests.is_valid_test_config
-            )
+            strategies.sampled_from([
+                conf
+                for conf in tests.TEST_CONFIGS
+                if tests.is_valid_test_config(conf)
+            ])
         )
     )
     def test_213a_import_config_success(
@@ -951,15 +1289,27 @@ class TestCLI:
         caplog: pytest.LogCaptureFixture,
         conf: tests.VaultTestConfig,
     ) -> None:
+        """Importing a smudged configuration works.
+
+        Tested via hypothesis.
+
+        """
         config = conf.config
         config2 = copy.deepcopy(config)
         _types.clean_up_falsy_vault_config_values(config2)
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=pytest.MonkeyPatch(),
-            runner=runner,
-            vault_config={'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'services': {}},
+                )
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', '-'],
@@ -979,10 +1329,20 @@ class TestCLI:
 
     def test_213b_import_bad_config_not_vault_config(
         self,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Importing an invalid config fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', '-'],
@@ -996,10 +1356,20 @@ class TestCLI:
 
     def test_213c_import_bad_config_not_json_data(
         self,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Importing an invalid config fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', '-'],
@@ -1013,14 +1383,26 @@ class TestCLI:
 
     def test_213d_import_bad_config_not_a_file(
         self,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Importing an invalid config fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        # `isolated_vault_config` validates the configuration.  So, to
-        # pass an actual broken configuration, we must open the
-        # configuration file ourselves afterwards, inside the context.
-        # We also might as well use `isolated_config` instead.
-        with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
+        # `isolated_vault_config` ensures the configuration is valid
+        # JSON.  So, to pass an actual broken configuration, we must
+        # open the configuration file ourselves afterwards, inside the
+        # context.
+        #
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'services': {}},
+                )
+            )
             cli._config_filename(subsystem='vault').write_text(
                 'This string is not valid JSON.\n', encoding='UTF-8'
             )
@@ -1044,11 +1426,21 @@ class TestCLI:
     )
     def test_214_export_settings_no_stored_settings(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         export_options: list[str],
     ) -> None:
+        """Exporting the default, empty config works."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             cli._config_filename(subsystem='vault').unlink(missing_ok=True)
             result_ = runner.invoke(
                 # Test parent context navigation by not calling
@@ -1071,13 +1463,22 @@ class TestCLI:
     )
     def test_214a_export_settings_bad_stored_config(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         export_options: list[str],
     ) -> None:
+        """Exporting an invalid config fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch, runner=runner, vault_config={}
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={},
+                )
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--export', '-', *export_options],
@@ -1098,11 +1499,21 @@ class TestCLI:
     )
     def test_214b_export_settings_not_a_file(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         export_options: list[str],
     ) -> None:
+        """Exporting an invalid config fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             config_file = cli._config_filename(subsystem='vault')
             config_file.unlink(missing_ok=True)
             config_file.mkdir(parents=True, exist_ok=True)
@@ -1126,11 +1537,21 @@ class TestCLI:
     )
     def test_214c_export_settings_target_not_a_file(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         export_options: list[str],
     ) -> None:
+        """Exporting an invalid config fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             dname = cli._config_filename(subsystem=None)
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -1152,11 +1573,21 @@ class TestCLI:
     )
     def test_214d_export_settings_settings_directory_not_a_directory(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         export_options: list[str],
     ) -> None:
+        """Exporting an invalid config fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             config_dir = cli._config_filename(subsystem=None)
             with contextlib.suppress(FileNotFoundError):
                 shutil.rmtree(config_dir)
@@ -1175,19 +1606,27 @@ class TestCLI:
         )
 
     def test_220_edit_notes_successfully(
-        self, monkeypatch: pytest.MonkeyPatch
+        self,
     ) -> None:
+        """Editing notes works."""
         edit_result = """
 
 # - - - - - >8 - - - - - >8 - - - - - >8 - - - - - >8 - - - - -
 contents go here
 """
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                )
+            )
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: edit_result)  # noqa: ARG005
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -1206,14 +1645,22 @@ contents go here
             }
 
     def test_221_edit_notes_noop(
-        self, monkeypatch: pytest.MonkeyPatch
+        self,
     ) -> None:
+        """Abandoning edited notes works."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                )
+            )
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: None)  # noqa: ARG005
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -1228,15 +1675,29 @@ contents go here
                 config = json.load(infile)
             assert config == {'global': {'phrase': 'abc'}, 'services': {}}
 
+    # TODO(the-13th-letter): Keep this behavior or not, with or without
+    # warning?
     def test_222_edit_notes_marker_removed(
-        self, monkeypatch: pytest.MonkeyPatch
+        self,
     ) -> None:
+        """Removing the notes marker still saves the notes.
+
+        TODO: Keep this behavior or not, with or without warning?
+
+        """
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                )
+            )
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: 'long\ntext')  # noqa: ARG005
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -1255,14 +1716,22 @@ contents go here
             }
 
     def test_223_edit_notes_abort(
-        self, monkeypatch: pytest.MonkeyPatch
+        self,
     ) -> None:
+        """Aborting editing notes works."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                )
+            )
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: '\n\n')  # noqa: ARG005
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -1282,58 +1751,70 @@ contents go here
     @pytest.mark.parametrize(
         ['command_line', 'input', 'result_config'],
         [
-            (
+            pytest.param(
                 ['--phrase'],
                 'my passphrase\n',
                 {'global': {'phrase': 'my passphrase'}, 'services': {}},
+                id='phrase',
             ),
-            (
+            pytest.param(
                 ['--key'],
                 '1\n',
                 {
                     'global': {'key': DUMMY_KEY1_B64, 'phrase': 'abc'},
                     'services': {},
                 },
+                id='key',
             ),
-            (
+            pytest.param(
                 ['--phrase', '--', 'sv'],
                 'my passphrase\n',
                 {
                     'global': {'phrase': 'abc'},
                     'services': {'sv': {'phrase': 'my passphrase'}},
                 },
+                id='phrase-sv',
             ),
-            (
+            pytest.param(
                 ['--key', '--', 'sv'],
                 '1\n',
                 {
                     'global': {'phrase': 'abc'},
                     'services': {'sv': {'key': DUMMY_KEY1_B64}},
                 },
+                id='key-sv',
             ),
-            (
+            pytest.param(
                 ['--key', '--length', '15', '--', 'sv'],
                 '1\n',
                 {
                     'global': {'phrase': 'abc'},
                     'services': {'sv': {'key': DUMMY_KEY1_B64, 'length': 15}},
                 },
+                id='key-length-sv',
             ),
         ],
     )
     def test_224_store_config_good(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         command_line: list[str],
         input: str,
         result_config: Any,
     ) -> None:
+        """Storing valid settings via `--config` works."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                )
+            )
             monkeypatch.setattr(
                 cli, '_get_suitable_ssh_keys', tests.suitable_ssh_keys
             )
@@ -1356,33 +1837,52 @@ contents go here
     @pytest.mark.parametrize(
         ['command_line', 'input', 'err_text'],
         [
-            (
+            pytest.param(
                 [],
                 '',
                 'Cannot update the global settings without any given settings',
+                id='None',
             ),
-            (
+            pytest.param(
                 ['--', 'sv'],
                 '',
                 'Cannot update the service-specific settings without any given settings',
+                id='None-sv',
             ),
-            (['--phrase', '--', 'sv'], '', 'No passphrase was given'),
-            (['--key'], '', 'No SSH key was selected'),
+            pytest.param(
+                ['--phrase', '--', 'sv'],
+                '',
+                'No passphrase was given',
+                id='phrase-sv',
+            ),
+            pytest.param(
+                ['--key'],
+                '',
+                'No SSH key was selected',
+                id='key-sv',
+            ),
         ],
     )
     def test_225_store_config_fail(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         command_line: list[str],
         input: str,
         err_text: str,
     ) -> None:
+        """Storing invalid settings via `--config` fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                )
+            )
             monkeypatch.setattr(
                 cli, '_get_suitable_ssh_keys', tests.suitable_ssh_keys
             )
@@ -1399,14 +1899,21 @@ contents go here
 
     def test_225a_store_config_fail_manual_no_ssh_key_selection(
         self,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Not selecting an SSH key during `--config --key` fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                )
+            )
             custom_error = 'custom error message'
 
             def raiser(*_args: Any, **_kwargs: Any) -> None:
@@ -1425,16 +1932,23 @@ contents go here
 
     def test_225b_store_config_fail_manual_no_ssh_agent(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         skip_if_no_af_unix_support: None,
     ) -> None:
+        """Not running an SSH agent during `--config --key` fails."""
         del skip_if_no_af_unix_support
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                )
+            )
             monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -1448,14 +1962,21 @@ contents go here
 
     def test_225c_store_config_fail_manual_bad_ssh_agent_connection(
         self,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Not running a reachable SSH agent during `--config --key` fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                )
+            )
             cwd = pathlib.Path.cwd().resolve()
             monkeypatch.setenv('SSH_AUTH_SOCK', str(cwd))
             result_ = runner.invoke(
@@ -1471,15 +1992,22 @@ contents go here
     @pytest.mark.parametrize('try_race_free_implementation', [True, False])
     def test_225d_store_config_fail_manual_read_only_file(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         try_race_free_implementation: bool,
     ) -> None:
+        """Using a read-only configuration file with `--config` fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                )
+            )
             tests.make_file_readonly(
                 cli._config_filename(subsystem='vault'),
                 try_race_free_implementation=try_race_free_implementation,
@@ -1496,14 +2024,21 @@ contents go here
 
     def test_225e_store_config_fail_manual_custom_error(
         self,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """OS-erroring with `--config` fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                )
+            )
             custom_error = 'custom error message'
 
             def raiser(config: Any) -> None:
@@ -1523,14 +2058,21 @@ contents go here
 
     def test_225f_store_config_fail_unset_and_set_same_settings(
         self,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Issuing conflicting settings to `--config` fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                )
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 [
@@ -1549,16 +2091,23 @@ contents go here
 
     def test_225g_store_config_fail_manual_ssh_agent_no_keys_loaded(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
+        """Not holding any SSH keys during `--config --key` fails."""
         del running_ssh_agent
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                )
+            )
 
             def func(
                 *_args: Any,
@@ -1579,16 +2128,23 @@ contents go here
 
     def test_225h_store_config_fail_manual_ssh_agent_runtime_error(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
+        """The SSH agent erroring during `--config --key` fails."""
         del running_ssh_agent
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                )
+            )
 
             def raiser(*_args: Any, **_kwargs: Any) -> None:
                 raise ssh_agent.TrailingDataError()
@@ -1606,16 +2162,23 @@ contents go here
 
     def test_225i_store_config_fail_manual_ssh_agent_refuses(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
+        """The SSH agent refusing during `--config --key` fails."""
         del running_ssh_agent
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                )
+            )
 
             def func(*_args: Any, **_kwargs: Any) -> NoReturn:
                 raise ssh_agent.SSHAgentFailedError(
@@ -1633,12 +2196,20 @@ contents go here
             'expected error exit and known error message'
         )
 
-    def test_226_no_arguments(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_226_no_arguments(self) -> None:
+        """Calling `derivepassphrase vault` without any arguments fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault, [], catch_exceptions=False
             )
@@ -1648,13 +2219,21 @@ contents go here
         ), 'expected error exit and known error message'
 
     def test_226a_no_passphrase_or_key(
-        self, monkeypatch: pytest.MonkeyPatch
+        self,
     ) -> None:
+        """Deriving a passphrase without a passphrase or key fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--', DUMMY_SERVICE],
@@ -1666,14 +2245,27 @@ contents go here
         )
 
     def test_230_config_directory_nonexistant(
-        self, monkeypatch: pytest.MonkeyPatch
+        self,
     ) -> None:
-        """https://github.com/the-13th-letter/derivepassphrase/issues/6"""
+        """Running without an existing config directory works.
+
+        This is a regression test; see [issue\u00a0#6][] for context.
+
+        [issue #6]: https://github.com/the-13th-letter/derivepassphrase/issues/6
+
+        """
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             with contextlib.suppress(FileNotFoundError):
                 shutil.rmtree(cli._config_filename(subsystem=None))
             result_ = runner.invoke(
@@ -1697,14 +2289,30 @@ contents go here
             }, 'config mismatch'
 
     def test_230a_config_directory_not_a_file(
-        self, monkeypatch: pytest.MonkeyPatch
+        self,
     ) -> None:
-        """https://github.com/the-13th-letter/derivepassphrase/issues/6"""
+        """Erroring without an existing config directory errors normally.
+
+        That is, the missing configuration directory does not cause any
+        errors by itself.
+
+        This is a regression test; see [issue\u00a0#6][] for context.
+
+        [issue #6]: https://github.com/the-13th-letter/derivepassphrase/issues/6
+
+        """
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             save_config_ = cli._save_config
 
             def obstruct_config_saving(*args: Any, **kwargs: Any) -> Any:
@@ -1728,13 +2336,21 @@ contents go here
             )
 
     def test_230b_store_config_custom_error(
-        self, monkeypatch: pytest.MonkeyPatch
+        self,
     ) -> None:
+        """Storing the configuration reacts even to weird errors."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             custom_error = 'custom error message'
 
             def raiser(config: Any) -> None:
@@ -1854,22 +2470,31 @@ contents go here
     )
     def test_300_unicode_normalization_form_warning(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
         main_config: str,
         command_line: list[str],
         input: str | None,
         warning_message: str,
     ) -> None:
+        """Using unnormalized Unicode passphrases warns."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={
-                'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}
-            },
-            main_config_str=main_config,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={
+                        'services': {
+                            DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()
+                        }
+                    },
+                    main_config_str=main_config,
+                )
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--debug', *command_line],
@@ -1925,21 +2550,30 @@ contents go here
     )
     def test_301_unicode_normalization_form_error(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         main_config: str,
         command_line: list[str],
         input: str | None,
         error_message: str,
     ) -> None:
+        """Using unknown Unicode normalization forms fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={
-                'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}
-            },
-            main_config_str=main_config,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={
+                        'services': {
+                            DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()
+                        }
+                    },
+                    main_config_str=main_config,
+                )
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 command_line,
@@ -1969,21 +2603,29 @@ contents go here
     )
     def test_301a_unicode_normalization_form_error_from_stored_config(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         command_line: list[str],
     ) -> None:
+        """Using unknown Unicode normalization forms in the config fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={
-                'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}
-            },
-            main_config_str=textwrap.dedent("""
-            [vault]
-            default-unicode-normalization-form = 'XXX'
-            """),
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={
+                        'services': {
+                            DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()
+                        }
+                    },
+                    main_config_str=(
+                        "[vault]\ndefault-unicode-normalization-form = 'XXX'\n"
+                    ),
+                )
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 command_line,
@@ -2003,17 +2645,22 @@ contents go here
 
     def test_310_bad_user_config_file(
         self,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Loading a user configuration file in an invalid format fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'services': {}},
-            main_config_str=textwrap.dedent("""
-            This file is not valid TOML.
-            """),
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'services': {}},
+                    main_config_str='This file is not valid TOML.\n',
+                )
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--phrase', '--', DUMMY_SERVICE],
@@ -2027,14 +2674,21 @@ contents go here
 
     def test_400_missing_af_unix_support(
         self,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Querying the SSH agent without `AF_UNIX` support fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'global': {'phrase': 'abc'}, 'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                )
+            )
             monkeypatch.setenv(
                 'SSH_AUTH_SOCK', "the value doesn't even matter"
             )
@@ -2051,6 +2705,8 @@ contents go here
 
 
 class TestCLIUtils:
+    """Tests for command-line utility functions."""
+
     @pytest.mark.parametrize(
         'config',
         [
@@ -2071,28 +2727,43 @@ class TestCLIUtils:
         ],
     )
     def test_100_load_config(
-        self, monkeypatch: pytest.MonkeyPatch, config: Any
+        self,
+        config: Any,
     ) -> None:
-        runner = click.testing.CliRunner()
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch, runner=runner, vault_config=config
-        ):
+        """`cli._load_config` works for valid configurations."""
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config=config,
+                )
+            )
             config_filename = cli._config_filename(subsystem='vault')
             with config_filename.open(encoding='UTF-8') as fileobj:
                 assert json.load(fileobj) == config
             assert cli._load_config() == config
 
     def test_110_save_bad_config(
-        self, monkeypatch: pytest.MonkeyPatch
+        self,
     ) -> None:
-        runner = click.testing.CliRunner()
+        """`cli._save_config` fails for bad configurations."""
+        runner = click.testing.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
                 tests.isolated_vault_config(
-                    monkeypatch=monkeypatch, runner=runner, vault_config={}
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={},
                 )
             )
             stack.enter_context(
@@ -2101,6 +2772,8 @@ class TestCLIUtils:
             cli._save_config(None)  # type: ignore[arg-type]
 
     def test_111_prompt_for_selection_multiple(self) -> None:
+        """`cli._prompt_for_selection` works in the "multiple" case."""
+
         @click.command()
         @click.option('--heading', default='Our menu:')
         @click.argument('items', nargs=-1)
@@ -2176,6 +2849,8 @@ Your selection? (1-10, leave empty to abort):\x20
         ), 'expected known output'
 
     def test_112_prompt_for_selection_single(self) -> None:
+        """`cli._prompt_for_selection` works in the "single" case."""
+
         @click.command()
         @click.option('--item', default='baked beans')
         @click.argument('prompt')
@@ -2221,14 +2896,16 @@ Boo.
         ), 'expected known output'
 
     def test_113_prompt_for_passphrase(
-        self, monkeypatch: pytest.MonkeyPatch
+        self,
     ) -> None:
-        monkeypatch.setattr(
-            click,
-            'prompt',
-            lambda *a, **kw: json.dumps({'args': a, 'kwargs': kw}),
-        )
-        res = json.loads(cli._prompt_for_passphrase())
+        """`cli._prompt_for_passphrase` works."""
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(
+                click,
+                'prompt',
+                lambda *a, **kw: json.dumps({'args': a, 'kwargs': kw}),
+            )
+            res = json.loads(cli._prompt_for_passphrase())
         err_msg = 'missing arguments to passphrase prompt'
         assert 'args' in res, err_msg
         assert 'kwargs' in res, err_msg
@@ -2243,6 +2920,12 @@ Boo.
         caplog: pytest.LogCaptureFixture,
         capsys: pytest.CaptureFixture[str],
     ) -> None:
+        """The standard logging context manager works.
+
+        It registers its handlers, once, and emits formatted calls to
+        standard error prefixed with the program name.
+
+        """
         prog_name = cli.StandardCLILogging.prog_name
         package_name = cli.StandardCLILogging.package_name
         logger = logging.getLogger(package_name)
@@ -2299,6 +2982,14 @@ Boo.
         caplog: pytest.LogCaptureFixture,
         capsys: pytest.CaptureFixture[str],
     ) -> None:
+        """The standard warnings logging context manager works.
+
+        It registers its handlers, once, and emits formatted calls to
+        standard error prefixed with the program name.  It also adheres
+        to the global warnings filter concerning which messages it
+        actually emits to standard error.
+
+        """
         warnings_cm = cli.StandardCLILogging.ensure_standard_warnings_logging()
         THE_FUTURE = 'the future will be here sooner than you think'  # noqa: N806
         JUST_TESTING = 'just testing whether warnings work'  # noqa: N806
@@ -2343,10 +3034,23 @@ Boo.
             assert f'FutureWarning: {THE_FUTURE}' in record_tuples[1][2]
             assert f'UserWarning: {JUST_TESTING}' in record_tuples[2][2]
 
-    def _export_as_sh_helper(
+    def export_as_sh_helper(
         self,
         config: Any,
     ) -> None:
+        """Emits a config in sh(1) format, then reads it back to verify it.
+
+        This function exports the configuration, sets up a new
+        enviroment, then calls
+        [`vault_config_exporter_shell_interpreter`][] on the export
+        script, verifying that each command ran successfully and that
+        the final configuration matches the initial one.
+
+        Args:
+            config:
+                The configuration to emit and read back.
+
+        """
         prog_name_list = ('derivepassphrase', 'vault')
         with io.StringIO() as outfile:
             cli._print_config_as_sh_script(
@@ -2354,17 +3058,24 @@ Boo.
             )
             script = outfile.getvalue()
         runner = click.testing.CliRunner(mix_stderr=False)
-        monkeypatch = pytest.MonkeyPatch()
-        with tests.isolated_vault_config(
-            runner=runner,
-            monkeypatch=monkeypatch,
-            vault_config={'services': {}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'services': {}},
+                )
+            )
             for result_ in vault_config_exporter_shell_interpreter(script):
                 result = tests.ReadableResult.parse(result_)
                 assert result.clean_exit()
             assert cli._load_config() == config
 
+    @tests.hypothesis_settings_coverage_compatible
     @hypothesis.given(
         global_config_settable=tests.vault_full_service_config(),
         global_config_importable=strategies.fixed_dictionaries(
@@ -2392,13 +3103,22 @@ Boo.
         global_config_settable: _types.VaultConfigServicesSettings,
         global_config_importable: _types.VaultConfigServicesSettings,
     ) -> None:
+        """Exporting configurations as sh(1) script works.
+
+        Here, we check global-only configurations which use both
+        settings settable via `--config` and settings requiring
+        `--import`.
+
+        The actual verification is done by [`export_as_sh_helper`][].
+
+        """
         config: _types.VaultConfig = {
             'global': global_config_settable | global_config_importable,
             'services': {},
         }
         assert _types.clean_up_falsy_vault_config_values(config) is not None
         assert _types.is_vault_config(config)
-        return self._export_as_sh_helper(config)
+        return self.export_as_sh_helper(config)
 
     @hypothesis.given(
         global_config_importable=strategies.fixed_dictionaries(
@@ -2425,6 +3145,14 @@ Boo.
         self,
         global_config_importable: _types.VaultConfigServicesSettings,
     ) -> None:
+        """Exporting configurations as sh(1) script works.
+
+        Here, we check global-only configurations which only use
+        settings requiring `--import`.
+
+        The actual verification is done by [`export_as_sh_helper`][].
+
+        """
         config: _types.VaultConfig = {
             'global': global_config_importable,
             'services': {},
@@ -2433,7 +3161,7 @@ Boo.
         assert _types.is_vault_config(config)
         if not config['global']:
             config.pop('global')
-        return self._export_as_sh_helper(config)
+        return self.export_as_sh_helper(config)
 
     @hypothesis.given(
         service_name=strategies.text(
@@ -2479,6 +3207,15 @@ Boo.
         service_config_settable: _types.VaultConfigServicesSettings,
         service_config_importable: _types.VaultConfigServicesSettings,
     ) -> None:
+        """Exporting configurations as sh(1) script works.
+
+        Here, we check service-only configurations which use both
+        settings settable via `--config` and settings requiring
+        `--import`.
+
+        The actual verification is done by [`export_as_sh_helper`][].
+
+        """
         config: _types.VaultConfig = {
             'services': {
                 service_name: (
@@ -2488,7 +3225,7 @@ Boo.
         }
         assert _types.clean_up_falsy_vault_config_values(config) is not None
         assert _types.is_vault_config(config)
-        return self._export_as_sh_helper(config)
+        return self.export_as_sh_helper(config)
 
     @hypothesis.given(
         service_name=strategies.text(
@@ -2532,6 +3269,14 @@ Boo.
         service_name: str,
         service_config_importable: _types.VaultConfigServicesSettings,
     ) -> None:
+        """Exporting configurations as sh(1) script works.
+
+        Here, we check service-only configurations which only use
+        settings requiring `--import`.
+
+        The actual verification is done by [`export_as_sh_helper`][].
+
+        """
         config: _types.VaultConfig = {
             'services': {
                 service_name: service_config_importable,
@@ -2539,48 +3284,58 @@ Boo.
         }
         assert _types.clean_up_falsy_vault_config_values(config) is not None
         assert _types.is_vault_config(config)
-        return self._export_as_sh_helper(config)
+        return self.export_as_sh_helper(config)
 
     @pytest.mark.parametrize(
         ['command_line', 'config', 'result_config'],
         [
-            (
+            pytest.param(
                 ['--delete-globals'],
                 {'global': {'phrase': 'abc'}, 'services': {}},
                 {'services': {}},
+                id='globals',
             ),
-            (
+            pytest.param(
                 ['--delete', '--', DUMMY_SERVICE],
                 {
                     'global': {'phrase': 'abc'},
                     'services': {DUMMY_SERVICE: {'notes': '...'}},
                 },
                 {'global': {'phrase': 'abc'}, 'services': {}},
+                id='service',
             ),
-            (
+            pytest.param(
                 ['--clear'],
                 {
                     'global': {'phrase': 'abc'},
                     'services': {DUMMY_SERVICE: {'notes': '...'}},
                 },
                 {'services': {}},
+                id='all',
             ),
         ],
     )
     def test_203_repeated_config_deletion(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         command_line: list[str],
         config: _types.VaultConfig,
         result_config: _types.VaultConfig,
     ) -> None:
-        runner = click.testing.CliRunner(mix_stderr=False)
+        """Repeatedly removing the same parts of a configuration works."""
         for start_config in [config, result_config]:
-            with tests.isolated_vault_config(
-                monkeypatch=monkeypatch,
-                runner=runner,
-                vault_config=start_config,
-            ):
+            runner = click.testing.CliRunner(mix_stderr=False)
+            # TODO(the-13th-letter): Rewrite using parenthesized
+            # with-statements.
+            # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+            with contextlib.ExitStack() as stack:
+                monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+                stack.enter_context(
+                    tests.isolated_vault_config(
+                        monkeypatch=monkeypatch,
+                        runner=runner,
+                        vault_config=start_config,
+                    )
+                )
                 result_ = runner.invoke(
                     cli.derivepassphrase_vault,
                     command_line,
@@ -2597,6 +3352,7 @@ Boo.
                 assert config_readback == result_config
 
     def test_204_phrase_from_key_manually(self) -> None:
+        """The dummy service, key and config settings are consistent."""
         assert (
             vault.Vault(
                 phrase=DUMMY_PHRASE_FROM_KEY1, **DUMMY_CONFIG_SETTINGS
@@ -2616,6 +3372,7 @@ Boo.
         vfunc: Callable[[click.Context, click.Parameter, Any], int | None],
         input: int,
     ) -> None:
+        """Command-line argument constraint validation works."""
         ctx = cli.derivepassphrase_vault.make_context(cli.PROG_NAME, [])
         param = cli.derivepassphrase_vault.params[0]
         assert vfunc(ctx, param, input) == input
@@ -2623,11 +3380,11 @@ Boo.
     @pytest.mark.parametrize('conn_hint', ['none', 'socket', 'client'])
     def test_227_get_suitable_ssh_keys(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: tests.RunningSSHAgentInfo,
         conn_hint: str,
     ) -> None:
-        with monkeypatch.context():
+        """`cli._get_suitable_ssh_keys` works."""
+        with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket)
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
@@ -2658,10 +3415,11 @@ Boo.
 
     def test_400_key_to_phrase(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         skip_if_no_af_unix_support: None,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
     ) -> None:
+        """All errors in `cli._key_to_phrase` are handled."""
+
         class ErrCallback(BaseException):
             def __init__(self, *args: Any, **kwargs: Any) -> None:
                 super().__init__(*args[:1])
@@ -2681,138 +3439,74 @@ Boo.
             raise ssh_agent.TrailingDataError()
 
         del skip_if_no_af_unix_support
-        monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', fail)
-        loaded_keys = list(ssh_agent_client_with_test_keys_loaded.list_keys())
-        loaded_key = base64.standard_b64encode(loaded_keys[0][0])
-        with monkeypatch.context() as mp:
-            mp.setattr(
-                ssh_agent.SSHAgentClient,
-                'list_keys',
-                lambda *_a, **_kw: [],
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', fail)
+            loaded_keys = list(
+                ssh_agent_client_with_test_keys_loaded.list_keys()
             )
-            with pytest.raises(ErrCallback, match='not loaded into the agent'):
-                cli._key_to_phrase(loaded_key, error_callback=err)
-        with monkeypatch.context() as mp:
-            mp.setattr(ssh_agent.SSHAgentClient, 'list_keys', fail)
-            with pytest.raises(
-                ErrCallback, match='SSH agent failed to or refused to'
-            ):
-                cli._key_to_phrase(loaded_key, error_callback=err)
-        with monkeypatch.context() as mp:
-            mp.setattr(ssh_agent.SSHAgentClient, 'list_keys', fail_runtime)
-            with pytest.raises(
-                ErrCallback, match='SSH agent failed to or refused to'
-            ) as excinfo:
-                cli._key_to_phrase(loaded_key, error_callback=err)
-            assert excinfo.value.kwargs
-            assert isinstance(
-                excinfo.value.kwargs['exc_info'],
-                ssh_agent.SSHAgentFailedError,
-            )
-            assert excinfo.value.kwargs['exc_info'].__context__ is not None
-            assert isinstance(
-                excinfo.value.kwargs['exc_info'].__context__,
-                ssh_agent.TrailingDataError,
-            )
-        with monkeypatch.context() as mp:
-            mp.delenv('SSH_AUTH_SOCK', raising=True)
-            with pytest.raises(
-                ErrCallback, match='Cannot find any running SSH agent'
-            ):
-                cli._key_to_phrase(loaded_key, error_callback=err)
-        with monkeypatch.context() as mp:
-            mp.setenv('SSH_AUTH_SOCK', os.environ['SSH_AUTH_SOCK'] + '~')
-            with pytest.raises(
-                ErrCallback, match='Cannot connect to the SSH agent'
-            ):
-                cli._key_to_phrase(loaded_key, error_callback=err)
-        with monkeypatch.context() as mp:
-            mp.delattr(socket, 'AF_UNIX', raising=True)
-            with pytest.raises(
-                ErrCallback, match='does not support UNIX domain sockets'
-            ):
-                cli._key_to_phrase(loaded_key, error_callback=err)
-        with monkeypatch.context() as mp:
-            mp.setattr(ssh_agent.SSHAgentClient, 'sign', fail_runtime)
-            with pytest.raises(
-                ErrCallback, match='violates the communications protocol'
-            ):
-                cli._key_to_phrase(loaded_key, error_callback=err)
+            loaded_key = base64.standard_b64encode(loaded_keys[0][0])
+            with monkeypatch.context() as mp:
+                mp.setattr(
+                    ssh_agent.SSHAgentClient,
+                    'list_keys',
+                    lambda *_a, **_kw: [],
+                )
+                with pytest.raises(
+                    ErrCallback, match='not loaded into the agent'
+                ):
+                    cli._key_to_phrase(loaded_key, error_callback=err)
+            with monkeypatch.context() as mp:
+                mp.setattr(ssh_agent.SSHAgentClient, 'list_keys', fail)
+                with pytest.raises(
+                    ErrCallback, match='SSH agent failed to or refused to'
+                ):
+                    cli._key_to_phrase(loaded_key, error_callback=err)
+            with monkeypatch.context() as mp:
+                mp.setattr(ssh_agent.SSHAgentClient, 'list_keys', fail_runtime)
+                with pytest.raises(
+                    ErrCallback, match='SSH agent failed to or refused to'
+                ) as excinfo:
+                    cli._key_to_phrase(loaded_key, error_callback=err)
+                assert excinfo.value.kwargs
+                assert isinstance(
+                    excinfo.value.kwargs['exc_info'],
+                    ssh_agent.SSHAgentFailedError,
+                )
+                assert excinfo.value.kwargs['exc_info'].__context__ is not None
+                assert isinstance(
+                    excinfo.value.kwargs['exc_info'].__context__,
+                    ssh_agent.TrailingDataError,
+                )
+            with monkeypatch.context() as mp:
+                mp.delenv('SSH_AUTH_SOCK', raising=True)
+                with pytest.raises(
+                    ErrCallback, match='Cannot find any running SSH agent'
+                ):
+                    cli._key_to_phrase(loaded_key, error_callback=err)
+            with monkeypatch.context() as mp:
+                mp.setenv('SSH_AUTH_SOCK', os.environ['SSH_AUTH_SOCK'] + '~')
+                with pytest.raises(
+                    ErrCallback, match='Cannot connect to the SSH agent'
+                ):
+                    cli._key_to_phrase(loaded_key, error_callback=err)
+            with monkeypatch.context() as mp:
+                mp.delattr(socket, 'AF_UNIX', raising=True)
+                with pytest.raises(
+                    ErrCallback, match='does not support UNIX domain sockets'
+                ):
+                    cli._key_to_phrase(loaded_key, error_callback=err)
+            with monkeypatch.context() as mp:
+                mp.setattr(ssh_agent.SSHAgentClient, 'sign', fail_runtime)
+                with pytest.raises(
+                    ErrCallback, match='violates the communications protocol'
+                ):
+                    cli._key_to_phrase(loaded_key, error_callback=err)
 
 
 # TODO(the-13th-letter): Remove this class in v1.0.
 # https://the13thletter.info/derivepassphrase/latest/upgrade-notes/#upgrading-to-v1.0
 class TestCLITransition:
-    def test_100_help_output(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
-            result_ = runner.invoke(
-                cli.derivepassphrase, ['--help'], catch_exceptions=False
-            )
-            result = tests.ReadableResult.parse(result_)
-        assert result.clean_exit(
-            empty_stderr=True, output='currently implemented subcommands'
-        ), 'expected clean exit, and known help text'
-
-    def test_101_help_output_export(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
-            result_ = runner.invoke(
-                cli.derivepassphrase,
-                ['export', '--help'],
-                catch_exceptions=False,
-            )
-            result = tests.ReadableResult.parse(result_)
-        assert result.clean_exit(
-            empty_stderr=True, output='only available subcommand'
-        ), 'expected clean exit, and known help text'
-
-    def test_102_help_output_export_vault(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
-            result_ = runner.invoke(
-                cli.derivepassphrase,
-                ['export', 'vault', '--help'],
-                catch_exceptions=False,
-            )
-            result = tests.ReadableResult.parse(result_)
-        assert result.clean_exit(
-            empty_stderr=True, output='Export a vault-native configuration'
-        ), 'expected clean exit, and known help text'
-
-    def test_103_help_output_vault(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
-            result_ = runner.invoke(
-                cli.derivepassphrase,
-                ['vault', '--help'],
-                catch_exceptions=False,
-            )
-            result = tests.ReadableResult.parse(result_)
-        assert result.clean_exit(
-            empty_stderr=True, output='Passphrase generation:\n'
-        ), 'expected clean exit, and option groups in help text'
-        assert result.clean_exit(
-            empty_stderr=True, output='Use $VISUAL or $EDITOR to configure'
-        ), 'expected clean exit, and option group epilog in help text'
+    """Transition tests for the command-line interface up to v1.0."""
 
     @pytest.mark.parametrize(
         'config',
@@ -2834,10 +3528,22 @@ class TestCLITransition:
         ],
     )
     def test_110_load_config_backup(
-        self, monkeypatch: pytest.MonkeyPatch, config: Any
+        self,
+        config: Any,
     ) -> None:
-        runner = click.testing.CliRunner()
-        with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
+        """Loading the old settings file works."""
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             cli._config_filename(subsystem='old settings.json').write_text(
                 json.dumps(config, indent=2) + '\n', encoding='UTF-8'
             )
@@ -2863,10 +3569,22 @@ class TestCLITransition:
         ],
     )
     def test_111_migrate_config(
-        self, monkeypatch: pytest.MonkeyPatch, config: Any
+        self,
+        config: Any,
     ) -> None:
-        runner = click.testing.CliRunner()
-        with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
+        """Migrating the old settings file works."""
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             cli._config_filename(subsystem='old settings.json').write_text(
                 json.dumps(config, indent=2) + '\n', encoding='UTF-8'
             )
@@ -2892,10 +3610,22 @@ class TestCLITransition:
         ],
     )
     def test_112_migrate_config_error(
-        self, monkeypatch: pytest.MonkeyPatch, config: Any
+        self,
+        config: Any,
     ) -> None:
-        runner = click.testing.CliRunner()
-        with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
+        """Migrating the old settings file atop a directory fails."""
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             cli._config_filename(subsystem='old settings.json').write_text(
                 json.dumps(config, indent=2) + '\n', encoding='UTF-8'
             )
@@ -2927,10 +3657,22 @@ class TestCLITransition:
         ],
     )
     def test_113_migrate_config_error_bad_config_value(
-        self, monkeypatch: pytest.MonkeyPatch, config: Any
+        self,
+        config: Any,
     ) -> None:
-        runner = click.testing.CliRunner()
-        with tests.isolated_config(monkeypatch=monkeypatch, runner=runner):
+        """Migrating an invalid old settings file fails."""
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             cli._config_filename(subsystem='old settings.json').write_text(
                 json.dumps(config, indent=2) + '\n', encoding='UTF-8'
             )
@@ -2939,17 +3681,24 @@ class TestCLITransition:
 
     def test_200_forward_export_vault_path_parameter(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
+        """Forwarding arguments from "export" to "export vault" works."""
         pytest.importorskip('cryptography', minversion='38.0')
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_exporter_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config=tests.VAULT_V03_CONFIG,
-            vault_key=tests.VAULT_MASTER_KEY,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_exporter_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config=tests.VAULT_V03_CONFIG,
+                    vault_key=tests.VAULT_MASTER_KEY,
+                )
+            )
             monkeypatch.setenv('VAULT_KEY', tests.VAULT_MASTER_KEY)
             result_ = runner.invoke(
                 cli.derivepassphrase,
@@ -2967,15 +3716,22 @@ class TestCLITransition:
 
     def test_201_forward_export_vault_empty_commandline(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
+        """Deferring from "export" to "export vault" works."""
         pytest.importorskip('cryptography', minversion='38.0')
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase,
                 ['export'],
@@ -2996,18 +3752,27 @@ class TestCLITransition:
     )
     def test_210_forward_vault_disable_character_set(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
         charset_name: str,
     ) -> None:
-        monkeypatch.setattr(cli, '_prompt_for_passphrase', tests.auto_prompt)
+        """Forwarding arguments from top-level to "vault" works."""
         option = f'--{charset_name}'
         charset = vault.Vault._CHARSETS[charset_name].decode('ascii')
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
+            monkeypatch.setattr(
+                cli, '_prompt_for_passphrase', tests.auto_prompt
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase,
                 [option, '0', '-p', '--', DUMMY_SERVICE],
@@ -3029,14 +3794,21 @@ class TestCLITransition:
 
     def test_211_forward_vault_empty_command_line(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
+        """Deferring from top-level to "vault" works."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase,
                 [],
@@ -3056,15 +3828,22 @@ class TestCLITransition:
 
     def test_300_export_using_old_config_file(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
+        """Exporting from (and migrating) the old settings file works."""
         caplog.set_level(logging.INFO)
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             cli._config_filename(subsystem='old settings.json').write_text(
                 json.dumps(
                     {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
@@ -3089,14 +3868,21 @@ class TestCLITransition:
 
     def test_300a_export_using_old_config_file_migration_error(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
+        """Exporting from (and not migrating) the old settings file fails."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
             cli._config_filename(subsystem='old settings.json').write_text(
                 json.dumps(
                     {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
@@ -3131,15 +3917,22 @@ class TestCLITransition:
 
     def test_400_completion_service_name_old_config_file(
         self,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        runner = click.testing.CliRunner(mix_stderr=False)
+        """Completing service names from the old settings file works."""
         config = {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}}
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config=config,
-        ):
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config=config,
+                )
+            )
             old_name = cli._config_filename(subsystem='old settings.json')
             new_name = cli._config_filename(subsystem='vault')
             old_name.unlink(missing_ok=True)
@@ -3151,8 +3944,9 @@ class TestCLITransition:
             ) == [DUMMY_SERVICE]
 
 
-_known_services = (DUMMY_SERVICE, 'email', 'bank', 'work')
-_valid_properties = (
+KNOWN_SERVICES = (DUMMY_SERVICE, 'email', 'bank', 'work')
+"""Known service names.  Used for the [`ConfigManagementStateMachine`][]."""
+VALID_PROPERTIES = (
     'length',
     'repeat',
     'upper',
@@ -3162,32 +3956,51 @@ _valid_properties = (
     'dash',
     'symbol',
 )
+"""Known vault properties.  Used for the [`ConfigManagementStateMachine`][]."""
 
 
-def _build_reduced_vault_config_settings(
+def build_reduced_vault_config_settings(
     config: _types.VaultConfigServicesSettings,
-    keys_to_purge: frozenset[str],
+    keys_to_prune: frozenset[str],
 ) -> _types.VaultConfigServicesSettings:
+    """Return a service settings object with certain keys pruned.
+
+    Args:
+        config:
+            The original service settings object.
+        keys_to_prune:
+            The keys to prune from the settings object.
+
+    """
     config2 = copy.deepcopy(config)
-    for key in keys_to_purge:
+    for key in keys_to_prune:
         config2.pop(key, None)  # type: ignore[misc]
     return config2
 
 
-_services_strategy = strategies.builds(
-    _build_reduced_vault_config_settings,
+SERVICES_STRATEGY = strategies.builds(
+    build_reduced_vault_config_settings,
     tests.vault_full_service_config(),
     strategies.sets(
-        strategies.sampled_from(_valid_properties),
+        strategies.sampled_from(VALID_PROPERTIES),
         max_size=7,
     ),
 )
+"""A hypothesis strategy to build incomplete service configurations."""
 
 
-def _assemble_config(
+def services_strategy() -> strategies.SearchStrategy[
+    _types.VaultConfigServicesSettings
+]:
+    """Return a strategy to build incomplete service configurations."""
+    return SERVICES_STRATEGY
+
+
+def assemble_config(
     global_data: _types.VaultConfigGlobalSettings,
     service_data: list[tuple[str, _types.VaultConfigServicesSettings]],
 ) -> _types.VaultConfig:
+    """Return a vault config using the global and service data."""
     services_dict = dict(service_data)
     return (
         {'global': global_data, 'services': services_dict}
@@ -3197,11 +4010,26 @@ def _assemble_config(
 
 
 @strategies.composite
-def _draw_service_name_and_data(
+def draw_service_name_and_data(
     draw: hypothesis.strategies.DrawFn,
     num_entries: int,
 ) -> tuple[tuple[str, _types.VaultConfigServicesSettings], ...]:
-    possible_services = list(_known_services)
+    """Draw a service name and settings, as a hypothesis strategy.
+
+    Will draw service names from [`KNOWN_SERVICES`][] and service
+    settings via [`services_strategy`][].
+
+    Args:
+        draw:
+            The `draw` function, as provided for by hypothesis.
+        num_entries:
+            The number of services to draw.
+
+    Returns:
+        A sequence of pairs of service names and service settings.
+
+    """
+    possible_services = list(KNOWN_SERVICES)
     selected_services: list[str] = []
     for _ in range(num_entries):
         selected_services.append(
@@ -3209,23 +4037,43 @@ def _draw_service_name_and_data(
         )
         possible_services.remove(selected_services[-1])
     return tuple(
-        (service, draw(_services_strategy)) for service in selected_services
+        (service, draw(services_strategy())) for service in selected_services
     )
 
 
-_vault_full_config = strategies.builds(
-    _assemble_config,
-    _services_strategy,
+VAULT_FULL_CONFIG = strategies.builds(
+    assemble_config,
+    services_strategy(),
     strategies.integers(
         min_value=2,
         max_value=4,
-    ).flatmap(_draw_service_name_and_data),
+    ).flatmap(draw_service_name_and_data),
 )
+"""A hypothesis strategy to build full vault configurations."""
+
+
+def vault_full_config() -> strategies.SearchStrategy[_types.VaultConfig]:
+    """Return a strategy to build full vault configurations."""
+    return VAULT_FULL_CONFIG
 
 
 @tests.hypothesis_settings_coverage_compatible
 class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
+    """A state machine recording changes in the vault configuration.
+
+    Record possible configuration states in bundles, then in each rule,
+    take a configuration and manipulate it somehow.
+
+    Attributes:
+        setting:
+            A bundle for single-service settings.
+        configuration:
+            A bundle for full vault configurations.
+
+    """
+
     def __init__(self) -> None:
+        """Initialize self, set up context managers and enter them."""
         super().__init__()
         self.runner = click.testing.CliRunner(mix_stderr=False)
         self.exit_stack = contextlib.ExitStack().__enter__()
@@ -3240,13 +4088,19 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             )
         )
 
-    setting = stateful.Bundle('setting')
-    configuration = stateful.Bundle('configuration')
+    setting: stateful.Bundle[_types.VaultConfigServicesSettings] = (
+        stateful.Bundle('setting')
+    )
+    """"""
+    configuration: stateful.Bundle[_types.VaultConfig] = stateful.Bundle(
+        'configuration'
+    )
+    """"""
 
     @stateful.initialize(
         target=configuration,
         configs=strategies.lists(
-            _vault_full_config,
+            vault_full_config(),
             min_size=8,
             max_size=8,
         ),
@@ -3254,13 +4108,14 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     def declare_initial_configs(
         self,
         configs: Iterable[_types.VaultConfig],
-    ) -> Iterable[_types.VaultConfig]:
+    ) -> stateful.MultipleResults[_types.VaultConfig]:
+        """Initialize the configuration bundle with eight configurations."""
         return stateful.multiple(*configs)
 
     @stateful.initialize(
         target=setting,
         configs=strategies.lists(
-            _vault_full_config,
+            vault_full_config(),
             min_size=4,
             max_size=4,
         ),
@@ -3268,7 +4123,8 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     def extract_initial_settings(
         self,
         configs: list[_types.VaultConfig],
-    ) -> Iterable[_types.VaultConfigServicesSettings]:
+    ) -> stateful.MultipleResults[_types.VaultConfigServicesSettings]:
+        """Initialize the settings bundle with four service settings."""
         settings: list[_types.VaultConfigServicesSettings] = []
         for c in configs:
             settings.extend(c['services'].values())
@@ -3294,7 +4150,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         config=configuration,
         setting=setting.filter(bool),
         maybe_unset=strategies.sets(
-            strategies.sampled_from(_valid_properties),
+            strategies.sampled_from(VALID_PROPERTIES),
             max_size=3,
         ),
         overwrite=strategies.booleans(),
@@ -3306,6 +4162,26 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         maybe_unset: set[str],
         overwrite: bool,
     ) -> _types.VaultConfig:
+        """Set the global settings of a configuration.
+
+        Args:
+            config:
+                The configuration to edit.
+            setting:
+                The new global settings.
+            maybe_unset:
+                Settings keys to additionally unset, if not already
+                present in the new settings.  Corresponds to the
+                `--unset` command-line argument.
+            overwrite:
+                Overwrite the settings object if true, or merge if
+                false.  Corresponds to the `--overwrite-existing` and
+                `--merge-existing` command-line arguments.
+
+        Returns:
+            The amended configuration.
+
+        """
         cli._save_config(config)
         config_global = config.get('global', {})
         maybe_unset = set(maybe_unset) - setting.keys()
@@ -3329,7 +4205,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             + [
                 f'--{key}={value}'
                 for key, value in setting.items()
-                if key in _valid_properties
+                if key in VALID_PROPERTIES
             ],
             catch_exceptions=False,
         )
@@ -3341,10 +4217,10 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     @stateful.rule(
         target=configuration,
         config=configuration,
-        service=strategies.sampled_from(_known_services),
+        service=strategies.sampled_from(KNOWN_SERVICES),
         setting=setting.filter(bool),
         maybe_unset=strategies.sets(
-            strategies.sampled_from(_valid_properties),
+            strategies.sampled_from(VALID_PROPERTIES),
             max_size=3,
         ),
         overwrite=strategies.booleans(),
@@ -3357,6 +4233,28 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         maybe_unset: set[str],
         overwrite: bool,
     ) -> _types.VaultConfig:
+        """Set the named service settings for a configuration.
+
+        Args:
+            config:
+                The configuration to edit.
+            service:
+                The name of the service to set.
+            setting:
+                The new service settings.
+            maybe_unset:
+                Settings keys to additionally unset, if not already
+                present in the new settings.  Corresponds to the
+                `--unset` command-line argument.
+            overwrite:
+                Overwrite the settings object if true, or merge if
+                false.  Corresponds to the `--overwrite-existing` and
+                `--merge-existing` command-line arguments.
+
+        Returns:
+            The amended configuration.
+
+        """
         cli._save_config(config)
         config_service = config['services'].get(service, {})
         maybe_unset = set(maybe_unset) - setting.keys()
@@ -3380,7 +4278,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             + [
                 f'--{key}={value}'
                 for key, value in setting.items()
-                if key in _valid_properties
+                if key in VALID_PROPERTIES
             ]
             + ['--', service],
             catch_exceptions=False,
@@ -3398,6 +4296,16 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         self,
         config: _types.VaultConfig,
     ) -> _types.VaultConfig:
+        """Purge the globals of a configuration.
+
+        Args:
+            config:
+                The configuration to edit.
+
+        Returns:
+            The pruned configuration.
+
+        """
         cli._save_config(config)
         config.pop('global', None)
         result_ = self.runner.invoke(
@@ -3426,6 +4334,17 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         self,
         config_and_service: tuple[_types.VaultConfig, str],
     ) -> _types.VaultConfig:
+        """Purge the settings of a named service in a configuration.
+
+        Args:
+            config_and_service:
+                A 2-tuple containing the configuration to edit, and the
+                service name to purge.
+
+        Returns:
+            The pruned configuration.
+
+        """
         config, service = config_and_service
         cli._save_config(config)
         config['services'].pop(service, None)
@@ -3448,6 +4367,16 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         self,
         config: _types.VaultConfig,
     ) -> _types.VaultConfig:
+        """Purge the entire configuration.
+
+        Args:
+            config:
+                The configuration to edit.
+
+        Returns:
+            The empty configuration.
+
+        """
         cli._save_config(config)
         config = {'services': {}}
         result_ = self.runner.invoke(
@@ -3473,6 +4402,22 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         config_to_import: _types.VaultConfig,
         overwrite: bool,
     ) -> _types.VaultConfig:
+        """Import the given configuration into a base configuration.
+
+        Args:
+            base_config:
+                The configuration to import into.
+            config_to_import:
+                The configuration to import.
+            overwrite:
+                Overwrite the base configuration if true, or merge if
+                false.  Corresponds to the `--overwrite-existing` and
+                `--merge-existing` command-line arguments.
+
+        Returns:
+            The imported or merged configuration.
+
+        """
         cli._save_config(base_config)
         config = (
             self.fold_configs(config_to_import, base_config)
@@ -3494,13 +4439,20 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         return config
 
     def teardown(self) -> None:
+        """Upon teardown, exit all contexts entered in `__init__`."""
         self.exit_stack.close()
 
 
 TestConfigManagement = ConfigManagementStateMachine.TestCase
+"""The [`unittest.TestCase`][] class that will actually be run."""
 
 
 def bash_format(item: click.shell_completion.CompletionItem) -> str:
+    """A formatter for `bash`-style shell completion items.
+
+    The format is `type,value`, and is dictated by [`click`][].
+
+    """
     type, value = (  # noqa: A001
         item.type,
         item.value,
@@ -3509,6 +4461,11 @@ def bash_format(item: click.shell_completion.CompletionItem) -> str:
 
 
 def fish_format(item: click.shell_completion.CompletionItem) -> str:
+    r"""A formatter for `fish`-style shell completion items.
+
+    The format is `type,value<tab>help`, and is dictated by [`click`][].
+
+    """
     type, value, help = (  # noqa: A001
         item.type,
         item.value,
@@ -3518,6 +4475,19 @@ def fish_format(item: click.shell_completion.CompletionItem) -> str:
 
 
 def zsh_format(item: click.shell_completion.CompletionItem) -> str:
+    r"""A formatter for `zsh`-style shell completion items.
+
+    The format is `type<newline>value<newline>help<newline>`, and is
+    dictated by [`click`][].  Upstream `click` currently (v8.2.0) does
+    not deal with colons in the value correctly when the help text is
+    non-degenerate.  Our formatter here does, provided the upstream
+    `zsh` completion script is used; see the [`cli.ZshComplete`][]
+    class.  A request is underway to merge this change into upstream
+    `click`; see [`pallets/click#2846`][PR2846].
+
+    [PR2846]: https://github.com/pallets/click/pull/2846
+
+    """
     empty_help = '_'
     help_, value = (
         (item.help, item.value.replace(':', r'\:'))
@@ -3530,6 +4500,7 @@ def zsh_format(item: click.shell_completion.CompletionItem) -> str:
 def completion_item(
     item: str | click.shell_completion.CompletionItem,
 ) -> click.shell_completion.CompletionItem:
+    """Convert a string to a completion item, if necessary."""
     return (
         click.shell_completion.CompletionItem(item, type='plain')
         if isinstance(item, str)
@@ -3540,21 +4511,41 @@ def completion_item(
 def assertable_item(
     item: str | click.shell_completion.CompletionItem,
 ) -> tuple[str, Any, str | None]:
+    """Convert a completion item into a pretty-printable item.
+
+    Intended to make completion items introspectable in pytest's
+    `assert` output.
+
+    """
     item = completion_item(item)
     return (item.type, item.value, item.help)
 
 
 class TestShellCompletion:
+    """Tests for the shell completion machinery."""
+
     class Completions:
+        """A deferred completion call."""
+
         def __init__(
             self,
             args: Sequence[str],
             incomplete: str,
         ) -> None:
+            """Initialize the object.
+
+            Args:
+                args:
+                    The sequence of complete command-line arguments.
+                incomplete:
+                    The final, incomplete, partial argument.
+
+            """
             self.args = tuple(args)
             self.incomplete = incomplete
 
         def __call__(self) -> Sequence[click.shell_completion.CompletionItem]:
+            """Return the completion items."""
             args = list(self.args)
             completion = click.shell_completion.ShellComplete(
                 cli=cli.derivepassphrase,
@@ -3565,6 +4556,7 @@ class TestShellCompletion:
             return completion.get_completions(args, self.incomplete)
 
         def get_words(self) -> Sequence[str]:
+            """Return the completion items' values, as a sequence."""
             return tuple(c.value for c in self())
 
     @pytest.mark.parametrize(
@@ -3586,6 +4578,7 @@ class TestShellCompletion:
         partial: str,
         is_completable: bool,
     ) -> None:
+        """Our `_is_completable_item` predicate for service names works."""
         assert cli._is_completable_item(partial) == is_completable
 
     @pytest.mark.parametrize(
@@ -3694,6 +4687,7 @@ class TestShellCompletion:
         incomplete: str,
         completions: AbstractSet[str],
     ) -> None:
+        """Our completion machinery works for all commands' options."""
         comp = self.Completions(command_prefix, incomplete)
         assert frozenset(comp.get_words()) == completions
 
@@ -3720,6 +4714,7 @@ class TestShellCompletion:
         incomplete: str,
         completions: AbstractSet[str],
     ) -> None:
+        """Our completion machinery works for all commands' subcommands."""
         comp = self.Completions(command_prefix, incomplete)
         assert frozenset(comp.get_words()) == completions
 
@@ -3746,6 +4741,7 @@ class TestShellCompletion:
         command_prefix: Sequence[str],
         incomplete: str,
     ) -> None:
+        """Our completion machinery works for all commands' paths."""
         file = click.shell_completion.CompletionItem('', type='file')
         completions = frozenset({(file.type, file.value, file.help)})
         comp = self.Completions(command_prefix, incomplete)
@@ -3790,17 +4786,24 @@ class TestShellCompletion:
     )
     def test_203_service_names(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         config: _types.VaultConfig,
         incomplete: str,
         completions: AbstractSet[str],
     ) -> None:
+        """Our completion machinery works for vault service names."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config=config,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config=config,
+                )
+            )
             comp = self.Completions(['vault'], incomplete)
             assert frozenset(comp.get_words()) == completions
 
@@ -3907,7 +4910,6 @@ class TestShellCompletion:
     )
     def test_300_shell_completion_formatting(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         shell: str,
         format_func: Callable[[click.shell_completion.CompletionItem], str],
         config: _types.VaultConfig,
@@ -3919,12 +4921,20 @@ class TestShellCompletion:
         incomplete: str,
         results: list[str | click.shell_completion.CompletionItem],
     ) -> None:
+        """Custom completion functions work for all shells."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config=config,
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config=config,
+                )
+            )
             expected_items = [assertable_item(item) for item in results]
             expected_string = '\n'.join(
                 format_func(completion_item(item)) for item in results
@@ -4113,7 +5123,6 @@ class TestShellCompletion:
     )
     def test_400_incompletable_service_names(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
         mode: Literal['config', 'import'],
         config: _types.VaultConfig,
@@ -4121,13 +5130,21 @@ class TestShellCompletion:
         incomplete: str,
         completions: AbstractSet[str],
     ) -> None:
-        runner = click.testing.CliRunner(mix_stderr=False)
+        """Completion skips incompletable items."""
         vault_config = config if mode == 'config' else {'services': {}}
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config=vault_config,
-        ):
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config=vault_config,
+                )
+            )
             if mode == 'config':
                 result_ = runner.invoke(
                     cli.derivepassphrase_vault,
@@ -4155,14 +5172,23 @@ class TestShellCompletion:
 
     def test_410a_service_name_exceptions_not_found(
         self,
-        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """Service name completion quietly fails on missing configuration."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={
+                        'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}
+                    },
+                )
+            )
             cli._config_filename(subsystem='vault').unlink(missing_ok=True)
             assert not cli._shell_complete_service(
                 click.Context(cli.derivepassphrase),
@@ -4173,15 +5199,24 @@ class TestShellCompletion:
     @pytest.mark.parametrize('exc_type', [RuntimeError, KeyError, ValueError])
     def test_410b_service_name_exceptions_custom_error(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         exc_type: type[Exception],
     ) -> None:
+        """Service name completion quietly fails on configuration errors."""
         runner = click.testing.CliRunner(mix_stderr=False)
-        with tests.isolated_vault_config(
-            monkeypatch=monkeypatch,
-            runner=runner,
-            vault_config={'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
-        ):
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={
+                        'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}
+                    },
+                )
+            )
 
             def raiser(*_a: Any, **_kw: Any) -> NoReturn:
                 raise exc_type('just being difficult')  # noqa: EM101,TRY003

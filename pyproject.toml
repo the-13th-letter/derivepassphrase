@@ -115,6 +115,9 @@ extra-dependencies = [
   # Our documentation uses formatted function signatures (i.e. with
   # formatted type annotations), which requires `black`.
   "black",
+  # We actually use functionality from MkDocs 1.6, so ensure the version is
+  # at least this high.
+  "mkdocs >= 1.6",
   # Our changelog is assembled from singular entries, orchestrated by
   # `scriv`.
   "scriv >= 1.4"

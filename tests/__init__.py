@@ -40,25 +40,99 @@ if TYPE_CHECKING:
 
 
 class SSHTestKey(NamedTuple):
-    public_key: bytes | str
-    public_key_data: bytes
-    private_key: bytes
-    private_key_blob: bytes | None = None
-    expected_signature: bytes | None = None
-    derived_passphrase: bytes | str | None = None
+    """An SSH test key.
 
-    def is_suitable(self) -> bool:
-        return vault.Vault.is_suitable_ssh_key(self.public_key_data)
+    Attributes:
+        public_key:
+            The SSH public key string, as used e.g. by OpenSSH's
+            `authorized_keys` file.  Includes a comment.
+        public_key_data:
+            The SSH protocol wire format of the public key.
+        private_key:
+            A base64 encoded representation of the private key, in
+            OpenSSH's v1 private key format.
+        private_key_blob:
+            The SSH protocol wire format of the private key.
+        expected_signature:
+            For deterministic signature types, this is the expected
+            signature of the vault UUID.  For other types this is
+            `None`.
+        derived_passphrase:
+            For deterministic signature types, this is the "equivalent
+            master passphrase" derived from this key (a transformation
+            of [`expected_signature`][]).  For other types this is
+            `None`.
+
+    """
+
+    public_key: bytes | str
+    """"""
+    public_key_data: bytes
+    """"""
+    private_key: bytes
+    """"""
+    private_key_blob: bytes | None = None
+    """"""
+    expected_signature: bytes | None = None
+    """"""
+    derived_passphrase: bytes | str | None = None
+    """"""
+
+    def is_suitable(
+        self,
+        *,
+        client: ssh_agent.SSHAgentClient | None = None,
+    ) -> bool:
+        """Return if this key is suitable for use with vault.
+
+        Args:
+            client:
+                An optional SSH agent client to check for additional
+                deterministic key types. If not given, assume no such
+                types.
+
+        """
+        return vault.Vault.is_suitable_ssh_key(
+            self.public_key_data, client=client
+        )
 
 
 class ValidationSettings(NamedTuple):
+    """Validation settings for [`VaultTestConfig`][]s.
+
+    Attributes:
+        allow_unknown_settings:
+            See [`_types.validate_vault_config`][].
+
+    """
+
     allow_unknown_settings: bool
+    """"""
 
 
 class VaultTestConfig(NamedTuple):
+    """A (not necessarily valid) sample vault config, plus metadata.
+
+    Attributes:
+        config:
+            The actual configuration object.  Usually a [`dict`][].
+        comment:
+            An explanatory comment for what is wrong with this config,
+            or empty if the config is valid.  This is intended as
+            a debugging message to be shown to the user (e.g. when an
+            assertion fails), not as an error message to
+            programmatically match against.
+        validation_settings:
+            See [`_types.validate_vault_config`][].
+
+    """
+
     config: Any
+    """"""
     comment: str
+    """"""
     validation_settings: ValidationSettings | None
+    """"""
 
 
 TEST_CONFIGS: list[VaultTestConfig] = [
@@ -310,6 +384,7 @@ TEST_CONFIGS: list[VaultTestConfig] = [
         ValidationSettings(True),
     ),
 ]
+"""The master list of test configurations for vault."""
 
 
 def is_valid_test_config(conf: VaultTestConfig, /) -> bool:
@@ -333,6 +408,17 @@ def _test_config_ids(val: VaultTestConfig) -> Any:  # pragma: no cover
 
 @strategies.composite
 def vault_full_service_config(draw: strategies.DrawFn) -> dict[str, int]:
+    """Hypothesis strategy for full vault service configurations.
+
+    Returns a sample configuration with restrictions on length, repeat
+    count, and all character classes, while ensuring the settings are
+    not obviously unsatisfiable.
+
+    Args:
+        draw:
+            The `draw` function, as provided for by hypothesis.
+
+    """
     repeat = draw(strategies.integers(min_value=0, max_value=10))
     lower = draw(strategies.integers(min_value=0, max_value=10))
     upper = draw(strategies.integers(min_value=0, max_value=10))
@@ -400,7 +486,7 @@ def smudged_vault_test_config(
 
     Args:
         draw:
-            The hypothesis draw function.
+            The `draw` function, as provided for by hypothesis.
         config:
             A strategy which generates [`VaultTestConfig`][] objects.
 
@@ -421,7 +507,7 @@ def smudged_vault_test_config(
         services.append(obj['global'])
     assert all(isinstance(x, dict) for x in services), (
         'is_smudgable_vault_test_config guard failed to '
-        'ensure each setings dict is a dict'
+        'ensure each settings dict is a dict'
     )
     for service in services:
         for key in ('phrase',):
@@ -453,20 +539,75 @@ def smudged_vault_test_config(
 
 
 class KnownSSHAgent(str, enum.Enum):
+    """Known SSH agents.
+
+    Attributes:
+        UNKNOWN:
+            Not a known agent, or not known statically.
+        Pageant:
+            The agent from Simon Tatham's PuTTY suite.
+        OpenSSHAgent:
+            The agent from OpenBSD's OpenSSH suite.
+
+    """
+
     UNKNOWN: str = '(unknown)'
+    """"""
     Pageant: str = 'Pageant'
+    """"""
     OpenSSHAgent: str = 'OpenSSHAgent'
+    """"""
 
 
 class SpawnedSSHAgentInfo(NamedTuple):
+    """Info about a spawned SSH agent, as provided by some fixtures.
+
+    Differs from [`RunningSSHAgentInfo`][] in that this info object
+    already provides a functional client connected to the agent, but not
+    the address.
+
+    Attributes:
+        agent_type:
+            The agent's type.
+        client:
+            An SSH agent client connected to this agent.
+        isolated:
+            Whether this agent was spawned specifically for this test
+            suite, with attempts to isolate it from the user.  If false,
+            then the user may be interacting with the agent externally,
+            meaning e.g. keys other than the test keys may be visible in
+            this agent.
+
+    """
+
     agent_type: KnownSSHAgent
+    """"""
     client: ssh_agent.SSHAgentClient
+    """"""
     isolated: bool
+    """"""
 
 
 class RunningSSHAgentInfo(NamedTuple):
+    """Info about a running SSH agent, as provided by some fixtures.
+
+    Differs from [`SpawnedSSHAgentInfo`][] in that this info object
+    provides only an address of the agent, not a functional client
+    already connected to it.  The running SSH agent may or may not be
+    isolated.
+
+    Attributes:
+        socket:
+            A socket address to connect to the agent.
+        agent_type:
+            The agent's type.
+
+    """
+
     socket: str
+    """"""
     agent_type: KnownSSHAgent
+    """"""
 
 
 ALL_KEYS: Mapping[str, SSHTestKey] = {
@@ -998,21 +1139,34 @@ Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQ==
         derived_passphrase=None,
     ),
 }
+"""The master list of SSH test keys."""
 SUPPORTED_KEYS: Mapping[str, SSHTestKey] = {
     k: v for k, v in ALL_KEYS.items() if v.is_suitable()
 }
+"""The subset of SSH test keys suitable for use with vault."""
 UNSUITABLE_KEYS: Mapping[str, SSHTestKey] = {
     k: v for k, v in ALL_KEYS.items() if not v.is_suitable()
 }
+"""The subset of SSH test keys not suitable for use with vault."""
 
 DUMMY_SERVICE = 'service1'
+"""A standard/sample service name."""
 DUMMY_PASSPHRASE = 'my secret passphrase'
+"""A standard/sample passphrase."""
 DUMMY_KEY1 = SUPPORTED_KEYS['ed25519'].public_key_data
+"""A sample universally supported SSH test key (in wire format)."""
 DUMMY_KEY1_B64 = base64.standard_b64encode(DUMMY_KEY1).decode('ASCII')
+"""
+A sample universally supported SSH test key (in `authorized_keys` format).
+"""
 DUMMY_KEY2 = SUPPORTED_KEYS['rsa'].public_key_data
+"""A second supported SSH test key (in wire format)."""
 DUMMY_KEY2_B64 = base64.standard_b64encode(DUMMY_KEY2).decode('ASCII')
+"""A second supported SSH test key (in `authorized_keys` format)."""
 DUMMY_KEY3 = SUPPORTED_KEYS['ed448'].public_key_data
+"""A third supported SSH test key (in wire format)."""
 DUMMY_KEY3_B64 = base64.standard_b64encode(DUMMY_KEY3).decode('ASCII')
+"""A third supported SSH test key (in `authorized_keys` format)."""
 DUMMY_CONFIG_SETTINGS = {
     'length': 10,
     'upper': 1,
@@ -1023,8 +1177,15 @@ DUMMY_CONFIG_SETTINGS = {
     'dash': 1,
     'symbol': 1,
 }
+"""Sample vault settings."""
 DUMMY_RESULT_PASSPHRASE = b'.2V_QJkd o'
+"""
+The passphrase derived from [`DUMMY_SERVICE`][] using [`DUMMY_PASSPHRASE`][].
+"""
 DUMMY_RESULT_KEY1 = b'E<b<{ -7iG'
+"""
+The passphrase derived from [`DUMMY_SERVICE`][] using [`DUMMY_KEY1`][].
+"""
 DUMMY_PHRASE_FROM_KEY1_RAW = (
     b'\x00\x00\x00\x0bssh-ed25519'
     b'\x00\x00\x00@\xf0\x98\x19\x80l\x1a\x97\xd5&\x03n'
@@ -1032,10 +1193,23 @@ DUMMY_PHRASE_FROM_KEY1_RAW = (
     b'\x1d\xaf\xfd\r\x08\x1f\xec\xf8s\x9b\x8c_U9\x16|ST,'
     b'\x1eR\xbb0\xed\x7f\x89\xe2/iQU\xd8\x9e\xa6\x02'
 )
+"""
+The "equivalent master passphrase" derived from [`DUMMY_KEY1`][] (raw format).
+"""
 DUMMY_PHRASE_FROM_KEY1 = b'8JgZgGwal9UmA27M42WPhmYHExkTCSEzM/nkNlMdr/0NCB/s+HObjF9VORZ8U1QsHlK7MO1/ieIvaVFV2J6mAg=='
+"""
+The "equivalent master passphrase" derived from [`DUMMY_KEY1`][] (in base64).
+"""
 
 VAULT_MASTER_KEY = 'vault key'
+"""
+The storage passphrase used to encrypt all sample vault native configurations.
+"""
 VAULT_V02_CONFIG = 'P7xeh5y4jmjpJ2pFq4KUcTVoaE9ZOEkwWmpVTURSSWQxbGt6emN4aFE4eFM3anVPbDRNTGpOLzY3eDF5aE1YTm5LNWh5Q1BwWTMwM3M5S083MWRWRFlmOXNqSFJNcStGMWFOS3c2emhiOUNNenZYTmNNMnZxaUErdlRoOGF2ZHdGT1ZLNTNLOVJQcU9jWmJrR3g5N09VcVBRZ0ZnSFNUQy9HdFVWWnFteVhRVkY3MHNBdnF2ZWFEbFBseWRGelE1c3BFTnVUckRQdWJSL29wNjFxd2Y2ZVpob3VyVzRod3FKTElTenJ1WTZacTJFOFBtK3BnVzh0QWVxcWtyWFdXOXYyenNQeFNZbWt1MDU2Vm1kVGtISWIxWTBpcWRFbyswUVJudVVhZkVlNVpGWDA4WUQ2Q2JTWW81SnlhQ2Zxa3cxNmZoQjJES0Uyd29rNXpSck5iWVBrVmEwOXFya1NpMi9saU5LL3F0M3N3MjZKekNCem9ER2svWkZ0SUJLdmlHRno0VlQzQ3pqZTBWcTM3YmRiNmJjTkhqUHZoQ0NxMW1ldW1XOFVVK3pQMEtUMkRMVGNvNHFlOG40ck5KcGhsYXg1b1VzZ1NYU1B2T3RXdEkwYzg4NWE3YWUzOWI1MDI0MThhMWZjODQ3MDA2OTJmNDQ0MDkxNGFiNmRlMGQ2YjZiNjI5NGMwN2IwMmI4MGZi'
+"""
+A sample vault native configuration, in v0.2 format, encoded in base64
+and encrypted with [`VAULT_MASTER_KEY`][].
+"""
 VAULT_V02_CONFIG_DATA = {
     'global': {
         'phrase': DUMMY_PASSPHRASE.rstrip('\n'),
@@ -1047,7 +1221,15 @@ VAULT_V02_CONFIG_DATA = {
         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
     },
 }
+"""
+The plaintext contents (a vault native configuration) stored in
+[`VAULT_V02_CONFIG`][].
+"""
 VAULT_V03_CONFIG = 'sBPBrr8BFHPxSJkV/A53zk9zwDQHFxLe6UIusCVvzFQre103pcj5xxmE11lMTA0U2QTYjkhRXKkH5WegSmYpAnzReuRsYZlWWp6N4kkubf+twZ9C3EeggPm7as2Af4TICHVbX4uXpIHeQJf9y1OtqrO+SRBrgPBzgItoxsIxebxVKgyvh1CZQOSkn7BIzt9xKhDng3ubS4hQ91fB0QCumlldTbUl8tj4Xs5JbvsSlUMxRlVzZ0OgAOrSsoWELXmsp6zXFa9K6wIuZa4wQuMLQFHiA64JO1CR3I+rviWCeMlbTOuJNx6vMB5zotKJqA2hIUpN467TQ9vI4g/QTo40m5LT2EQKbIdTvBQAzcV4lOcpr5Lqt4LHED5mKvm/4YfpuuT3I3XCdWfdG5SB7ciiB4Go+xQdddy3zZMiwm1fEwIB8XjFf2cxoJdccLQ2yxf+9diedBP04EsMHrvxKDhQ7/vHl7xF2MMFTDKl3WFd23vvcjpR1JgNAKYprG/e1p/7'
+"""
+A sample vault native configuration, in v0.3 format, encoded in base64
+and encrypted with [`VAULT_MASTER_KEY`][].
+"""
 VAULT_V03_CONFIG_DATA = {
     'global': {
         'phrase': DUMMY_PASSPHRASE.rstrip('\n'),
@@ -1059,6 +1241,10 @@ VAULT_V03_CONFIG_DATA = {
         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
     },
 }
+"""
+The plaintext contents (a vault native configuration) stored in
+[`VAULT_V03_CONFIG`][].
+"""
 VAULT_STOREROOM_CONFIG_ZIPPED = b"""
 UEsDBBQAAAAIAJ1WGVnTVFGT0gAAAOYAAAAFAAAALmtleXMFwclSgzAAANC7n9GrBzBldcYDE5Al
 EKbFAvGWklBAtqYsBcd/973fw8LFox76w/vb34tzhD5OATeEAk6tJ6Fbp3WrvkJO7l0KIjtxCLfY
@@ -1111,6 +1297,11 @@ AAAACACdVhlZ3Wlf4QUDAADUAwAAAgAAAAAAAAABAAAApIH1AAAAMDBQSwECHgMUAAAACACdVhlZ
 AgAAAgAAAAAAAAABAAAApIEEBgAAMDlQSwECHgMUAAAACACdVhlZyjtiYvgBAABrAgAAAgAAAAAA
 AAABAAAApIHsBwAAMWFQSwUGAAAAAAUABQDzAAAABAoAAAAA
 """
+"""
+A sample vault native configuration, in storeroom format, encrypted with
+[`VAULT_MASTER_KEY`][].  The configuration is compressed (zip archive)
+and then encoded in base64.
+"""
 VAULT_STOREROOM_CONFIG_DATA = {
     'global': {
         'phrase': DUMMY_PASSPHRASE.rstrip('\n'),
@@ -1122,14 +1313,22 @@ VAULT_STOREROOM_CONFIG_DATA = {
         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
     },
 }
+"""
+The parsed vault configuration stored in
+[`VAULT_STOREROOM_CONFIG_ZIPPED`][].
+"""
 
-_VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED_JAVASCRIPT_SOURCE = """
+VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED_JAVASCRIPT_SOURCE = """
 // Executed in the top-level directory of the vault project code, in Node.js.
 const storeroom = require('storeroom')
 const Store = require('./lib/store.js')
 let store = new Store(storeroom.createFileAdapter('./broken-dir'), 'vault key')
 await store._storeroom.put('/services/array/', ['entry1','entry2'])
 // The resulting "broken-dir" was then zipped manually.
+"""
+"""
+The JavaScript source for the script that generated the storeroom
+archive in [`VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED`][].
 """
 VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED = b"""
 UEsDBBQAAgAIAHijH1kjc0ql0gAAAOYAAAAFAAAALmtleXMFwclygjAAANB7P8Mrh7LIYmd6oGxC
@@ -1167,14 +1366,29 @@ ox9ZI3NKpdIAAADmAAAABQAAAAAAAAABAAAApIEAAAAALmtleXNQSwECHgMUAAIACAB4ox9Zfgvu
 AgAAAAAAAAABAAAApIHtAgAAMWFQSwECHgMUAAIACAB4ox9ZGgj3mrkBAAAXAgAAAgAAAAAAAAAB
 AAAApIHIBAAAMWVQSwUGAAAAAAQABADDAAAAoQYAAAAA
 """
+"""
+A sample corrupted storeroom archive, encrypted with
+[`VAULT_MASTER_KEY`][].  The configuration is compressed (zip archive)
+and then encoded in base64.
 
-_VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED2_JAVASCRIPT_SOURCE = """
+The archive contains a directory `/services/array/` that claims to have
+two child items 'entry1' and 'entry2', but no such child items are
+present in the archive.  See
+[`VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED_JAVASCRIPT_SOURCE`][] for
+the exact script that created this archive.
+"""
+
+VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED2_JAVASCRIPT_SOURCE = """
 // Executed in the top-level directory of the vault project code, in Node.js.
 const storeroom = require('storeroom')
 const Store = require('./lib/store.js')
 let store = new Store(storeroom.createFileAdapter('./broken-dir'), 'vault key')
 await store._storeroom.put('/services/array/', 'not a directory index')
 // The resulting "broken-dir" was then zipped manually.
+"""
+"""
+The JavaScript source for the script that generated the storeroom
+archive in [`VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED2`][].
 """
 VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED2 = b"""
 UEsDBAoAAAAAAM6NSVmrcHdV5gAAAOYAAAAFAAAALmtleXN7InZlcnNpb24iOjF9CkV3ZS9LZkJp
@@ -1217,14 +1431,28 @@ LmtleXNQSwECHgMKAAAAAADOjUlZJg3/BhcCAAAXAgAAAgAAAAAAAAAAAAAApIEJAQAAMGJQSwEC
 HgMKAAAAAADOjUlZTNfdphcCAAAXAgAAAgAAAAAAAAAAAAAApIFAAwAAMGZQSwECHgMKAAAAAADO
 jUlZn9rNID8CAAA/AgAAAgAAAAAAAAAAAAAApIF3BQAAMWRQSwUGAAAAAAQABADDAAAA1gcAAAAA
 """
+"""
+A sample corrupted storeroom archive, encrypted with
+[`VAULT_MASTER_KEY`][].  The configuration is compressed (zip archive)
+and then encoded in base64.
 
-_VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED3_JAVASCRIPT_SOURCE = """
+The archive contains a directory `/services/array/` whose list of child
+items does not adhere to the serialization format.  See
+[`VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED2_JAVASCRIPT_SOURCE`][] for
+the exact script that created this archive.
+"""
+
+VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED3_JAVASCRIPT_SOURCE = """
 // Executed in the top-level directory of the vault project code, in Node.js.
 const storeroom = require('storeroom')
 const Store = require('./lib/store.js')
 let store = new Store(storeroom.createFileAdapter('./broken-dir'), 'vault key')
 await store._storeroom.put('/services/array/', [null, 1, true, [], {}])
 // The resulting "broken-dir" was then zipped manually.
+"""
+"""
+The JavaScript source for the script that generated the storeroom
+archive in [`VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED3`][].
 """
 VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED3 = b"""
 UEsDBAoAAAAAAEOPSVnVlcff5gAAAOYAAAAFAAAALmtleXN7InZlcnNpb24iOjF9CkV4dVBHUDBi
@@ -1267,8 +1495,18 @@ LmtleXNQSwECHgMKAAAAAABDj0lZ77OVHxcCAAAXAgAAAgAAAAAAAAAAAAAApIEJAQAAMGNQSwEC
 HgMKAAAAAABDj0lZGk9LVj8CAAA/AgAAAgAAAAAAAAAAAAAApIFAAwAAMTRQSwECHgMKAAAAAABD
 j0lZUkzxBhcCAAAXAgAAAgAAAAAAAAAAAAAApIGfBQAAMTZQSwUGAAAAAAQABADDAAAA1gcAAAAA
 """
+"""
+A sample corrupted storeroom archive, encrypted with
+[`VAULT_MASTER_KEY`][].  The configuration is compressed (zip archive)
+and then encoded in base64.
 
-_VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED4_JAVASCRIPT_SOURCE = """
+The archive contains a directory `/services/array/` whose list of child
+items are not all valid item names.  See
+[`VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED3_JAVASCRIPT_SOURCE`][] for
+the exact script that created this archive.
+"""
+
+VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED4_JAVASCRIPT_SOURCE = """
 // Executed in the top-level directory of the vault project code, in Node.js.
 const storeroom = require('storeroom')
 const Store = require('./lib/store.js')
@@ -1276,6 +1514,10 @@ let store = new Store(storeroom.createFileAdapter('./broken-dir'), 'vault key')
 await store._storeroom.put('/dir/subdir/', [])
 await store._storeroom.put('/dir/', [])
 // The resulting "broken-dir" was then zipped manually.
+"""
+"""
+The JavaScript source for the script that generated the storeroom
+archive in [`VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED4`][].
 """
 VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED4 = b"""
 UEsDBAoAAAAAAE+5SVloORS+5gAAAOYAAAAFAAAALmtleXN7InZlcnNpb24iOjF9CkV6dWRoNkRQ
@@ -1318,24 +1560,73 @@ Weut7lIXAgAAFwIAAAIAAAAAAAAAAAAAAKSBCQEAADAzUEsBAh4DCgAAAAAAT7lJWUV5MuArAgAA
 KwIAAAIAAAAAAAAAAAAAAKSBQAMAADEwUEsBAh4DCgAAAAAAT7lJWQ98rH0XAgAAFwIAAAIAAAAA
 AAAAAAAAAKSBiwUAADFkUEsFBgAAAAAEAAQAwwAAAMIHAAAAAA==
 """
+"""
+A sample corrupted storeroom archive, encrypted with
+[`VAULT_MASTER_KEY`][].  The configuration is compressed (zip archive)
+and then encoded in base64.
+
+The archive contains two directories `/dir/` and `/dir/subdir/`, where
+`/dir/subdir/` is a correctly serialized directory, but `/dir/` does not
+contain `/dir/subdir/` in its list of child items.  See
+[`VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED4_JAVASCRIPT_SOURCE`][] for
+the exact script that created this archive.
+"""
 
 CANNOT_LOAD_CRYPTOGRAPHY = (
     "Cannot load the required Python module 'cryptography'."
 )
+"""
+The expected `derivepassphrase` error message when the `cryptography`
+module cannot be loaded, which is needed e.g. by the `export vault`
+subcommands.
+"""
 
 skip_if_cryptography_support = pytest.mark.skipif(
     importlib.util.find_spec('cryptography') is not None,
     reason='cryptography support available; cannot test "no support" scenario',
 )
+"""
+A cached pytest mark to skip this test if cryptography support is
+available.  Usually this means that the test targets
+`derivepassphrase`'s fallback functionality, which is not available
+whenever the primary functionality is.
+"""
 skip_if_no_cryptography_support = pytest.mark.skipif(
     importlib.util.find_spec('cryptography') is None,
     reason='no "cryptography" support',
 )
+"""
+A cached pytest mark to skip this test if cryptography support is not
+available.  Usually this means that the test targets the
+`derivepassphrase export vault` subcommand, whose functionality depends
+on cryptography support being available.
+"""
 
 
 def hypothesis_settings_coverage_compatible(
     f: Any = None,
 ) -> Any:
+    """Return (or decorate `f` with) coverage-friendly hypothesis settings.
+
+    Specifically, we increase the deadline 40-fold if we detect we are
+    running under coverage testing, because the slow Python trace
+    function (necessary on PyPy) drastically increases runtime for
+    hypothesis tests.
+
+    In any case, we *also* reduce the state machine step count to 32
+    steps per run, because the current state machines defined in the
+    tests rather benefit from broad testing rather than deep testing.
+
+    Args:
+        f:
+            An optional object to decorate with these settings.
+
+    Returns:
+        The modified hypothesis settings, as a settings object.  If
+        decorating a function/class, return that function/class
+        directly, after decorating.
+
+    """
     settings = (
         hypothesis.settings(
             # Running under coverage with the Python tracer increases
@@ -1362,6 +1653,22 @@ def hypothesis_settings_coverage_compatible(
 def hypothesis_settings_coverage_compatible_with_caplog(
     f: Any = None,
 ) -> Any:
+    """Return (or decorate `f` with) coverage-friendly hypothesis settings.
+
+    This variant of [`hypothesis_settings_coverage_compatible`][] does
+    all the same, and additionally disables the check for function
+    scoped pytest fixtures such as `caplog`.
+
+    Args:
+        f:
+            An optional object to decorate with these settings.
+
+    Returns:
+        The modified hypothesis settings, as a settings object.  If
+        decorating a function/class, return that function/class
+        directly, after decorating.
+
+    """
     parent_settings = hypothesis_settings_coverage_compatible()
     settings = hypothesis.settings(
         parent=parent_settings,
@@ -1374,6 +1681,12 @@ def hypothesis_settings_coverage_compatible_with_caplog(
 
 
 def list_keys(self: Any = None) -> list[_types.SSHKeyCommentPair]:
+    """Return a list of all SSH test keys, as key/comment pairs.
+
+    Intended as a monkeypatching replacement for
+    [`ssh_agent.SSHAgentClient.list_keys`][].
+
+    """
     del self  # Unused.
     Pair = _types.SSHKeyCommentPair  # noqa: N806
     return [
@@ -1385,6 +1698,15 @@ def list_keys(self: Any = None) -> list[_types.SSHKeyCommentPair]:
 def sign(
     self: Any, key: bytes | bytearray, message: bytes | bytearray
 ) -> bytes:
+    """Return the signature of `message` under `key`.
+
+    Can only handle keys in [`SUPPORTED_KEYS`][], and only the vault
+    UUID as the message.
+
+    Intended as a monkeypatching replacement for
+    [`ssh_agent.SSHAgentClient.sign`][].
+
+    """
     del self  # Unused.
     assert message == vault.Vault._UUID
     for value in SUPPORTED_KEYS.values():
@@ -1395,6 +1717,14 @@ def sign(
 
 
 def list_keys_singleton(self: Any = None) -> list[_types.SSHKeyCommentPair]:
+    """Return a singleton list of the first supported SSH test key.
+
+    The key is returned as a key/comment pair.
+
+    Intended as a monkeypatching replacement for
+    [`ssh_agent.SSHAgentClient.list_keys`][].
+
+    """
     del self  # Unused.
     Pair = _types.SSHKeyCommentPair  # noqa: N806
     list1 = [
@@ -1405,6 +1735,14 @@ def list_keys_singleton(self: Any = None) -> list[_types.SSHKeyCommentPair]:
 
 
 def suitable_ssh_keys(conn: Any) -> Iterator[_types.SSHKeyCommentPair]:
+    """Return a two-item list of SSH test keys (key/comment pairs).
+
+    Intended as a monkeypatching replacement for
+    `cli._get_suitable_ssh_keys` to better script and test the
+    interactive key selection.  When used this way, `derivepassphrase`
+    believes that only those two keys are loaded and suitable.
+
+    """
     del conn  # Unused.
     Pair = _types.SSHKeyCommentPair  # noqa: N806
     yield from [
@@ -1419,6 +1757,15 @@ def phrase_from_key(
     *,
     conn: ssh_agent.SSHAgentClient | socket.socket | None = None,
 ) -> bytes:
+    """Return the "equivalent master passphrase" for key.
+
+    Only works for key [`DUMMY_KEY1`][].
+
+    Intended as a monkeypatching replacement for
+    [`vault.Vault.phrase_from_key`][], bypassing communication with an
+    actual SSH agent.
+
+    """
     del conn
     if key == DUMMY_KEY1:  # pragma: no branch
         return DUMMY_PHRASE_FROM_KEY1
@@ -1431,6 +1778,28 @@ def isolated_config(
     runner: click.testing.CliRunner,
     main_config_str: str | None = None,
 ) -> Iterator[None]:
+    """Provide an isolated configuration setup, as a context.
+
+    This context manager sets up (and changes into) a temporary
+    directory, which holds the user configuration specified in
+    `main_config_str`, if any.  The manager also ensures that the
+    environment variables `HOME` and `USERPROFILE` are set, and that
+    `DERIVEPASSPHRASE_PATH` is unset.  Upon exiting the context, the
+    changes are undone and the temporary directory is removed.
+
+    Args:
+        monkeypatch:
+            A monkeypatch fixture object.
+        runner:
+            A `click` CLI runner harness.
+        main_config_str:
+            Optional TOML file contents, to be used as the user
+            configuration.
+
+    Returns:
+        A context manager, without a return value.
+
+    """
     prog_name = cli.PROG_NAME
     env_name = prog_name.replace(' ', '_').upper() + '_PATH'
     # TODO(the-13th-letter): Rewrite using parenthesized with-statements.
@@ -1461,6 +1830,28 @@ def isolated_vault_config(
     vault_config: Any,
     main_config_str: str | None = None,
 ) -> Iterator[None]:
+    """Provide an isolated vault configuration setup, as a context.
+
+    Uses [`isolated_config`][] internally.  Beyond those actions, this
+    manager also loads the specified vault configuration into the
+    context.
+
+    Args:
+        monkeypatch:
+            A monkeypatch fixture object.
+        runner:
+            A `click` CLI runner harness.
+        vault_config:
+            A valid vault configuration, to be integrated into the
+            context.
+        main_config_str:
+            Optional TOML file contents, to be used as the user
+            configuration.
+
+    Returns:
+        A context manager, without a return value.
+
+    """
     with isolated_config(
         monkeypatch=monkeypatch, runner=runner, main_config_str=main_config_str
     ):
@@ -1477,6 +1868,35 @@ def isolated_vault_exporter_config(
     vault_config: str | bytes | None = None,
     vault_key: str | None = None,
 ) -> Iterator[None]:
+    """Provide an isolated vault configuration setup, as a context.
+
+    Works similarly to [`isolated_config`][], except that no user
+    configuration is accepted or integrated into the context.  This
+    manager also accepts a serialized vault-native configuration and
+    a vault encryption key to integrate into the context.
+
+    Args:
+        monkeypatch:
+            A monkeypatch fixture object.
+        runner:
+            A `click` CLI runner harness.
+        vault_config:
+            An optional serialized vault-native configuration, to be
+            integrated into the context.  If a text string, then the
+            contents are written to the file `.vault`.  If a byte
+            string, then it is treated as base64-encoded zip file
+            contents, which---once inside the `.vault` directory---will
+            be extracted into the current directory.
+        vault_key:
+            An optional encryption key presumably for the stored
+            vault-native configuration.  If given, then the environment
+            variable `VAULT_KEY` will be populated with this key while
+            the context is active.
+
+    Returns:
+        A context manager, without a return value.
+
+    """
     # TODO(the-13th-letter): Remove the fallback implementation.
     # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.10
     if TYPE_CHECKING:
@@ -1535,6 +1955,13 @@ def isolated_vault_exporter_config(
 
 
 def auto_prompt(*args: Any, **kwargs: Any) -> str:
+    """Return [`DUMMY_PASSPHRASE`][].
+
+    Intended as a monkeypatching replacement for
+    `cli.prompt_for_passphrase` to better script and test the
+    interactive passphrase queries.
+
+    """
     del args, kwargs  # Unused.
     return DUMMY_PASSPHRASE
 
@@ -1601,6 +2028,7 @@ class ReadableResult(NamedTuple):
 
     @classmethod
     def parse(cls, r: click.testing.Result, /) -> Self:
+        """Return a readable result object, given a result."""
         try:
             stderr = r.stderr
         except ValueError:
@@ -1672,6 +2100,29 @@ class ReadableResult(NamedTuple):
 
 
 def parse_sh_export_line(line: str, *, env_name: str) -> str:
+    """Parse the output of typical SSH agents' SSH_AUTH_SOCK lines.
+
+    Intentionally parses only a small subset of sh(1) syntax which works
+    with current OpenSSH and PuTTY output.  We require exactly one
+    variable setting, and one export instruction, both on the same line,
+    and perhaps combined into one statement.  Terminating semicolons
+    after each command are ignored.
+
+    Args:
+        line:
+            A line of sh(1) script to parse.
+        env_name:
+            The name of the environment variable to expect.
+
+    Returns:
+        The parsed environment variable value.
+
+    Raises:
+        ValueError:
+            Cannot parse the sh script.  Perhaps it is too complex,
+            perhaps it is malformed.
+
+    """
     line = line.rstrip('\r\n')
     shlex_parser = shlex.shlex(
         instream=line, posix=True, punctuation_chars=True

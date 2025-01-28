@@ -1,0 +1,51 @@
+INHERIT: mkdocs_offline.yml
+
+draft_docs: ''
+not_in_nav: |
+  changelog.d
+
+nav:
+  - Overview: index.md
+  - Tutorials & Examples:
+    - tutorials/index.md
+    - tutorials/basic-setup-passphrase.md
+  - How-Tos:
+    - how-tos/index.md
+    - how-tos/ssh-key.md
+  - Reference:
+    - reference/index.md
+    - Man pages:
+      - 'derivepassphrase(1)': reference/derivepassphrase.1.md
+      - 'derivepassphrase-vault(1)': reference/derivepassphrase-vault.1.md
+      - 'derivepassphrase-export(1)': reference/derivepassphrase-export.1.md
+      - 'derivepassphrase-export-vault(1)': reference/derivepassphrase-export-vault.1.md
+    - 'API docs: Module derivepassphrase':
+      - Subpackage cli:
+        - Module cli: reference/derivepassphrase.cli.md
+        - Virtual submodule _cli_msg: reference/derivepassphrase.cli.msg.md
+      - Subpackage exporter: reference/derivepassphrase.exporter.md
+      - Submodule sequin: reference/derivepassphrase.sequin.md
+      - Submodule ssh_agent: reference/derivepassphrase.ssh_agent.md
+      - Submodule _types: reference/derivepassphrase._types.md
+      - Submodule vault: reference/derivepassphrase.vault.md
+    - Technical prerequisites:
+      - 'Using derivepassphrase vault with an SSH key': reference/prerequisites-ssh-key.md
+    - Tests:
+      - Basic testing infrastructure: reference/tests.md
+      - Localization machinery: reference/tests.test_l10n.md
+      - derivepassphrase command-line:
+        - cli module: reference/tests.test_derivepassphrase_cli.md
+        - '"export vault" subcommand tests': reference/tests.test_derivepassphrase_cli_export_vault.md
+      - exporter module: reference/tests.test_derivepassphrase_exporter.md
+      - sequin module: reference/tests.test_derivepassphrase_sequin.md
+      - ssh_agent module: reference/tests.test_derivepassphrase_ssh_agent.md
+      - _types module: reference/tests.test_derivepassphrase_types.md
+      - vault module: reference/tests.test_derivepassphrase_vault.md
+  - Design & Background:
+    - explanation/index.md
+    - '"altered versions" license requirement': explanation/faq-altered-versions.md
+  - Changelog:
+    - Changelog: changelog.md
+    - Upgrade notes: upgrade-notes.md
+    - Python compatibility: pycompatibility.md
+    - Future ideas: _future.md

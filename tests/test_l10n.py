@@ -10,6 +10,7 @@ import contextlib
 import errno
 import gettext
 import os
+import re
 import string
 from typing import TYPE_CHECKING, cast
 
@@ -42,6 +43,7 @@ all_translatable_strings = [
 
 @pytest.fixture(scope='class')
 def use_debug_translations() -> Iterator[None]:
+    """Force the use of debug translations (pytest class fixture)."""
     with pytest.MonkeyPatch.context() as monkeypatch:
         monkeypatch.setattr(msg, 'translation', msg.DebugTranslations())
         yield
@@ -49,6 +51,7 @@ def use_debug_translations() -> Iterator[None]:
 
 @contextlib.contextmanager
 def monkeypatched_null_translations() -> Iterator[None]:
+    """Force the use of no-op translations in this context."""
     with pytest.MonkeyPatch.context() as monkeypatch:
         monkeypatch.setattr(msg, 'translation', gettext.NullTranslations())
         yield
@@ -56,21 +59,30 @@ def monkeypatched_null_translations() -> Iterator[None]:
 
 @pytest.mark.usefixtures('use_debug_translations')
 class TestL10nMachineryWithDebugTranslations:
+    """Test the localization machinery together with debug translations."""
+
     error_codes = tuple(
         sorted(errno.errorcode, key=errno.errorcode.__getitem__)
     )
+    """A cache of the known error codes from the [`errno`][] module."""
     known_fields_error_messages = tuple(
         e
         for e in sorted(msg.ErrMsgTemplate, key=str)
         if e.value.fields() == ['error', 'filename']
     )
+    """
+    A cache of known error messages that contain both `error` and
+    `filename` replacement fields.
+    """
     no_fields_messages = tuple(
         e for e in all_translatable_strings_enum_values if not e.value.fields()
     )
+    """A cache of known messages that don't contain replacement fields."""
 
     @hypothesis.given(value=strategies.text(max_size=100))
     @hypothesis.example('{')
     def test_100_debug_translation_get_str(self, value: str) -> None:
+        """Translating a raw string object does nothing."""
         translated = msg.translation.gettext(value)
         assert translated == value
 
@@ -79,6 +91,7 @@ class TestL10nMachineryWithDebugTranslations:
         self,
         value: msg.TranslatableString,
     ) -> None:
+        """Translating a TranslatableString translates and interpolates."""
         ts_name = str(all_translatable_strings_dict[value])
         context = value.l10n_context
         singular = value.singular
@@ -94,6 +107,7 @@ class TestL10nMachineryWithDebugTranslations:
         self,
         value: msg.MsgTemplate,
     ) -> None:
+        """Translating a MsgTemplate operates on the enum value."""
         ts_name = str(value)
         inner_value = cast('msg.TranslatableString', value.value)
         context = inner_value.l10n_context
@@ -106,6 +120,7 @@ class TestL10nMachineryWithDebugTranslations:
     @hypothesis.given(value=strategies.text(max_size=100))
     @hypothesis.example('{')
     def test_100c_debug_translation_get_ts_str(self, value: str) -> None:
+        """Translating a constant TranslatableString does nothing."""
         translated = msg.TranslatedString.constant(value)
         assert str(translated) == value
 
@@ -121,6 +136,7 @@ class TestL10nMachineryWithDebugTranslations:
         self,
         values: list[msg.MsgTemplate],
     ) -> None:
+        """TranslatableStrings are hashable."""
         assert len(values) == 2
         ts0 = msg.TranslatedString(values[0])
         ts1 = msg.TranslatedString(values[0])
@@ -148,6 +164,7 @@ class TestL10nMachineryWithDebugTranslations:
         value: msg.ErrMsgTemplate,
         errnos: list[int],
     ) -> None:
+        """TranslatableStrings are hashable even with interpolations."""
         assert len(errnos) == 2
         error1, error2 = [os.strerror(c) for c in errnos]
         ts1 = msg.TranslatedString(
@@ -169,6 +186,7 @@ class TestL10nMachineryWithDebugTranslations:
         value: msg.ErrMsgTemplate,
         errno_: int,
     ) -> None:
+        """Interpolated TranslatableStrings with error/filename are hashable."""
         error = os.strerror(errno_)
         # The debug translations specifically do *not* differ in output
         # when the filename is trimmed.  So we need to request some
@@ -190,27 +208,36 @@ class TestL10nMachineryWithDebugTranslations:
         self,
         s: str,
     ) -> None:
+        """TranslatableStrings require fixed replacement fields.
+
+        They reject attempts at stringification if unknown fields are
+        passed, or if fields are missing, or if the format string is
+        invalid.
+
+        """
         with monkeypatched_null_translations():
             ts1 = msg.TranslatedString(s)
-            with pytest.raises((KeyError, ValueError)) as excinfo:
-                str(ts1)
-            if '{spam}' in s:
-                assert isinstance(excinfo.value, KeyError)
-                assert excinfo.value.args[0] == 'spam'
-            else:
-                assert isinstance(excinfo.value, ValueError)
-                assert excinfo.value.args[0].startswith('Single ')
-                assert excinfo.value.args[0].endswith(
-                    ' encountered in format string'
-                )
             ts2 = msg.TranslatedString(s, spam='eggs')
-            try:
+            if '{spam}' in s:
+                with pytest.raises(KeyError, match=r'spam'):
+                    str(ts1)
                 assert str(ts2) == s.replace('{spam}', 'eggs')
-            except ValueError as exc:
-                assert exc.args[0].startswith('Single ')  # noqa: PT017
-                assert exc.args[0].endswith(  # noqa: PT017
-                    ' encountered in format string'
+            else:
+                # Known error message variations:
+                #
+                # * Single { encountered in the pattern string
+                # * Single } encountered in the pattern string
+                # * Single '{' encountered in the pattern string
+                # * Single '}' encountered in the pattern string
+                # * Single '{'
+                # * Single '}'
+                pattern = re.compile(
+                    r"Single (?:\{|\}|'\{'|'\}')(?: encountered in the pattern string)?"
                 )
+                with pytest.raises(ValueError, match=pattern):
+                    str(ts1)
+                with pytest.raises(ValueError, match=pattern):
+                    str(ts2)
 
     @hypothesis.given(
         s=strategies.text(
@@ -223,6 +250,7 @@ class TestL10nMachineryWithDebugTranslations:
         self,
         s: str,
     ) -> None:
+        """Constant TranslatedStrings don't interpolate fields."""
         with monkeypatched_null_translations():
             ts = msg.TranslatedString.constant(s)
             try:
@@ -244,6 +272,7 @@ class TestL10nMachineryWithDebugTranslations:
         self,
         s: str,
     ) -> None:
+        """Non-format TranslatedStrings don't interpolate fields."""
         with monkeypatched_null_translations():
             ts_inner = msg.TranslatableString(
                 '',
