@@ -296,6 +296,133 @@ def vault_config_exporter_shell_interpreter(  # noqa: C901
 class TestAllCLI:
     """Tests uniformly for all command-line interfaces."""
 
+    # TODO(the-13th-letter): Do we actually need this?  What should we
+    # check for?
+    def test_100_help_output(self) -> None:
+        """The top-level help text mentions subcommands.
+
+        TODO: Do we actually need this?  What should we check for?
+
+        """
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
+            result_ = runner.invoke(
+                cli.derivepassphrase, ['--help'], catch_exceptions=False
+            )
+            result = tests.ReadableResult.parse(result_)
+        assert result.clean_exit(
+            empty_stderr=True, output='currently implemented subcommands'
+        ), 'expected clean exit, and known help text'
+
+    # TODO(the-13th-letter): Do we actually need this?  What should we
+    # check for?
+    def test_101_help_output_export(
+        self,
+    ) -> None:
+        """The "export" subcommand help text mentions subcommands.
+
+        TODO: Do we actually need this?  What should we check for?
+
+        """
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
+            result_ = runner.invoke(
+                cli.derivepassphrase,
+                ['export', '--help'],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(result_)
+        assert result.clean_exit(
+            empty_stderr=True, output='only available subcommand'
+        ), 'expected clean exit, and known help text'
+
+    # TODO(the-13th-letter): Do we actually need this?  What should we
+    # check for?
+    def test_102_help_output_export_vault(
+        self,
+    ) -> None:
+        """The "export vault" subcommand help text has known content.
+
+        TODO: Do we actually need this?  What should we check for?
+
+        """
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
+            result_ = runner.invoke(
+                cli.derivepassphrase,
+                ['export', 'vault', '--help'],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(result_)
+        assert result.clean_exit(
+            empty_stderr=True, output='Export a vault-native configuration'
+        ), 'expected clean exit, and known help text'
+
+    # TODO(the-13th-letter): Do we actually need this?  What should we
+    # check for?
+    def test_103_help_output_vault(
+        self,
+    ) -> None:
+        """The "vault" subcommand help text has known content.
+
+        TODO: Do we actually need this?  What should we check for?
+
+        """
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
+            result_ = runner.invoke(
+                cli.derivepassphrase,
+                ['vault', '--help'],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(result_)
+        assert result.clean_exit(
+            empty_stderr=True, output='Passphrase generation:\n'
+        ), 'expected clean exit, and option groups in help text'
+        assert result.clean_exit(
+            empty_stderr=True, output='Use $VISUAL or $EDITOR to configure'
+        ), 'expected clean exit, and option group epilog in help text'
+
     @pytest.mark.parametrize(
         ['command', 'non_eager_arguments'],
         [
@@ -3380,109 +3507,6 @@ Boo.
 # https://the13thletter.info/derivepassphrase/latest/upgrade-notes/#upgrading-to-v1.0
 class TestCLITransition:
     """Transition tests for the command-line interface up to v1.0."""
-
-    def test_100_help_output(self) -> None:
-        """The top-level help text mentions subcommands."""
-        runner = click.testing.CliRunner(mix_stderr=False)
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            stack.enter_context(
-                tests.isolated_config(
-                    monkeypatch=monkeypatch,
-                    runner=runner,
-                )
-            )
-            result_ = runner.invoke(
-                cli.derivepassphrase, ['--help'], catch_exceptions=False
-            )
-            result = tests.ReadableResult.parse(result_)
-        assert result.clean_exit(
-            empty_stderr=True, output='currently implemented subcommands'
-        ), 'expected clean exit, and known help text'
-
-    def test_101_help_output_export(
-        self,
-    ) -> None:
-        """The "export" subcommand help text mentions subcommands."""
-        runner = click.testing.CliRunner(mix_stderr=False)
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            stack.enter_context(
-                tests.isolated_config(
-                    monkeypatch=monkeypatch,
-                    runner=runner,
-                )
-            )
-            result_ = runner.invoke(
-                cli.derivepassphrase,
-                ['export', '--help'],
-                catch_exceptions=False,
-            )
-            result = tests.ReadableResult.parse(result_)
-        assert result.clean_exit(
-            empty_stderr=True, output='only available subcommand'
-        ), 'expected clean exit, and known help text'
-
-    def test_102_help_output_export_vault(
-        self,
-    ) -> None:
-        """The "export vault" subcommand help text has known content."""
-        runner = click.testing.CliRunner(mix_stderr=False)
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            stack.enter_context(
-                tests.isolated_config(
-                    monkeypatch=monkeypatch,
-                    runner=runner,
-                )
-            )
-            result_ = runner.invoke(
-                cli.derivepassphrase,
-                ['export', 'vault', '--help'],
-                catch_exceptions=False,
-            )
-            result = tests.ReadableResult.parse(result_)
-        assert result.clean_exit(
-            empty_stderr=True, output='Export a vault-native configuration'
-        ), 'expected clean exit, and known help text'
-
-    def test_103_help_output_vault(
-        self,
-    ) -> None:
-        """The "vault" subcommand help text has known content."""
-        runner = click.testing.CliRunner(mix_stderr=False)
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            stack.enter_context(
-                tests.isolated_config(
-                    monkeypatch=monkeypatch,
-                    runner=runner,
-                )
-            )
-            result_ = runner.invoke(
-                cli.derivepassphrase,
-                ['vault', '--help'],
-                catch_exceptions=False,
-            )
-            result = tests.ReadableResult.parse(result_)
-        assert result.clean_exit(
-            empty_stderr=True, output='Passphrase generation:\n'
-        ), 'expected clean exit, and option groups in help text'
-        assert result.clean_exit(
-            empty_stderr=True, output='Use $VISUAL or $EDITOR to configure'
-        ), 'expected clean exit, and option group epilog in help text'
 
     @pytest.mark.parametrize(
         'config',
