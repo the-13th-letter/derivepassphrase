@@ -117,6 +117,7 @@ nav:
   - Design & Background:
     - explanation/index.md
     - '"altered versions" license requirement': explanation/faq-altered-versions.md
+    - '"interchangable passphrases" in vault': explanation/faq-vault-interchangable-passphrases.md
   - Changelog:
     - Changelog: changelog.md
     - Upgrade notes: upgrade-notes.md
@@ -136,6 +137,7 @@ markdown_extensions:
   - smarty
   - toc:
       permalink: true
+  - pymdownx.caret
   - pymdownx.details
   - pymdownx.snippets:
       base_path:
