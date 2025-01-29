@@ -143,8 +143,9 @@ class Vault:
                 Same as `lower`, but for the hyphen-minus and underscore
                 characters.
             symbol:
-                Same as `lower`, but for all other hitherto unlisted
-                ASCII printable characters (except backquote).
+                Same as `lower`, but for all other ASCII printable
+                characters except lowercase characters, uppercase
+                characters, digits, space and backquote.
 
         Raises:
             ValueError:
