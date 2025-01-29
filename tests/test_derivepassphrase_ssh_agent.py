@@ -20,7 +20,8 @@ import pytest
 from hypothesis import strategies
 
 import tests
-from derivepassphrase import _types, cli, ssh_agent, vault
+from derivepassphrase import _types, ssh_agent, vault
+from derivepassphrase._internals import cli_helpers, cli_machinery
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -576,8 +577,8 @@ class TestAgentInteraction:
 
         @click.command()
         def driver() -> None:
-            """Call `cli._select_ssh_key` directly, as a command."""
-            key = cli._select_ssh_key()
+            """Call [`cli_helpers.select_ssh_key`][] directly, as a command."""
+            key = cli_helpers.select_ssh_key()
             click.echo(base64.standard_b64encode(key).decode('ASCII'))
 
         # TODO(the-13th-letter): (Continued from above.)  Update input

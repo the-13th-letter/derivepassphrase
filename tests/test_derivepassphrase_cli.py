@@ -28,6 +28,7 @@ from typing_extensions import Any, NamedTuple
 
 import tests
 from derivepassphrase import _types, cli, ssh_agent, vault
+from derivepassphrase._internals import cli_helpers, cli_machinery
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator, Sequence
@@ -655,7 +656,7 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                cli, '_prompt_for_passphrase', tests.auto_prompt
+                cli_helpers, 'prompt_for_passphrase', tests.auto_prompt
             )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -687,7 +688,7 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                cli, '_prompt_for_passphrase', tests.auto_prompt
+                cli_helpers, 'prompt_for_passphrase', tests.auto_prompt
             )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -788,7 +789,7 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                cli, '_get_suitable_ssh_keys', tests.suitable_ssh_keys
+                cli_helpers, 'get_suitable_ssh_keys', tests.suitable_ssh_keys
             )
             monkeypatch.setattr(
                 vault.Vault, 'phrase_from_key', tests.phrase_from_key
@@ -1080,7 +1081,7 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                cli, '_prompt_for_passphrase', tests.auto_prompt
+                cli_helpers, 'prompt_for_passphrase', tests.auto_prompt
             )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -1116,7 +1117,7 @@ class TestCLI:
                     )
                 )
                 monkeypatch.setattr(
-                    cli, '_prompt_for_passphrase', tests.auto_prompt
+                    cli_helpers, 'prompt_for_passphrase', tests.auto_prompt
                 )
                 result_ = runner.invoke(
                     cli.derivepassphrase_vault,
@@ -1158,7 +1159,7 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                cli, '_prompt_for_passphrase', tests.auto_prompt
+                cli_helpers, 'prompt_for_passphrase', tests.auto_prompt
             )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -1171,7 +1172,7 @@ class TestCLI:
             assert all(map(is_expected_warning, caplog.record_tuples)), (
                 'expected known error output'
             )
-            assert cli._load_config() == {
+            assert cli_helpers.load_config() == {
                 'global': {'length': 30},
                 'services': {},
             }, 'requested configuration change was not applied'
@@ -1188,7 +1189,7 @@ class TestCLI:
             assert all(map(is_expected_warning, caplog.record_tuples)), (
                 'expected known error output'
             )
-            assert cli._load_config() == {
+            assert cli_helpers.load_config() == {
                 'global': {'length': 30},
                 'services': {'': {'length': 40}},
             }, 'requested configuration change was not applied'
@@ -1263,7 +1264,7 @@ class TestCLI:
                 input=json.dumps(config),
                 catch_exceptions=False,
             )
-            with cli._config_filename(subsystem='vault').open(
+            with cli_helpers.config_filename(subsystem='vault').open(
                 encoding='UTF-8'
             ) as infile:
                 config2 = json.load(infile)
@@ -1316,7 +1317,7 @@ class TestCLI:
                 input=json.dumps(config),
                 catch_exceptions=False,
             )
-            with cli._config_filename(subsystem='vault').open(
+            with cli_helpers.config_filename(subsystem='vault').open(
                 encoding='UTF-8'
             ) as infile:
                 config3 = json.load(infile)
@@ -1403,10 +1404,10 @@ class TestCLI:
                     vault_config={'services': {}},
                 )
             )
-            cli._config_filename(subsystem='vault').write_text(
+            cli_helpers.config_filename(subsystem='vault').write_text(
                 'This string is not valid JSON.\n', encoding='UTF-8'
             )
-            dname = cli._config_filename(subsystem=None)
+            dname = cli_helpers.config_filename(subsystem=None)
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', os.fsdecode(dname)],
@@ -1441,7 +1442,7 @@ class TestCLI:
                     runner=runner,
                 )
             )
-            cli._config_filename(subsystem='vault').unlink(missing_ok=True)
+            cli_helpers.config_filename(subsystem='vault').unlink(missing_ok=True)
             result_ = runner.invoke(
                 # Test parent context navigation by not calling
                 # `cli.derivepassphrase_vault` directly.  Used e.g. in
@@ -1514,7 +1515,7 @@ class TestCLI:
                     runner=runner,
                 )
             )
-            config_file = cli._config_filename(subsystem='vault')
+            config_file = cli_helpers.config_filename(subsystem='vault')
             config_file.unlink(missing_ok=True)
             config_file.mkdir(parents=True, exist_ok=True)
             result_ = runner.invoke(
@@ -1552,7 +1553,7 @@ class TestCLI:
                     runner=runner,
                 )
             )
-            dname = cli._config_filename(subsystem=None)
+            dname = cli_helpers.config_filename(subsystem=None)
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--export', os.fsdecode(dname), *export_options],
@@ -1588,7 +1589,7 @@ class TestCLI:
                     runner=runner,
                 )
             )
-            config_dir = cli._config_filename(subsystem=None)
+            config_dir = cli_helpers.config_filename(subsystem=None)
             with contextlib.suppress(FileNotFoundError):
                 shutil.rmtree(config_dir)
             config_dir.write_text('Obstruction!!\n')
@@ -1635,7 +1636,7 @@ contents go here
             )
             result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(empty_stderr=True), 'expected clean exit'
-            with cli._config_filename(subsystem='vault').open(
+            with cli_helpers.config_filename(subsystem='vault').open(
                 encoding='UTF-8'
             ) as infile:
                 config = json.load(infile)
@@ -1669,7 +1670,7 @@ contents go here
             )
             result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(empty_stderr=True), 'expected clean exit'
-            with cli._config_filename(subsystem='vault').open(
+            with cli_helpers.config_filename(subsystem='vault').open(
                 encoding='UTF-8'
             ) as infile:
                 config = json.load(infile)
@@ -1706,7 +1707,7 @@ contents go here
             )
             result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(empty_stderr=True), 'expected clean exit'
-            with cli._config_filename(subsystem='vault').open(
+            with cli_helpers.config_filename(subsystem='vault').open(
                 encoding='UTF-8'
             ) as infile:
                 config = json.load(infile)
@@ -1742,7 +1743,7 @@ contents go here
             assert result.error_exit(error='the user aborted the request'), (
                 'expected known error message'
             )
-            with cli._config_filename(subsystem='vault').open(
+            with cli_helpers.config_filename(subsystem='vault').open(
                 encoding='UTF-8'
             ) as infile:
                 config = json.load(infile)
@@ -1816,7 +1817,7 @@ contents go here
                 )
             )
             monkeypatch.setattr(
-                cli, '_get_suitable_ssh_keys', tests.suitable_ssh_keys
+                cli_helpers, 'get_suitable_ssh_keys', tests.suitable_ssh_keys
             )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -1826,7 +1827,7 @@ contents go here
             )
             result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(), 'expected clean exit'
-            with cli._config_filename(subsystem='vault').open(
+            with cli_helpers.config_filename(subsystem='vault').open(
                 encoding='UTF-8'
             ) as infile:
                 config = json.load(infile)
@@ -1884,7 +1885,7 @@ contents go here
                 )
             )
             monkeypatch.setattr(
-                cli, '_get_suitable_ssh_keys', tests.suitable_ssh_keys
+                cli_helpers, 'get_suitable_ssh_keys', tests.suitable_ssh_keys
             )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -1919,7 +1920,7 @@ contents go here
             def raiser(*_args: Any, **_kwargs: Any) -> None:
                 raise RuntimeError(custom_error)
 
-            monkeypatch.setattr(cli, '_select_ssh_key', raiser)
+            monkeypatch.setattr(cli_helpers, 'select_ssh_key', raiser)
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--key', '--config'],
@@ -2009,7 +2010,7 @@ contents go here
                 )
             )
             tests.make_file_readonly(
-                cli._config_filename(subsystem='vault'),
+                cli_helpers.config_filename(subsystem='vault'),
                 try_race_free_implementation=try_race_free_implementation,
             )
             result_ = runner.invoke(
@@ -2045,7 +2046,7 @@ contents go here
                 del config
                 raise RuntimeError(custom_error)
 
-            monkeypatch.setattr(cli, '_save_config', raiser)
+            monkeypatch.setattr(cli_helpers, 'save_config', raiser)
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '--length=15', '--', DUMMY_SERVICE],
@@ -2267,7 +2268,7 @@ contents go here
                 )
             )
             with contextlib.suppress(FileNotFoundError):
-                shutil.rmtree(cli._config_filename(subsystem=None))
+                shutil.rmtree(cli_helpers.config_filename(subsystem=None))
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '-p'],
@@ -2279,7 +2280,7 @@ contents go here
             assert result.stderr == 'Passphrase:', (
                 'program unexpectedly failed?!'
             )
-            with cli._config_filename(subsystem='vault').open(
+            with cli_helpers.config_filename(subsystem='vault').open(
                 encoding='UTF-8'
             ) as infile:
                 config_readback = json.load(infile)
@@ -2313,17 +2314,17 @@ contents go here
                     runner=runner,
                 )
             )
-            save_config_ = cli._save_config
+            save_config_ = cli_helpers.save_config
 
             def obstruct_config_saving(*args: Any, **kwargs: Any) -> Any:
-                config_dir = cli._config_filename(subsystem=None)
+                config_dir = cli_helpers.config_filename(subsystem=None)
                 with contextlib.suppress(FileNotFoundError):
                     shutil.rmtree(config_dir)
                 config_dir.write_text('Obstruction!!\n')
-                monkeypatch.setattr(cli, '_save_config', save_config_)
+                monkeypatch.setattr(cli_helpers, 'save_config', save_config_)
                 return save_config_(*args, **kwargs)
 
-            monkeypatch.setattr(cli, '_save_config', obstruct_config_saving)
+            monkeypatch.setattr(cli_helpers, 'save_config', obstruct_config_saving)
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '-p'],
@@ -2357,7 +2358,7 @@ contents go here
                 del config
                 raise RuntimeError(custom_error)
 
-            monkeypatch.setattr(cli, '_save_config', raiser)
+            monkeypatch.setattr(cli_helpers, 'save_config', raiser)
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '-p'],
@@ -2730,7 +2731,7 @@ class TestCLIUtils:
         self,
         config: Any,
     ) -> None:
-        """`cli._load_config` works for valid configurations."""
+        """[`cli_helpers.load_config`][] works for valid configurations."""
         runner = click.testing.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -2744,15 +2745,15 @@ class TestCLIUtils:
                     vault_config=config,
                 )
             )
-            config_filename = cli._config_filename(subsystem='vault')
+            config_filename = cli_helpers.config_filename(subsystem='vault')
             with config_filename.open(encoding='UTF-8') as fileobj:
                 assert json.load(fileobj) == config
-            assert cli._load_config() == config
+            assert cli_helpers.load_config() == config
 
     def test_110_save_bad_config(
         self,
     ) -> None:
-        """`cli._save_config` fails for bad configurations."""
+        """[`cli_helpers.save_config`][] fails for bad configurations."""
         runner = click.testing.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -2769,10 +2770,10 @@ class TestCLIUtils:
             stack.enter_context(
                 pytest.raises(ValueError, match='Invalid vault config')
             )
-            cli._save_config(None)  # type: ignore[arg-type]
+            cli_helpers.save_config(None)  # type: ignore[arg-type]
 
     def test_111_prompt_for_selection_multiple(self) -> None:
-        """`cli._prompt_for_selection` works in the "multiple" case."""
+        """[`cli_helpers.prompt_for_selection`][] works in the "multiple" case."""
 
         @click.command()
         @click.option('--heading', default='Our menu:')
@@ -2798,7 +2799,7 @@ class TestCLIUtils:
                     'and a fried egg on top and spam'
                 ),
             ]
-            index = cli._prompt_for_selection(items, heading=heading)
+            index = cli_helpers.prompt_for_selection(items, heading=heading)
             click.echo('A fine choice: ', nl=False)
             click.echo(items[index])
             click.echo('(Note: Vikings strictly optional.)')
@@ -2849,14 +2850,14 @@ Your selection? (1-10, leave empty to abort):\x20
         ), 'expected known output'
 
     def test_112_prompt_for_selection_single(self) -> None:
-        """`cli._prompt_for_selection` works in the "single" case."""
+        """[`cli_helpers.prompt_for_selection`][] works in the "single" case."""
 
         @click.command()
         @click.option('--item', default='baked beans')
         @click.argument('prompt')
         def driver(item: str, prompt: str) -> None:
             try:
-                cli._prompt_for_selection(
+                cli_helpers.prompt_for_selection(
                     [item], heading='', single_choice_prompt=prompt
                 )
             except IndexError:
@@ -2898,14 +2899,14 @@ Boo.
     def test_113_prompt_for_passphrase(
         self,
     ) -> None:
-        """`cli._prompt_for_passphrase` works."""
+        """[`cli_helpers.prompt_for_passphrase`][] works."""
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setattr(
                 click,
                 'prompt',
                 lambda *a, **kw: json.dumps({'args': a, 'kwargs': kw}),
             )
-            res = json.loads(cli._prompt_for_passphrase())
+            res = json.loads(cli_helpers.prompt_for_passphrase())
         err_msg = 'missing arguments to passphrase prompt'
         assert 'args' in res, err_msg
         assert 'kwargs' in res, err_msg
@@ -2926,17 +2927,17 @@ Boo.
         standard error prefixed with the program name.
 
         """
-        prog_name = cli.StandardCLILogging.prog_name
-        package_name = cli.StandardCLILogging.package_name
+        prog_name = cli_machinery.StandardCLILogging.prog_name
+        package_name = cli_machinery.StandardCLILogging.package_name
         logger = logging.getLogger(package_name)
         deprecation_logger = logging.getLogger(f'{package_name}.deprecation')
-        logging_cm = cli.StandardCLILogging.ensure_standard_logging()
+        logging_cm = cli_machinery.StandardCLILogging.ensure_standard_logging()
         with logging_cm:
             assert (
                 sum(
                     1
                     for h in logger.handlers
-                    if h is cli.StandardCLILogging.cli_handler
+                    if h is cli_machinery.StandardCLILogging.cli_handler
                 )
                 == 1
             )
@@ -2947,7 +2948,7 @@ Boo.
                     sum(
                         1
                         for h in logger.handlers
-                        if h is cli.StandardCLILogging.cli_handler
+                        if h is cli_machinery.StandardCLILogging.cli_handler
                     )
                     == 1
                 )
@@ -2963,7 +2964,7 @@ Boo.
                 sum(
                     1
                     for h in logger.handlers
-                    if h is cli.StandardCLILogging.cli_handler
+                    if h is cli_machinery.StandardCLILogging.cli_handler
                 )
                 == 1
             )
@@ -2990,7 +2991,7 @@ Boo.
         actually emits to standard error.
 
         """
-        warnings_cm = cli.StandardCLILogging.ensure_standard_warnings_logging()
+        warnings_cm = cli_machinery.StandardCLILogging.ensure_standard_warnings_logging()
         THE_FUTURE = 'the future will be here sooner than you think'  # noqa: N806
         JUST_TESTING = 'just testing whether warnings work'  # noqa: N806
         with warnings_cm:
@@ -2998,7 +2999,7 @@ Boo.
                 sum(
                     1
                     for h in logging.getLogger('py.warnings').handlers
-                    if h is cli.StandardCLILogging.warnings_handler
+                    if h is cli_machinery.StandardCLILogging.warnings_handler
                 )
                 == 1
             )
@@ -3053,7 +3054,7 @@ Boo.
         """
         prog_name_list = ('derivepassphrase', 'vault')
         with io.StringIO() as outfile:
-            cli._print_config_as_sh_script(
+            cli_helpers.print_config_as_sh_script(
                 config, outfile=outfile, prog_name_list=prog_name_list
             )
             script = outfile.getvalue()
@@ -3073,7 +3074,7 @@ Boo.
             for result_ in vault_config_exporter_shell_interpreter(script):
                 result = tests.ReadableResult.parse(result_)
                 assert result.clean_exit()
-            assert cli._load_config() == config
+            assert cli_helpers.load_config() == config
 
     @tests.hypothesis_settings_coverage_compatible
     @hypothesis.given(
@@ -3345,7 +3346,7 @@ Boo.
                 assert result.clean_exit(empty_stderr=True), (
                     'expected clean exit'
                 )
-                with cli._config_filename(subsystem='vault').open(
+                with cli_helpers.config_filename(subsystem='vault').open(
                     encoding='UTF-8'
                 ) as infile:
                     config_readback = json.load(infile)
@@ -3363,8 +3364,8 @@ Boo.
     @pytest.mark.parametrize(
         ['vfunc', 'input'],
         [
-            (cli._validate_occurrence_constraint, 20),
-            (cli._validate_length, 20),
+            (cli_machinery.validate_occurrence_constraint, 20),
+            (cli_machinery.validate_length, 20),
         ],
     )
     def test_210a_validate_constraints_manually(
@@ -3383,7 +3384,7 @@ Boo.
         running_ssh_agent: tests.RunningSSHAgentInfo,
         conn_hint: str,
     ) -> None:
-        """`cli._get_suitable_ssh_keys` works."""
+        """[`cli_helpers.get_suitable_ssh_keys`][] works."""
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket)
             monkeypatch.setattr(
@@ -3403,7 +3404,7 @@ Boo.
                 hint = None
             exception: Exception | None = None
             try:
-                list(cli._get_suitable_ssh_keys(hint))
+                list(cli_helpers.get_suitable_ssh_keys(hint))
             except RuntimeError:  # pragma: no cover
                 pass
             except Exception as e:  # noqa: BLE001 # pragma: no cover
@@ -3418,7 +3419,7 @@ Boo.
         skip_if_no_af_unix_support: None,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
     ) -> None:
-        """All errors in `cli._key_to_phrase` are handled."""
+        """All errors in [`cli_helpers.key_to_phrase`][] are handled."""
 
         class ErrCallback(BaseException):
             def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -3454,19 +3455,19 @@ Boo.
                 with pytest.raises(
                     ErrCallback, match='not loaded into the agent'
                 ):
-                    cli._key_to_phrase(loaded_key, error_callback=err)
+                    cli_helpers.key_to_phrase(loaded_key, error_callback=err)
             with monkeypatch.context() as mp:
                 mp.setattr(ssh_agent.SSHAgentClient, 'list_keys', fail)
                 with pytest.raises(
                     ErrCallback, match='SSH agent failed to or refused to'
                 ):
-                    cli._key_to_phrase(loaded_key, error_callback=err)
+                    cli_helpers.key_to_phrase(loaded_key, error_callback=err)
             with monkeypatch.context() as mp:
                 mp.setattr(ssh_agent.SSHAgentClient, 'list_keys', fail_runtime)
                 with pytest.raises(
                     ErrCallback, match='SSH agent failed to or refused to'
                 ) as excinfo:
-                    cli._key_to_phrase(loaded_key, error_callback=err)
+                    cli_helpers.key_to_phrase(loaded_key, error_callback=err)
                 assert excinfo.value.kwargs
                 assert isinstance(
                     excinfo.value.kwargs['exc_info'],
@@ -3482,25 +3483,25 @@ Boo.
                 with pytest.raises(
                     ErrCallback, match='Cannot find any running SSH agent'
                 ):
-                    cli._key_to_phrase(loaded_key, error_callback=err)
+                    cli_helpers.key_to_phrase(loaded_key, error_callback=err)
             with monkeypatch.context() as mp:
                 mp.setenv('SSH_AUTH_SOCK', os.environ['SSH_AUTH_SOCK'] + '~')
                 with pytest.raises(
                     ErrCallback, match='Cannot connect to the SSH agent'
                 ):
-                    cli._key_to_phrase(loaded_key, error_callback=err)
+                    cli_helpers.key_to_phrase(loaded_key, error_callback=err)
             with monkeypatch.context() as mp:
                 mp.delattr(socket, 'AF_UNIX', raising=True)
                 with pytest.raises(
                     ErrCallback, match='does not support UNIX domain sockets'
                 ):
-                    cli._key_to_phrase(loaded_key, error_callback=err)
+                    cli_helpers.key_to_phrase(loaded_key, error_callback=err)
             with monkeypatch.context() as mp:
                 mp.setattr(ssh_agent.SSHAgentClient, 'sign', fail_runtime)
                 with pytest.raises(
                     ErrCallback, match='violates the communications protocol'
                 ):
-                    cli._key_to_phrase(loaded_key, error_callback=err)
+                    cli_helpers.key_to_phrase(loaded_key, error_callback=err)
 
 
 # TODO(the-13th-letter): Remove this class in v1.0.
@@ -3544,10 +3545,10 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            cli._config_filename(subsystem='old settings.json').write_text(
+            cli_helpers.config_filename(subsystem='old settings.json').write_text(
                 json.dumps(config, indent=2) + '\n', encoding='UTF-8'
             )
-            assert cli._migrate_and_load_old_config()[0] == config
+            assert cli_helpers.migrate_and_load_old_config()[0] == config
 
     @pytest.mark.parametrize(
         'config',
@@ -3585,10 +3586,10 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            cli._config_filename(subsystem='old settings.json').write_text(
+            cli_helpers.config_filename(subsystem='old settings.json').write_text(
                 json.dumps(config, indent=2) + '\n', encoding='UTF-8'
             )
-            assert cli._migrate_and_load_old_config() == (config, None)
+            assert cli_helpers.migrate_and_load_old_config() == (config, None)
 
     @pytest.mark.parametrize(
         'config',
@@ -3626,13 +3627,13 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            cli._config_filename(subsystem='old settings.json').write_text(
+            cli_helpers.config_filename(subsystem='old settings.json').write_text(
                 json.dumps(config, indent=2) + '\n', encoding='UTF-8'
             )
-            cli._config_filename(subsystem='vault').mkdir(
+            cli_helpers.config_filename(subsystem='vault').mkdir(
                 parents=True, exist_ok=True
             )
-            config2, err = cli._migrate_and_load_old_config()
+            config2, err = cli_helpers.migrate_and_load_old_config()
             assert config2 == config
             assert isinstance(err, OSError)
             assert err.errno == errno.EISDIR
@@ -3673,11 +3674,11 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            cli._config_filename(subsystem='old settings.json').write_text(
+            cli_helpers.config_filename(subsystem='old settings.json').write_text(
                 json.dumps(config, indent=2) + '\n', encoding='UTF-8'
             )
-            with pytest.raises(ValueError, match=cli._INVALID_VAULT_CONFIG):
-                cli._migrate_and_load_old_config()
+            with pytest.raises(ValueError, match=cli_helpers.INVALID_VAULT_CONFIG):
+                cli_helpers.migrate_and_load_old_config()
 
     def test_200_forward_export_vault_path_parameter(
         self,
@@ -3771,7 +3772,7 @@ class TestCLITransition:
                 )
             )
             monkeypatch.setattr(
-                cli, '_prompt_for_passphrase', tests.auto_prompt
+                cli_helpers, 'prompt_for_passphrase', tests.auto_prompt
             )
             result_ = runner.invoke(
                 cli.derivepassphrase,
@@ -3844,7 +3845,7 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            cli._config_filename(subsystem='old settings.json').write_text(
+            cli_helpers.config_filename(subsystem='old settings.json').write_text(
                 json.dumps(
                     {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
                     indent=2,
@@ -3883,7 +3884,7 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            cli._config_filename(subsystem='old settings.json').write_text(
+            cli_helpers.config_filename(subsystem='old settings.json').write_text(
                 json.dumps(
                     {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
                     indent=2,
@@ -3896,7 +3897,7 @@ class TestCLITransition:
                 raise OSError(
                     errno.EACCES,
                     os.strerror(errno.EACCES),
-                    cli._config_filename(subsystem='vault'),
+                    cli_helpers.config_filename(subsystem='vault'),
                 )
 
             monkeypatch.setattr(os, 'replace', raiser)
@@ -3933,11 +3934,11 @@ class TestCLITransition:
                     vault_config=config,
                 )
             )
-            old_name = cli._config_filename(subsystem='old settings.json')
-            new_name = cli._config_filename(subsystem='vault')
+            old_name = cli_helpers.config_filename(subsystem='old settings.json')
+            new_name = cli_helpers.config_filename(subsystem='vault')
             old_name.unlink(missing_ok=True)
             new_name.rename(old_name)
-            assert cli._shell_complete_service(
+            assert cli_helpers.shell_complete_service(
                 click.Context(cli.derivepassphrase),
                 click.Argument(['some_parameter']),
                 '',
@@ -4182,7 +4183,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             The amended configuration.
 
         """
-        cli._save_config(config)
+        cli_helpers.save_config(config)
         config_global = config.get('global', {})
         maybe_unset = set(maybe_unset) - setting.keys()
         if overwrite:
@@ -4211,7 +4212,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         )
         result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False)
-        assert cli._load_config() == config
+        assert cli_helpers.load_config() == config
         return config
 
     @stateful.rule(
@@ -4255,7 +4256,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             The amended configuration.
 
         """
-        cli._save_config(config)
+        cli_helpers.save_config(config)
         config_service = config['services'].get(service, {})
         maybe_unset = set(maybe_unset) - setting.keys()
         if overwrite:
@@ -4285,7 +4286,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         )
         result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False)
-        assert cli._load_config() == config
+        assert cli_helpers.load_config() == config
         return config
 
     @stateful.rule(
@@ -4306,7 +4307,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             The pruned configuration.
 
         """
-        cli._save_config(config)
+        cli_helpers.save_config(config)
         config.pop('global', None)
         result_ = self.runner.invoke(
             cli.derivepassphrase_vault,
@@ -4316,7 +4317,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         )
         result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False)
-        assert cli._load_config() == config
+        assert cli_helpers.load_config() == config
         return config
 
     @stateful.rule(
@@ -4346,7 +4347,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
 
         """
         config, service = config_and_service
-        cli._save_config(config)
+        cli_helpers.save_config(config)
         config['services'].pop(service, None)
         result_ = self.runner.invoke(
             cli.derivepassphrase_vault,
@@ -4356,7 +4357,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         )
         result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False)
-        assert cli._load_config() == config
+        assert cli_helpers.load_config() == config
         return config
 
     @stateful.rule(
@@ -4377,7 +4378,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             The empty configuration.
 
         """
-        cli._save_config(config)
+        cli_helpers.save_config(config)
         config = {'services': {}}
         result_ = self.runner.invoke(
             cli.derivepassphrase_vault,
@@ -4387,7 +4388,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         )
         result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False)
-        assert cli._load_config() == config
+        assert cli_helpers.load_config() == config
         return config
 
     @stateful.rule(
@@ -4418,7 +4419,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             The imported or merged configuration.
 
         """
-        cli._save_config(base_config)
+        cli_helpers.save_config(base_config)
         config = (
             self.fold_configs(config_to_import, base_config)
             if not overwrite
@@ -4435,7 +4436,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         assert tests.ReadableResult.parse(result_).clean_exit(
             empty_stderr=False
         )
-        assert cli._load_config() == config
+        assert cli_helpers.load_config() == config
         return config
 
     def teardown(self) -> None:
@@ -4481,9 +4482,10 @@ def zsh_format(item: click.shell_completion.CompletionItem) -> str:
     dictated by [`click`][].  Upstream `click` currently (v8.2.0) does
     not deal with colons in the value correctly when the help text is
     non-degenerate.  Our formatter here does, provided the upstream
-    `zsh` completion script is used; see the [`cli.ZshComplete`][]
-    class.  A request is underway to merge this change into upstream
-    `click`; see [`pallets/click#2846`][PR2846].
+    `zsh` completion script is used; see the
+    [`cli_machinery.ZshComplete`][] class.  A request is underway to
+    merge this change into upstream `click`; see
+    [`pallets/click#2846`][PR2846].
 
     [PR2846]: https://github.com/pallets/click/pull/2846
 
@@ -4579,7 +4581,7 @@ class TestShellCompletion:
         is_completable: bool,
     ) -> None:
         """Our `_is_completable_item` predicate for service names works."""
-        assert cli._is_completable_item(partial) == is_completable
+        assert cli_helpers.is_completable_item(partial) == is_completable
 
     @pytest.mark.parametrize(
         ['command_prefix', 'incomplete', 'completions'],
@@ -4820,7 +4822,7 @@ class TestShellCompletion:
         [
             pytest.param(
                 {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}},
-                cli._shell_complete_service,
+                cli_helpers.shell_complete_service,
                 ['vault'],
                 '',
                 [DUMMY_SERVICE],
@@ -4828,7 +4830,7 @@ class TestShellCompletion:
             ),
             pytest.param(
                 {'services': {}},
-                cli._shell_complete_service,
+                cli_helpers.shell_complete_service,
                 ['vault'],
                 '',
                 [],
@@ -4841,7 +4843,7 @@ class TestShellCompletion:
                         'newline\nin\nname': DUMMY_CONFIG_SETTINGS.copy(),
                     }
                 },
-                cli._shell_complete_service,
+                cli_helpers.shell_complete_service,
                 ['vault'],
                 '',
                 [DUMMY_SERVICE],
@@ -4854,7 +4856,7 @@ class TestShellCompletion:
                         'backspace\bin\bname': DUMMY_CONFIG_SETTINGS.copy(),
                     }
                 },
-                cli._shell_complete_service,
+                cli_helpers.shell_complete_service,
                 ['vault'],
                 '',
                 [DUMMY_SERVICE],
@@ -4867,7 +4869,7 @@ class TestShellCompletion:
                         'colon:in:name': DUMMY_CONFIG_SETTINGS.copy(),
                     }
                 },
-                cli._shell_complete_service,
+                cli_helpers.shell_complete_service,
                 ['vault'],
                 '',
                 sorted([DUMMY_SERVICE, 'colon:in:name']),
@@ -4884,7 +4886,7 @@ class TestShellCompletion:
                         'del\x7fin\x7fname': DUMMY_CONFIG_SETTINGS.copy(),
                     }
                 },
-                cli._shell_complete_service,
+                cli_helpers.shell_complete_service,
                 ['vault'],
                 '',
                 sorted([DUMMY_SERVICE, 'colon:in:name']),
@@ -4892,7 +4894,7 @@ class TestShellCompletion:
             ),
             pytest.param(
                 {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}},
-                cli._shell_complete_path,
+                cli_helpers.shell_complete_path,
                 ['vault', '--import'],
                 '',
                 [click.shell_completion.CompletionItem('', type='file')],
@@ -4900,7 +4902,7 @@ class TestShellCompletion:
             ),
             pytest.param(
                 {'services': {}},
-                cli._shell_complete_path,
+                cli_helpers.shell_complete_path,
                 ['vault', '--import'],
                 '',
                 [click.shell_completion.CompletionItem('', type='file')],
@@ -5166,7 +5168,7 @@ class TestShellCompletion:
             assert tests.warning_emitted(
                 'not be available for completion', caplog.record_tuples
             ), 'expected known warning message in stderr'
-            assert cli._load_config() == config
+            assert cli_helpers.load_config() == config
             comp = self.Completions(['vault'], incomplete)
             assert frozenset(comp.get_words()) == completions
 
@@ -5189,8 +5191,8 @@ class TestShellCompletion:
                     },
                 )
             )
-            cli._config_filename(subsystem='vault').unlink(missing_ok=True)
-            assert not cli._shell_complete_service(
+            cli_helpers.config_filename(subsystem='vault').unlink(missing_ok=True)
+            assert not cli_helpers.shell_complete_service(
                 click.Context(cli.derivepassphrase),
                 click.Argument(['some_parameter']),
                 '',
@@ -5221,8 +5223,8 @@ class TestShellCompletion:
             def raiser(*_a: Any, **_kw: Any) -> NoReturn:
                 raise exc_type('just being difficult')  # noqa: EM101,TRY003
 
-            monkeypatch.setattr(cli, '_load_config', raiser)
-            assert not cli._shell_complete_service(
+            monkeypatch.setattr(cli_helpers, 'load_config', raiser)
+            assert not cli_helpers.shell_complete_service(
                 click.Context(cli.derivepassphrase),
                 click.Argument(['some_parameter']),
                 '',

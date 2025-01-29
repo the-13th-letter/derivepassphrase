@@ -18,7 +18,7 @@ import hypothesis
 import pytest
 from hypothesis import strategies
 
-from derivepassphrase import _cli_msg as msg
+from derivepassphrase._internals import cli_messages as msg
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
