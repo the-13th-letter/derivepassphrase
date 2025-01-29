@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import array
 import hashlib
 import math
 from typing import TYPE_CHECKING
@@ -19,15 +20,17 @@ import tests
 from derivepassphrase import vault
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator
+
+    from typing_extensions import Buffer
 
 BLOCK_SIZE = hashlib.sha1().block_size
 DIGEST_SIZE = hashlib.sha1().digest_size
 
 
 def phrases_are_interchangable(
-    phrase1: bytes | bytearray | str,
-    phrase2: bytes | bytearray | str,
+    phrase1: Buffer | str,
+    phrase2: Buffer | str,
     /,
 ) -> bool:
     """Work-alike of [`vault.Vault.phrases_are_interchangable`][].
@@ -358,6 +361,12 @@ class TestVault:
             b'google'
         ) == vault.Vault(phrase=self.phrase).generate(bytearray(b'google'))
 
+    def test_202c_reproducibility_and_buffer_like_service_name(self) -> None:
+        """Deriving a passphrase works equally for memory views."""
+        assert vault.Vault(phrase=self.phrase).generate(
+            b'google'
+        ) == vault.Vault(phrase=self.phrase).generate(memoryview(b'google'))
+
     @hypothesis.given(
         phrase=strategies.text(
             strategies.characters(min_codepoint=32, max_codepoint=126),
@@ -370,18 +379,65 @@ class TestVault:
             max_size=32,
         ),
     )
-    def test_202c_reproducibility_and_binary_service_name(
+    def test_203a_reproducibility_and_binary_phrases(
         self,
         phrase: str,
         service: str,
     ) -> None:
-        """Deriving a passphrase works equally for byte arrays/strings."""
-        assert vault.Vault(phrase=phrase).generate(service) == vault.Vault(
-            phrase=phrase
-        ).generate(service.encode('utf-8'))
-        assert vault.Vault(phrase=phrase).generate(service) == vault.Vault(
-            phrase=phrase
-        ).generate(bytearray(service.encode('utf-8')))
+        """Binary and text master passphrases generate the same passphrases."""
+        buffer_types: dict[str, Callable[..., Buffer]] = {
+            'bytes': bytes,
+            'bytearray': bytearray,
+            'memoryview': memoryview,
+            'array.array': lambda data: array.array('B', data),
+        }
+        for type_name, buffer_type in buffer_types.items():
+            str_phrase = phrase
+            bytes_phrase = phrase.encode('utf-8')
+            assert vault.Vault(phrase=str_phrase).generate(
+                service
+            ) == vault.Vault(phrase=buffer_type(bytes_phrase)).generate(
+                service
+            ), (
+                f'{str_phrase!r} and {type_name}({bytes_phrase!r}) '
+                'master passphrases generate different passphrases'
+            )
+
+    @hypothesis.given(
+        phrase=strategies.text(
+            strategies.characters(min_codepoint=32, max_codepoint=126),
+            min_size=1,
+            max_size=32,
+        ),
+        service=strategies.text(
+            strategies.characters(min_codepoint=32, max_codepoint=126),
+            min_size=1,
+            max_size=32,
+        ),
+    )
+    def test_203b_reproducibility_and_binary_service_name(
+        self,
+        phrase: str,
+        service: str,
+    ) -> None:
+        """Binary and text service names generate the same passphrases."""
+        buffer_types: dict[str, Callable[..., Buffer]] = {
+            'bytes': bytes,
+            'bytearray': bytearray,
+            'memoryview': memoryview,
+            'array.array': lambda data: array.array('B', data),
+        }
+        for type_name, buffer_type in buffer_types.items():
+            str_service = service
+            bytes_service = service.encode('utf-8')
+            assert vault.Vault(phrase=phrase).generate(
+                str_service
+            ) == vault.Vault(phrase=phrase).generate(
+                buffer_type(bytes_service)
+            ), (
+                f'{str_service!r} and {type_name}({bytes_service!r}) '
+                'service name generate different passphrases'
+            )
 
     @hypothesis.given(
         phrase=strategies.text(
@@ -396,7 +452,7 @@ class TestVault:
             unique=True,
         ),
     )
-    def test_203a_service_name_dependence(
+    def test_204a_service_name_dependence(
         self,
         phrase: str,
         services: list[bytes],
@@ -421,7 +477,7 @@ class TestVault:
             unique=True,
         ),
     )
-    def test_203b_service_name_dependence_with_config(
+    def test_204b_service_name_dependence_with_config(
         self,
         phrase: str,
         config: dict[str, int],

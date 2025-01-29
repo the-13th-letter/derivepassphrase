@@ -22,6 +22,8 @@ if TYPE_CHECKING:
     import socket
     from collections.abc import Callable
 
+    from typing_extensions import Buffer
+
 __author__ = 'Marco Ricci <software@the13thletter.info>'
 
 
@@ -104,7 +106,7 @@ class Vault:
     def __init__(  # noqa: PLR0913
         self,
         *,
-        phrase: bytes | bytearray | str = b'',
+        phrase: Buffer | str = b'',
         length: int = 20,
         repeat: int = 0,
         lower: int | None = None,
@@ -257,7 +259,7 @@ class Vault:
         return math.ceil(safety_factor * entropy_bound / 8)
 
     @staticmethod
-    def _get_binary_string(s: bytes | bytearray | str, /) -> bytes:
+    def _get_binary_string(s: Buffer | str, /) -> bytes:
         """Convert the input string to a read-only, binary string.
 
         If it is a text string, return the string's UTF-8
@@ -277,8 +279,8 @@ class Vault:
     @classmethod
     def create_hash(
         cls,
-        phrase: bytes | bytearray | str,
-        service: bytes | bytearray | str,
+        phrase: Buffer | str,
+        service: Buffer | str,
         *,
         length: int = 32,
     ) -> bytes:
@@ -332,7 +334,7 @@ class Vault:
 
         """
         phrase = cls._get_binary_string(phrase)
-        assert not isinstance(phrase, str)
+        assert isinstance(phrase, bytes)
         salt = cls._get_binary_string(service) + cls._UUID
         return hashlib.pbkdf2_hmac(
             hash_name='sha1',
@@ -344,10 +346,10 @@ class Vault:
 
     def generate(
         self,
-        service_name: bytes | bytearray | str,
+        service_name: Buffer | str,
         /,
         *,
-        phrase: bytes | bytearray | str = b'',
+        phrase: Buffer | str = b'',
     ) -> bytes:
         r"""Generate a service passphrase.
 
@@ -452,7 +454,7 @@ class Vault:
 
     @staticmethod
     def is_suitable_ssh_key(
-        key: bytes | bytearray,
+        key: Buffer,
         /,
         *,
         client: ssh_agent.SSHAgentClient | None = None,
@@ -477,6 +479,7 @@ class Vault:
             restricted to the indicated SSH agent).
 
         """
+        key = bytes(key)
         TestFunc: TypeAlias = 'Callable[[bytes | bytearray], bool]'
         deterministic_signature_types: dict[str, TestFunc]
         deterministic_signature_types = {
@@ -515,7 +518,7 @@ class Vault:
     @classmethod
     def phrase_from_key(
         cls,
-        key: bytes | bytearray,
+        key: Buffer,
         /,
         *,
         conn: ssh_agent.SSHAgentClient | socket.socket | None = None,
@@ -593,8 +596,8 @@ class Vault:
     @classmethod
     def phrases_are_interchangable(
         cls,
-        phrase1: bytes | bytearray,
-        phrase2: bytes | bytearray,
+        phrase1: Buffer,
+        phrase2: Buffer,
         /,
     ) -> bool:
         """Return true if the passphrases are interchangable to Vault.
@@ -640,7 +643,7 @@ class Vault:
     @classmethod
     def _phrase_to_hmac_key(
         cls,
-        phrase: bytes | bytearray | str,
+        phrase: Buffer | str,
         /,
     ) -> bytes:
         r"""Return the HMAC key belonging to a passphrase.
@@ -669,8 +672,8 @@ class Vault:
 
     @staticmethod
     def _subtract(
-        charset: bytes | bytearray,
-        allowed: bytes | bytearray,
+        charset: Buffer,
+        allowed: Buffer,
     ) -> bytearray:
         """Remove the characters in charset from allowed.
 
@@ -696,6 +699,8 @@ class Vault:
             allowed if isinstance(allowed, bytearray) else bytearray(allowed)
         )
         assert_type(allowed, bytearray)
+        charset = memoryview(charset).toreadonly().cast('c')
+        assert_type(charset, 'memoryview[bytes]')
         msg_dup_characters = 'duplicate characters in set'
         if len(frozenset(allowed)) != len(allowed):
             raise ValueError(msg_dup_characters)
