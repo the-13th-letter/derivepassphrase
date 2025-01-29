@@ -42,8 +42,8 @@ from typing_extensions import (
 )
 
 import derivepassphrase as dpp
-from derivepassphrase import _cli_msg as _msg
 from derivepassphrase import _types, exporter, ssh_agent, vault
+from derivepassphrase._internals import cli_messages as _msg
 
 if sys.version_info >= (3, 11):
     import tomllib
