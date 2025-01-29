@@ -27,6 +27,7 @@ from hypothesis import strategies
 from typing_extensions import NamedTuple, Self, assert_never
 
 from derivepassphrase import _types, cli, ssh_agent, vault
+from derivepassphrase._internals import cli_helpers, cli_machinery
 
 __all__ = ()
 
@@ -1738,7 +1739,7 @@ def suitable_ssh_keys(conn: Any) -> Iterator[_types.SSHKeyCommentPair]:
     """Return a two-item list of SSH test keys (key/comment pairs).
 
     Intended as a monkeypatching replacement for
-    `cli._get_suitable_ssh_keys` to better script and test the
+    `cli_machinery.get_suitable_ssh_keys` to better script and test the
     interactive key selection.  When used this way, `derivepassphrase`
     believes that only those two keys are loaded and suitable.
 
@@ -1806,18 +1807,20 @@ def isolated_config(
     # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
     with contextlib.ExitStack() as stack:
         stack.enter_context(runner.isolated_filesystem())
-        stack.enter_context(cli.StandardCLILogging.ensure_standard_logging())
         stack.enter_context(
-            cli.StandardCLILogging.ensure_standard_warnings_logging()
+            cli_machinery.StandardCLILogging.ensure_standard_logging()
+        )
+        stack.enter_context(
+            cli_machinery.StandardCLILogging.ensure_standard_warnings_logging()
         )
         cwd = str(pathlib.Path.cwd().resolve())
         monkeypatch.setenv('HOME', cwd)
         monkeypatch.setenv('USERPROFILE', cwd)
         monkeypatch.delenv(env_name, raising=False)
-        config_dir = cli._config_filename(subsystem=None)
+        config_dir = cli_helpers.config_filename(subsystem=None)
         config_dir.mkdir(parents=True, exist_ok=True)
         if isinstance(main_config_str, str):
-            cli._config_filename('user configuration').write_text(
+            cli_helpers.config_filename('user configuration').write_text(
                 main_config_str, encoding='UTF-8'
             )
         yield
@@ -1855,7 +1858,7 @@ def isolated_vault_config(
     with isolated_config(
         monkeypatch=monkeypatch, runner=runner, main_config_str=main_config_str
     ):
-        config_filename = cli._config_filename(subsystem='vault')
+        config_filename = cli_helpers.config_filename(subsystem='vault')
         with config_filename.open('w', encoding='UTF-8') as outfile:
             json.dump(vault_config, outfile)
         yield

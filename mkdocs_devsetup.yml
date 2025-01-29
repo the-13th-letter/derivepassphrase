@@ -29,12 +29,14 @@ nav:
     - Technical prerequisites:
       - 'Using derivepassphrase vault with an SSH key': reference/prerequisites-ssh-key.md
     - 'Internal API docs: Submodule derivepassphrase._internals':
+      - Submodule cli_helpers: reference/derivepassphrase._internals.cli_helpers.md
+      - Submodule cli_machinery: reference/derivepassphrase._internals.cli_machinery.md
       - Submodule cli_messages: reference/derivepassphrase._internals.cli_messages.md
     - 'Internal API docs: Tests':
       - Basic testing infrastructure: reference/tests.md
       - Localization machinery: reference/tests.test_l10n.md
       - derivepassphrase command-line:
-        - cli module: reference/tests.test_derivepassphrase_cli.md
+        - cli module, helpers and machinery: reference/tests.test_derivepassphrase_cli.md
         - '"export vault" subcommand tests': reference/tests.test_derivepassphrase_cli_export_vault.md
       - exporter module: reference/tests.test_derivepassphrase_exporter.md
       - sequin module: reference/tests.test_derivepassphrase_sequin.md

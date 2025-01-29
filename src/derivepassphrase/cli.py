@@ -10,25 +10,15 @@ from __future__ import annotations
 
 import base64
 import collections
-import copy
-import enum
 import functools
-import inspect
 import json
 import logging
 import os
-import pathlib
-import shlex
-import sys
-import unicodedata
-import warnings
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Literal,
     NoReturn,
     TextIO,
-    TypeVar,
     cast,
 )
 
@@ -36,26 +26,15 @@ import click
 import click.shell_completion
 from typing_extensions import (
     Any,
-    ParamSpec,
-    Self,
-    override,
 )
 
 import derivepassphrase as dpp
 from derivepassphrase import _types, exporter, ssh_agent, vault
+from derivepassphrase._internals import cli_helpers, cli_machinery
 from derivepassphrase._internals import cli_messages as _msg
 
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
-
 if TYPE_CHECKING:
-    import socket
-    import types
     from collections.abc import (
-        Iterator,
-        MutableSequence,
         Sequence,
     )
 
@@ -65,1141 +44,6 @@ __version__ = dpp.__version__
 __all__ = ('derivepassphrase',)
 
 PROG_NAME = _msg.PROG_NAME
-KEY_DISPLAY_LENGTH = 50
-
-# Error messages
-_INVALID_VAULT_CONFIG = 'Invalid vault config'
-_AGENT_COMMUNICATION_ERROR = 'Error communicating with the SSH agent'
-_NO_SUITABLE_KEYS = 'No suitable SSH keys were found'
-_EMPTY_SELECTION = 'Empty selection'
-_NOT_AN_INTEGER = 'not an integer'
-_NOT_A_NONNEGATIVE_INTEGER = 'not a non-negative integer'
-_NOT_A_POSITIVE_INTEGER = 'not a positive integer'
-
-
-# Logging
-# =======
-
-
-class ClickEchoStderrHandler(logging.Handler):
-    """A [`logging.Handler`][] for `click` applications.
-
-    Outputs log messages to [`sys.stderr`][] via [`click.echo`][].
-
-    """
-
-    def emit(self, record: logging.LogRecord) -> None:
-        """Emit a log record.
-
-        Format the log record, then emit it via [`click.echo`][] to
-        [`sys.stderr`][].
-
-        """
-        click.echo(
-            self.format(record),
-            err=True,
-            color=getattr(record, 'color', None),
-        )
-
-
-class CLIofPackageFormatter(logging.Formatter):
-    """A [`logging.LogRecord`][] formatter for the CLI of a Python package.
-
-    Assuming a package `PKG` and loggers within the same hierarchy
-    `PKG`, format all log records from that hierarchy for proper user
-    feedback on the console.  Intended for use with [`click`][CLICK] and
-    when `PKG` provides a command-line tool `PKG` and when logs from
-    that package should show up as output of the command-line tool.
-
-    Essentially, this prepends certain short strings to the log message
-    lines to make them readable as standard error output.
-
-    Because this log output is intended to be displayed on standard
-    error as high-level diagnostic output, you are strongly discouraged
-    from changing the output format to include more tokens besides the
-    log message.  Use a dedicated log file handler instead, without this
-    formatter.
-
-    [CLICK]: https://pypi.org/projects/click/
-
-    """
-
-    def __init__(
-        self,
-        *,
-        prog_name: str = PROG_NAME,
-        package_name: str | None = None,
-    ) -> None:
-        self.prog_name = prog_name
-        self.package_name = (
-            package_name
-            if package_name is not None
-            else prog_name.lower().replace(' ', '_').replace('-', '_')
-        )
-
-    def format(self, record: logging.LogRecord) -> str:
-        """Format a log record suitably for standard error console output.
-
-        Prepend the formatted string `"PROG_NAME: LABEL"` to each line
-        of the message, where `PROG_NAME` is the program name, and
-        `LABEL` depends on the record's level and on the logger name as
-        follows:
-
-          * For records at level [`logging.DEBUG`][], `LABEL` is
-            `"Debug: "`.
-          * For records at level [`logging.INFO`][], `LABEL` is the
-            empty string.
-          * For records at level [`logging.WARNING`][], `LABEL` is
-            `"Deprecation warning: "` if the logger is named
-            `PKG.deprecation` (where `PKG` is the package name), else
-            `"Warning: "`.
-          * For records at level [`logging.ERROR`][] and
-            [`logging.CRITICAL`][] `"Error: "`, `LABEL` is the empty
-            string.
-
-        The level indication strings at level `WARNING` or above are
-        highlighted.  Use [`click.echo`][] to output them and remove
-        color output if necessary.
-
-        Args:
-            record: A log record.
-
-        Returns:
-            A formatted log record.
-
-        Raises:
-            AssertionError:
-                The log level is not supported.
-
-        """
-        preliminary_result = record.getMessage()
-        prefix = f'{self.prog_name}: '
-        if record.levelname == 'DEBUG':  # pragma: no cover
-            level_indicator = 'Debug: '
-        elif record.levelname == 'INFO':
-            level_indicator = ''
-        elif record.levelname == 'WARNING':
-            level_indicator = (
-                f'{click.style("Deprecation warning", bold=True)}: '
-                if record.name.endswith('.deprecation')
-                else f'{click.style("Warning", bold=True)}: '
-            )
-        elif record.levelname in {'ERROR', 'CRITICAL'}:
-            level_indicator = ''
-        else:  # pragma: no cover
-            msg = f'Unsupported logging level: {record.levelname}'
-            raise AssertionError(msg)
-        parts = [
-            ''.join(
-                prefix + level_indicator + line
-                for line in preliminary_result.splitlines(True)  # noqa: FBT003
-            )
-        ]
-        if record.exc_info:
-            parts.append(self.formatException(record.exc_info) + '\n')
-        return ''.join(parts)
-
-
-class StandardCLILogging:
-    """Set up CLI logging handlers upon instantiation."""
-
-    prog_name = PROG_NAME
-    package_name = PROG_NAME.lower().replace(' ', '_').replace('-', '_')
-    cli_formatter = CLIofPackageFormatter(
-        prog_name=prog_name, package_name=package_name
-    )
-    cli_handler = ClickEchoStderrHandler()
-    cli_handler.addFilter(logging.Filter(name=package_name))
-    cli_handler.setFormatter(cli_formatter)
-    cli_handler.setLevel(logging.WARNING)
-    warnings_handler = ClickEchoStderrHandler()
-    warnings_handler.addFilter(logging.Filter(name='py.warnings'))
-    warnings_handler.setFormatter(cli_formatter)
-    warnings_handler.setLevel(logging.WARNING)
-
-    @classmethod
-    def ensure_standard_logging(cls) -> StandardLoggingContextManager:
-        """Return a context manager to ensure standard logging is set up."""
-        return StandardLoggingContextManager(
-            handler=cls.cli_handler,
-            root_logger=cls.package_name,
-        )
-
-    @classmethod
-    def ensure_standard_warnings_logging(
-        cls,
-    ) -> StandardWarningsLoggingContextManager:
-        """Return a context manager to ensure warnings logging is set up."""
-        return StandardWarningsLoggingContextManager(
-            handler=cls.warnings_handler,
-        )
-
-
-class StandardLoggingContextManager:
-    """A reentrant context manager setting up standard CLI logging.
-
-    Ensures that the given handler (defaulting to the CLI logging
-    handler) is added to the named logger (defaulting to the root
-    logger), and if it had to be added, then that it will be removed
-    upon exiting the context.
-
-    Reentrant, but not thread safe, because it temporarily modifies
-    global state.
-
-    """
-
-    def __init__(
-        self,
-        handler: logging.Handler,
-        root_logger: str | None = None,
-    ) -> None:
-        self.handler = handler
-        self.root_logger_name = root_logger
-        self.base_logger = logging.getLogger(self.root_logger_name)
-        self.action_required: MutableSequence[bool] = collections.deque()
-
-    def __enter__(self) -> Self:
-        self.action_required.append(
-            self.handler not in self.base_logger.handlers
-        )
-        if self.action_required[-1]:
-            self.base_logger.addHandler(self.handler)
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        exc_tb: types.TracebackType | None,
-    ) -> Literal[False]:
-        if self.action_required[-1]:
-            self.base_logger.removeHandler(self.handler)
-        self.action_required.pop()
-        return False
-
-
-class StandardWarningsLoggingContextManager(StandardLoggingContextManager):
-    """A reentrant context manager setting up standard warnings logging.
-
-    Ensures that warnings are being diverted to the logging system, and
-    that the given handler (defaulting to the CLI logging handler) is
-    added to the warnings logger. If the handler had to be added, then
-    it will be removed upon exiting the context.
-
-    Reentrant, but not thread safe, because it temporarily modifies
-    global state.
-
-    """
-
-    def __init__(
-        self,
-        handler: logging.Handler,
-    ) -> None:
-        super().__init__(handler=handler, root_logger='py.warnings')
-        self.stack: MutableSequence[
-            tuple[
-                Callable[
-                    [
-                        type[BaseException] | None,
-                        BaseException | None,
-                        types.TracebackType | None,
-                    ],
-                    None,
-                ],
-                Callable[
-                    [
-                        str | Warning,
-                        type[Warning],
-                        str,
-                        int,
-                        TextIO | None,
-                        str | None,
-                    ],
-                    None,
-                ],
-            ]
-        ] = collections.deque()
-
-    def __enter__(self) -> Self:
-        def showwarning(  # noqa: PLR0913,PLR0917
-            message: str | Warning,
-            category: type[Warning],
-            filename: str,
-            lineno: int,
-            file: TextIO | None = None,
-            line: str | None = None,
-        ) -> None:
-            if file is not None:  # pragma: no cover
-                self.stack[0][1](
-                    message, category, filename, lineno, file, line
-                )
-            else:
-                logging.getLogger('py.warnings').warning(
-                    str(
-                        warnings.formatwarning(
-                            message, category, filename, lineno, line
-                        )
-                    )
-                )
-
-        ctx = warnings.catch_warnings()
-        exit_func = ctx.__exit__
-        ctx.__enter__()
-        self.stack.append((exit_func, warnings.showwarning))
-        warnings.showwarning = showwarning
-        return super().__enter__()
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        exc_tb: types.TracebackType | None,
-    ) -> Literal[False]:
-        ret = super().__exit__(exc_type, exc_value, exc_tb)
-        val = self.stack.pop()[0](exc_type, exc_value, exc_tb)
-        assert not val
-        return ret
-
-
-P = ParamSpec('P')
-R = TypeVar('R')
-
-
-def adjust_logging_level(
-    ctx: click.Context,
-    /,
-    param: click.Parameter | None = None,
-    value: int | None = None,
-) -> None:
-    """Change the logs that are emitted to standard error.
-
-    This modifies the [`StandardCLILogging`][] settings such that log
-    records at the respective level are emitted, based on the `param`
-    and the `value`.
-
-    """
-    # Note: If multiple options use this callback, then we will be
-    # called multiple times.  Ensure the runs are idempotent.
-    if param is None or value is None or ctx.resilient_parsing:
-        return
-    StandardCLILogging.cli_handler.setLevel(value)
-    logging.getLogger(StandardCLILogging.package_name).setLevel(value)
-
-
-# Option parsing and grouping
-# ===========================
-
-
-class OptionGroupOption(click.Option):
-    """A [`click.Option`][] with an associated group name and group epilog.
-
-    Used by [`CommandWithHelpGroups`][] to print help sections.  Each
-    subclass contains its own group name and epilog.
-
-    Attributes:
-        option_group_name:
-            The name of the option group.  Used as a heading on the help
-            text for options in this section.
-        epilog:
-            An epilog to print after listing the options in this
-            section.
-
-    """
-
-    option_group_name: object = ''
-    """"""
-    epilog: object = ''
-    """"""
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
-        if self.__class__ == __class__:  # type: ignore[name-defined]
-            raise NotImplementedError
-        # Though click 8.1 mostly defers help text processing until the
-        # `BaseCommand.format_*` methods are called, the Option
-        # constructor still preprocesses the help text, and asserts that
-        # the help text is a string.  Work around this by removing the
-        # help text from the constructor arguments and re-adding it,
-        # unprocessed, after constructor finishes.
-        unset = object()
-        help = kwargs.pop('help', unset)  # noqa: A001
-        super().__init__(*args, **kwargs)
-        if help is not unset:  # pragma: no branch
-            self.help = help
-
-
-class StandardOption(OptionGroupOption):
-    pass
-
-
-# Portions of this class are based directly on code from click 8.1.
-# (This does not in general include docstrings, unless otherwise noted.)
-# They are subject to the 3-clause BSD license in the following
-# paragraphs.  Modifications to their code are marked with respective
-# comments; they too are released under the same license below.  The
-# original code did not contain any "noqa" or "pragma" comments.
-#
-#     Copyright 2024 Pallets
-#
-#     Redistribution and use in source and binary forms, with or
-#     without modification, are permitted provided that the
-#     following conditions are met:
-#
-#      1. Redistributions of source code must retain the above
-#         copyright notice, this list of conditions and the
-#         following disclaimer.
-#
-#      2. Redistributions in binary form must reproduce the above
-#         copyright notice, this list of conditions and the
-#         following disclaimer in the documentation and/or other
-#         materials provided with the distribution.
-#
-#      3. Neither the name of the copyright holder nor the names
-#         of its contributors may be used to endorse or promote
-#         products derived from this software without specific
-#         prior written permission.
-#
-#     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-#     CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
-#     INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-#     MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-#     DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
-#     CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#     SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-#     NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-#     LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-#     HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-#     CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-#     OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-#     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-class CommandWithHelpGroups(click.Command):
-    """A [`click.Command`][] with support for some help text customizations.
-
-    Supports help/option groups, group epilogs, and help text objects
-    (objects that stringify to help texts).  The latter is primarily
-    used to implement translations.
-
-    Inspired by [a comment on `pallets/click#373`][CLICK_ISSUE] for
-    help/option group support, and further modified to include group
-    epilogs and help text objects.
-
-    [CLICK_ISSUE]: https://github.com/pallets/click/issues/373#issuecomment-515293746
-
-    """
-
-    @staticmethod
-    def _text(text: object, /) -> str:
-        if isinstance(text, (list, tuple)):
-            return '\n\n'.join(str(x) for x in text)
-        return str(text)
-
-    # This method is based on click 8.1; see the comment above the class
-    # declaration for license details.
-    def collect_usage_pieces(self, ctx: click.Context) -> list[str]:
-        """Return the pieces for the usage string.
-
-        Args:
-            ctx:
-                The click context.
-
-        """
-        rv = [str(self.options_metavar)] if self.options_metavar else []
-        for param in self.get_params(ctx):
-            rv.extend(str(x) for x in param.get_usage_pieces(ctx))
-        return rv
-
-    # This method is based on click 8.1; see the comment above the class
-    # declaration for license details.
-    def get_help_option(
-        self,
-        ctx: click.Context,
-    ) -> click.Option | None:
-        """Return a standard help option object.
-
-        Args:
-            ctx:
-                The click context.
-
-        """
-        help_options = self.get_help_option_names(ctx)
-
-        if not help_options or not self.add_help_option:  # pragma: no cover
-            return None
-
-        def show_help(
-            ctx: click.Context,
-            param: click.Parameter,  # noqa: ARG001
-            value: str,
-        ) -> None:
-            if value and not ctx.resilient_parsing:
-                click.echo(ctx.get_help(), color=ctx.color)
-                ctx.exit()
-
-        # Modified from click 8.1: We use StandardOption and a non-str
-        # object as the help string.
-        return StandardOption(
-            help_options,
-            is_flag=True,
-            is_eager=True,
-            expose_value=False,
-            callback=show_help,
-            help=_msg.TranslatedString(_msg.Label.HELP_OPTION_HELP_TEXT),
-        )
-
-    # This method is based on click 8.1; see the comment above the class
-    # declaration for license details.
-    def get_short_help_str(
-        self,
-        limit: int = 45,
-    ) -> str:
-        """Return the short help string for a command.
-
-        If only a long help string is given, shorten it.
-
-        Args:
-            limit:
-                The maximum width of the short help string.
-
-        """
-        # Modification against click 8.1: Call `_text()` on `self.help`
-        # to allow help texts to be general objects, not just strings.
-        # Used to implement translatable strings, as objects that
-        # stringify to the translation.
-        if self.short_help:  # pragma: no cover
-            text = inspect.cleandoc(self._text(self.short_help))
-        elif self.help:
-            text = click.utils.make_default_short_help(
-                self._text(self.help), limit
-            )
-        else:  # pragma: no cover
-            text = ''
-        if self.deprecated:  # pragma: no cover
-            # Modification against click 8.1: The translated string is
-            # looked up in the derivepassphrase message domain, not the
-            # gettext default domain.
-            text = str(
-                _msg.TranslatedString(_msg.Label.DEPRECATED_COMMAND_LABEL)
-            ).format(text=text)
-        return text.strip()
-
-    # This method is based on click 8.1; see the comment above the class
-    # declaration for license details.
-    def format_help_text(
-        self,
-        ctx: click.Context,
-        formatter: click.HelpFormatter,
-    ) -> None:
-        """Format the help text prologue, if any.
-
-        Args:
-            ctx:
-                The click context.
-            formatter:
-                The formatter for the `--help` listing.
-
-        """
-        del ctx
-        # Modification against click 8.1: Call `_text()` on `self.help`
-        # to allow help texts to be general objects, not just strings.
-        # Used to implement translatable strings, as objects that
-        # stringify to the translation.
-        text = (
-            inspect.cleandoc(self._text(self.help).partition('\f')[0])
-            if self.help is not None
-            else ''
-        )
-        if self.deprecated:  # pragma: no cover
-            # Modification against click 8.1: The translated string is
-            # looked up in the derivepassphrase message domain, not the
-            # gettext default domain.
-            text = str(
-                _msg.TranslatedString(_msg.Label.DEPRECATED_COMMAND_LABEL)
-            ).format(text=text)
-        if text:  # pragma: no branch
-            formatter.write_paragraph()
-            with formatter.indentation():
-                formatter.write_text(text)
-
-    # This method is based on click 8.1; see the comment above the class
-    # declaration for license details.  Consider the whole section
-    # marked as modified; the code modifications are too numerous to
-    # mark individually.
-    def format_options(
-        self,
-        ctx: click.Context,
-        formatter: click.HelpFormatter,
-    ) -> None:
-        r"""Format options on the help listing, grouped into sections.
-
-        This is a callback for [`click.Command.get_help`][] that
-        implements the `--help` listing, by calling appropriate methods
-        of the `formatter`.  We list all options (like the base
-        implementation), but grouped into sections according to the
-        concrete [`click.Option`][] subclass being used.  If the option
-        is an instance of some subclass of [`OptionGroupOption`][], then
-        the section heading and the epilog are taken from the
-        [`option_group_name`] [OptionGroupOption.option_group_name] and
-        [`epilog`] [OptionGroupOption.epilog] attributes; otherwise, the
-        section heading is "Options" (or "Other options" if there are
-        other option groups) and the epilog is empty.
-
-        We unconditionally call [`format_commands`][], and rely on it to
-        act as a no-op if we aren't actually a [`click.MultiCommand`][].
-
-        Args:
-            ctx:
-                The click context.
-            formatter:
-                The formatter for the `--help` listing.
-
-        """
-        default_group_name = ''
-        help_records: dict[str, list[tuple[str, str]]] = {}
-        epilogs: dict[str, str] = {}
-        params = self.params[:]
-        if (  # pragma: no branch
-            (help_opt := self.get_help_option(ctx)) is not None
-            and help_opt not in params
-        ):
-            params.append(help_opt)
-        for param in params:
-            rec = param.get_help_record(ctx)
-            if rec is not None:
-                rec = (rec[0], self._text(rec[1]))
-                if isinstance(param, OptionGroupOption):
-                    group_name = self._text(param.option_group_name)
-                    epilogs.setdefault(group_name, self._text(param.epilog))
-                else:  # pragma: no cover
-                    group_name = default_group_name
-                help_records.setdefault(group_name, []).append(rec)
-        if default_group_name in help_records:  # pragma: no branch
-            default_group = help_records.pop(default_group_name)
-            default_group_label = (
-                _msg.Label.OTHER_OPTIONS_LABEL
-                if len(default_group) > 1
-                else _msg.Label.OPTIONS_LABEL
-            )
-            default_group_name = self._text(
-                _msg.TranslatedString(default_group_label)
-            )
-            help_records[default_group_name] = default_group
-        for group_name, records in help_records.items():
-            with formatter.section(group_name):
-                formatter.write_dl(records)
-            epilog = inspect.cleandoc(epilogs.get(group_name, ''))
-            if epilog:
-                formatter.write_paragraph()
-                with formatter.indentation():
-                    formatter.write_text(epilog)
-        self.format_commands(ctx, formatter)
-
-    # This method is based on click 8.1; see the comment above the class
-    # declaration for license details.  Consider the whole section
-    # marked as modified; the code modifications are too numerous to
-    # mark individually.
-    def format_commands(
-        self,
-        ctx: click.Context,
-        formatter: click.HelpFormatter,
-    ) -> None:
-        """Format the subcommands, if any.
-
-        If called on a command object that isn't derived from
-        [`click.MultiCommand`][], then do nothing.
-
-        Args:
-            ctx:
-                The click context.
-            formatter:
-                The formatter for the `--help` listing.
-
-        """
-        if not isinstance(self, click.MultiCommand):
-            return
-        commands: list[tuple[str, click.Command]] = []
-        for subcommand in self.list_commands(ctx):
-            cmd = self.get_command(ctx, subcommand)
-            if cmd is None or cmd.hidden:  # pragma: no cover
-                continue
-            commands.append((subcommand, cmd))
-        if commands:  # pragma: no branch
-            longest_command = max((cmd[0] for cmd in commands), key=len)
-            limit = formatter.width - 6 - len(longest_command)
-            rows: list[tuple[str, str]] = []
-            for subcommand, cmd in commands:
-                help_str = self._text(cmd.get_short_help_str(limit) or '')
-                rows.append((subcommand, help_str))
-            if rows:  # pragma: no branch
-                commands_label = self._text(
-                    _msg.TranslatedString(_msg.Label.COMMANDS_LABEL)
-                )
-                with formatter.section(commands_label):
-                    formatter.write_dl(rows)
-
-    # This method is based on click 8.1; see the comment above the class
-    # declaration for license details.
-    def format_epilog(
-        self,
-        ctx: click.Context,
-        formatter: click.HelpFormatter,
-    ) -> None:
-        """Format the epilog, if any.
-
-        Args:
-            ctx:
-                The click context.
-            formatter:
-                The formatter for the `--help` listing.
-
-        """
-        del ctx
-        if self.epilog:  # pragma: no branch
-            # Modification against click 8.1: Call `str()` on
-            # `self.epilog` to allow help texts to be general objects,
-            # not just strings.  Used to implement translatable strings,
-            # as objects that stringify to the translation.
-            epilog = inspect.cleandoc(self._text(self.epilog))
-            formatter.write_paragraph()
-            with formatter.indentation():
-                formatter.write_text(epilog)
-
-
-def version_option_callback(
-    ctx: click.Context,
-    param: click.Parameter,
-    value: bool,  # noqa: FBT001
-) -> None:
-    del param
-    if value and not ctx.resilient_parsing:
-        click.echo(
-            str(
-                _msg.TranslatedString(
-                    _msg.Label.VERSION_INFO_TEXT,
-                    PROG_NAME=PROG_NAME,
-                    __version__=__version__,
-                )
-            ),
-        )
-        ctx.exit()
-
-
-def version_option(f: Callable[P, R]) -> Callable[P, R]:
-    return click.option(
-        '--version',
-        is_flag=True,
-        is_eager=True,
-        expose_value=False,
-        callback=version_option_callback,
-        cls=StandardOption,
-        help=_msg.TranslatedString(_msg.Label.VERSION_OPTION_HELP_TEXT),
-    )(f)
-
-
-def color_forcing_callback(
-    ctx: click.Context,
-    param: click.Parameter,
-    value: Any,  # noqa: ANN401
-) -> None:
-    """Force the `click` context to honor `NO_COLOR` and `FORCE_COLOR`."""
-    del param, value
-    if os.environ.get('NO_COLOR'):
-        ctx.color = False
-    if os.environ.get('FORCE_COLOR'):
-        ctx.color = True
-
-
-color_forcing_pseudo_option = click.option(
-    '--_pseudo-option-color-forcing',
-    '_color_forcing',
-    is_flag=True,
-    is_eager=True,
-    expose_value=False,
-    hidden=True,
-    callback=color_forcing_callback,
-    help='(pseudo-option)',
-)
-
-
-class LoggingOption(OptionGroupOption):
-    """Logging options for the CLI."""
-
-    option_group_name = _msg.TranslatedString(_msg.Label.LOGGING_LABEL)
-    epilog = ''
-
-
-debug_option = click.option(
-    '--debug',
-    'logging_level',
-    is_flag=True,
-    flag_value=logging.DEBUG,
-    expose_value=False,
-    callback=adjust_logging_level,
-    help=_msg.TranslatedString(_msg.Label.DEBUG_OPTION_HELP_TEXT),
-    cls=LoggingOption,
-)
-verbose_option = click.option(
-    '-v',
-    '--verbose',
-    'logging_level',
-    is_flag=True,
-    flag_value=logging.INFO,
-    expose_value=False,
-    callback=adjust_logging_level,
-    help=_msg.TranslatedString(_msg.Label.VERBOSE_OPTION_HELP_TEXT),
-    cls=LoggingOption,
-)
-quiet_option = click.option(
-    '-q',
-    '--quiet',
-    'logging_level',
-    is_flag=True,
-    flag_value=logging.ERROR,
-    expose_value=False,
-    callback=adjust_logging_level,
-    help=_msg.TranslatedString(_msg.Label.QUIET_OPTION_HELP_TEXT),
-    cls=LoggingOption,
-)
-
-
-def standard_logging_options(f: Callable[P, R]) -> Callable[P, R]:
-    """Decorate the function with standard logging click options.
-
-    Adds the three click options `-v`/`--verbose`, `-q`/`--quiet` and
-    `--debug`, which calls back into the [`adjust_logging_level`][]
-    function (with different argument values).
-
-    Args:
-        f: A callable to decorate.
-
-    Returns:
-        The decorated callable.
-
-    """
-    return debug_option(verbose_option(quiet_option(f)))
-
-
-# Shell completion
-# ================
-
-# Use naive filename completion for the `path` argument of
-# `derivepassphrase vault`'s `--import` and `--export` options, as well
-# as the `path` argument of `derivepassphrase export vault`.  The latter
-# treats the pseudo-filename `VAULT_PATH` specially, but this is awkward
-# to combine with standard filename completion, particularly in bash, so
-# we would probably have to implement *all* completion (`VAULT_PATH` and
-# filename completion) ourselves, lacking some niceties of bash's
-# built-in completion (e.g., adding spaces or slashes depending on
-# whether the completion is a directory or a complete filename).
-
-
-def _shell_complete_path(
-    ctx: click.Context,
-    parameter: click.Parameter,
-    value: str,
-) -> list[str | click.shell_completion.CompletionItem]:
-    """Request standard path completion for the `path` argument."""  # noqa: DOC201
-    del ctx, parameter, value
-    return [click.shell_completion.CompletionItem('', type='file')]
-
-
-# The standard `click` shell completion scripts serialize the completion
-# items as newline-separated one-line entries, which get silently
-# corrupted if the value contains newlines.  Each shell imposes
-# additional restrictions: Fish uses newlines in all internal completion
-# helper scripts, so it is difficult, if not impossible, to register
-# completion entries containing newlines if completion comes from within
-# a Fish completion function (instead of a Fish builtin).  Zsh's
-# completion system supports descriptions for each completion item, and
-# the completion helper functions parse every entry as a colon-separated
-# 2-tuple of item and description, meaning any colon in the item value
-# must be escaped.  Finally, Bash requires the result array to be
-# populated at the completion function's top-level scope, but for/while
-# loops within pipelines do not run at top-level scope, and Bash *also*
-# strips NUL characters from command substitution output, making it
-# difficult to read in external data into an array in a cross-platform
-# manner from entirely within Bash.
-#
-# We capitulate in front of these problems---most egregiously because of
-# Fish---and ensure that completion items (in this case: service names)
-# never contain ASCII control characters by refusing to offer such
-# items as valid completions.  On the other side, `derivepassphrase`
-# will warn the user when configuring or importing a service with such
-# a name that it will not be available for shell completion.
-
-
-def _is_completable_item(obj: object) -> bool:
-    """Return whether the item is completable on the command-line.
-
-    The item is completable if and only if it contains no ASCII control
-    characters (U+0000 through U+001F, and U+007F).
-
-    """
-    obj = str(obj)
-    forbidden = frozenset(chr(i) for i in range(32)) | {'\x7f'}
-    return not any(f in obj for f in forbidden)
-
-
-def _shell_complete_service(
-    ctx: click.Context,
-    parameter: click.Parameter,
-    value: str,
-) -> list[str | click.shell_completion.CompletionItem]:
-    """Return known vault service names as completion items.
-
-    Service names are looked up in the vault configuration file.  All
-    errors will be suppressed.  Additionally, any service names deemed
-    not completable as per [`_is_completable_item`][] will be silently
-    skipped.
-
-    """
-    del ctx, parameter
-    try:
-        config = _load_config()
-        return sorted(
-            sv
-            for sv in config['services']
-            if sv.startswith(value) and _is_completable_item(sv)
-        )
-    except FileNotFoundError:
-        try:
-            config, _exc = _migrate_and_load_old_config()
-            return sorted(
-                sv
-                for sv in config['services']
-                if sv.startswith(value) and _is_completable_item(sv)
-            )
-        except FileNotFoundError:
-            return []
-    except Exception:  # noqa: BLE001
-        return []
-
-
-class ZshComplete(click.shell_completion.ZshComplete):
-    """Zsh completion class that supports colons.
-
-    `click`'s Zsh completion class (at least v8.1.7 and v8.1.8) uses
-    some completion helper functions (provided by Zsh) that parse each
-    completion item into value-description pairs, separated by a colon.
-    Other completion helper functions don't.  Correspondingly, any
-    internal colons in the completion item's value sometimes need to be
-    escaped, and sometimes don't.
-
-    The "right" way to fix this is to modify the Zsh completion script
-    to only use one type of serialization: either escaped, or unescaped.
-    However, the Zsh completion script itself may already be installed
-    in the user's Zsh settings, and we have no way of knowing that.
-    Therefore, it is better to change the `format_completion` method to
-    adaptively and "smartly" emit colon-escaped output or not, based on
-    whether the completion script will be using it.
-
-    """
-
-    @override
-    def format_completion(
-        self,
-        item: click.shell_completion.CompletionItem,
-    ) -> str:
-        """Return a suitable serialization of the CompletionItem.
-
-        This serialization ensures colons in the item value are properly
-        escaped if and only if the completion script will attempt to
-        pass a colon-separated key/description pair to the underlying
-        Zsh machinery.  This is the case if and only if the help text is
-        non-degenerate.
-
-        """
-        help_ = item.help or '_'
-        value = item.value.replace(':', r'\:' if help_ != '_' else ':')
-        return f'{item.type}\n{value}\n{help_}'
-
-
-# Our ZshComplete class depends crucially on the exact shape of the Zsh
-# completion script.  So only fix the completion formatter if the
-# completion script is still the same.
-#
-# (This Zsh script is part of click, and available under the
-# 3-clause-BSD license.)
-_ORIG_SOURCE_TEMPLATE = """\
-#compdef %(prog_name)s
-
-%(complete_func)s() {
-    local -a completions
-    local -a completions_with_descriptions
-    local -a response
-    (( ! $+commands[%(prog_name)s] )) && return 1
-
-    response=("${(@f)$(env COMP_WORDS="${words[*]}" COMP_CWORD=$((CURRENT-1)) \
-%(complete_var)s=zsh_complete %(prog_name)s)}")
-
-    for type key descr in ${response}; do
-        if [[ "$type" == "plain" ]]; then
-            if [[ "$descr" == "_" ]]; then
-                completions+=("$key")
-            else
-                completions_with_descriptions+=("$key":"$descr")
-            fi
-        elif [[ "$type" == "dir" ]]; then
-            _path_files -/
-        elif [[ "$type" == "file" ]]; then
-            _path_files -f
-        fi
-    done
-
-    if [ -n "$completions_with_descriptions" ]; then
-        _describe -V unsorted completions_with_descriptions -U
-    fi
-
-    if [ -n "$completions" ]; then
-        compadd -U -V unsorted -a completions
-    fi
-}
-
-if [[ $zsh_eval_context[-1] == loadautofunc ]]; then
-    # autoload from fpath, call function directly
-    %(complete_func)s "$@"
-else
-    # eval/source/. command, register function for later
-    compdef %(complete_func)s %(prog_name)s
-fi
-"""
-if (
-    click.shell_completion.ZshComplete.source_template == _ORIG_SOURCE_TEMPLATE
-):  # pragma: no cover
-    click.shell_completion.add_completion_class(ZshComplete)
-
-
-# Top-level
-# =========
-
-
-# Portions of this class are based directly on code from click 8.1.
-# (This does not in general include docstrings, unless otherwise noted.)
-# They are subject to the 3-clause BSD license in the following
-# paragraphs.  Modifications to their code are marked with respective
-# comments; they too are released under the same license below.  The
-# original code did not contain any "noqa" or "pragma" comments.
-#
-#     Copyright 2024 Pallets
-#
-#     Redistribution and use in source and binary forms, with or
-#     without modification, are permitted provided that the
-#     following conditions are met:
-#
-#      1. Redistributions of source code must retain the above
-#         copyright notice, this list of conditions and the
-#         following disclaimer.
-#
-#      2. Redistributions in binary form must reproduce the above
-#         copyright notice, this list of conditions and the
-#         following disclaimer in the documentation and/or other
-#         materials provided with the distribution.
-#
-#      3. Neither the name of the copyright holder nor the names
-#         of its contributors may be used to endorse or promote
-#         products derived from this software without specific
-#         prior written permission.
-#
-#     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-#     CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
-#     INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-#     MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-#     DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
-#     CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#     SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-#     NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-#     LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-#     HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-#     CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-#     OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-#     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-# TODO(the-13th-letter): Remove this class and license block in v1.0.
-# https://the13thletter.info/derivepassphrase/latest/upgrade-notes/#v1.0-implied-subcommands
-class _DefaultToVaultGroup(CommandWithHelpGroups, click.Group):
-    """A helper class to implement the default-to-"vault"-subcommand behavior.
-
-    Modifies internal [`click.MultiCommand`][] methods, and thus is both
-    an implementation detail and a kludge.
-
-    """
-
-    def resolve_command(
-        self, ctx: click.Context, args: list[str]
-    ) -> tuple[str | None, click.Command | None, list[str]]:
-        """Resolve a command, defaulting to "vault" instead of erroring out."""  # noqa: DOC201
-        cmd_name = click.utils.make_str(args[0])
-
-        # Get the command
-        cmd = self.get_command(ctx, cmd_name)
-
-        # If we can't find the command but there is a normalization
-        # function available, we try with that one.
-        if (  # pragma: no cover
-            cmd is None and ctx.token_normalize_func is not None
-        ):
-            cmd_name = ctx.token_normalize_func(cmd_name)
-            cmd = self.get_command(ctx, cmd_name)
-
-        # If we don't find the command we want to show an error message
-        # to the user that it was not provided.  However, there is
-        # something else we should do: if the first argument looks like
-        # an option we want to kick off parsing again for arguments to
-        # resolve things like --help which now should go to the main
-        # place.
-        if cmd is None and not ctx.resilient_parsing:
-            if click.parser.split_opt(cmd_name)[0]:
-                self.parse_args(ctx, ctx.args)
-            ####
-            # BEGIN modifications for derivepassphrase
-            #
-            # Instead of calling ctx.fail here, default to "vault", and
-            # issue a deprecation warning.
-            deprecation = logging.getLogger(f'{PROG_NAME}.deprecation')
-            deprecation.warning(
-                _msg.TranslatedString(
-                    _msg.WarnMsgTemplate.V10_SUBCOMMAND_REQUIRED
-                )
-            )
-            cmd_name = 'vault'
-            cmd = self.get_command(ctx, cmd_name)
-            assert cmd is not None, 'Mandatory subcommand "vault" missing!'
-            args = [cmd_name, *args]
-            #
-            # END modifications for derivepassphrase
-            ####
-        return cmd_name if cmd else None, cmd, args[1:]
-
-
-# TODO(the-13th-letter): Base this class on CommandWithHelpGroups and
-# click.Group in v1.0.
-# https://the13thletter.info/derivepassphrase/latest/upgrade-notes/#v1.0-implied-subcommands
-class _TopLevelCLIEntryPoint(_DefaultToVaultGroup):
-    """A minor variation of _DefaultToVaultGroup for the top-level command.
-
-    When called as a function, this sets up the environment properly
-    before invoking the actual callbacks.  Currently, this means setting
-    up the logging subsystem and the delegation of Python warnings to
-    the logging subsystem.
-
-    The environment setup can be bypassed by calling the `.main` method
-    directly.
-
-    """
-
-    def __call__(  # pragma: no cover
-        self,
-        *args: Any,  # noqa: ANN401
-        **kwargs: Any,  # noqa: ANN401
-    ) -> Any:  # noqa: ANN401
-        """"""  # noqa: D419
-        # Coverage testing is done with the `click.testing` module,
-        # which does not use the `__call__` shortcut.  So it is normal
-        # that this function is never called, and thus should be
-        # excluded from coverage.
-        with (
-            StandardCLILogging.ensure_standard_logging(),
-            StandardCLILogging.ensure_standard_warnings_logging(),
-        ):
-            return self.main(*args, **kwargs)
 
 
 @click.group(
@@ -1210,16 +54,16 @@ class _TopLevelCLIEntryPoint(_DefaultToVaultGroup):
     },
     epilog=_msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_EPILOG_01),
     invoke_without_command=True,
-    cls=_TopLevelCLIEntryPoint,
+    cls=cli_machinery.TopLevelCLIEntryPoint,
     help=(
         _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_01),
         _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_02),
         _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_03),
     ),
 )
-@version_option
-@color_forcing_pseudo_option
-@standard_logging_options
+@cli_machinery.version_option
+@cli_machinery.color_forcing_pseudo_option
+@cli_machinery.standard_logging_options
 @click.pass_context
 def derivepassphrase(ctx: click.Context, /) -> None:
     """Derive a strong passphrase, deterministically, from a master secret.
@@ -1265,16 +109,16 @@ def derivepassphrase(ctx: click.Context, /) -> None:
         'allow_interspersed_args': False,
     },
     invoke_without_command=True,
-    cls=_DefaultToVaultGroup,
+    cls=cli_machinery.DefaultToVaultGroup,
     help=(
         _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_EXPORT_01),
         _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_EXPORT_02),
         _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_EXPORT_03),
     ),
 )
-@version_option
-@color_forcing_pseudo_option
-@standard_logging_options
+@cli_machinery.version_option
+@cli_machinery.color_forcing_pseudo_option
+@cli_machinery.standard_logging_options
 @click.pass_context
 def derivepassphrase_export(ctx: click.Context, /) -> None:
     """Export a foreign configuration to standard output.
@@ -1314,7 +158,7 @@ def derivepassphrase_export(ctx: click.Context, /) -> None:
 @derivepassphrase_export.command(
     'vault',
     context_settings={'help_option_names': ['-h', '--help']},
-    cls=CommandWithHelpGroups,
+    cls=cli_machinery.CommandWithHelpGroups,
     help=(
         _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_EXPORT_VAULT_01),
         _msg.TranslatedString(
@@ -1348,7 +192,7 @@ def derivepassphrase_export(ctx: click.Context, /) -> None:
             _msg.Label.EXPORT_VAULT_FORMAT_METAVAR_FMT,
         ),
     ),
-    cls=StandardOption,
+    cls=cli_machinery.StandardOption,
 )
 @click.option(
     '-k',
@@ -1361,16 +205,16 @@ def derivepassphrase_export(ctx: click.Context, /) -> None:
             _msg.Label.EXPORT_VAULT_KEY_DEFAULTS_HELP_TEXT,
         ),
     ),
-    cls=StandardOption,
+    cls=cli_machinery.StandardOption,
 )
-@version_option
-@color_forcing_pseudo_option
-@standard_logging_options
+@cli_machinery.version_option
+@cli_machinery.color_forcing_pseudo_option
+@cli_machinery.standard_logging_options
 @click.argument(
     'path',
     metavar=_msg.TranslatedString(_msg.Label.EXPORT_VAULT_METAVAR_PATH),
     required=True,
-    shell_complete=_shell_complete_path,
+    shell_complete=cli_helpers.shell_complete_path,
 )
 @click.pass_context
 def derivepassphrase_export_vault(
@@ -1468,712 +312,10 @@ def derivepassphrase_export_vault(
         ctx.exit(1)
 
 
-# Vault
-# =====
-
-_config_filename_table = {
-    None: '.',
-    'vault': 'vault.json',
-    'user configuration': 'config.toml',
-    # TODO(the-13th-letter): Remove the old settings.json file.
-    # https://the13thletter.info/derivepassphrase/latest/upgrade-notes.html#v1.0-old-settings-file
-    'old settings.json': 'settings.json',
-}
-
-
-def _config_filename(
-    subsystem: str | None = 'old settings.json',
-) -> pathlib.Path:
-    """Return the filename of the configuration file for the subsystem.
-
-    The (implicit default) file is currently named `settings.json`,
-    located within the configuration directory as determined by the
-    `DERIVEPASSPHRASE_PATH` environment variable, or by
-    [`click.get_app_dir`][] in POSIX mode.  Depending on the requested
-    subsystem, this will usually be a different file within that
-    directory.
-
-    Args:
-        subsystem:
-            Name of the configuration subsystem whose configuration
-            filename to return.  If not given, return the old filename
-            from before the subcommand migration.  If `None`, return the
-            configuration directory instead.
-
-    Raises:
-        AssertionError:
-            An unknown subsystem was passed.
-
-    Deprecated:
-        Since v0.2.0: The implicit default subsystem and the old
-        configuration filename are deprecated, and will be removed in v1.0.
-        The subsystem will be mandatory to specify.
-
-    """
-    path = pathlib.Path(
-        os.getenv(PROG_NAME.upper() + '_PATH')
-        or click.get_app_dir(PROG_NAME, force_posix=True)
-    )
-    try:
-        filename = _config_filename_table[subsystem]
-    except (KeyError, TypeError):  # pragma: no cover
-        msg = f'Unknown configuration subsystem: {subsystem!r}'
-        raise AssertionError(msg) from None
-    return path / filename
-
-
-def _load_config() -> _types.VaultConfig:
-    """Load a vault(1)-compatible config from the application directory.
-
-    The filename is obtained via [`_config_filename`][].  This must be
-    an unencrypted JSON file.
-
-    Returns:
-        The vault settings.  See [`_types.VaultConfig`][] for details.
-
-    Raises:
-        OSError:
-            There was an OS error accessing the file.
-        ValueError:
-            The data loaded from the file is not a vault(1)-compatible
-            config.
-
-    """
-    filename = _config_filename(subsystem='vault')
-    with filename.open('rb') as fileobj:
-        data = json.load(fileobj)
-    if not _types.is_vault_config(data):
-        raise ValueError(_INVALID_VAULT_CONFIG)
-    return data
-
-
-# TODO(the-13th-letter): Remove this function.
-# https://the13thletter.info/derivepassphrase/latest/upgrade-notes.html#v1.0-old-settings-file
-def _migrate_and_load_old_config() -> tuple[
-    _types.VaultConfig, OSError | None
-]:
-    """Load and migrate a vault(1)-compatible config.
-
-    The (old) filename is obtained via [`_config_filename`][].  This
-    must be an unencrypted JSON file.  After loading, the file is
-    migrated to the new standard filename.
-
-    Returns:
-        The vault settings, and an optional exception encountered during
-        migration.  See [`_types.VaultConfig`][] for details on the
-        former.
-
-    Raises:
-        OSError:
-            There was an OS error accessing the old file.
-        ValueError:
-            The data loaded from the file is not a vault(1)-compatible
-            config.
-
-    """
-    new_filename = _config_filename(subsystem='vault')
-    old_filename = _config_filename(subsystem='old settings.json')
-    with old_filename.open('rb') as fileobj:
-        data = json.load(fileobj)
-    if not _types.is_vault_config(data):
-        raise ValueError(_INVALID_VAULT_CONFIG)
-    try:
-        old_filename.rename(new_filename)
-    except OSError as exc:
-        return data, exc
-    else:
-        return data, None
-
-
-def _save_config(config: _types.VaultConfig, /) -> None:
-    """Save a vault(1)-compatible config to the application directory.
-
-    The filename is obtained via [`_config_filename`][].  The config
-    will be stored as an unencrypted JSON file.
-
-    Args:
-        config:
-            vault configuration to save.
-
-    Raises:
-        OSError:
-            There was an OS error accessing or writing the file.
-        ValueError:
-            The data cannot be stored as a vault(1)-compatible config.
-
-    """
-    if not _types.is_vault_config(config):
-        raise ValueError(_INVALID_VAULT_CONFIG)
-    filename = _config_filename(subsystem='vault')
-    filedir = filename.resolve().parent
-    filedir.mkdir(parents=True, exist_ok=True)
-    with filename.open('w', encoding='UTF-8') as fileobj:
-        json.dump(config, fileobj)
-
-
-def _load_user_config() -> dict[str, Any]:
-    """Load the user config from the application directory.
-
-    The filename is obtained via [`_config_filename`][].
-
-    Returns:
-        The user configuration, as a nested `dict`.
-
-    Raises:
-        OSError:
-            There was an OS error accessing the file.
-        ValueError:
-            The data loaded from the file is not a valid configuration
-            file.
-
-    """
-    filename = _config_filename(subsystem='user configuration')
-    with filename.open('rb') as fileobj:
-        return tomllib.load(fileobj)
-
-
-def _get_suitable_ssh_keys(
-    conn: ssh_agent.SSHAgentClient | socket.socket | None = None, /
-) -> Iterator[_types.SSHKeyCommentPair]:
-    """Yield all SSH keys suitable for passphrase derivation.
-
-    Suitable SSH keys are queried from the running SSH agent (see
-    [`ssh_agent.SSHAgentClient.list_keys`][]).
-
-    Args:
-        conn:
-            An optional connection hint to the SSH agent.  See
-            [`ssh_agent.SSHAgentClient.ensure_agent_subcontext`][].
-
-    Yields:
-        Every SSH key from the SSH agent that is suitable for passphrase
-        derivation.
-
-    Raises:
-        KeyError:
-            `conn` was `None`, and the `SSH_AUTH_SOCK` environment
-            variable was not found.
-        NotImplementedError:
-            `conn` was `None`, and this Python does not support
-            [`socket.AF_UNIX`][], so the SSH agent client cannot be
-            automatically set up.
-        OSError:
-            `conn` was a socket or `None`, and there was an error
-            setting up a socket connection to the agent.
-        LookupError:
-            No keys usable for passphrase derivation are loaded into the
-            SSH agent.
-        RuntimeError:
-            There was an error communicating with the SSH agent.
-        ssh_agent.SSHAgentFailedError:
-            The agent failed to supply a list of loaded keys.
-
-    """
-    with ssh_agent.SSHAgentClient.ensure_agent_subcontext(conn) as client:
-        try:
-            all_key_comment_pairs = list(client.list_keys())
-        except EOFError as exc:  # pragma: no cover
-            raise RuntimeError(_AGENT_COMMUNICATION_ERROR) from exc
-        suitable_keys = copy.copy(all_key_comment_pairs)
-        for pair in all_key_comment_pairs:
-            key, _comment = pair
-            if vault.Vault.is_suitable_ssh_key(key, client=client):
-                yield pair
-    if not suitable_keys:  # pragma: no cover
-        raise LookupError(_NO_SUITABLE_KEYS)
-
-
-def _prompt_for_selection(
-    items: Sequence[str | bytes],
-    heading: str = 'Possible choices:',
-    single_choice_prompt: str = 'Confirm this choice?',
-    ctx: click.Context | None = None,
-) -> int:
-    """Prompt user for a choice among the given items.
-
-    Print the heading, if any, then present the items to the user.  If
-    there are multiple items, prompt the user for a selection, validate
-    the choice, then return the list index of the selected item.  If
-    there is only a single item, request confirmation for that item
-    instead, and return the correct index.
-
-    Args:
-        items:
-            The list of items to choose from.
-        heading:
-            A heading for the list of items, to print immediately
-            before.  Defaults to a reasonable standard heading.  If
-            explicitly empty, print no heading.
-        single_choice_prompt:
-            The confirmation prompt if there is only a single possible
-            choice.  Defaults to a reasonable standard prompt.
-        ctx:
-            An optional `click` context, from which output device
-            properties and color preferences will be queried.
-
-    Returns:
-        An index into the items sequence, indicating the user's
-        selection.
-
-    Raises:
-        IndexError:
-            The user made an invalid or empty selection, or requested an
-            abort.
-
-    """
-    n = len(items)
-    color = ctx.color if ctx is not None else None
-    if heading:
-        click.echo(click.style(heading, bold=True), color=color)
-    for i, x in enumerate(items, start=1):
-        click.echo(click.style(f'[{i}]', bold=True), nl=False, color=color)
-        click.echo(' ', nl=False, color=color)
-        click.echo(x, color=color)
-    if n > 1:
-        choices = click.Choice([''] + [str(i) for i in range(1, n + 1)])
-        choice = click.prompt(
-            f'Your selection? (1-{n}, leave empty to abort)',
-            err=True,
-            type=choices,
-            show_choices=False,
-            show_default=False,
-            default='',
-        )
-        if not choice:
-            raise IndexError(_EMPTY_SELECTION)
-        return int(choice) - 1
-    prompt_suffix = (
-        ' ' if single_choice_prompt.endswith(tuple('?.!')) else ': '
-    )
-    try:
-        click.confirm(
-            single_choice_prompt,
-            prompt_suffix=prompt_suffix,
-            err=True,
-            abort=True,
-            default=False,
-            show_default=False,
-        )
-    except click.Abort:
-        raise IndexError(_EMPTY_SELECTION) from None
-    return 0
-
-
-def _select_ssh_key(
-    conn: ssh_agent.SSHAgentClient | socket.socket | None = None,
-    /,
-    *,
-    ctx: click.Context | None = None,
-) -> bytes | bytearray:
-    """Interactively select an SSH key for passphrase derivation.
-
-    Suitable SSH keys are queried from the running SSH agent (see
-    [`ssh_agent.SSHAgentClient.list_keys`][]), then the user is prompted
-    interactively (see [`click.prompt`][]) for a selection.
-
-    Args:
-        conn:
-            An optional connection hint to the SSH agent.  See
-            [`ssh_agent.SSHAgentClient.ensure_agent_subcontext`][].
-        ctx:
-            An `click` context, queried for output device properties and
-            color preferences when issuing the prompt.
-
-    Returns:
-        The selected SSH key.
-
-    Raises:
-        KeyError:
-            `conn` was `None`, and the `SSH_AUTH_SOCK` environment
-            variable was not found.
-        NotImplementedError:
-            `conn` was `None`, and this Python does not support
-            [`socket.AF_UNIX`][], so the SSH agent client cannot be
-            automatically set up.
-        OSError:
-            `conn` was a socket or `None`, and there was an error
-            setting up a socket connection to the agent.
-        IndexError:
-            The user made an invalid or empty selection, or requested an
-            abort.
-        LookupError:
-            No keys usable for passphrase derivation are loaded into the
-            SSH agent.
-        RuntimeError:
-            There was an error communicating with the SSH agent.
-        SSHAgentFailedError:
-            The agent failed to supply a list of loaded keys.
-    """
-    suitable_keys = list(_get_suitable_ssh_keys(conn))
-    key_listing: list[str] = []
-    unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
-    for key, comment in suitable_keys:
-        keytype = unstring_prefix(key)[0].decode('ASCII')
-        key_str = base64.standard_b64encode(key).decode('ASCII')
-        remaining_key_display_length = KEY_DISPLAY_LENGTH - 1 - len(keytype)
-        key_extract = min(
-            key_str,
-            '...' + key_str[-remaining_key_display_length:],
-            key=len,
-        )
-        comment_str = comment.decode('UTF-8', errors='replace')
-        key_listing.append(f'{keytype} {key_extract}  {comment_str}')
-    choice = _prompt_for_selection(
-        key_listing,
-        heading='Suitable SSH keys:',
-        single_choice_prompt='Use this key?',
-        ctx=ctx,
-    )
-    return suitable_keys[choice].key
-
-
-def _prompt_for_passphrase() -> str:
-    """Interactively prompt for the passphrase.
-
-    Calls [`click.prompt`][] internally.  Moved into a separate function
-    mainly for testing/mocking purposes.
-
-    Returns:
-        The user input.
-
-    """
-    return cast(
-        'str',
-        click.prompt(
-            'Passphrase',
-            default='',
-            hide_input=True,
-            show_default=False,
-            err=True,
-        ),
-    )
-
-
-def _toml_key(*parts: str) -> str:
-    """Return a formatted TOML key, given its parts."""
-
-    def escape(string: str) -> str:
-        translated = string.translate({
-            0: r'\u0000',
-            1: r'\u0001',
-            2: r'\u0002',
-            3: r'\u0003',
-            4: r'\u0004',
-            5: r'\u0005',
-            6: r'\u0006',
-            7: r'\u0007',
-            8: r'\b',
-            9: r'\t',
-            10: r'\n',
-            11: r'\u000B',
-            12: r'\f',
-            13: r'\r',
-            14: r'\u000E',
-            15: r'\u000F',
-            ord('"'): r'\"',
-            ord('\\'): r'\\',
-            127: r'\u007F',
-        })
-        return f'"{translated}"' if translated != string else string
-
-    return '.'.join(map(escape, parts))
-
-
-class _ORIGIN(enum.Enum):
-    INTERACTIVE: str = 'interactive input'
-
-
-def _check_for_misleading_passphrase(
-    key: tuple[str, ...] | _ORIGIN,
-    value: dict[str, Any],
-    *,
-    main_config: dict[str, Any],
-    ctx: click.Context | None = None,
-) -> None:
-    form_key = 'unicode-normalization-form'
-    default_form: str = main_config.get('vault', {}).get(
-        f'default-{form_key}', 'NFC'
-    )
-    form_dict: dict[str, dict] = main_config.get('vault', {}).get(form_key, {})
-    form: Any = (
-        default_form
-        if isinstance(key, _ORIGIN) or key == ('global',)
-        else form_dict.get(key[1], default_form)
-    )
-    config_key = (
-        _toml_key('vault', key[1], form_key)
-        if isinstance(key, tuple) and len(key) > 1 and key[1] in form_dict
-        else f'vault.default-{form_key}'
-    )
-    if form not in {'NFC', 'NFD', 'NFKC', 'NFKD'}:
-        msg = f'Invalid value {form!r} for config key {config_key}'
-        raise AssertionError(msg)
-    logger = logging.getLogger(PROG_NAME)
-    formatted_key = (
-        key.value if isinstance(key, _ORIGIN) else _types.json_path(key)
-    )
-    if 'phrase' in value:
-        phrase = value['phrase']
-        if not unicodedata.is_normalized(form, phrase):
-            logger.warning(
-                (
-                    'The %s passphrase is not %s-normalized.  Its '
-                    'serialization as a byte string may not be what you '
-                    'expect it to be, even if it *displays* correctly.  '
-                    'Please make sure to double-check any derived '
-                    'passphrases for unexpected results.'
-                ),
-                formatted_key,
-                form,
-                stacklevel=2,
-                extra={'color': ctx.color if ctx is not None else None},
-            )
-
-
-def _key_to_phrase(
-    key_: str | bytes | bytearray,
-    /,
-    *,
-    error_callback: Callable[..., NoReturn] = sys.exit,
-) -> bytes | bytearray:
-    key = base64.standard_b64decode(key_)
-    try:
-        with ssh_agent.SSHAgentClient.ensure_agent_subcontext() as client:
-            try:
-                return vault.Vault.phrase_from_key(key, conn=client)
-            except ssh_agent.SSHAgentFailedError as exc:
-                try:
-                    keylist = client.list_keys()
-                except ssh_agent.SSHAgentFailedError:
-                    pass
-                except Exception as exc2:  # noqa: BLE001
-                    exc.__context__ = exc2
-                else:
-                    if not any(  # pragma: no branch
-                        k == key for k, _ in keylist
-                    ):
-                        error_callback(
-                            _msg.TranslatedString(
-                                _msg.ErrMsgTemplate.SSH_KEY_NOT_LOADED
-                            )
-                        )
-                error_callback(
-                    _msg.TranslatedString(
-                        _msg.ErrMsgTemplate.AGENT_REFUSED_SIGNATURE
-                    ),
-                    exc_info=exc,
-                )
-    except KeyError:
-        error_callback(
-            _msg.TranslatedString(_msg.ErrMsgTemplate.NO_SSH_AGENT_FOUND)
-        )
-    except NotImplementedError:
-        error_callback(_msg.TranslatedString(_msg.ErrMsgTemplate.NO_AF_UNIX))
-    except OSError as exc:
-        error_callback(
-            _msg.TranslatedString(
-                _msg.ErrMsgTemplate.CANNOT_CONNECT_TO_AGENT,
-                error=exc.strerror,
-                filename=exc.filename,
-            ).maybe_without_filename()
-        )
-    except RuntimeError as exc:
-        error_callback(
-            _msg.TranslatedString(_msg.ErrMsgTemplate.CANNOT_UNDERSTAND_AGENT),
-            exc_info=exc,
-        )
-
-
-def _print_config_as_sh_script(
-    config: _types.VaultConfig,
-    /,
-    *,
-    outfile: TextIO,
-    prog_name_list: Sequence[str],
-) -> None:
-    service_keys = (
-        'length',
-        'repeat',
-        'lower',
-        'upper',
-        'number',
-        'space',
-        'dash',
-        'symbol',
-    )
-    print('#!/bin/sh -e', file=outfile)
-    print(file=outfile)
-    print(shlex.join([*prog_name_list, '--clear']), file=outfile)
-    sv_obj_pairs: list[
-        tuple[
-            str | None,
-            _types.VaultConfigGlobalSettings
-            | _types.VaultConfigServicesSettings,
-        ],
-    ] = list(config['services'].items())
-    if config.get('global', {}):
-        sv_obj_pairs.insert(0, (None, config['global']))
-    for sv, sv_obj in sv_obj_pairs:
-        this_service_keys = tuple(k for k in service_keys if k in sv_obj)
-        this_other_keys = tuple(k for k in sv_obj if k not in service_keys)
-        if this_other_keys:
-            other_sv_obj = {k: sv_obj[k] for k in this_other_keys}  # type: ignore[literal-required]
-            dumped_config = json.dumps(
-                (
-                    {'services': {sv: other_sv_obj}}
-                    if sv is not None
-                    else {'global': other_sv_obj, 'services': {}}
-                ),
-                ensure_ascii=False,
-                indent=None,
-            )
-            print(
-                shlex.join([*prog_name_list, '--import', '-']) + " <<'HERE'",
-                dumped_config,
-                'HERE',
-                sep='\n',
-                file=outfile,
-            )
-        if not this_service_keys and not this_other_keys and sv:
-            dumped_config = json.dumps(
-                {'services': {sv: {}}},
-                ensure_ascii=False,
-                indent=None,
-            )
-            print(
-                shlex.join([*prog_name_list, '--import', '-']) + " <<'HERE'",
-                dumped_config,
-                'HERE',
-                sep='\n',
-                file=outfile,
-            )
-        elif this_service_keys:
-            tokens = [*prog_name_list, '--config']
-            for key in this_service_keys:
-                tokens.extend([f'--{key}', str(sv_obj[key])])  # type: ignore[literal-required]
-            if sv is not None:
-                tokens.extend(['--', sv])
-            print(shlex.join(tokens), file=outfile)
-
-
-# Concrete option groups used by this command-line interface.
-class PassphraseGenerationOption(OptionGroupOption):
-    """Passphrase generation options for the CLI."""
-
-    option_group_name = _msg.TranslatedString(
-        _msg.Label.PASSPHRASE_GENERATION_LABEL
-    )
-    epilog = _msg.TranslatedString(
-        _msg.Label.PASSPHRASE_GENERATION_EPILOG,
-        metavar=_msg.TranslatedString(
-            _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
-        ),
-    )
-
-
-class ConfigurationOption(OptionGroupOption):
-    """Configuration options for the CLI."""
-
-    option_group_name = _msg.TranslatedString(_msg.Label.CONFIGURATION_LABEL)
-    epilog = _msg.TranslatedString(_msg.Label.CONFIGURATION_EPILOG)
-
-
-class StorageManagementOption(OptionGroupOption):
-    """Storage management options for the CLI."""
-
-    option_group_name = _msg.TranslatedString(
-        _msg.Label.STORAGE_MANAGEMENT_LABEL
-    )
-    epilog = _msg.TranslatedString(
-        _msg.Label.STORAGE_MANAGEMENT_EPILOG,
-        metavar=_msg.TranslatedString(
-            _msg.Label.STORAGE_MANAGEMENT_METAVAR_PATH
-        ),
-    )
-
-
-class CompatibilityOption(OptionGroupOption):
-    """Compatibility and incompatibility options for the CLI."""
-
-    option_group_name = _msg.TranslatedString(
-        _msg.Label.COMPATIBILITY_OPTION_LABEL
-    )
-
-
-def _validate_occurrence_constraint(
-    ctx: click.Context,
-    param: click.Parameter,
-    value: Any,  # noqa: ANN401
-) -> int | None:
-    """Check that the occurrence constraint is valid (int, 0 or larger).
-
-    Args:
-        ctx: The `click` context.
-        param: The current command-line parameter.
-        value: The parameter value to be checked.
-
-    Returns:
-        The parsed parameter value.
-
-    Raises:
-        click.BadParameter: The parameter value is invalid.
-
-    """
-    del ctx  # Unused.
-    del param  # Unused.
-    if value is None:
-        return value
-    if isinstance(value, int):
-        int_value = value
-    else:
-        try:
-            int_value = int(value, 10)
-        except ValueError as exc:
-            raise click.BadParameter(_NOT_AN_INTEGER) from exc
-    if int_value < 0:
-        raise click.BadParameter(_NOT_A_NONNEGATIVE_INTEGER)
-    return int_value
-
-
-def _validate_length(
-    ctx: click.Context,
-    param: click.Parameter,
-    value: Any,  # noqa: ANN401
-) -> int | None:
-    """Check that the length is valid (int, 1 or larger).
-
-    Args:
-        ctx: The `click` context.
-        param: The current command-line parameter.
-        value: The parameter value to be checked.
-
-    Returns:
-        The parsed parameter value.
-
-    Raises:
-        click.BadParameter: The parameter value is invalid.
-
-    """
-    del ctx  # Unused.
-    del param  # Unused.
-    if value is None:
-        return value
-    if isinstance(value, int):
-        int_value = value
-    else:
-        try:
-            int_value = int(value, 10)
-        except ValueError as exc:
-            raise click.BadParameter(_NOT_AN_INTEGER) from exc
-    if int_value < 1:
-        raise click.BadParameter(_NOT_A_POSITIVE_INTEGER)
-    return int_value
-
-
 @derivepassphrase.command(
     'vault',
     context_settings={'help_option_names': ['-h', '--help']},
-    cls=CommandWithHelpGroups,
+    cls=cli_machinery.CommandWithHelpGroups,
     help=(
         _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_VAULT_01),
         _msg.TranslatedString(
@@ -2196,7 +338,7 @@ def _validate_length(
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_PHRASE_HELP_TEXT
     ),
-    cls=PassphraseGenerationOption,
+    cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
     '-k',
@@ -2206,7 +348,7 @@ def _validate_length(
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_KEY_HELP_TEXT
     ),
-    cls=PassphraseGenerationOption,
+    cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
     '-l',
@@ -2214,14 +356,14 @@ def _validate_length(
     metavar=_msg.TranslatedString(
         _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
     ),
-    callback=_validate_length,
+    callback=cli_machinery.validate_length,
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_LENGTH_HELP_TEXT,
         metavar=_msg.TranslatedString(
             _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
         ),
     ),
-    cls=PassphraseGenerationOption,
+    cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
     '-r',
@@ -2229,98 +371,98 @@ def _validate_length(
     metavar=_msg.TranslatedString(
         _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
     ),
-    callback=_validate_occurrence_constraint,
+    callback=cli_machinery.validate_occurrence_constraint,
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_REPEAT_HELP_TEXT,
         metavar=_msg.TranslatedString(
             _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
         ),
     ),
-    cls=PassphraseGenerationOption,
+    cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
     '--lower',
     metavar=_msg.TranslatedString(
         _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
     ),
-    callback=_validate_occurrence_constraint,
+    callback=cli_machinery.validate_occurrence_constraint,
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_LOWER_HELP_TEXT,
         metavar=_msg.TranslatedString(
             _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
         ),
     ),
-    cls=PassphraseGenerationOption,
+    cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
     '--upper',
     metavar=_msg.TranslatedString(
         _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
     ),
-    callback=_validate_occurrence_constraint,
+    callback=cli_machinery.validate_occurrence_constraint,
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_UPPER_HELP_TEXT,
         metavar=_msg.TranslatedString(
             _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
         ),
     ),
-    cls=PassphraseGenerationOption,
+    cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
     '--number',
     metavar=_msg.TranslatedString(
         _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
     ),
-    callback=_validate_occurrence_constraint,
+    callback=cli_machinery.validate_occurrence_constraint,
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_NUMBER_HELP_TEXT,
         metavar=_msg.TranslatedString(
             _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
         ),
     ),
-    cls=PassphraseGenerationOption,
+    cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
     '--space',
     metavar=_msg.TranslatedString(
         _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
     ),
-    callback=_validate_occurrence_constraint,
+    callback=cli_machinery.validate_occurrence_constraint,
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_SPACE_HELP_TEXT,
         metavar=_msg.TranslatedString(
             _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
         ),
     ),
-    cls=PassphraseGenerationOption,
+    cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
     '--dash',
     metavar=_msg.TranslatedString(
         _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
     ),
-    callback=_validate_occurrence_constraint,
+    callback=cli_machinery.validate_occurrence_constraint,
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_DASH_HELP_TEXT,
         metavar=_msg.TranslatedString(
             _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
         ),
     ),
-    cls=PassphraseGenerationOption,
+    cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
     '--symbol',
     metavar=_msg.TranslatedString(
         _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
     ),
-    callback=_validate_occurrence_constraint,
+    callback=cli_machinery.validate_occurrence_constraint,
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_SYMBOL_HELP_TEXT,
         metavar=_msg.TranslatedString(
             _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
         ),
     ),
-    cls=PassphraseGenerationOption,
+    cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
     '-n',
@@ -2333,7 +475,7 @@ def _validate_length(
             _msg.Label.VAULT_METAVAR_SERVICE
         ),
     ),
-    cls=ConfigurationOption,
+    cls=cli_machinery.ConfigurationOption,
 )
 @click.option(
     '-c',
@@ -2346,7 +488,7 @@ def _validate_length(
             _msg.Label.VAULT_METAVAR_SERVICE
         ),
     ),
-    cls=ConfigurationOption,
+    cls=cli_machinery.ConfigurationOption,
 )
 @click.option(
     '-x',
@@ -2359,7 +501,7 @@ def _validate_length(
             _msg.Label.VAULT_METAVAR_SERVICE
         ),
     ),
-    cls=ConfigurationOption,
+    cls=cli_machinery.ConfigurationOption,
 )
 @click.option(
     '--delete-globals',
@@ -2367,7 +509,7 @@ def _validate_length(
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_DELETE_GLOBALS_HELP_TEXT,
     ),
-    cls=ConfigurationOption,
+    cls=cli_machinery.ConfigurationOption,
 )
 @click.option(
     '-X',
@@ -2377,7 +519,7 @@ def _validate_length(
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_DELETE_ALL_HELP_TEXT,
     ),
-    cls=ConfigurationOption,
+    cls=cli_machinery.ConfigurationOption,
 )
 @click.option(
     '-e',
@@ -2392,8 +534,8 @@ def _validate_length(
             _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
         ),
     ),
-    cls=StorageManagementOption,
-    shell_complete=_shell_complete_path,
+    cls=cli_machinery.StorageManagementOption,
+    shell_complete=cli_helpers.shell_complete_path,
 )
 @click.option(
     '-i',
@@ -2408,8 +550,8 @@ def _validate_length(
             _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
         ),
     ),
-    cls=StorageManagementOption,
-    shell_complete=_shell_complete_path,
+    cls=cli_machinery.StorageManagementOption,
+    shell_complete=cli_helpers.shell_complete_path,
 )
 @click.option(
     '--overwrite-existing/--merge-existing',
@@ -2418,7 +560,7 @@ def _validate_length(
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_OVERWRITE_HELP_TEXT
     ),
-    cls=CompatibilityOption,
+    cls=cli_machinery.CompatibilityOption,
 )
 @click.option(
     '--unset',
@@ -2439,7 +581,7 @@ def _validate_length(
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_UNSET_HELP_TEXT
     ),
-    cls=CompatibilityOption,
+    cls=cli_machinery.CompatibilityOption,
 )
 @click.option(
     '--export-as',
@@ -2448,17 +590,17 @@ def _validate_length(
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_EXPORT_AS_HELP_TEXT
     ),
-    cls=CompatibilityOption,
+    cls=cli_machinery.CompatibilityOption,
 )
-@version_option
-@color_forcing_pseudo_option
-@standard_logging_options
+@cli_machinery.version_option
+@cli_machinery.color_forcing_pseudo_option
+@cli_machinery.standard_logging_options
 @click.argument(
     'service',
     metavar=_msg.TranslatedString(_msg.Label.VAULT_METAVAR_SERVICE),
     required=False,
     default=None,
-    shell_complete=_shell_complete_service,
+    shell_complete=cli_helpers.shell_complete_service,
 )
 @click.pass_context
 def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
@@ -2590,14 +732,14 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         if isinstance(param, click.Option):
             group: type[click.Option]
             known_option_groups = [
-                PassphraseGenerationOption,
-                ConfigurationOption,
-                StorageManagementOption,
-                LoggingOption,
-                CompatibilityOption,
-                StandardOption,
+                cli_machinery.PassphraseGenerationOption,
+                cli_machinery.ConfigurationOption,
+                cli_machinery.StorageManagementOption,
+                cli_machinery.LoggingOption,
+                cli_machinery.CompatibilityOption,
+                cli_machinery.StandardOption,
             ]
-            if isinstance(param, OptionGroupOption):
+            if isinstance(param, cli_machinery.OptionGroupOption):
                 for class_ in known_option_groups:
                     if isinstance(param, class_):
                         group = class_
@@ -2664,14 +806,14 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
 
     def get_config() -> _types.VaultConfig:
         try:
-            return _load_config()
+            return cli_helpers.load_config()
         except FileNotFoundError:
             try:
-                backup_config, exc = _migrate_and_load_old_config()
+                backup_config, exc = cli_helpers.migrate_and_load_old_config()
             except FileNotFoundError:
                 return {'services': {}}
-            old_name = _config_filename(subsystem='old settings.json').name
-            new_name = _config_filename(subsystem='vault').name
+            old_name = cli_helpers.config_filename(subsystem='old settings.json').name
+            new_name = cli_helpers.config_filename(subsystem='vault').name
             deprecation.warning(
                 _msg.TranslatedString(
                     _msg.WarnMsgTemplate.V01_STYLE_CONFIG,
@@ -2719,7 +861,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
 
     def put_config(config: _types.VaultConfig, /) -> None:
         try:
-            _save_config(config)
+            cli_helpers.save_config(config)
         except OSError as exc:
             err(
                 _msg.TranslatedString(
@@ -2740,7 +882,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
 
     def get_user_config() -> dict[str, Any]:
         try:
-            return _load_user_config()
+            return cli_helpers.load_user_config()
         except FileNotFoundError:
             return {}
         except OSError as exc:
@@ -2764,19 +906,19 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     configuration: _types.VaultConfig
 
     check_incompatible_options('--phrase', '--key')
-    for group in (ConfigurationOption, StorageManagementOption):
+    for group in (cli_machinery.ConfigurationOption, cli_machinery.StorageManagementOption):
         for opt in options_in_group[group]:
             if opt != params_by_str['--config']:
-                for other_opt in options_in_group[PassphraseGenerationOption]:
+                for other_opt in options_in_group[cli_machinery.PassphraseGenerationOption]:
                     check_incompatible_options(opt, other_opt)
 
-    for group in (ConfigurationOption, StorageManagementOption):
+    for group in (cli_machinery.ConfigurationOption, cli_machinery.StorageManagementOption):
         for opt in options_in_group[group]:
-            for other_opt in options_in_group[ConfigurationOption]:
+            for other_opt in options_in_group[cli_machinery.ConfigurationOption]:
                 check_incompatible_options(opt, other_opt)
-            for other_opt in options_in_group[StorageManagementOption]:
+            for other_opt in options_in_group[cli_machinery.StorageManagementOption]:
                 check_incompatible_options(opt, other_opt)
-    sv_or_global_options = options_in_group[PassphraseGenerationOption]
+    sv_or_global_options = options_in_group[cli_machinery.PassphraseGenerationOption]
     for param in sv_or_global_options:
         if is_param_set(param) and not (
             service is not None or is_param_set(params_by_str['--config'])
@@ -2799,7 +941,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     no_sv_options = [
         params_by_str['--delete-globals'],
         params_by_str['--clear'],
-        *options_in_group[StorageManagementOption],
+        *options_in_group[cli_machinery.StorageManagementOption],
     ]
     for param in no_sv_options:
         if is_param_set(param) and service is not None:
@@ -2948,7 +1090,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 extra={'color': ctx.color},
             )
         for service_name in sorted(maybe_config['services'].keys()):
-            if not _is_completable_item(service_name):
+            if not cli_helpers.is_completable_item(service_name):
                 logger.warning(
                     _msg.TranslatedString(
                         _msg.WarnMsgTemplate.SERVICE_NAME_INCOMPLETABLE,
@@ -2957,14 +1099,14 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     extra={'color': ctx.color},
                 )
         try:
-            _check_for_misleading_passphrase(
+            cli_helpers.check_for_misleading_passphrase(
                 ('global',),
                 cast('dict[str, Any]', maybe_config.get('global', {})),
                 main_config=user_config,
                 ctx=ctx,
             )
             for key, value in maybe_config['services'].items():
-                _check_for_misleading_passphrase(
+                cli_helpers.check_for_misleading_passphrase(
                     ('services', key),
                     cast('dict[str, Any]', value),
                     main_config=user_config,
@@ -3059,7 +1201,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     ):
                         prog_name_pieces.appendleft(this_ctx.parent.info_name)
                         this_ctx = this_ctx.parent
-                    _print_config_as_sh_script(
+                    cli_helpers.print_config_as_sh_script(
                         configuration,
                         outfile=outfile,
                         prog_name_list=prog_name_pieces,
@@ -3116,7 +1258,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         if use_key:
             try:
                 key = base64.standard_b64encode(
-                    _select_ssh_key(ctx=ctx)
+                    cli_helpers.select_ssh_key(ctx=ctx)
                 ).decode('ASCII')
             except IndexError:
                 err(
@@ -3162,7 +1304,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     exc_info=exc,
                 )
         elif use_phrase:
-            maybe_phrase = _prompt_for_passphrase()
+            maybe_phrase = cli_helpers.prompt_for_passphrase()
             if not maybe_phrase:
                 err(
                     _msg.TranslatedString(
@@ -3183,7 +1325,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             elif use_phrase:
                 view['phrase'] = phrase
                 try:
-                    _check_for_misleading_passphrase(
+                    cli_helpers.check_for_misleading_passphrase(
                         ('services', service) if service else ('global',),
                         {'phrase': phrase},
                         main_config=user_config,
@@ -3225,7 +1367,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                         setting=setting,
                     )
                     raise click.UsageError(str(err_msg))
-            if not _is_completable_item(service):
+            if not cli_helpers.is_completable_item(service):
                 logger.warning(
                     _msg.TranslatedString(
                         _msg.WarnMsgTemplate.SERVICE_NAME_INCOMPLETABLE,
@@ -3257,8 +1399,8 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             }
             if use_phrase:
                 try:
-                    _check_for_misleading_passphrase(
-                        _ORIGIN.INTERACTIVE,
+                    cli_helpers.check_for_misleading_passphrase(
+                        cli_helpers.ORIGIN.INTERACTIVE,
                         {'phrase': phrase},
                         main_config=user_config,
                         ctx=ctx,
@@ -3279,12 +1421,12 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             # a key is given.  Finally, if nothing is set, error out.
             if use_key or use_phrase:
                 kwargs['phrase'] = (
-                    _key_to_phrase(key, error_callback=err)
+                    cli_helpers.key_to_phrase(key, error_callback=err)
                     if use_key
                     else phrase
                 )
             elif kwargs.get('key'):
-                kwargs['phrase'] = _key_to_phrase(
+                kwargs['phrase'] = cli_helpers.key_to_phrase(
                     kwargs['key'], error_callback=err
                 )
             elif kwargs.get('phrase'):
