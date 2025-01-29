@@ -488,7 +488,7 @@ class TestVault:
             assert vault.Vault(phrase=phrase, **config).generate(
                 services[0]
             ) != vault.Vault(phrase=phrase, **config).generate(services[1])
-        except ValueError as exc:
+        except ValueError as exc:  # pragma: no cover
             # The service configuration strategy attempts to only
             # generate satisfiable configurations.  It is possible,
             # though rare, that this fails, and that unsatisfiability is
@@ -497,7 +497,7 @@ class TestVault:
             hypothesis.assume('no allowed characters left' not in exc.args)
             # Otherwise it's a genuine bug in the test case or the
             # implementation, and should be raised.
-            raise  # pragma: no cover
+            raise
 
     def test_210_nonstandard_length(self) -> None:
         """Deriving a passphrase adheres to imposed length limits."""
@@ -651,7 +651,7 @@ class TestVault:
         """Derived passphrases obey character and occurrence restraints."""
         try:
             password = vault.Vault(phrase=phrase, **config).generate(service)
-        except ValueError as exc:
+        except ValueError as exc:  # pragma: no cover
             # The service configuration strategy attempts to only
             # generate satisfiable configurations.  It is possible,
             # though rare, that this fails, and that unsatisfiability is
@@ -660,7 +660,7 @@ class TestVault:
             hypothesis.assume('no allowed characters left' not in exc.args)
             # Otherwise it's a genuine bug in the test case or the
             # implementation, and should be raised.
-            raise  # pragma: no cover
+            raise
         n = len(password)
         assert n == config['length'], 'Password has wrong length.'
         for key in ('lower', 'upper', 'number', 'space', 'dash', 'symbol'):
