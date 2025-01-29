@@ -641,7 +641,7 @@ class TestCLI:
     ) -> None:
         """Named character classes can be disabled on the command-line."""
         option = f'--{charset_name}'
-        charset = vault.Vault._CHARSETS[charset_name].decode('ascii')
+        charset = vault.Vault.CHARSETS[charset_name].decode('ascii')
         runner = click.testing.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -3757,7 +3757,7 @@ class TestCLITransition:
     ) -> None:
         """Forwarding arguments from top-level to "vault" works."""
         option = f'--{charset_name}'
-        charset = vault.Vault._CHARSETS[charset_name].decode('ascii')
+        charset = vault.Vault.CHARSETS[charset_name].decode('ascii')
         runner = click.testing.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.

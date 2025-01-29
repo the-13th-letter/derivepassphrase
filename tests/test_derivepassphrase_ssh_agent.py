@@ -459,11 +459,11 @@ class TestAgentInteraction:
         if public_key_data not in key_comment_pairs:  # pragma: no cover
             pytest.skip('prerequisite SSH key not loaded')
         signature = bytes(
-            client.sign(payload=vault.Vault._UUID, key=public_key_data)
+            client.sign(payload=vault.Vault.UUID, key=public_key_data)
         )
         assert signature == expected_signature, 'SSH signature mismatch'
         signature2 = bytes(
-            client.sign(payload=vault.Vault._UUID, key=public_key_data)
+            client.sign(payload=vault.Vault.UUID, key=public_key_data)
         )
         assert signature2 == expected_signature, 'SSH signature mismatch'
         assert (

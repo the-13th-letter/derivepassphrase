@@ -215,8 +215,8 @@ class VaultNativeConfigParser(abc.ABC):
     ) -> bytes:
         """Generate a key from a password.
 
-        Uses PBKDF2 with HMAC-SHA1, with the vault UUID as a fixed salt
-        value.
+        Uses PBKDF2 with HMAC-SHA1, with [vault.Vault.UUID][] as a fixed
+        salt value.
 
         Args:
             password:
@@ -246,7 +246,7 @@ class VaultNativeConfigParser(abc.ABC):
         raw_key = pbkdf2.PBKDF2HMAC(
             algorithm=hashes.SHA1(),
             length=key_size // 2,
-            salt=vault.Vault._UUID,  # noqa: SLF001
+            salt=vault.Vault.UUID,
             iterations=iterations,
         ).derive(bytes(password))
         result_key = raw_key.hex().lower().encode('ASCII')
@@ -254,7 +254,7 @@ class VaultNativeConfigParser(abc.ABC):
             _msg.TranslatedString(
                 _msg.DebugMsgTemplate.VAULT_NATIVE_PBKDF2_CALL,
                 password=password,
-                salt=vault.Vault._UUID,  # noqa: SLF001
+                salt=vault.Vault.UUID,
                 iterations=iterations,
                 key_size=key_size // 2,
                 algorithm='sha1',

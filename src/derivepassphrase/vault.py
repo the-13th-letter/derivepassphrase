@@ -12,7 +12,7 @@ import hashlib
 import hmac
 import math
 import types
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 from typing_extensions import TypeAlias, assert_type
 
@@ -21,6 +21,8 @@ from derivepassphrase import sequin, ssh_agent
 if TYPE_CHECKING:
     import socket
     from collections.abc import Callable
+
+    from typing_extensions import Buffer
 
 __author__ = 'Marco Ricci <software@the13thletter.info>'
 
@@ -47,18 +49,18 @@ class Vault:
 
     """
 
-    _UUID = b'e87eb0f4-34cb-46b9-93ad-766c5ab063e7'
+    UUID: Final = b'e87eb0f4-34cb-46b9-93ad-766c5ab063e7'
     """A tag used by vault in the bit stream generation."""
-    _CHARSETS = types.MappingProxyType(
+    CHARSETS: Final = types.MappingProxyType(
         collections.OrderedDict([
             ('lower', b'abcdefghijklmnopqrstuvwxyz'),
             ('upper', b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
             (
                 'alpha',
                 (
-                    # _CHARSETS['lower']
+                    # CHARSETS['lower']
                     b'abcdefghijklmnopqrstuvwxyz'
-                    # _CHARSETS['upper']
+                    # CHARSETS['upper']
                     b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
                 ),
             ),
@@ -66,11 +68,11 @@ class Vault:
             (
                 'alphanum',
                 (
-                    # _CHARSETS['lower']
+                    # CHARSETS['lower']
                     b'abcdefghijklmnopqrstuvwxyz'
-                    # _CHARSETS['upper']
+                    # CHARSETS['upper']
                     b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-                    # _CHARSETS['number']
+                    # CHARSETS['number']
                     b'0123456789'
                 ),
             ),
@@ -80,15 +82,15 @@ class Vault:
             (
                 'all',
                 (
-                    # _CHARSETS['lower']
+                    # CHARSETS['lower']
                     b'abcdefghijklmnopqrstuvwxyz'
-                    # _CHARSETS['upper']
+                    # CHARSETS['upper']
                     b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-                    # _CHARSETS['number']
+                    # CHARSETS['number']
                     b'0123456789'
-                    # _CHARSETS['space']
+                    # CHARSETS['space']
                     b' '
-                    # _CHARSETS['symbol']
+                    # CHARSETS['symbol']
                     b'!"#$%&\'()*+,./:;<=>?@[\\]^{|}~-_'
                 ),
             ),
@@ -104,7 +106,7 @@ class Vault:
     def __init__(  # noqa: PLR0913
         self,
         *,
-        phrase: bytes | bytearray | str = b'',
+        phrase: Buffer | str = b'',
         length: int = 20,
         repeat: int = 0,
         lower: int | None = None,
@@ -141,8 +143,9 @@ class Vault:
                 Same as `lower`, but for the hyphen-minus and underscore
                 characters.
             symbol:
-                Same as `lower`, but for all other hitherto unlisted
-                ASCII printable characters (except backquote).
+                Same as `lower`, but for all other ASCII printable
+                characters except lowercase characters, uppercase
+                characters, digits, space and backquote.
 
         Raises:
             ValueError:
@@ -158,7 +161,7 @@ class Vault:
         self._phrase = self._get_binary_string(phrase)
         self._length = length
         self._repeat = repeat
-        self._allowed = bytearray(self._CHARSETS['all'])
+        self._allowed = bytearray(self.CHARSETS['all'])
         self._required: list[bytes] = []
 
         def subtract_or_require(
@@ -172,12 +175,12 @@ class Vault:
                 for _ in range(count):
                     self._required.append(characters)
 
-        subtract_or_require(lower, self._CHARSETS['lower'])
-        subtract_or_require(upper, self._CHARSETS['upper'])
-        subtract_or_require(number, self._CHARSETS['number'])
-        subtract_or_require(space, self._CHARSETS['space'])
-        subtract_or_require(dash, self._CHARSETS['dash'])
-        subtract_or_require(symbol, self._CHARSETS['symbol'])
+        subtract_or_require(lower, self.CHARSETS['lower'])
+        subtract_or_require(upper, self.CHARSETS['upper'])
+        subtract_or_require(number, self.CHARSETS['number'])
+        subtract_or_require(space, self.CHARSETS['space'])
+        subtract_or_require(dash, self.CHARSETS['dash'])
+        subtract_or_require(symbol, self.CHARSETS['symbol'])
         if len(self._required) > self._length:
             msg = 'requested passphrase length too short'
             raise ValueError(msg)
@@ -257,7 +260,7 @@ class Vault:
         return math.ceil(safety_factor * entropy_bound / 8)
 
     @staticmethod
-    def _get_binary_string(s: bytes | bytearray | str, /) -> bytes:
+    def _get_binary_string(s: Buffer | str, /) -> bytes:
         """Convert the input string to a read-only, binary string.
 
         If it is a text string, return the string's UTF-8
@@ -277,8 +280,8 @@ class Vault:
     @classmethod
     def create_hash(
         cls,
-        phrase: bytes | bytearray | str,
-        service: bytes | bytearray | str,
+        phrase: Buffer | str,
+        service: Buffer | str,
         *,
         length: int = 32,
     ) -> bytes:
@@ -295,8 +298,8 @@ class Vault:
                 primitive.  If a string, then the UTF-8 encoding of the
                 string is used.
             service:
-                A vault service name.  Will be suffixed with
-                `Vault._UUID`, and then used as the salt value for
+                A vault service name.  Will be suffixed with the
+                [`UUID`][], and then used as the salt value for
                 PBKDF2.  If a string, then the UTF-8 encoding of the
                 string is used.
             length:
@@ -332,8 +335,8 @@ class Vault:
 
         """
         phrase = cls._get_binary_string(phrase)
-        assert not isinstance(phrase, str)
-        salt = cls._get_binary_string(service) + cls._UUID
+        assert isinstance(phrase, bytes)
+        salt = cls._get_binary_string(service) + cls.UUID
         return hashlib.pbkdf2_hmac(
             hash_name='sha1',
             password=phrase,
@@ -344,10 +347,10 @@ class Vault:
 
     def generate(
         self,
-        service_name: bytes | bytearray | str,
+        service_name: Buffer | str,
         /,
         *,
-        phrase: bytes | bytearray | str = b'',
+        phrase: Buffer | str = b'',
     ) -> bytes:
         r"""Generate a service passphrase.
 
@@ -452,7 +455,7 @@ class Vault:
 
     @staticmethod
     def is_suitable_ssh_key(
-        key: bytes | bytearray,
+        key: Buffer,
         /,
         *,
         client: ssh_agent.SSHAgentClient | None = None,
@@ -477,6 +480,7 @@ class Vault:
             restricted to the indicated SSH agent).
 
         """
+        key = bytes(key)
         TestFunc: TypeAlias = 'Callable[[bytes | bytearray], bool]'
         deterministic_signature_types: dict[str, TestFunc]
         deterministic_signature_types = {
@@ -515,7 +519,7 @@ class Vault:
     @classmethod
     def phrase_from_key(
         cls,
-        key: bytes | bytearray,
+        key: Buffer,
         /,
         *,
         conn: ssh_agent.SSHAgentClient | socket.socket | None = None,
@@ -523,9 +527,9 @@ class Vault:
         """Obtain the master passphrase from a configured SSH key.
 
         vault allows the usage of certain SSH keys to derive a master
-        passphrase, by signing the vault UUID with the SSH key.  The key
-        type must ensure that signatures are deterministic (perhaps only
-        in conjunction with the given SSH agent).
+        passphrase, by signing the vault [`UUID`][] with the SSH key.
+        The key type must ensure that signatures are deterministic
+        (perhaps only in conjunction with the given SSH agent).
 
         Args:
             key:
@@ -535,8 +539,8 @@ class Vault:
                 [`ssh_agent.SSHAgentClient.ensure_agent_subcontext`][].
 
         Returns:
-            The signature of the vault UUID under this key, unframed but
-            encoded in base64.
+            The signature of the vault [`UUID`][] under this key,
+            unframed but encoded in base64.
 
         Raises:
             KeyError:
@@ -585,7 +589,7 @@ class Vault:
                     'signature not deterministic under this agent'
                 )
                 raise ValueError(msg)
-            raw_sig = client.sign(key, cls._UUID)
+            raw_sig = client.sign(key, cls.UUID)
         _keytype, trailer = ssh_agent.SSHAgentClient.unstring_prefix(raw_sig)
         signature_blob = ssh_agent.SSHAgentClient.unstring(trailer)
         return bytes(base64.standard_b64encode(signature_blob))
@@ -593,8 +597,8 @@ class Vault:
     @classmethod
     def phrases_are_interchangable(
         cls,
-        phrase1: bytes | bytearray,
-        phrase2: bytes | bytearray,
+        phrase1: Buffer,
+        phrase2: Buffer,
         /,
     ) -> bool:
         """Return true if the passphrases are interchangable to Vault.
@@ -640,7 +644,7 @@ class Vault:
     @classmethod
     def _phrase_to_hmac_key(
         cls,
-        phrase: bytes | bytearray | str,
+        phrase: Buffer | str,
         /,
     ) -> bytes:
         r"""Return the HMAC key belonging to a passphrase.
@@ -669,8 +673,8 @@ class Vault:
 
     @staticmethod
     def _subtract(
-        charset: bytes | bytearray,
-        allowed: bytes | bytearray,
+        charset: Buffer,
+        allowed: Buffer,
     ) -> bytearray:
         """Remove the characters in charset from allowed.
 
@@ -696,6 +700,8 @@ class Vault:
             allowed if isinstance(allowed, bytearray) else bytearray(allowed)
         )
         assert_type(allowed, bytearray)
+        charset = memoryview(charset).toreadonly().cast('c')
+        assert_type(charset, 'memoryview[bytes]')
         msg_dup_characters = 'duplicate characters in set'
         if len(frozenset(allowed)) != len(allowed):
             raise ValueError(msg_dup_characters)

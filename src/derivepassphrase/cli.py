@@ -2536,7 +2536,9 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             the hyphen-minus and underscore characters.
         symbol:
             Command-line argument `--symbol`.  Same as `lower`, but for
-            all other ASCII printable characters (except backquote).
+            all other ASCII printable characters except lowercase
+            characters, uppercase characters, digits, space and
+            backquote.
         edit_notes:
             Command-line argument `-n`/`--notes`.  If given, spawn an
             editor to edit notes for `service`.
