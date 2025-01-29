@@ -666,7 +666,7 @@ class TestVault:
         for key in ('lower', 'upper', 'number', 'space', 'dash', 'symbol'):
             if config[key] > 0:
                 assert (
-                    sum(c in vault.Vault._CHARSETS[key] for c in password)
+                    sum(c in vault.Vault.CHARSETS[key] for c in password)
                     >= config[key]
                 ), (
                     'Password does not satisfy '
@@ -678,7 +678,7 @@ class TestVault:
                 assert True
             else:
                 assert (
-                    sum(c in vault.Vault._CHARSETS[key] for c in password) == 0
+                    sum(c in vault.Vault.CHARSETS[key] for c in password) == 0
                 ), 'Password does not satisfy character ban constraints.'
 
         T = TypeVar('T', str, bytes)

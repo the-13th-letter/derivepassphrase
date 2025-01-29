@@ -1708,7 +1708,7 @@ def sign(
 
     """
     del self  # Unused.
-    assert message == vault.Vault._UUID
+    assert message == vault.Vault.UUID
     for value in SUPPORTED_KEYS.values():
         if value.public_key_data == key:  # pragma: no branch
             assert value.expected_signature is not None
