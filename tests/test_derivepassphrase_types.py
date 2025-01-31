@@ -66,7 +66,6 @@ def js_nested_strategy(draw: strategies.DrawFn) -> Any:
     )
 
 
-@tests.hypothesis_settings_coverage_compatible
 @hypothesis.given(value=js_nested_strategy())
 @hypothesis.example(float('nan'))
 def test_100_js_truthiness(value: Any) -> None:
@@ -115,7 +114,6 @@ def test_200_is_vault_config(test_config: tests.VaultTestConfig) -> None:
     )
 
 
-@tests.hypothesis_settings_coverage_compatible
 @hypothesis.given(
     test_config=tests.smudged_vault_test_config(
         config=strategies.sampled_from([
@@ -183,7 +181,6 @@ def test_400_validate_vault_config(test_config: tests.VaultTestConfig) -> None:
             assert not exc, 'failed to validate valid example'  # noqa: PT017
 
 
-@tests.hypothesis_settings_coverage_compatible
 @hypothesis.given(
     test_config=tests.smudged_vault_test_config(
         config=strategies.sampled_from([

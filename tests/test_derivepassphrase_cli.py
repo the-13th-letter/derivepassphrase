@@ -1275,7 +1275,12 @@ class TestCLI:
             map(is_harmless_config_import_warning, caplog.record_tuples)
         ), 'unexpected error output'
 
-    @tests.hypothesis_settings_coverage_compatible_with_caplog
+    @hypothesis.settings(
+        suppress_health_check=[
+            *hypothesis.settings().suppress_health_check,
+            hypothesis.HealthCheck.function_scoped_fixture,
+        ],
+    )
     @hypothesis.given(
         conf=tests.smudged_vault_test_config(
             strategies.sampled_from([
@@ -3076,7 +3081,6 @@ Boo.
                 assert result.clean_exit()
             assert cli_helpers.load_config() == config
 
-    @tests.hypothesis_settings_coverage_compatible
     @hypothesis.given(
         global_config_settable=tests.vault_full_service_config(),
         global_config_importable=strategies.fixed_dictionaries(
@@ -4058,7 +4062,6 @@ def vault_full_config() -> strategies.SearchStrategy[_types.VaultConfig]:
     return VAULT_FULL_CONFIG
 
 
-@tests.hypothesis_settings_coverage_compatible
 class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     """A state machine recording changes in the vault configuration.
 

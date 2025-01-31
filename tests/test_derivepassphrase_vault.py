@@ -217,7 +217,6 @@ class TestVault:
             phrase=phrase, service=services[0]
         ) != vault.Vault.create_hash(phrase=phrase, service=services[1])
 
-    @tests.hypothesis_settings_coverage_compatible
     @hypothesis.given(
         phrases=strategies.binary(max_size=BLOCK_SIZE // 2).flatmap(
             lambda bs: strategies.tuples(
@@ -245,7 +244,6 @@ class TestVault:
             phrase=phrases[0], service=service
         ) == vault.Vault.create_hash(phrase=phrases[1], service=service)
 
-    @tests.hypothesis_settings_coverage_compatible
     @hypothesis.given(
         phrases=strategies.binary(
             min_size=BLOCK_SIZE + 1, max_size=BLOCK_SIZE + 8
@@ -462,7 +460,6 @@ class TestVault:
             phrase=phrase
         ).generate(services[1])
 
-    @tests.hypothesis_settings_coverage_compatible
     @hypothesis.given(
         phrase=strategies.text(
             strategies.characters(min_codepoint=32, max_codepoint=126),
@@ -506,7 +503,6 @@ class TestVault:
             == b'xDFu'
         )
 
-    @tests.hypothesis_settings_coverage_compatible
     @hypothesis.given(
         phrase=strategies.one_of(
             strategies.binary(min_size=1, max_size=100),
@@ -592,7 +588,6 @@ class TestVault:
             == b': : fv_wqt>a-4w1S  R'
         )
 
-    @tests.hypothesis_settings_coverage_compatible
     @hypothesis.given(
         phrase=strategies.one_of(
             strategies.binary(min_size=1), strategies.text(min_size=1)

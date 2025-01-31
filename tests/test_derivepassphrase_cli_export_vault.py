@@ -605,7 +605,6 @@ class TestStoreroom:
                 ),
             )
 
-    @tests.hypothesis_settings_coverage_compatible
     @hypothesis.given(
         data=strategies.binary(
             min_size=storeroom.MAC_SIZE, max_size=storeroom.MAC_SIZE
