@@ -42,8 +42,18 @@ dynamic = ['version']
 [project.optional-dependencies]
 dev = [
   # Development uses the hatch build system, to isolate all tools in their
-  # own virtual environment.
+  # own virtual environment...
   "hatch ~= 1.10",
+  # ...but it is still sensible to have most static analysis tools available
+  # in the main virtual environment as well, so that your editor/IDE setup
+  # can access them as well.
+  "mypy ~= 1.0",
+  "ruff ~= 0.9.0",
+  # Test dependencies should be installed as well, to have static analysis
+  # in the test suite working too.
+  "hypothesis >= 6.0",
+  "packaging",  # The test suite compares version numbers.
+  "pytest ~= 8.1",
 ]
 export = [
   # The vault configuration exporter relies on cryptography.  Version 38 was
@@ -127,13 +137,19 @@ detached = false
 [tool.hatch.envs.hatch-static-analysis]
 config-path = "/dev/null"
 dependencies = [
-  "ruff ~= 0.8.0",
+    # Override the default dependencies, lest the ruff requirements
+    # conflict.
+]
+features = [
+    "dev",
 ]
 
 [tool.hatch.envs.hatch-test]
 default-args = ['src', 'tests']
 extra-dependencies = [
-    "hypothesis >= 6.0",
+  "hypothesis >= 6.0",
+  "packaging",  # The test suite compares version numbers.
+  "pytest ~= 8.1",
 ]
 matrix-name-format = '{variable}_{value}'
 
@@ -162,12 +178,8 @@ cov-combine = "coverage combine"
 cov-report = "coverage report"
 
 [tool.hatch.envs.types]
-extra-dependencies = [
-  "hypothesis >= 6.0",
-  "mypy ~= 1.0",
-  "pytest ~= 8.1",
-]
 features = [
+    "dev",
     "export",
 ]
 
