@@ -21,7 +21,7 @@ from hypothesis import strategies
 
 import tests
 from derivepassphrase import _types, ssh_agent, vault
-from derivepassphrase._internals import cli_helpers, cli_machinery
+from derivepassphrase._internals import cli_helpers
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

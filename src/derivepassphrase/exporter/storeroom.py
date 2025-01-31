@@ -34,8 +34,8 @@ import pathlib
 import struct
 from typing import TYPE_CHECKING, Any
 
-from derivepassphrase._internals import cli_messages as _msg
 from derivepassphrase import _types, exporter
+from derivepassphrase._internals import cli_messages as _msg
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

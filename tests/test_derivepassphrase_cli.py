@@ -1113,7 +1113,10 @@ class TestCLI:
                     tests.isolated_vault_config(
                         monkeypatch=monkeypatch,
                         runner=runner,
-                        vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                        vault_config={
+                            'global': {'phrase': 'abc'},
+                            'services': {},
+                        },
                     )
                 )
                 monkeypatch.setattr(
@@ -1447,7 +1450,9 @@ class TestCLI:
                     runner=runner,
                 )
             )
-            cli_helpers.config_filename(subsystem='vault').unlink(missing_ok=True)
+            cli_helpers.config_filename(subsystem='vault').unlink(
+                missing_ok=True
+            )
             result_ = runner.invoke(
                 # Test parent context navigation by not calling
                 # `cli.derivepassphrase_vault` directly.  Used e.g. in
@@ -2329,7 +2334,9 @@ contents go here
                 monkeypatch.setattr(cli_helpers, 'save_config', save_config_)
                 return save_config_(*args, **kwargs)
 
-            monkeypatch.setattr(cli_helpers, 'save_config', obstruct_config_saving)
+            monkeypatch.setattr(
+                cli_helpers, 'save_config', obstruct_config_saving
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '-p'],
@@ -2996,7 +3003,9 @@ Boo.
         actually emits to standard error.
 
         """
-        warnings_cm = cli_machinery.StandardCLILogging.ensure_standard_warnings_logging()
+        warnings_cm = (
+            cli_machinery.StandardCLILogging.ensure_standard_warnings_logging()
+        )
         THE_FUTURE = 'the future will be here sooner than you think'  # noqa: N806
         JUST_TESTING = 'just testing whether warnings work'  # noqa: N806
         with warnings_cm:
@@ -3549,9 +3558,9 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            cli_helpers.config_filename(subsystem='old settings.json').write_text(
-                json.dumps(config, indent=2) + '\n', encoding='UTF-8'
-            )
+            cli_helpers.config_filename(
+                subsystem='old settings.json'
+            ).write_text(json.dumps(config, indent=2) + '\n', encoding='UTF-8')
             assert cli_helpers.migrate_and_load_old_config()[0] == config
 
     @pytest.mark.parametrize(
@@ -3590,9 +3599,9 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            cli_helpers.config_filename(subsystem='old settings.json').write_text(
-                json.dumps(config, indent=2) + '\n', encoding='UTF-8'
-            )
+            cli_helpers.config_filename(
+                subsystem='old settings.json'
+            ).write_text(json.dumps(config, indent=2) + '\n', encoding='UTF-8')
             assert cli_helpers.migrate_and_load_old_config() == (config, None)
 
     @pytest.mark.parametrize(
@@ -3631,9 +3640,9 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            cli_helpers.config_filename(subsystem='old settings.json').write_text(
-                json.dumps(config, indent=2) + '\n', encoding='UTF-8'
-            )
+            cli_helpers.config_filename(
+                subsystem='old settings.json'
+            ).write_text(json.dumps(config, indent=2) + '\n', encoding='UTF-8')
             cli_helpers.config_filename(subsystem='vault').mkdir(
                 parents=True, exist_ok=True
             )
@@ -3678,10 +3687,12 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            cli_helpers.config_filename(subsystem='old settings.json').write_text(
-                json.dumps(config, indent=2) + '\n', encoding='UTF-8'
-            )
-            with pytest.raises(ValueError, match=cli_helpers.INVALID_VAULT_CONFIG):
+            cli_helpers.config_filename(
+                subsystem='old settings.json'
+            ).write_text(json.dumps(config, indent=2) + '\n', encoding='UTF-8')
+            with pytest.raises(
+                ValueError, match=cli_helpers.INVALID_VAULT_CONFIG
+            ):
                 cli_helpers.migrate_and_load_old_config()
 
     def test_200_forward_export_vault_path_parameter(
@@ -3849,7 +3860,9 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            cli_helpers.config_filename(subsystem='old settings.json').write_text(
+            cli_helpers.config_filename(
+                subsystem='old settings.json'
+            ).write_text(
                 json.dumps(
                     {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
                     indent=2,
@@ -3888,7 +3901,9 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            cli_helpers.config_filename(subsystem='old settings.json').write_text(
+            cli_helpers.config_filename(
+                subsystem='old settings.json'
+            ).write_text(
                 json.dumps(
                     {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
                     indent=2,
@@ -3938,7 +3953,9 @@ class TestCLITransition:
                     vault_config=config,
                 )
             )
-            old_name = cli_helpers.config_filename(subsystem='old settings.json')
+            old_name = cli_helpers.config_filename(
+                subsystem='old settings.json'
+            )
             new_name = cli_helpers.config_filename(subsystem='vault')
             old_name.unlink(missing_ok=True)
             new_name.rename(old_name)
@@ -5194,7 +5211,9 @@ class TestShellCompletion:
                     },
                 )
             )
-            cli_helpers.config_filename(subsystem='vault').unlink(missing_ok=True)
+            cli_helpers.config_filename(subsystem='vault').unlink(
+                missing_ok=True
+            )
             assert not cli_helpers.shell_complete_service(
                 click.Context(cli.derivepassphrase),
                 click.Argument(['some_parameter']),

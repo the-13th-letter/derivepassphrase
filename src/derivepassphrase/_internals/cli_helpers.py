@@ -239,9 +239,7 @@ def load_config() -> _types.VaultConfig:
 
 # TODO(the-13th-letter): Remove this function.
 # https://the13thletter.info/derivepassphrase/latest/upgrade-notes.html#v1.0-old-settings-file
-def migrate_and_load_old_config() -> tuple[
-    _types.VaultConfig, OSError | None
-]:
+def migrate_and_load_old_config() -> tuple[_types.VaultConfig, OSError | None]:
     """Load and migrate a vault(1)-compatible config.
 
     The (old) filename is obtained via [`config_filename`][].  This
@@ -576,6 +574,7 @@ class ORIGIN(enum.Enum):
         INTERACTIVE: interactive input
 
     """
+
     INTERACTIVE: str = 'interactive input'
     """"""
 

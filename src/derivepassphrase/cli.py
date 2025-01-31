@@ -812,7 +812,9 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 backup_config, exc = cli_helpers.migrate_and_load_old_config()
             except FileNotFoundError:
                 return {'services': {}}
-            old_name = cli_helpers.config_filename(subsystem='old settings.json').name
+            old_name = cli_helpers.config_filename(
+                subsystem='old settings.json'
+            ).name
             new_name = cli_helpers.config_filename(subsystem='vault').name
             deprecation.warning(
                 _msg.TranslatedString(
@@ -906,19 +908,33 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     configuration: _types.VaultConfig
 
     check_incompatible_options('--phrase', '--key')
-    for group in (cli_machinery.ConfigurationOption, cli_machinery.StorageManagementOption):
+    for group in (
+        cli_machinery.ConfigurationOption,
+        cli_machinery.StorageManagementOption,
+    ):
         for opt in options_in_group[group]:
             if opt != params_by_str['--config']:
-                for other_opt in options_in_group[cli_machinery.PassphraseGenerationOption]:
+                for other_opt in options_in_group[
+                    cli_machinery.PassphraseGenerationOption
+                ]:
                     check_incompatible_options(opt, other_opt)
 
-    for group in (cli_machinery.ConfigurationOption, cli_machinery.StorageManagementOption):
+    for group in (
+        cli_machinery.ConfigurationOption,
+        cli_machinery.StorageManagementOption,
+    ):
         for opt in options_in_group[group]:
-            for other_opt in options_in_group[cli_machinery.ConfigurationOption]:
+            for other_opt in options_in_group[
+                cli_machinery.ConfigurationOption
+            ]:
                 check_incompatible_options(opt, other_opt)
-            for other_opt in options_in_group[cli_machinery.StorageManagementOption]:
+            for other_opt in options_in_group[
+                cli_machinery.StorageManagementOption
+            ]:
                 check_incompatible_options(opt, other_opt)
-    sv_or_global_options = options_in_group[cli_machinery.PassphraseGenerationOption]
+    sv_or_global_options = options_in_group[
+        cli_machinery.PassphraseGenerationOption
+    ]
     for param in sv_or_global_options:
         if is_param_set(param) and not (
             service is not None or is_param_set(params_by_str['--config'])
@@ -972,11 +988,15 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         notes_marker = _msg.TranslatedString(
             _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_MARKER
         )
-        old_notes_value = configuration['services'].get(
-            service, cast('_types.VaultConfigServicesSettings', {})
-        ).get('notes', '')
+        old_notes_value = (
+            configuration['services']
+            .get(service, cast('_types.VaultConfigServicesSettings', {}))
+            .get('notes', '')
+        )
         text = '\n'.join([
-            str(notes_instructions), str(notes_marker), old_notes_value
+            str(notes_instructions),
+            str(notes_marker),
+            old_notes_value,
         ])
         notes_value = click.edit(text=text)
         if notes_value is not None:

@@ -297,9 +297,7 @@ class _VaultConfigValidator:
             if key in {'key', 'phrase'}:
                 if not isinstance(value, str):
                     raise TypeError(err_not_a_string.format(**kwargs))
-            elif key == 'unicode_normalization_form' and path == (
-                'global',
-            ):
+            elif key == 'unicode_normalization_form' and path == ('global',):
                 if not isinstance(value, str):
                     raise TypeError(err_not_a_string.format(**kwargs))
                 if not allow_unknown_settings:
@@ -385,9 +383,7 @@ class _VaultConfigValidator:
                 )
                 service_obj[key] = 20
             elif key == 'repeat' and falsy_but_not_zero(value):
-                yield CleanupStep(
-                    (*path, key), service_obj[key], 'replace', 0
-                )
+                yield CleanupStep((*path, key), service_obj[key], 'replace', 0)
                 service_obj[key] = 0
             elif key in {
                 'lower',
