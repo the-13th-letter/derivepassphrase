@@ -542,20 +542,20 @@ class KnownSSHAgent(str, enum.Enum):
     """Known SSH agents.
 
     Attributes:
-        UNKNOWN:
+        UNKNOWN (str):
             Not a known agent, or not known statically.
-        Pageant:
+        Pageant (str):
             The agent from Simon Tatham's PuTTY suite.
-        OpenSSHAgent:
+        OpenSSHAgent (str):
             The agent from OpenBSD's OpenSSH suite.
 
     """
 
-    UNKNOWN: str = '(unknown)'
+    UNKNOWN = '(unknown)'
     """"""
-    Pageant: str = 'Pageant'
+    Pageant = 'Pageant'
     """"""
-    OpenSSHAgent: str = 'OpenSSHAgent'
+    OpenSSHAgent = 'OpenSSHAgent'
     """"""
 
 

@@ -635,18 +635,18 @@ class SSH_AGENTC(enum.Enum):  # noqa: N801
     """SSH agent protocol numbers: client requests.
 
     Attributes:
-        REQUEST_IDENTITIES:
+        REQUEST_IDENTITIES (int):
             List identities.  Expecting
             [`SSH_AGENT.IDENTITIES_ANSWER`][].
-        SIGN_REQUEST:
+        SIGN_REQUEST (int):
             Sign data.  Expecting [`SSH_AGENT.SIGN_RESPONSE`][].
-        ADD_IDENTITY:
+        ADD_IDENTITY (int):
             Add an (SSH2) identity.
-        REMOVE_IDENTITY:
+        REMOVE_IDENTITY (int):
             Remove an (SSH2) identity.
-        ADD_ID_CONSTRAINED:
+        ADD_ID_CONSTRAINED (int):
             Add an (SSH2) identity, including key constraints.
-        EXTENSION:
+        EXTENSION (int):
             Issue a named request that isn't part of the core agent
             protocol.  Expecting [`SSH_AGENT.EXTENSION_RESPONSE`][] or
             [`SSH_AGENT.EXTENSION_FAILURE`][] if the named request is
@@ -654,17 +654,17 @@ class SSH_AGENTC(enum.Enum):  # noqa: N801
 
     """
 
-    REQUEST_IDENTITIES: int = 11
+    REQUEST_IDENTITIES = 11
     """"""
-    SIGN_REQUEST: int = 13
+    SIGN_REQUEST = 13
     """"""
-    ADD_IDENTITY: int = 17
+    ADD_IDENTITY = 17
     """"""
-    REMOVE_IDENTITY: int = 18
+    REMOVE_IDENTITY = 18
     """"""
-    ADD_ID_CONSTRAINED: int = 25
+    ADD_ID_CONSTRAINED = 25
     """"""
-    EXTENSION: int = 27
+    EXTENSION = 27
     """"""
 
 
@@ -672,32 +672,32 @@ class SSH_AGENT(enum.Enum):  # noqa: N801
     """SSH agent protocol numbers: server replies.
 
     Attributes:
-        FAILURE:
+        FAILURE (int):
             Generic failure code.
-        SUCCESS:
+        SUCCESS (int):
             Generic success code.
-        IDENTITIES_ANSWER:
+        IDENTITIES_ANSWER (int):
             Successful answer to [`SSH_AGENTC.REQUEST_IDENTITIES`][].
-        SIGN_RESPONSE:
+        SIGN_RESPONSE (int):
             Successful answer to [`SSH_AGENTC.SIGN_REQUEST`][].
-        EXTENSION_FAILURE:
+        EXTENSION_FAILURE (int):
             Unsuccessful answer to [`SSH_AGENTC.EXTENSION`][].
-        EXTENSION_RESPONSE:
+        EXTENSION_RESPONSE (int):
             Successful answer to [`SSH_AGENTC.EXTENSION`][].
 
     """
 
-    FAILURE: int = 5
+    FAILURE = 5
     """"""
-    SUCCESS: int = 6
+    SUCCESS = 6
     """"""
-    IDENTITIES_ANSWER: int = 12
+    IDENTITIES_ANSWER = 12
     """"""
-    SIGN_RESPONSE: int = 14
+    SIGN_RESPONSE = 14
     """"""
-    EXTENSION_FAILURE: int = 28
+    EXTENSION_FAILURE = 28
     """"""
-    EXTENSION_RESPONSE: int = 29
+    EXTENSION_RESPONSE = 29
     """"""
 
 

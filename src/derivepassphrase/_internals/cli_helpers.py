@@ -571,11 +571,11 @@ class ORIGIN(enum.Enum):
     """The origin of a setting, if not from the user configuration file.
 
     Attributes:
-        INTERACTIVE: interactive input
+        INTERACTIVE (str): interactive input
 
     """
 
-    INTERACTIVE: str = 'interactive input'
+    INTERACTIVE = 'interactive input'
     """"""
 
 
