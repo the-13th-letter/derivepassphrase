@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import contextlib
+import enum
 import operator
 import os
 import pathlib
@@ -21,6 +22,59 @@ from derivepassphrase import cli, exporter
 
 if TYPE_CHECKING:
     from typing_extensions import Buffer
+
+
+class Parametrizations(enum.Enum):
+    EXPECTED_VAULT_PATH = pytest.mark.parametrize(
+        ['expected', 'path'],
+        [
+            (pathlib.Path('/tmp'), pathlib.Path('/tmp')),
+            (pathlib.Path('~'), pathlib.Path()),
+            (pathlib.Path('~/.vault'), None),
+        ],
+    )
+    # TODO(the-13th-letter): Consolidate with
+    # test_derivepassphrase_cli_export_vault.Parametrizations.VAULT_CONFIG_FORMATS_DATA.
+    # TODO(the-13th-letter): Reorder as "config", "format", "config_data".
+    VAULT_CONFIG_FORMATS_DATA = pytest.mark.parametrize(
+        ['format', 'config', 'config_data'],
+        [
+            pytest.param(
+                'v0.2',
+                tests.VAULT_V02_CONFIG,
+                tests.VAULT_V02_CONFIG_DATA,
+                id='0.2',
+            ),
+            pytest.param(
+                'v0.3',
+                tests.VAULT_V03_CONFIG,
+                tests.VAULT_V03_CONFIG_DATA,
+                id='0.3',
+            ),
+            pytest.param(
+                'storeroom',
+                tests.VAULT_STOREROOM_CONFIG_ZIPPED,
+                tests.VAULT_STOREROOM_CONFIG_DATA,
+                id='storeroom',
+            ),
+        ],
+    )
+    EXPORT_VAULT_CONFIG_DATA_HANDLER_NAMELISTS = pytest.mark.parametrize(
+        ['namelist', 'err_pat'],
+        [
+            pytest.param((), '[Nn]o names given', id='empty'),
+            pytest.param(
+                ('name1', '', 'name2'),
+                '[Uu]nder an empty name',
+                id='empty-string',
+            ),
+            pytest.param(
+                ('dummy', 'name1', 'name2'),
+                '[Aa]lready registered',
+                id='existing',
+            ),
+        ],
+    )
 
 
 class Test001ExporterUtils:
@@ -194,14 +248,7 @@ class Test001ExporterUtils:
                     monkeypatch.setenv(key, value)
             assert os.fsdecode(exporter.get_vault_key()) == expected
 
-    @pytest.mark.parametrize(
-        ['expected', 'path'],
-        [
-            (pathlib.Path('/tmp'), pathlib.Path('/tmp')),
-            (pathlib.Path('~'), pathlib.Path()),
-            (pathlib.Path('~/.vault'), None),
-        ],
-    )
+    @Parametrizations.EXPECTED_VAULT_PATH.value
     def test_210_get_vault_path(
         self,
         expected: pathlib.Path,
@@ -304,22 +351,7 @@ class Test001ExporterUtils:
             ):
                 exporter.get_vault_path()
 
-    @pytest.mark.parametrize(
-        ['namelist', 'err_pat'],
-        [
-            pytest.param((), '[Nn]o names given', id='empty'),
-            pytest.param(
-                ('name1', '', 'name2'),
-                '[Uu]nder an empty name',
-                id='empty-string',
-            ),
-            pytest.param(
-                ('dummy', 'name1', 'name2'),
-                '[Aa]lready registered',
-                id='existing',
-            ),
-        ],
-    )
+    @Parametrizations.EXPORT_VAULT_CONFIG_DATA_HANDLER_NAMELISTS.value
     def test_320_register_export_vault_config_data_handler_errors(
         self,
         namelist: tuple[str, ...],
@@ -398,29 +430,7 @@ class Test002CLI:
             )
 
     @tests.skip_if_cryptography_support
-    @pytest.mark.parametrize(
-        ['format', 'config', 'key'],
-        [
-            pytest.param(
-                'v0.2',
-                tests.VAULT_V02_CONFIG,
-                tests.VAULT_MASTER_KEY,
-                id='v0.2',
-            ),
-            pytest.param(
-                'v0.3',
-                tests.VAULT_V03_CONFIG,
-                tests.VAULT_MASTER_KEY,
-                id='v0.3',
-            ),
-            pytest.param(
-                'storeroom',
-                tests.VAULT_STOREROOM_CONFIG_ZIPPED,
-                tests.VAULT_MASTER_KEY,
-                id='storeroom',
-            ),
-        ],
-    )
+    @Parametrizations.VAULT_CONFIG_FORMATS_DATA.value
     def test_999_no_cryptography_error_message(
         self,
         caplog: pytest.LogCaptureFixture,

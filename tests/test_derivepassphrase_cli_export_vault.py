@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import base64
 import contextlib
+import enum
 import json
 import pathlib
 from typing import TYPE_CHECKING
@@ -37,6 +38,170 @@ if TYPE_CHECKING:
     from typing import Any
 
     from typing_extensions import Buffer, Literal
+
+
+class Parametrizations(enum.Enum):
+    BAD_CONFIG = pytest.mark.parametrize(
+        'config', ['xxx', 'null', '{"version": 255}']
+    )
+    # TODO(the-13th-letter): Rename "result" to "config_data".
+    VAULT_NATIVE_CONFIG_DATA = pytest.mark.parametrize(
+        ['config', 'format', 'result'],
+        [
+            pytest.param(
+                tests.VAULT_V02_CONFIG,
+                'v0.2',
+                tests.VAULT_V02_CONFIG_DATA,
+                id='V02_CONFIG-v0.2',
+            ),
+            pytest.param(
+                tests.VAULT_V02_CONFIG,
+                'v0.3',
+                exporter.NotAVaultConfigError,
+                id='V02_CONFIG-v0.3',
+            ),
+            pytest.param(
+                tests.VAULT_V03_CONFIG,
+                'v0.2',
+                exporter.NotAVaultConfigError,
+                id='V03_CONFIG-v0.2',
+            ),
+            pytest.param(
+                tests.VAULT_V03_CONFIG,
+                'v0.3',
+                tests.VAULT_V03_CONFIG_DATA,
+                id='V03_CONFIG-v0.3',
+            ),
+        ],
+    )
+    BAD_MASTER_KEYS_DATA = pytest.mark.parametrize(
+        ['data', 'err_msg'],
+        [
+            pytest.param(
+                '{"version": 255}',
+                'bad or unsupported keys version header',
+                id='v255',
+            ),
+            pytest.param(
+                '{"version": 1}\nAAAA\nAAAA',
+                'trailing data; cannot make sense',
+                id='trailing-data',
+            ),
+            pytest.param(
+                '{"version": 1}\nAAAA',
+                'cannot handle version 0 encrypted keys',
+                id='v0-keys',
+            ),
+        ],
+    )
+    # TODO(the-13th-letter): Consolidate with
+    # test_derivepassphrase_exporter.Parametrizations.VAULT_CONFIG_FORMATS_DATA.
+    # TODO(the-13th-letter): Reorder as "config", "format", "config_data".
+    VAULT_CONFIG_FORMATS_DATA = pytest.mark.parametrize(
+        ['format', 'config', 'config_data'],
+        [
+            pytest.param(
+                'v0.2',
+                tests.VAULT_V02_CONFIG,
+                tests.VAULT_V02_CONFIG_DATA,
+                id='0.2',
+            ),
+            pytest.param(
+                'v0.3',
+                tests.VAULT_V03_CONFIG,
+                tests.VAULT_V03_CONFIG_DATA,
+                id='0.3',
+            ),
+            pytest.param(
+                'storeroom',
+                tests.VAULT_STOREROOM_CONFIG_ZIPPED,
+                tests.VAULT_STOREROOM_CONFIG_DATA,
+                id='storeroom',
+            ),
+        ],
+    )
+    STOREROOM_HANDLER = pytest.mark.parametrize(
+        'handler',
+        [
+            pytest.param(storeroom.export_storeroom_data, id='handler'),
+            pytest.param(exporter.export_vault_config_data, id='dispatcher'),
+        ],
+    )
+    VAULT_NATIVE_HANDLER = pytest.mark.parametrize(
+        'handler',
+        [
+            pytest.param(vault_native.export_vault_native_data, id='handler'),
+            pytest.param(exporter.export_vault_config_data, id='dispatcher'),
+        ],
+    )
+    VAULT_NATIVE_PBKDF2_RESULT = pytest.mark.parametrize(
+        ['iterations', 'result'],
+        [
+            pytest.param(100, b'6ede361e81e9c061efcdd68aeb768b80', id='100'),
+            pytest.param(200, b'bcc7d01e075b9ffb69e702bf701187c1', id='200'),
+        ],
+    )
+    KEY_FORMATS = pytest.mark.parametrize(
+        'key',
+        [
+            None,
+            pytest.param(tests.VAULT_MASTER_KEY, id='str'),
+            pytest.param(tests.VAULT_MASTER_KEY.encode('ascii'), id='bytes'),
+            pytest.param(
+                bytearray(tests.VAULT_MASTER_KEY.encode('ascii')),
+                id='bytearray',
+            ),
+            pytest.param(
+                memoryview(tests.VAULT_MASTER_KEY.encode('ascii')),
+                id='memoryview',
+            ),
+        ],
+    )
+    # TODO(the-13th-letter): Reorder and rename to "config", "parser_class",
+    # "config_data".
+    VAULT_NATIVE_PARSER_CLASS_DATA = pytest.mark.parametrize(
+        ['parser_class', 'config', 'result'],
+        [
+            pytest.param(
+                vault_native.VaultNativeV02ConfigParser,
+                tests.VAULT_V02_CONFIG,
+                tests.VAULT_V02_CONFIG_DATA,
+                id='0.2',
+            ),
+            pytest.param(
+                vault_native.VaultNativeV03ConfigParser,
+                tests.VAULT_V03_CONFIG,
+                tests.VAULT_V03_CONFIG_DATA,
+                id='0.3',
+            ),
+        ],
+    )
+    PATH = pytest.mark.parametrize('path', ['.vault', None])
+    BAD_STOREROOM_CONFIG_DATA = pytest.mark.parametrize(
+        ['zipped_config', 'error_text'],
+        [
+            pytest.param(
+                tests.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED,
+                'Object key mismatch',
+                id='VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED',
+            ),
+            pytest.param(
+                tests.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED2,
+                'Directory index is not actually an index',
+                id='VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED2',
+            ),
+            pytest.param(
+                tests.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED3,
+                'Directory index is not actually an index',
+                id='VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED3',
+            ),
+            pytest.param(
+                tests.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED4,
+                'Object key mismatch',
+                id='VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED4',
+            ),
+        ],
+    )
 
 
 class TestCLI:
@@ -96,29 +261,7 @@ class TestCLI:
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
         assert json.loads(result.output) == tests.VAULT_V03_CONFIG_DATA
 
-    @pytest.mark.parametrize(
-        ['format', 'config', 'config_data'],
-        [
-            pytest.param(
-                'v0.2',
-                tests.VAULT_V02_CONFIG,
-                tests.VAULT_V02_CONFIG_DATA,
-                id='0.2',
-            ),
-            pytest.param(
-                'v0.3',
-                tests.VAULT_V03_CONFIG,
-                tests.VAULT_V03_CONFIG_DATA,
-                id='0.3',
-            ),
-            pytest.param(
-                'storeroom',
-                tests.VAULT_STOREROOM_CONFIG_ZIPPED,
-                tests.VAULT_STOREROOM_CONFIG_DATA,
-                id='storeroom',
-            ),
-        ],
-    )
+    @Parametrizations.VAULT_CONFIG_FORMATS_DATA.value
     def test_210_load_vault_v02_v03_storeroom(
         self,
         format: str,
@@ -324,30 +467,9 @@ class TestCLI:
 class TestStoreroom:
     """Test the "storeroom" handler and handler machinery."""
 
-    @pytest.mark.parametrize('path', ['.vault', None])
-    @pytest.mark.parametrize(
-        'key',
-        [
-            None,
-            pytest.param(tests.VAULT_MASTER_KEY, id='str'),
-            pytest.param(tests.VAULT_MASTER_KEY.encode('ascii'), id='bytes'),
-            pytest.param(
-                bytearray(tests.VAULT_MASTER_KEY.encode('ascii')),
-                id='bytearray',
-            ),
-            pytest.param(
-                memoryview(tests.VAULT_MASTER_KEY.encode('ascii')),
-                id='memoryview',
-            ),
-        ],
-    )
-    @pytest.mark.parametrize(
-        'handler',
-        [
-            pytest.param(storeroom.export_storeroom_data, id='handler'),
-            pytest.param(exporter.export_vault_config_data, id='dispatcher'),
-        ],
-    )
+    @Parametrizations.PATH.value
+    @Parametrizations.KEY_FORMATS.value
+    @Parametrizations.STOREROOM_HANDLER.value
     def test_200_export_data_path_and_keys_type(
         self,
         path: str | None,
@@ -392,7 +514,7 @@ class TestStoreroom:
         with pytest.raises(ValueError, match='Cannot handle version 255'):
             storeroom._decrypt_bucket_item(bucket_item, master_keys)
 
-    @pytest.mark.parametrize('config', ['xxx', 'null', '{"version": 255}'])
+    @Parametrizations.BAD_CONFIG.value
     def test_401_decrypt_bucket_file_bad_json_or_version(
         self,
         config: str,
@@ -427,33 +549,8 @@ class TestStoreroom:
             with pytest.raises(ValueError, match='Invalid bucket file: '):
                 list(storeroom._decrypt_bucket_file(p, master_keys))
 
-    @pytest.mark.parametrize(
-        ['data', 'err_msg'],
-        [
-            pytest.param(
-                '{"version": 255}',
-                'bad or unsupported keys version header',
-                id='v255',
-            ),
-            pytest.param(
-                '{"version": 1}\nAAAA\nAAAA',
-                'trailing data; cannot make sense',
-                id='trailing-data',
-            ),
-            pytest.param(
-                '{"version": 1}\nAAAA',
-                'cannot handle version 0 encrypted keys',
-                id='v0-keys',
-            ),
-        ],
-    )
-    @pytest.mark.parametrize(
-        'handler',
-        [
-            pytest.param(storeroom.export_storeroom_data, id='handler'),
-            pytest.param(exporter.export_vault_config_data, id='dispatcher'),
-        ],
-    )
+    @Parametrizations.BAD_MASTER_KEYS_DATA.value
+    @Parametrizations.STOREROOM_HANDLER.value
     def test_402_export_storeroom_data_bad_master_keys_file(
         self,
         data: str,
@@ -485,38 +582,8 @@ class TestStoreroom:
             with pytest.raises(RuntimeError, match=err_msg):
                 handler(format='storeroom')
 
-    @pytest.mark.parametrize(
-        ['zipped_config', 'error_text'],
-        [
-            pytest.param(
-                tests.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED,
-                'Object key mismatch',
-                id='VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED',
-            ),
-            pytest.param(
-                tests.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED2,
-                'Directory index is not actually an index',
-                id='VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED2',
-            ),
-            pytest.param(
-                tests.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED3,
-                'Directory index is not actually an index',
-                id='VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED3',
-            ),
-            pytest.param(
-                tests.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED4,
-                'Object key mismatch',
-                id='VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED4',
-            ),
-        ],
-    )
-    @pytest.mark.parametrize(
-        'handler',
-        [
-            pytest.param(storeroom.export_storeroom_data, id='handler'),
-            pytest.param(exporter.export_vault_config_data, id='dispatcher'),
-        ],
-    )
+    @Parametrizations.BAD_STOREROOM_CONFIG_DATA.value
+    @Parametrizations.STOREROOM_HANDLER.value
     def test_403_export_storeroom_data_bad_directory_listing(
         self,
         zipped_config: bytes,
@@ -634,13 +701,7 @@ class TestStoreroom:
 class TestVaultNativeConfig:
     """Test the vault-native handler and handler machinery."""
 
-    @pytest.mark.parametrize(
-        ['iterations', 'result'],
-        [
-            pytest.param(100, b'6ede361e81e9c061efcdd68aeb768b80', id='100'),
-            pytest.param(200, b'bcc7d01e075b9ffb69e702bf701187c1', id='200'),
-        ],
-    )
+    @Parametrizations.VAULT_NATIVE_PBKDF2_RESULT.value
     def test_200_pbkdf2_manually(self, iterations: int, result: bytes) -> None:
         """The PBKDF2 helper function works."""
         assert (
@@ -650,42 +711,8 @@ class TestVaultNativeConfig:
             == result
         )
 
-    @pytest.mark.parametrize(
-        ['config', 'format', 'result'],
-        [
-            pytest.param(
-                tests.VAULT_V02_CONFIG,
-                'v0.2',
-                tests.VAULT_V02_CONFIG_DATA,
-                id='V02_CONFIG-v0.2',
-            ),
-            pytest.param(
-                tests.VAULT_V02_CONFIG,
-                'v0.3',
-                exporter.NotAVaultConfigError,
-                id='V02_CONFIG-v0.3',
-            ),
-            pytest.param(
-                tests.VAULT_V03_CONFIG,
-                'v0.2',
-                exporter.NotAVaultConfigError,
-                id='V03_CONFIG-v0.2',
-            ),
-            pytest.param(
-                tests.VAULT_V03_CONFIG,
-                'v0.3',
-                tests.VAULT_V03_CONFIG_DATA,
-                id='V03_CONFIG-v0.3',
-            ),
-        ],
-    )
-    @pytest.mark.parametrize(
-        'handler',
-        [
-            pytest.param(vault_native.export_vault_native_data, id='handler'),
-            pytest.param(exporter.export_vault_config_data, id='dispatcher'),
-        ],
-    )
+    @Parametrizations.VAULT_NATIVE_CONFIG_DATA.value
+    @Parametrizations.VAULT_NATIVE_HANDLER.value
     def test_201_export_vault_native_data_explicit_version(
         self,
         config: str,
@@ -724,30 +751,9 @@ class TestVaultNativeConfig:
                 parsed_config = handler(None, format=format)
                 assert parsed_config == result
 
-    @pytest.mark.parametrize('path', ['.vault', None])
-    @pytest.mark.parametrize(
-        'key',
-        [
-            None,
-            pytest.param(tests.VAULT_MASTER_KEY, id='str'),
-            pytest.param(tests.VAULT_MASTER_KEY.encode('ascii'), id='bytes'),
-            pytest.param(
-                bytearray(tests.VAULT_MASTER_KEY.encode('ascii')),
-                id='bytearray',
-            ),
-            pytest.param(
-                memoryview(tests.VAULT_MASTER_KEY.encode('ascii')),
-                id='memoryview',
-            ),
-        ],
-    )
-    @pytest.mark.parametrize(
-        'handler',
-        [
-            pytest.param(vault_native.export_vault_native_data, id='handler'),
-            pytest.param(exporter.export_vault_config_data, id='dispatcher'),
-        ],
-    )
+    @Parametrizations.PATH.value
+    @Parametrizations.KEY_FORMATS.value
+    @Parametrizations.VAULT_NATIVE_HANDLER.value
     def test_202_export_data_path_and_keys_type(
         self,
         path: str | None,
@@ -779,23 +785,7 @@ class TestVaultNativeConfig:
                 == tests.VAULT_V03_CONFIG_DATA
             )
 
-    @pytest.mark.parametrize(
-        ['parser_class', 'config', 'result'],
-        [
-            pytest.param(
-                vault_native.VaultNativeV02ConfigParser,
-                tests.VAULT_V02_CONFIG,
-                tests.VAULT_V02_CONFIG_DATA,
-                id='0.2',
-            ),
-            pytest.param(
-                vault_native.VaultNativeV03ConfigParser,
-                tests.VAULT_V03_CONFIG,
-                tests.VAULT_V03_CONFIG_DATA,
-                id='0.3',
-            ),
-        ],
-    )
+    @Parametrizations.VAULT_NATIVE_PARSER_CLASS_DATA.value
     def test_300_result_caching(
         self,
         parser_class: type[vault_native.VaultNativeConfigParser],

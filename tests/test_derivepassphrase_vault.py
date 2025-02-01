@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import array
+import enum
 import hashlib
 import math
 from typing import TYPE_CHECKING
@@ -26,6 +27,59 @@ if TYPE_CHECKING:
 
 BLOCK_SIZE = hashlib.sha1().block_size
 DIGEST_SIZE = hashlib.sha1().digest_size
+
+PHRASE = b'She cells C shells bye the sea shoars'
+"""The standard passphrase from <i>vault</i>(1)'s test suite."""
+GOOGLE_PHRASE = rb': 4TVH#5:aZl8LueOT\{'
+"""
+The standard derived passphrase for the "google" service, from
+<i>vault</i>(1)'s test suite.
+"""
+TWITTER_PHRASE = rb"[ (HN_N:lI&<ro=)3'g9"
+"""
+The standard derived passphrase for the "twitter" service, from
+<i>vault</i>(1)'s test suite.
+"""
+
+
+class Parametrizations(enum.Enum):
+    ENTROPY_RESULTS = pytest.mark.parametrize(
+        ['length', 'settings', 'entropy'],
+        [
+            (20, {}, math.log2(math.factorial(20)) + 20 * math.log2(94)),
+            (
+                20,
+                {'upper': 0, 'number': 0, 'space': 0, 'symbol': 0},
+                math.log2(math.factorial(20)) + 20 * math.log2(26),
+            ),
+            (0, {}, float('-inf')),
+            (
+                0,
+                {'lower': 0, 'number': 0, 'space': 0, 'symbol': 0},
+                float('-inf'),
+            ),
+            (1, {}, math.log2(94)),
+            (1, {'upper': 0, 'lower': 0, 'number': 0, 'symbol': 0}, 0.0),
+        ],
+    )
+    BINARY_STRINGS = pytest.mark.parametrize(
+        's',
+        [
+            'ñ',
+            'Düsseldorf',
+            'liberté, egalité, fraternité',
+            'ASCII',
+            b'D\xc3\xbcsseldorf',
+            bytearray([2, 3, 5, 7, 11, 13]),
+        ],
+    )
+    SAMPLE_SERVICES_AND_PHRASES = pytest.mark.parametrize(
+        ['service', 'expected'],
+        [
+            (b'google', GOOGLE_PHRASE),
+            ('twitter', TWITTER_PHRASE),
+        ],
+    )
 
 
 def phrases_are_interchangable(
@@ -65,18 +119,7 @@ def phrases_are_interchangable(
 class TestVault:
     """Test passphrase derivation with the "vault" scheme."""
 
-    phrase = b'She cells C shells bye the sea shoars'
-    """The standard passphrase from <i>vault</i>(1)'s test suite."""
-    google_phrase = rb': 4TVH#5:aZl8LueOT\{'
-    """
-    The standard derived passphrase for the "google" service, from
-    <i>vault</i>(1)'s test suite.
-    """
-    twitter_phrase = rb"[ (HN_N:lI&<ro=)3'g9"
-    """
-    The standard derived passphrase for the "twitter" service, from
-    <i>vault</i>(1)'s test suite.
-    """
+    phrase = PHRASE
 
     @hypothesis.given(
         phrases=strategies.lists(
@@ -275,13 +318,7 @@ class TestVault:
             phrase=phrases[0], service=service
         ) == vault.Vault.create_hash(phrase=phrases[1], service=service)
 
-    @pytest.mark.parametrize(
-        ['service', 'expected'],
-        [
-            (b'google', google_phrase),
-            ('twitter', twitter_phrase),
-        ],
-    )
+    @Parametrizations.SAMPLE_SERVICES_AND_PHRASES.value
     def test_200_basic_configuration(
         self, service: bytes | str, expected: bytes
     ) -> None:
@@ -761,25 +798,7 @@ class TestVault:
         """Removing allowed characters internally works."""
         assert vault.Vault._subtract(b'be', b'abcdef') == bytearray(b'acdf')
 
-    @pytest.mark.parametrize(
-        ['length', 'settings', 'entropy'],
-        [
-            (20, {}, math.log2(math.factorial(20)) + 20 * math.log2(94)),
-            (
-                20,
-                {'upper': 0, 'number': 0, 'space': 0, 'symbol': 0},
-                math.log2(math.factorial(20)) + 20 * math.log2(26),
-            ),
-            (0, {}, float('-inf')),
-            (
-                0,
-                {'lower': 0, 'number': 0, 'space': 0, 'symbol': 0},
-                float('-inf'),
-            ),
-            (1, {}, math.log2(94)),
-            (1, {'upper': 0, 'lower': 0, 'number': 0, 'symbol': 0}, 0.0),
-        ],
-    )
+    @Parametrizations.ENTROPY_RESULTS.value
     def test_221_entropy(
         self, length: int, settings: dict[str, int], entropy: int
     ) -> None:
@@ -809,13 +828,7 @@ class TestVault:
         assert v._entropy() == 0.0
         assert v._estimate_sufficient_hash_length() > 0
 
-    @pytest.mark.parametrize(
-        ['service', 'expected'],
-        [
-            (b'google', google_phrase),
-            ('twitter', twitter_phrase),
-        ],
-    )
+    @Parametrizations.SAMPLE_SERVICES_AND_PHRASES.value
     def test_223_hash_length_expansion(
         self,
         monkeypatch: pytest.MonkeyPatch,
@@ -834,17 +847,7 @@ class TestVault:
         assert v._estimate_sufficient_hash_length() < len(self.phrase)
         assert v.generate(service) == expected
 
-    @pytest.mark.parametrize(
-        's',
-        [
-            'ñ',
-            'Düsseldorf',
-            'liberté, egalité, fraternité',
-            'ASCII',
-            b'D\xc3\xbcsseldorf',
-            bytearray([2, 3, 5, 7, 11, 13]),
-        ],
-    )
+    @Parametrizations.BINARY_STRINGS.value
     def test_224_binary_strings(self, s: str | bytes | bytearray) -> None:
         """Byte string conversion is idempotent."""
         binstr = vault.Vault._get_binary_string

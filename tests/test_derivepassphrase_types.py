@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import copy
+import enum
 import math
 
 import hypothesis
@@ -66,6 +67,21 @@ def js_nested_strategy(draw: strategies.DrawFn) -> Any:
     )
 
 
+class Parametrizations(enum.Enum):
+    VALID_VAULT_TEST_CONFIGS = pytest.mark.parametrize(
+        'test_config',
+        [
+            conf
+            for conf in tests.TEST_CONFIGS
+            if conf.validation_settings in {None, (True,)}
+        ],
+        ids=tests._test_config_ids,
+    )
+    VAULT_TEST_CONFIGS = pytest.mark.parametrize(
+        'test_config', tests.TEST_CONFIGS, ids=tests._test_config_ids
+    )
+
+
 @hypothesis.given(value=js_nested_strategy())
 @hypothesis.example(float('nan'))
 def test_100_js_truthiness(value: Any) -> None:
@@ -85,15 +101,7 @@ def test_100_js_truthiness(value: Any) -> None:
     assert _types.js_truthiness(value) == expected
 
 
-@pytest.mark.parametrize(
-    'test_config',
-    [
-        conf
-        for conf in tests.TEST_CONFIGS
-        if conf.validation_settings in {None, (True,)}
-    ],
-    ids=tests._test_config_ids,
-)
+@Parametrizations.VALID_VAULT_TEST_CONFIGS.value
 def test_200_is_vault_config(test_config: tests.VaultTestConfig) -> None:
     """Is this vault configuration recognized as valid/invalid?
 
@@ -148,9 +156,7 @@ def test_200a_is_vault_config_smudged(
     )
 
 
-@pytest.mark.parametrize(
-    'test_config', tests.TEST_CONFIGS, ids=tests._test_config_ids
-)
+@Parametrizations.VAULT_TEST_CONFIGS.value
 def test_400_validate_vault_config(test_config: tests.VaultTestConfig) -> None:
     """Validate this vault configuration.
 
