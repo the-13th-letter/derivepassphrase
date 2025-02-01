@@ -6,9 +6,9 @@ from __future__ import annotations
 
 import base64
 import contextlib
-import enum
 import json
 import pathlib
+import types
 from typing import TYPE_CHECKING
 
 import click.testing
@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from typing_extensions import Buffer, Literal
 
 
-class Parametrizations(enum.Enum):
+class Parametrize(types.SimpleNamespace):
     BAD_CONFIG = pytest.mark.parametrize(
         'config', ['xxx', 'null', '{"version": 255}']
     )
@@ -91,32 +91,6 @@ class Parametrizations(enum.Enum):
                 '{"version": 1}\nAAAA',
                 'cannot handle version 0 encrypted keys',
                 id='v0-keys',
-            ),
-        ],
-    )
-    # TODO(the-13th-letter): Consolidate with
-    # test_derivepassphrase_exporter.Parametrizations.VAULT_CONFIG_FORMATS_DATA.
-    # TODO(the-13th-letter): Reorder as "config", "format", "config_data".
-    VAULT_CONFIG_FORMATS_DATA = pytest.mark.parametrize(
-        ['format', 'config', 'config_data'],
-        [
-            pytest.param(
-                'v0.2',
-                tests.VAULT_V02_CONFIG,
-                tests.VAULT_V02_CONFIG_DATA,
-                id='0.2',
-            ),
-            pytest.param(
-                'v0.3',
-                tests.VAULT_V03_CONFIG,
-                tests.VAULT_V03_CONFIG_DATA,
-                id='0.3',
-            ),
-            pytest.param(
-                'storeroom',
-                tests.VAULT_STOREROOM_CONFIG_ZIPPED,
-                tests.VAULT_STOREROOM_CONFIG_DATA,
-                id='storeroom',
             ),
         ],
     )
@@ -261,7 +235,7 @@ class TestCLI:
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
         assert json.loads(result.output) == tests.VAULT_V03_CONFIG_DATA
 
-    @Parametrizations.VAULT_CONFIG_FORMATS_DATA.value
+    @tests.Parametrize.VAULT_CONFIG_FORMATS_DATA
     def test_210_load_vault_v02_v03_storeroom(
         self,
         format: str,
@@ -467,9 +441,9 @@ class TestCLI:
 class TestStoreroom:
     """Test the "storeroom" handler and handler machinery."""
 
-    @Parametrizations.PATH.value
-    @Parametrizations.KEY_FORMATS.value
-    @Parametrizations.STOREROOM_HANDLER.value
+    @Parametrize.PATH
+    @Parametrize.KEY_FORMATS
+    @Parametrize.STOREROOM_HANDLER
     def test_200_export_data_path_and_keys_type(
         self,
         path: str | None,
@@ -514,7 +488,7 @@ class TestStoreroom:
         with pytest.raises(ValueError, match='Cannot handle version 255'):
             storeroom._decrypt_bucket_item(bucket_item, master_keys)
 
-    @Parametrizations.BAD_CONFIG.value
+    @Parametrize.BAD_CONFIG
     def test_401_decrypt_bucket_file_bad_json_or_version(
         self,
         config: str,
@@ -549,8 +523,8 @@ class TestStoreroom:
             with pytest.raises(ValueError, match='Invalid bucket file: '):
                 list(storeroom._decrypt_bucket_file(p, master_keys))
 
-    @Parametrizations.BAD_MASTER_KEYS_DATA.value
-    @Parametrizations.STOREROOM_HANDLER.value
+    @Parametrize.BAD_MASTER_KEYS_DATA
+    @Parametrize.STOREROOM_HANDLER
     def test_402_export_storeroom_data_bad_master_keys_file(
         self,
         data: str,
@@ -582,8 +556,8 @@ class TestStoreroom:
             with pytest.raises(RuntimeError, match=err_msg):
                 handler(format='storeroom')
 
-    @Parametrizations.BAD_STOREROOM_CONFIG_DATA.value
-    @Parametrizations.STOREROOM_HANDLER.value
+    @Parametrize.BAD_STOREROOM_CONFIG_DATA
+    @Parametrize.STOREROOM_HANDLER
     def test_403_export_storeroom_data_bad_directory_listing(
         self,
         zipped_config: bytes,
@@ -701,7 +675,7 @@ class TestStoreroom:
 class TestVaultNativeConfig:
     """Test the vault-native handler and handler machinery."""
 
-    @Parametrizations.VAULT_NATIVE_PBKDF2_RESULT.value
+    @Parametrize.VAULT_NATIVE_PBKDF2_RESULT
     def test_200_pbkdf2_manually(self, iterations: int, result: bytes) -> None:
         """The PBKDF2 helper function works."""
         assert (
@@ -711,8 +685,8 @@ class TestVaultNativeConfig:
             == result
         )
 
-    @Parametrizations.VAULT_NATIVE_CONFIG_DATA.value
-    @Parametrizations.VAULT_NATIVE_HANDLER.value
+    @Parametrize.VAULT_NATIVE_CONFIG_DATA
+    @Parametrize.VAULT_NATIVE_HANDLER
     def test_201_export_vault_native_data_explicit_version(
         self,
         config: str,
@@ -751,9 +725,9 @@ class TestVaultNativeConfig:
                 parsed_config = handler(None, format=format)
                 assert parsed_config == result
 
-    @Parametrizations.PATH.value
-    @Parametrizations.KEY_FORMATS.value
-    @Parametrizations.VAULT_NATIVE_HANDLER.value
+    @Parametrize.PATH
+    @Parametrize.KEY_FORMATS
+    @Parametrize.VAULT_NATIVE_HANDLER
     def test_202_export_data_path_and_keys_type(
         self,
         path: str | None,
@@ -785,7 +759,7 @@ class TestVaultNativeConfig:
                 == tests.VAULT_V03_CONFIG_DATA
             )
 
-    @Parametrizations.VAULT_NATIVE_PARSER_CLASS_DATA.value
+    @Parametrize.VAULT_NATIVE_PARSER_CLASS_DATA
     def test_300_result_caching(
         self,
         parser_class: type[vault_native.VaultNativeConfigParser],

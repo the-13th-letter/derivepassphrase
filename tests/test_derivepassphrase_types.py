@@ -5,8 +5,8 @@
 from __future__ import annotations
 
 import copy
-import enum
 import math
+import types
 
 import hypothesis
 import pytest
@@ -67,7 +67,7 @@ def js_nested_strategy(draw: strategies.DrawFn) -> Any:
     )
 
 
-class Parametrizations(enum.Enum):
+class Parametrize(types.SimpleNamespace):
     VALID_VAULT_TEST_CONFIGS = pytest.mark.parametrize(
         'test_config',
         [
@@ -101,7 +101,7 @@ def test_100_js_truthiness(value: Any) -> None:
     assert _types.js_truthiness(value) == expected
 
 
-@Parametrizations.VALID_VAULT_TEST_CONFIGS.value
+@Parametrize.VALID_VAULT_TEST_CONFIGS
 def test_200_is_vault_config(test_config: tests.VaultTestConfig) -> None:
     """Is this vault configuration recognized as valid/invalid?
 
@@ -156,7 +156,7 @@ def test_200a_is_vault_config_smudged(
     )
 
 
-@Parametrizations.VAULT_TEST_CONFIGS.value
+@Parametrize.VAULT_TEST_CONFIGS
 def test_400_validate_vault_config(test_config: tests.VaultTestConfig) -> None:
     """Validate this vault configuration.
 

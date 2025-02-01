@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import collections
 import contextlib
-import enum
 import functools
 import math
 import operator
+import types
 from typing import TYPE_CHECKING, NamedTuple
 
 import hypothesis
@@ -55,7 +55,7 @@ def bitseq(string: str) -> list[int]:
     return [int(char, 2) for char in string]
 
 
-class Parametrizations(enum.Enum):
+class Parametrize(types.SimpleNamespace):
     BIG_ENDIAN_NUMBER_EXCEPTIONS = pytest.mark.parametrize(
         ['exc_type', 'exc_pattern', 'sequence', 'base'],
         [
@@ -199,7 +199,7 @@ class TestStaticFunctionality:
             sequin.Sequin._big_endian_number(sequence, base=base)
         ) == expected
 
-    @Parametrizations.BIG_ENDIAN_NUMBER_EXCEPTIONS.value
+    @Parametrize.BIG_ENDIAN_NUMBER_EXCEPTIONS
     def test_300_big_endian_number_exceptions(
         self,
         exc_type: type[Exception],
@@ -541,7 +541,7 @@ class TestSequin:
                     f'After step {i}, the bit sequence is not exhausted yet'
                 )
 
-    @Parametrizations.INVALID_SEQUIN_INPUTS.value
+    @Parametrize.INVALID_SEQUIN_INPUTS
     def test_300_constructor_exceptions(
         self,
         sequence: list[int] | str,

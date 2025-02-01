@@ -7,7 +7,6 @@ from __future__ import annotations
 import base64
 import contextlib
 import copy
-import enum
 import errno
 import io
 import json
@@ -18,6 +17,7 @@ import shlex
 import shutil
 import socket
 import textwrap
+import types
 import warnings
 from typing import TYPE_CHECKING
 
@@ -346,7 +346,7 @@ def zsh_format(item: click.shell_completion.CompletionItem) -> str:
     return f'{item.type}\n{value}\n{help_}'
 
 
-class Parametrizations(enum.Enum):
+class Parametrize(types.SimpleNamespace):
     EAGER_ARGUMENTS = pytest.mark.parametrize(
         'arguments',
         [['--help'], ['--version']],
@@ -1438,8 +1438,8 @@ class TestAllCLI:
             empty_stderr=True, output='Use $VISUAL or $EDITOR to configure'
         ), 'expected clean exit, and option group epilog in help text'
 
-    @Parametrizations.COMMAND_NON_EAGER_ARGUMENTS.value
-    @Parametrizations.EAGER_ARGUMENTS.value
+    @Parametrize.COMMAND_NON_EAGER_ARGUMENTS
+    @Parametrize.EAGER_ARGUMENTS
     def test_200_eager_options(
         self,
         command: list[str],
@@ -1467,10 +1467,10 @@ class TestAllCLI:
             result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
-    @Parametrizations.NO_COLOR.value
-    @Parametrizations.FORCE_COLOR.value
-    @Parametrizations.ISATTY.value
-    @Parametrizations.COLORFUL_COMMAND_INPUT.value
+    @Parametrize.NO_COLOR
+    @Parametrize.FORCE_COLOR
+    @Parametrize.ISATTY
+    @Parametrize.COLORFUL_COMMAND_INPUT
     def test_201_no_color_force_color(
         self,
         no_color: bool,
@@ -1578,7 +1578,7 @@ class TestCLI:
             'expected clean exit, and version in help text'
         )
 
-    @Parametrizations.CHARSET_NAME.value
+    @Parametrize.CHARSET_NAME
     def test_201_disable_character_set(
         self,
         charset_name: str,
@@ -1650,7 +1650,7 @@ class TestCLI:
                 f'at position {i}: {result.output!r}'
             )
 
-    @Parametrizations.CONFIG_WITH_KEY.value
+    @Parametrize.CONFIG_WITH_KEY
     def test_204a_key_from_config(
         self,
         config: _types.VaultConfig,
@@ -1731,8 +1731,8 @@ class TestCLI:
             'expected known output'
         )
 
-    @Parametrizations.BASE_CONFIG_WITH_KEY_VARIATIONS.value
-    @Parametrizations.KEY_INDEX.value
+    @Parametrize.BASE_CONFIG_WITH_KEY_VARIATIONS
+    @Parametrize.KEY_INDEX
     def test_204c_key_override_on_command_line(
         self,
         running_ssh_agent: tests.RunningSSHAgentInfo,
@@ -1818,7 +1818,7 @@ class TestCLI:
             'expected known output'
         )
 
-    @Parametrizations.KEY_OVERRIDING_IN_CONFIG.value
+    @Parametrize.KEY_OVERRIDING_IN_CONFIG
     def test_206_setting_phrase_thus_overriding_key_in_config(
         self,
         running_ssh_agent: tests.RunningSSHAgentInfo,
@@ -1869,7 +1869,7 @@ class TestCLI:
             map(is_harmless_config_import_warning, caplog.record_tuples)
         ), 'unexpected error output'
 
-    @Parametrizations.VAULT_CHARSET_OPTION.value
+    @Parametrize.VAULT_CHARSET_OPTION
     def test_210_invalid_argument_range(
         self,
         option: str,
@@ -1899,7 +1899,7 @@ class TestCLI:
                     'expected error exit and known error message'
                 )
 
-    @Parametrizations.OPTION_COMBINATIONS_SERVICE_NEEDED.value
+    @Parametrize.OPTION_COMBINATIONS_SERVICE_NEEDED
     def test_211_service_needed(
         self,
         options: list[str],
@@ -2038,7 +2038,7 @@ class TestCLI:
                 'services': {'': {'length': 40}},
             }, 'requested configuration change was not applied'
 
-    @Parametrizations.OPTION_COMBINATIONS_INCOMPATIBLE.value
+    @Parametrize.OPTION_COMBINATIONS_INCOMPATIBLE
     def test_212_incompatible_options(
         self,
         options: list[str],
@@ -2068,7 +2068,7 @@ class TestCLI:
             'expected error exit and known error message'
         )
 
-    @Parametrizations.VALID_TEST_CONFIGS.value
+    @Parametrize.VALID_TEST_CONFIGS
     def test_213_import_config_success(
         self,
         caplog: pytest.LogCaptureFixture,
@@ -2253,7 +2253,7 @@ class TestCLI:
             'expected error exit and known error message'
         )
 
-    @Parametrizations.EXPORT_FORMAT_OPTIONS.value
+    @Parametrize.EXPORT_FORMAT_OPTIONS
     def test_214_export_settings_no_stored_settings(
         self,
         export_options: list[str],
@@ -2286,7 +2286,7 @@ class TestCLI:
         result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
-    @Parametrizations.EXPORT_FORMAT_OPTIONS.value
+    @Parametrize.EXPORT_FORMAT_OPTIONS
     def test_214a_export_settings_bad_stored_config(
         self,
         export_options: list[str],
@@ -2316,7 +2316,7 @@ class TestCLI:
             'expected error exit and known error message'
         )
 
-    @Parametrizations.EXPORT_FORMAT_OPTIONS.value
+    @Parametrize.EXPORT_FORMAT_OPTIONS
     def test_214b_export_settings_not_a_file(
         self,
         export_options: list[str],
@@ -2348,7 +2348,7 @@ class TestCLI:
             'expected error exit and known error message'
         )
 
-    @Parametrizations.EXPORT_FORMAT_OPTIONS.value
+    @Parametrize.EXPORT_FORMAT_OPTIONS
     def test_214c_export_settings_target_not_a_file(
         self,
         export_options: list[str],
@@ -2378,7 +2378,7 @@ class TestCLI:
             'expected error exit and known error message'
         )
 
-    @Parametrizations.EXPORT_FORMAT_OPTIONS.value
+    @Parametrize.EXPORT_FORMAT_OPTIONS
     def test_214d_export_settings_settings_directory_not_a_directory(
         self,
         export_options: list[str],
@@ -2556,7 +2556,7 @@ contents go here
                 config = json.load(infile)
             assert config == {'global': {'phrase': 'abc'}, 'services': {}}
 
-    @Parametrizations.CONFIG_EDITING_VIA_CONFIG_FLAG.value
+    @Parametrize.CONFIG_EDITING_VIA_CONFIG_FLAG
     def test_224_store_config_good(
         self,
         command_line: list[str],
@@ -2596,7 +2596,7 @@ contents go here
                 'stored config does not match expectation'
             )
 
-    @Parametrizations.CONFIG_EDITING_VIA_CONFIG_FLAG_FAILURES.value
+    @Parametrize.CONFIG_EDITING_VIA_CONFIG_FLAG_FAILURES
     def test_225_store_config_fail(
         self,
         command_line: list[str],
@@ -2723,7 +2723,7 @@ contents go here
             'expected error exit and known error message'
         )
 
-    @Parametrizations.TRY_RACE_FREE_IMPLEMENTATION.value
+    @Parametrize.TRY_RACE_FREE_IMPLEMENTATION
     def test_225d_store_config_fail_manual_read_only_file(
         self,
         try_race_free_implementation: bool,
@@ -3105,7 +3105,7 @@ contents go here
                 'expected error exit and known error message'
             )
 
-    @Parametrizations.UNICODE_NORMALIZATION_WARNING_INPUTS.value
+    @Parametrize.UNICODE_NORMALIZATION_WARNING_INPUTS
     def test_300_unicode_normalization_form_warning(
         self,
         caplog: pytest.LogCaptureFixture,
@@ -3145,7 +3145,7 @@ contents go here
             'expected known warning message in stderr'
         )
 
-    @Parametrizations.UNICODE_NORMALIZATION_ERROR_INPUTS.value
+    @Parametrize.UNICODE_NORMALIZATION_ERROR_INPUTS
     def test_301_unicode_normalization_form_error(
         self,
         main_config: str,
@@ -3186,7 +3186,7 @@ contents go here
             'expected error exit and known error message'
         )
 
-    @Parametrizations.UNICODE_NORMALIZATION_COMMAND_LINES.value
+    @Parametrize.UNICODE_NORMALIZATION_COMMAND_LINES
     def test_301a_unicode_normalization_form_error_from_stored_config(
         self,
         command_line: list[str],
@@ -3293,7 +3293,7 @@ contents go here
 class TestCLIUtils:
     """Tests for command-line utility functions."""
 
-    @Parametrizations.BASE_CONFIG_VARIATIONS.value
+    @Parametrize.BASE_CONFIG_VARIATIONS
     def test_100_load_config(
         self,
         config: Any,
@@ -3855,7 +3855,7 @@ Boo.
         assert _types.is_vault_config(config)
         return self.export_as_sh_helper(config)
 
-    @Parametrizations.DELETE_CONFIG_INPUT.value
+    @Parametrize.DELETE_CONFIG_INPUT
     def test_203_repeated_config_deletion(
         self,
         command_line: list[str],
@@ -3901,7 +3901,7 @@ Boo.
             == DUMMY_RESULT_KEY1
         )
 
-    @Parametrizations.VALIDATION_FUNCTION_INPUT.value
+    @Parametrize.VALIDATION_FUNCTION_INPUT
     def test_210a_validate_constraints_manually(
         self,
         vfunc: Callable[[click.Context, click.Parameter, Any], int | None],
@@ -3912,7 +3912,7 @@ Boo.
         param = cli.derivepassphrase_vault.params[0]
         assert vfunc(ctx, param, input) == input
 
-    @Parametrizations.CONNECTION_HINTS.value
+    @Parametrize.CONNECTION_HINTS
     def test_227_get_suitable_ssh_keys(
         self,
         running_ssh_agent: tests.RunningSSHAgentInfo,
@@ -4043,7 +4043,7 @@ Boo.
 class TestCLITransition:
     """Transition tests for the command-line interface up to v1.0."""
 
-    @Parametrizations.BASE_CONFIG_VARIATIONS.value
+    @Parametrize.BASE_CONFIG_VARIATIONS
     def test_110_load_config_backup(
         self,
         config: Any,
@@ -4066,7 +4066,7 @@ class TestCLITransition:
             ).write_text(json.dumps(config, indent=2) + '\n', encoding='UTF-8')
             assert cli_helpers.migrate_and_load_old_config()[0] == config
 
-    @Parametrizations.BASE_CONFIG_VARIATIONS.value
+    @Parametrize.BASE_CONFIG_VARIATIONS
     def test_111_migrate_config(
         self,
         config: Any,
@@ -4089,7 +4089,7 @@ class TestCLITransition:
             ).write_text(json.dumps(config, indent=2) + '\n', encoding='UTF-8')
             assert cli_helpers.migrate_and_load_old_config() == (config, None)
 
-    @Parametrizations.BASE_CONFIG_VARIATIONS.value
+    @Parametrize.BASE_CONFIG_VARIATIONS
     def test_112_migrate_config_error(
         self,
         config: Any,
@@ -4118,7 +4118,7 @@ class TestCLITransition:
             assert isinstance(err, OSError)
             assert err.errno == errno.EISDIR
 
-    @Parametrizations.BAD_CONFIGS.value
+    @Parametrize.BAD_CONFIGS
     def test_113_migrate_config_error_bad_config_value(
         self,
         config: Any,
@@ -4212,7 +4212,7 @@ class TestCLITransition:
             'expected error exit and known error type'
         )
 
-    @Parametrizations.CHARSET_NAME.value
+    @Parametrize.CHARSET_NAME
     def test_210_forward_vault_disable_character_set(
         self,
         caplog: pytest.LogCaptureFixture,
@@ -4977,7 +4977,7 @@ class TestShellCompletion:
             """Return the completion items' values, as a sequence."""
             return tuple(c.value for c in self())
 
-    @Parametrizations.COMPLETABLE_ITEMS.value
+    @Parametrize.COMPLETABLE_ITEMS
     def test_100_is_completable_item(
         self,
         partial: str,
@@ -4986,7 +4986,7 @@ class TestShellCompletion:
         """Our `_is_completable_item` predicate for service names works."""
         assert cli_helpers.is_completable_item(partial) == is_completable
 
-    @Parametrizations.COMPLETABLE_OPTIONS.value
+    @Parametrize.COMPLETABLE_OPTIONS
     def test_200_options(
         self,
         command_prefix: Sequence[str],
@@ -4997,7 +4997,7 @@ class TestShellCompletion:
         comp = self.Completions(command_prefix, incomplete)
         assert frozenset(comp.get_words()) == completions
 
-    @Parametrizations.COMPLETABLE_SUBCOMMANDS.value
+    @Parametrize.COMPLETABLE_SUBCOMMANDS
     def test_201_subcommands(
         self,
         command_prefix: Sequence[str],
@@ -5008,8 +5008,8 @@ class TestShellCompletion:
         comp = self.Completions(command_prefix, incomplete)
         assert frozenset(comp.get_words()) == completions
 
-    @Parametrizations.COMPLETABLE_PATH_ARGUMENT.value
-    @Parametrizations.INCOMPLETE.value
+    @Parametrize.COMPLETABLE_PATH_ARGUMENT
+    @Parametrize.INCOMPLETE
     def test_202_paths(
         self,
         command_prefix: Sequence[str],
@@ -5023,7 +5023,7 @@ class TestShellCompletion:
             frozenset((x.type, x.value, x.help) for x in comp()) == completions
         )
 
-    @Parametrizations.COMPLETABLE_SERVICE_NAMES.value
+    @Parametrize.COMPLETABLE_SERVICE_NAMES
     def test_203_service_names(
         self,
         config: _types.VaultConfig,
@@ -5047,8 +5047,8 @@ class TestShellCompletion:
             comp = self.Completions(['vault'], incomplete)
             assert frozenset(comp.get_words()) == completions
 
-    @Parametrizations.SHELL_FORMATTER.value
-    @Parametrizations.COMPLETION_FUNCTION_INPUTS.value
+    @Parametrize.SHELL_FORMATTER
+    @Parametrize.COMPLETION_FUNCTION_INPUTS
     def test_300_shell_completion_formatting(
         self,
         shell: str,
@@ -5112,8 +5112,8 @@ class TestShellCompletion:
             assert actual_items == expected_items
             assert actual_string == expected_string
 
-    @Parametrizations.CONFIG_SETTING_MODE.value
-    @Parametrizations.SERVICE_NAME_COMPLETION_INPUTS.value
+    @Parametrize.CONFIG_SETTING_MODE
+    @Parametrize.SERVICE_NAME_COMPLETION_INPUTS
     def test_400_incompletable_service_names(
         self,
         caplog: pytest.LogCaptureFixture,
@@ -5191,7 +5191,7 @@ class TestShellCompletion:
                 '',
             )
 
-    @Parametrizations.SERVICE_NAME_EXCEPTIONS.value
+    @Parametrize.SERVICE_NAME_EXCEPTIONS
     def test_410b_service_name_exceptions_custom_error(
         self,
         exc_type: type[Exception],

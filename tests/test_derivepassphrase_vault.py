@@ -7,9 +7,9 @@
 from __future__ import annotations
 
 import array
-import enum
 import hashlib
 import math
+import types
 from typing import TYPE_CHECKING
 
 import hypothesis
@@ -42,7 +42,7 @@ The standard derived passphrase for the "twitter" service, from
 """
 
 
-class Parametrizations(enum.Enum):
+class Parametrize(types.SimpleNamespace):
     ENTROPY_RESULTS = pytest.mark.parametrize(
         ['length', 'settings', 'entropy'],
         [
@@ -318,7 +318,7 @@ class TestVault:
             phrase=phrases[0], service=service
         ) == vault.Vault.create_hash(phrase=phrases[1], service=service)
 
-    @Parametrizations.SAMPLE_SERVICES_AND_PHRASES.value
+    @Parametrize.SAMPLE_SERVICES_AND_PHRASES
     def test_200_basic_configuration(
         self, service: bytes | str, expected: bytes
     ) -> None:
@@ -798,7 +798,7 @@ class TestVault:
         """Removing allowed characters internally works."""
         assert vault.Vault._subtract(b'be', b'abcdef') == bytearray(b'acdf')
 
-    @Parametrizations.ENTROPY_RESULTS.value
+    @Parametrize.ENTROPY_RESULTS
     def test_221_entropy(
         self, length: int, settings: dict[str, int], entropy: int
     ) -> None:
@@ -828,7 +828,7 @@ class TestVault:
         assert v._entropy() == 0.0
         assert v._estimate_sufficient_hash_length() > 0
 
-    @Parametrizations.SAMPLE_SERVICES_AND_PHRASES.value
+    @Parametrize.SAMPLE_SERVICES_AND_PHRASES
     def test_223_hash_length_expansion(
         self,
         monkeypatch: pytest.MonkeyPatch,
@@ -847,7 +847,7 @@ class TestVault:
         assert v._estimate_sufficient_hash_length() < len(self.phrase)
         assert v.generate(service) == expected
 
-    @Parametrizations.BINARY_STRINGS.value
+    @Parametrize.BINARY_STRINGS
     def test_224_binary_strings(self, s: str | bytes | bytearray) -> None:
         """Byte string conversion is idempotent."""
         binstr = vault.Vault._get_binary_string

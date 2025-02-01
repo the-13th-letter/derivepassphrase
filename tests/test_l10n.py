@@ -7,12 +7,12 @@
 from __future__ import annotations
 
 import contextlib
-import enum
 import errno
 import gettext
 import os
 import re
 import string
+import types
 from typing import TYPE_CHECKING, cast
 
 import hypothesis
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
 
 
-class Parametrizations(enum.Enum):
+class Parametrize(types.SimpleNamespace):
     MAYBE_FORMAT_STRINGS = pytest.mark.parametrize(
         's', ['{spam}', '{spam}abc', '{', '}', '{{{']
     )
@@ -211,7 +211,7 @@ class TestL10nMachineryWithDebugTranslations:
             assert ts0 != ts1
             assert len({ts0, ts1}) == 2
 
-    @Parametrizations.MAYBE_FORMAT_STRINGS.value
+    @Parametrize.MAYBE_FORMAT_STRINGS
     def test_102_translated_strings_suppressed_interpolation_fail(
         self,
         s: str,

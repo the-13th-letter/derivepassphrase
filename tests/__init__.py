@@ -17,6 +17,7 @@ import re
 import shlex
 import stat
 import tempfile
+import types
 import zipfile
 from typing import TYPE_CHECKING
 
@@ -2117,3 +2118,29 @@ deprecation_info_emitted = message_emitted_factory(
     logging.INFO, logger_name=f'{cli.PROG_NAME}.deprecation'
 )
 error_emitted = message_emitted_factory(logging.ERROR)
+
+
+class Parametrize(types.SimpleNamespace):
+    VAULT_CONFIG_FORMATS_DATA = pytest.mark.parametrize(
+        ['config', 'format', 'config_data'],
+        [
+            pytest.param(
+                VAULT_V02_CONFIG,
+                'v0.2',
+                VAULT_V02_CONFIG_DATA,
+                id='0.2',
+            ),
+            pytest.param(
+                VAULT_V03_CONFIG,
+                'v0.3',
+                VAULT_V03_CONFIG_DATA,
+                id='0.3',
+            ),
+            pytest.param(
+                VAULT_STOREROOM_CONFIG_ZIPPED,
+                'storeroom',
+                VAULT_STOREROOM_CONFIG_DATA,
+                id='storeroom',
+            ),
+        ],
+    )

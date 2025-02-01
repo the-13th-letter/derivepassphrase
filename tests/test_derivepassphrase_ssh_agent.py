@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import base64
 import contextlib
-import enum
 import io
 import re
 import socket
+import types
 from typing import TYPE_CHECKING
 
 import click
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from typing_extensions import Any, Buffer
 
 
-class Parametrizations(enum.Enum):
+class Parametrize(types.SimpleNamespace):
     SSH_STRING_EXCEPTIONS = pytest.mark.parametrize(
         ['input', 'exc_type', 'exc_pattern'],
         [
@@ -377,7 +377,7 @@ class TestStaticFunctionality:
     # It cannot provide true tamper-resistence, but probably appears to.
     # TODO(the-13th-letter): Modify parametrization to work directly on the
     # struct.
-    @Parametrizations.PUBLIC_KEY_DATA.value
+    @Parametrize.PUBLIC_KEY_DATA
     def test_100_key_decoding(
         self, public_key: bytes, public_key_data: bytes
     ) -> None:
@@ -387,7 +387,7 @@ class TestStaticFunctionality:
             "recorded public key data doesn't match"
         )
 
-    @Parametrizations.SH_EXPORT_LINES.value
+    @Parametrize.SH_EXPORT_LINES
     def test_190_sh_export_line_parsing(
         self, line: str, env_name: str, value: str | None
     ) -> None:
@@ -411,7 +411,7 @@ class TestStaticFunctionality:
             ):
                 ssh_agent.SSHAgentClient()
 
-    @Parametrizations.UINT32_INPUT.value
+    @Parametrize.UINT32_INPUT
     def test_210_uint32(self, input: int, expected: bytes | bytearray) -> None:
         """`uint32` encoding works."""
         uint32 = ssh_agent.SSHAgentClient.uint32
@@ -436,7 +436,7 @@ class TestStaticFunctionality:
             == bytestring
         )
 
-    @Parametrizations.SSH_STRING_INPUT.value
+    @Parametrize.SSH_STRING_INPUT
     def test_211_string(
         self, input: bytes | bytearray, expected: bytes | bytearray
     ) -> None:
@@ -455,7 +455,7 @@ class TestStaticFunctionality:
         assert int.from_bytes(res[:4], 'big', signed=False) == len(bytestring)
         assert res[4:] == bytestring
 
-    @Parametrizations.SSH_UNSTRING_INPUT.value
+    @Parametrize.SSH_UNSTRING_INPUT
     def test_212_unstring(
         self, input: bytes | bytearray, expected: bytes | bytearray
     ) -> None:
@@ -521,7 +521,7 @@ class TestStaticFunctionality:
                 assert canon1(canon2(encoded)) == canon1(encoded)
 
     # TODO(the-13th-letter): Rename "value" to "input".
-    @Parametrizations.UINT32_EXCEPTIONS.value
+    @Parametrize.UINT32_EXCEPTIONS
     def test_310_uint32_exceptions(
         self, value: int, exc_type: type[Exception], exc_pattern: str
     ) -> None:
@@ -530,7 +530,7 @@ class TestStaticFunctionality:
         with pytest.raises(exc_type, match=exc_pattern):
             uint32(value)
 
-    @Parametrizations.SSH_STRING_EXCEPTIONS.value
+    @Parametrize.SSH_STRING_EXCEPTIONS
     def test_311_string_exceptions(
         self, input: Any, exc_type: type[Exception], exc_pattern: str
     ) -> None:
@@ -539,7 +539,7 @@ class TestStaticFunctionality:
         with pytest.raises(exc_type, match=exc_pattern):
             string(input)
 
-    @Parametrizations.SSH_UNSTRING_EXCEPTIONS.value
+    @Parametrize.SSH_UNSTRING_EXCEPTIONS
     def test_312_unstring_exceptions(
         self,
         input: bytes | bytearray,
@@ -566,7 +566,7 @@ class TestAgentInteraction:
     # TODO(the-13th-letter): Convert skip into xfail, and include the
     # key type in the skip/xfail message.  This means the key type needs
     # to be passed to the test function as well.
-    @Parametrizations.SUPPORTED_SSH_TEST_KEYS.value
+    @Parametrize.SUPPORTED_SSH_TEST_KEYS
     def test_200_sign_data_via_agent(
         self,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
@@ -604,7 +604,7 @@ class TestAgentInteraction:
     # TODO(the-13th-letter): Include the key type in the skip message.
     # This means the key type needs to be passed to the test function as
     # well.
-    @Parametrizations.UNSUITABLE_SSH_TEST_KEYS.value
+    @Parametrize.UNSUITABLE_SSH_TEST_KEYS
     def test_201_sign_data_via_agent_unsupported(
         self,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
@@ -632,7 +632,7 @@ class TestAgentInteraction:
         with pytest.raises(ValueError, match='unsuitable SSH key'):
             vault.Vault.phrase_from_key(public_key_data, conn=client)
 
-    @Parametrizations.SSH_KEY_SELECTION.value
+    @Parametrize.SSH_KEY_SELECTION
     def test_210_ssh_key_selector(
         self,
         monkeypatch: pytest.MonkeyPatch,
@@ -733,7 +733,7 @@ class TestAgentInteraction:
             ):
                 ssh_agent.SSHAgentClient()
 
-    @Parametrizations.TRUNCATED_AGENT_RESPONSES.value
+    @Parametrize.TRUNCATED_AGENT_RESPONSES
     def test_310_truncated_server_response(
         self,
         running_ssh_agent: tests.RunningSSHAgentInfo,
@@ -757,7 +757,7 @@ class TestAgentInteraction:
             with pytest.raises(EOFError):
                 client.request(255, b'')
 
-    @Parametrizations.LIST_KEYS_ERROR_RESPONSES.value
+    @Parametrize.LIST_KEYS_ERROR_RESPONSES
     def test_320_list_keys_error_responses(
         self,
         running_ssh_agent: tests.RunningSSHAgentInfo,
@@ -817,7 +817,7 @@ class TestAgentInteraction:
             with pytest.raises(exc_type, match=exc_pattern):
                 client.list_keys()
 
-    @Parametrizations.SIGN_ERROR_RESPONSES.value
+    @Parametrize.SIGN_ERROR_RESPONSES
     def test_330_sign_error_responses(
         self,
         running_ssh_agent: tests.RunningSSHAgentInfo,
@@ -886,7 +886,7 @@ class TestAgentInteraction:
             with pytest.raises(exc_type, match=exc_pattern):
                 client.sign(key, b'abc', check_if_key_loaded=check)
 
-    @Parametrizations.REQUEST_ERROR_RESPONSES.value
+    @Parametrize.REQUEST_ERROR_RESPONSES
     def test_340_request_error_responses(
         self,
         running_ssh_agent: tests.RunningSSHAgentInfo,
@@ -914,7 +914,7 @@ class TestAgentInteraction:
             client = stack.enter_context(ssh_agent.SSHAgentClient())
             client.request(request_code, b'', response_code=response_code)
 
-    @Parametrizations.QUERY_EXTENSIONS_MALFORMED_RESPONSES.value
+    @Parametrize.QUERY_EXTENSIONS_MALFORMED_RESPONSES
     def test_350_query_extensions_malformed_responses(
         self,
         monkeypatch: pytest.MonkeyPatch,
