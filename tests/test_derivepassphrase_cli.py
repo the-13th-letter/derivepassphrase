@@ -17,6 +17,7 @@ import shlex
 import shutil
 import socket
 import textwrap
+import types
 import warnings
 from typing import TYPE_CHECKING
 
@@ -294,6 +295,1022 @@ def vault_config_exporter_shell_interpreter(  # noqa: C901
         )
 
 
+def bash_format(item: click.shell_completion.CompletionItem) -> str:
+    """A formatter for `bash`-style shell completion items.
+
+    The format is `type,value`, and is dictated by [`click`][].
+
+    """
+    type, value = (  # noqa: A001
+        item.type,
+        item.value,
+    )
+    return f'{type},{value}'
+
+
+def fish_format(item: click.shell_completion.CompletionItem) -> str:
+    r"""A formatter for `fish`-style shell completion items.
+
+    The format is `type,value<tab>help`, and is dictated by [`click`][].
+
+    """
+    type, value, help = (  # noqa: A001
+        item.type,
+        item.value,
+        item.help,
+    )
+    return f'{type},{value}\t{help}' if help else f'{type},{value}'
+
+
+def zsh_format(item: click.shell_completion.CompletionItem) -> str:
+    r"""A formatter for `zsh`-style shell completion items.
+
+    The format is `type<newline>value<newline>help<newline>`, and is
+    dictated by [`click`][].  Upstream `click` currently (v8.2.0) does
+    not deal with colons in the value correctly when the help text is
+    non-degenerate.  Our formatter here does, provided the upstream
+    `zsh` completion script is used; see the
+    [`cli_machinery.ZshComplete`][] class.  A request is underway to
+    merge this change into upstream `click`; see
+    [`pallets/click#2846`][PR2846].
+
+    [PR2846]: https://github.com/pallets/click/pull/2846
+
+    """
+    empty_help = '_'
+    help_, value = (
+        (item.help, item.value.replace(':', r'\:'))
+        if item.help and item.help == empty_help
+        else (empty_help, item.value)
+    )
+    return f'{item.type}\n{value}\n{help_}'
+
+
+class Parametrize(types.SimpleNamespace):
+    EAGER_ARGUMENTS = pytest.mark.parametrize(
+        'arguments',
+        [['--help'], ['--version']],
+        ids=['help', 'version'],
+    )
+    CHARSET_NAME = pytest.mark.parametrize(
+        'charset_name', ['lower', 'upper', 'number', 'space', 'dash', 'symbol']
+    )
+    COMMAND_NON_EAGER_ARGUMENTS = pytest.mark.parametrize(
+        ['command', 'non_eager_arguments'],
+        [
+            pytest.param(
+                [],
+                [],
+                id='top-nothing',
+            ),
+            pytest.param(
+                [],
+                ['export'],
+                id='top-export',
+            ),
+            pytest.param(
+                ['export'],
+                [],
+                id='export-nothing',
+            ),
+            pytest.param(
+                ['export'],
+                ['vault'],
+                id='export-vault',
+            ),
+            pytest.param(
+                ['export', 'vault'],
+                [],
+                id='export-vault-nothing',
+            ),
+            pytest.param(
+                ['export', 'vault'],
+                ['--format', 'this-format-doesnt-exist'],
+                id='export-vault-args',
+            ),
+            pytest.param(
+                ['vault'],
+                [],
+                id='vault-nothing',
+            ),
+            pytest.param(
+                ['vault'],
+                ['--export', './'],
+                id='vault-args',
+            ),
+        ],
+    )
+    UNICODE_NORMALIZATION_COMMAND_LINES = pytest.mark.parametrize(
+        'command_line',
+        [
+            pytest.param(
+                ['--config', '--phrase'],
+                id='configure global passphrase',
+            ),
+            pytest.param(
+                ['--config', '--phrase', '--', 'DUMMY_SERVICE'],
+                id='configure service passphrase',
+            ),
+            pytest.param(
+                ['--phrase', '--', DUMMY_SERVICE],
+                id='interactive passphrase',
+            ),
+        ],
+    )
+    DELETE_CONFIG_INPUT = pytest.mark.parametrize(
+        ['command_line', 'config', 'result_config'],
+        [
+            pytest.param(
+                ['--delete-globals'],
+                {'global': {'phrase': 'abc'}, 'services': {}},
+                {'services': {}},
+                id='globals',
+            ),
+            pytest.param(
+                ['--delete', '--', DUMMY_SERVICE],
+                {
+                    'global': {'phrase': 'abc'},
+                    'services': {DUMMY_SERVICE: {'notes': '...'}},
+                },
+                {'global': {'phrase': 'abc'}, 'services': {}},
+                id='service',
+            ),
+            pytest.param(
+                ['--clear'],
+                {
+                    'global': {'phrase': 'abc'},
+                    'services': {DUMMY_SERVICE: {'notes': '...'}},
+                },
+                {'services': {}},
+                id='all',
+            ),
+        ],
+    )
+    COLORFUL_COMMAND_INPUT = pytest.mark.parametrize(
+        ['command_line', 'input'],
+        [
+            (
+                ['vault', '--import', '-'],
+                '{"services": {"": {"length": 20}}}',
+            ),
+        ],
+        ids=['cmd'],
+    )
+    CONFIG_EDITING_VIA_CONFIG_FLAG_FAILURES = pytest.mark.parametrize(
+        ['command_line', 'input', 'err_text'],
+        [
+            pytest.param(
+                [],
+                '',
+                'Cannot update the global settings without any given settings',
+                id='None',
+            ),
+            pytest.param(
+                ['--', 'sv'],
+                '',
+                'Cannot update the service-specific settings without any given settings',
+                id='None-sv',
+            ),
+            pytest.param(
+                ['--phrase', '--', 'sv'],
+                '',
+                'No passphrase was given',
+                id='phrase-sv',
+            ),
+            pytest.param(
+                ['--key'],
+                '',
+                'No SSH key was selected',
+                id='key-sv',
+            ),
+        ],
+    )
+    CONFIG_EDITING_VIA_CONFIG_FLAG = pytest.mark.parametrize(
+        ['command_line', 'input', 'result_config'],
+        [
+            pytest.param(
+                ['--phrase'],
+                'my passphrase\n',
+                {'global': {'phrase': 'my passphrase'}, 'services': {}},
+                id='phrase',
+            ),
+            pytest.param(
+                ['--key'],
+                '1\n',
+                {
+                    'global': {'key': DUMMY_KEY1_B64, 'phrase': 'abc'},
+                    'services': {},
+                },
+                id='key',
+            ),
+            pytest.param(
+                ['--phrase', '--', 'sv'],
+                'my passphrase\n',
+                {
+                    'global': {'phrase': 'abc'},
+                    'services': {'sv': {'phrase': 'my passphrase'}},
+                },
+                id='phrase-sv',
+            ),
+            pytest.param(
+                ['--key', '--', 'sv'],
+                '1\n',
+                {
+                    'global': {'phrase': 'abc'},
+                    'services': {'sv': {'key': DUMMY_KEY1_B64}},
+                },
+                id='key-sv',
+            ),
+            pytest.param(
+                ['--key', '--length', '15', '--', 'sv'],
+                '1\n',
+                {
+                    'global': {'phrase': 'abc'},
+                    'services': {'sv': {'key': DUMMY_KEY1_B64, 'length': 15}},
+                },
+                id='key-length-sv',
+            ),
+        ],
+    )
+    COMPLETABLE_PATH_ARGUMENT = pytest.mark.parametrize(
+        'command_prefix',
+        [
+            pytest.param(
+                ('export', 'vault'),
+                id='derivepassphrase-export-vault',
+            ),
+            pytest.param(
+                ('vault', '--export'),
+                id='derivepassphrase-vault--export',
+            ),
+            pytest.param(
+                ('vault', '--import'),
+                id='derivepassphrase-vault--import',
+            ),
+        ],
+    )
+    COMPLETABLE_OPTIONS = pytest.mark.parametrize(
+        ['command_prefix', 'incomplete', 'completions'],
+        [
+            pytest.param(
+                (),
+                '-',
+                frozenset({
+                    '--help',
+                    '-h',
+                    '--version',
+                    '--debug',
+                    '--verbose',
+                    '-v',
+                    '--quiet',
+                    '-q',
+                }),
+                id='derivepassphrase',
+            ),
+            pytest.param(
+                ('export',),
+                '-',
+                frozenset({
+                    '--help',
+                    '-h',
+                    '--version',
+                    '--debug',
+                    '--verbose',
+                    '-v',
+                    '--quiet',
+                    '-q',
+                }),
+                id='derivepassphrase-export',
+            ),
+            pytest.param(
+                ('export', 'vault'),
+                '-',
+                frozenset({
+                    '--help',
+                    '-h',
+                    '--version',
+                    '--debug',
+                    '--verbose',
+                    '-v',
+                    '--quiet',
+                    '-q',
+                    '--format',
+                    '-f',
+                    '--key',
+                    '-k',
+                }),
+                id='derivepassphrase-export-vault',
+            ),
+            pytest.param(
+                ('vault',),
+                '-',
+                frozenset({
+                    '--help',
+                    '-h',
+                    '--version',
+                    '--debug',
+                    '--verbose',
+                    '-v',
+                    '--quiet',
+                    '-q',
+                    '--phrase',
+                    '-p',
+                    '--key',
+                    '-k',
+                    '--length',
+                    '-l',
+                    '--repeat',
+                    '-r',
+                    '--upper',
+                    '--lower',
+                    '--number',
+                    '--space',
+                    '--dash',
+                    '--symbol',
+                    '--config',
+                    '-c',
+                    '--notes',
+                    '-n',
+                    '--delete',
+                    '-x',
+                    '--delete-globals',
+                    '--clear',
+                    '-X',
+                    '--export',
+                    '-e',
+                    '--import',
+                    '-i',
+                    '--overwrite-existing',
+                    '--merge-existing',
+                    '--unset',
+                    '--export-as',
+                }),
+                id='derivepassphrase-vault',
+            ),
+        ],
+    )
+    COMPLETABLE_SUBCOMMANDS = pytest.mark.parametrize(
+        ['command_prefix', 'incomplete', 'completions'],
+        [
+            pytest.param(
+                (),
+                '',
+                frozenset({'export', 'vault'}),
+                id='derivepassphrase',
+            ),
+            pytest.param(
+                ('export',),
+                '',
+                frozenset({'vault'}),
+                id='derivepassphrase-export',
+            ),
+        ],
+    )
+    BAD_CONFIGS = pytest.mark.parametrize(
+        'config',
+        [
+            {'global': '', 'services': {}},
+            {'global': 0, 'services': {}},
+            {
+                'global': {'phrase': 'abc'},
+                'services': False,
+            },
+            {
+                'global': {'phrase': 'abc'},
+                'services': True,
+            },
+            {
+                'global': {'phrase': 'abc'},
+                'services': None,
+            },
+        ],
+    )
+    BASE_CONFIG_VARIATIONS = pytest.mark.parametrize(
+        'config',
+        [
+            {'global': {'phrase': 'my passphrase'}, 'services': {}},
+            {'global': {'key': DUMMY_KEY1_B64}, 'services': {}},
+            {
+                'global': {'phrase': 'abc'},
+                'services': {'sv': {'phrase': 'my passphrase'}},
+            },
+            {
+                'global': {'phrase': 'abc'},
+                'services': {'sv': {'key': DUMMY_KEY1_B64}},
+            },
+            {
+                'global': {'phrase': 'abc'},
+                'services': {'sv': {'key': DUMMY_KEY1_B64, 'length': 15}},
+            },
+        ],
+    )
+    BASE_CONFIG_WITH_KEY_VARIATIONS = pytest.mark.parametrize(
+        'config',
+        [
+            pytest.param(
+                {
+                    'global': {'key': DUMMY_KEY1_B64},
+                    'services': {DUMMY_SERVICE: {}},
+                },
+                id='global_config',
+            ),
+            pytest.param(
+                {'services': {DUMMY_SERVICE: {'key': DUMMY_KEY2_B64}}},
+                id='service_config',
+            ),
+            pytest.param(
+                {
+                    'global': {'key': DUMMY_KEY1_B64},
+                    'services': {DUMMY_SERVICE: {'key': DUMMY_KEY2_B64}},
+                },
+                id='full_config',
+            ),
+        ],
+    )
+    CONFIG_WITH_KEY = pytest.mark.parametrize(
+        'config',
+        [
+            pytest.param(
+                {
+                    'global': {'key': DUMMY_KEY1_B64},
+                    'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS},
+                },
+                id='global',
+            ),
+            pytest.param(
+                {
+                    'global': {'phrase': DUMMY_PASSPHRASE.rstrip('\n')},
+                    'services': {
+                        DUMMY_SERVICE: {
+                            'key': DUMMY_KEY1_B64,
+                            **DUMMY_CONFIG_SETTINGS,
+                        }
+                    },
+                },
+                id='service',
+            ),
+        ],
+    )
+    VALID_TEST_CONFIGS = pytest.mark.parametrize(
+        'config',
+        [
+            conf.config
+            for conf in TEST_CONFIGS
+            if tests.is_valid_test_config(conf)
+        ],
+    )
+    KEY_OVERRIDING_IN_CONFIG = pytest.mark.parametrize(
+        ['config', 'command_line'],
+        [
+            pytest.param(
+                {
+                    'global': {'key': DUMMY_KEY1_B64},
+                    'services': {},
+                },
+                ['--config', '-p'],
+                id='global',
+            ),
+            pytest.param(
+                {
+                    'services': {
+                        DUMMY_SERVICE: {
+                            'key': DUMMY_KEY1_B64,
+                            **DUMMY_CONFIG_SETTINGS,
+                        },
+                    },
+                },
+                ['--config', '-p', '--', DUMMY_SERVICE],
+                id='service',
+            ),
+            pytest.param(
+                {
+                    'global': {'key': DUMMY_KEY1_B64},
+                    'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()},
+                },
+                ['--config', '-p', '--', DUMMY_SERVICE],
+                id='service-over-global',
+            ),
+        ],
+    )
+    COMPLETION_FUNCTION_INPUTS = pytest.mark.parametrize(
+        ['config', 'comp_func', 'args', 'incomplete', 'results'],
+        [
+            pytest.param(
+                {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}},
+                cli_helpers.shell_complete_service,
+                ['vault'],
+                '',
+                [DUMMY_SERVICE],
+                id='base_config-service',
+            ),
+            pytest.param(
+                {'services': {}},
+                cli_helpers.shell_complete_service,
+                ['vault'],
+                '',
+                [],
+                id='empty_config-service',
+            ),
+            pytest.param(
+                {
+                    'services': {
+                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
+                        'newline\nin\nname': DUMMY_CONFIG_SETTINGS.copy(),
+                    }
+                },
+                cli_helpers.shell_complete_service,
+                ['vault'],
+                '',
+                [DUMMY_SERVICE],
+                id='incompletable_newline_config-service',
+            ),
+            pytest.param(
+                {
+                    'services': {
+                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
+                        'backspace\bin\bname': DUMMY_CONFIG_SETTINGS.copy(),
+                    }
+                },
+                cli_helpers.shell_complete_service,
+                ['vault'],
+                '',
+                [DUMMY_SERVICE],
+                id='incompletable_backspace_config-service',
+            ),
+            pytest.param(
+                {
+                    'services': {
+                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
+                        'colon:in:name': DUMMY_CONFIG_SETTINGS.copy(),
+                    }
+                },
+                cli_helpers.shell_complete_service,
+                ['vault'],
+                '',
+                sorted([DUMMY_SERVICE, 'colon:in:name']),
+                id='brittle_colon_config-service',
+            ),
+            pytest.param(
+                {
+                    'services': {
+                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
+                        'colon:in:name': DUMMY_CONFIG_SETTINGS.copy(),
+                        'newline\nin\nname': DUMMY_CONFIG_SETTINGS.copy(),
+                        'backspace\bin\bname': DUMMY_CONFIG_SETTINGS.copy(),
+                        'nul\x00in\x00name': DUMMY_CONFIG_SETTINGS.copy(),
+                        'del\x7fin\x7fname': DUMMY_CONFIG_SETTINGS.copy(),
+                    }
+                },
+                cli_helpers.shell_complete_service,
+                ['vault'],
+                '',
+                sorted([DUMMY_SERVICE, 'colon:in:name']),
+                id='brittle_incompletable_multi_config-service',
+            ),
+            pytest.param(
+                {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}},
+                cli_helpers.shell_complete_path,
+                ['vault', '--import'],
+                '',
+                [click.shell_completion.CompletionItem('', type='file')],
+                id='base_config-path',
+            ),
+            pytest.param(
+                {'services': {}},
+                cli_helpers.shell_complete_path,
+                ['vault', '--import'],
+                '',
+                [click.shell_completion.CompletionItem('', type='file')],
+                id='empty_config-path',
+            ),
+        ],
+    )
+    COMPLETABLE_SERVICE_NAMES = pytest.mark.parametrize(
+        ['config', 'incomplete', 'completions'],
+        [
+            pytest.param(
+                {'services': {}},
+                '',
+                frozenset(),
+                id='no_services',
+            ),
+            pytest.param(
+                {'services': {}},
+                'partial',
+                frozenset(),
+                id='no_services_partial',
+            ),
+            pytest.param(
+                {'services': {DUMMY_SERVICE: {'length': 10}}},
+                '',
+                frozenset({DUMMY_SERVICE}),
+                id='one_service',
+            ),
+            pytest.param(
+                {'services': {DUMMY_SERVICE: {'length': 10}}},
+                DUMMY_SERVICE[:4],
+                frozenset({DUMMY_SERVICE}),
+                id='one_service_partial',
+            ),
+            pytest.param(
+                {'services': {DUMMY_SERVICE: {'length': 10}}},
+                DUMMY_SERVICE[-4:],
+                frozenset(),
+                id='one_service_partial_miss',
+            ),
+        ],
+    )
+    SERVICE_NAME_COMPLETION_INPUTS = pytest.mark.parametrize(
+        ['config', 'key', 'incomplete', 'completions'],
+        [
+            pytest.param(
+                {
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'newline\nin\nname': {'length': 10},
+                    },
+                },
+                'newline\nin\nname',
+                '',
+                frozenset({DUMMY_SERVICE}),
+                id='newline',
+            ),
+            pytest.param(
+                {
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'newline\nin\nname': {'length': 10},
+                    },
+                },
+                'newline\nin\nname',
+                'serv',
+                frozenset({DUMMY_SERVICE}),
+                id='newline_partial_other',
+            ),
+            pytest.param(
+                {
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'newline\nin\nname': {'length': 10},
+                    },
+                },
+                'newline\nin\nname',
+                'newline',
+                frozenset({}),
+                id='newline_partial_specific',
+            ),
+            pytest.param(
+                {
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'nul\x00in\x00name': {'length': 10},
+                    },
+                },
+                'nul\x00in\x00name',
+                '',
+                frozenset({DUMMY_SERVICE}),
+                id='nul',
+            ),
+            pytest.param(
+                {
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'nul\x00in\x00name': {'length': 10},
+                    },
+                },
+                'nul\x00in\x00name',
+                'serv',
+                frozenset({DUMMY_SERVICE}),
+                id='nul_partial_other',
+            ),
+            pytest.param(
+                {
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'nul\x00in\x00name': {'length': 10},
+                    },
+                },
+                'nul\x00in\x00name',
+                'nul',
+                frozenset({}),
+                id='nul_partial_specific',
+            ),
+            pytest.param(
+                {
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'backspace\bin\bname': {'length': 10},
+                    },
+                },
+                'backspace\bin\bname',
+                '',
+                frozenset({DUMMY_SERVICE}),
+                id='backspace',
+            ),
+            pytest.param(
+                {
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'backspace\bin\bname': {'length': 10},
+                    },
+                },
+                'backspace\bin\bname',
+                'serv',
+                frozenset({DUMMY_SERVICE}),
+                id='backspace_partial_other',
+            ),
+            pytest.param(
+                {
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'backspace\bin\bname': {'length': 10},
+                    },
+                },
+                'backspace\bin\bname',
+                'back',
+                frozenset({}),
+                id='backspace_partial_specific',
+            ),
+            pytest.param(
+                {
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'del\x7fin\x7fname': {'length': 10},
+                    },
+                },
+                'del\x7fin\x7fname',
+                '',
+                frozenset({DUMMY_SERVICE}),
+                id='del',
+            ),
+            pytest.param(
+                {
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'del\x7fin\x7fname': {'length': 10},
+                    },
+                },
+                'del\x7fin\x7fname',
+                'serv',
+                frozenset({DUMMY_SERVICE}),
+                id='del_partial_other',
+            ),
+            pytest.param(
+                {
+                    'services': {
+                        DUMMY_SERVICE: {'length': 10},
+                        'del\x7fin\x7fname': {'length': 10},
+                    },
+                },
+                'del\x7fin\x7fname',
+                'del',
+                frozenset({}),
+                id='del_partial_specific',
+            ),
+        ],
+    )
+    CONNECTION_HINTS = pytest.mark.parametrize(
+        'conn_hint', ['none', 'socket', 'client']
+    )
+    SERVICE_NAME_EXCEPTIONS = pytest.mark.parametrize(
+        'exc_type', [RuntimeError, KeyError, ValueError]
+    )
+    EXPORT_FORMAT_OPTIONS = pytest.mark.parametrize(
+        'export_options',
+        [
+            [],
+            ['--export-as=sh'],
+        ],
+    )
+    FORCE_COLOR = pytest.mark.parametrize(
+        'force_color',
+        [False, True],
+        ids=['noforce', 'force'],
+    )
+    INCOMPLETE = pytest.mark.parametrize('incomplete', ['', 'partial'])
+    ISATTY = pytest.mark.parametrize(
+        'isatty',
+        [False, True],
+        ids=['notty', 'tty'],
+    )
+    KEY_INDEX = pytest.mark.parametrize(
+        'key_index', [1, 2, 3], ids=lambda i: f'index{i}'
+    )
+    UNICODE_NORMALIZATION_ERROR_INPUTS = pytest.mark.parametrize(
+        ['main_config', 'command_line', 'input', 'error_message'],
+        [
+            pytest.param(
+                textwrap.dedent(r"""
+                [vault]
+                default-unicode-normalization-form = 'XXX'
+                """),
+                ['--import', '-'],
+                json.dumps({
+                    'services': {
+                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
+                        'with_normalization': {'phrase': 'D\u00fcsseldorf'},
+                    },
+                }),
+                (
+                    "Invalid value 'XXX' for config key "
+                    'vault.default-unicode-normalization-form'
+                ),
+                id='global',
+            ),
+            pytest.param(
+                textwrap.dedent(r"""
+                [vault.unicode-normalization-form]
+                with_normalization = 'XXX'
+                """),
+                ['--import', '-'],
+                json.dumps({
+                    'services': {
+                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
+                        'with_normalization': {'phrase': 'D\u00fcsseldorf'},
+                    },
+                }),
+                (
+                    "Invalid value 'XXX' for config key "
+                    'vault.with_normalization.unicode-normalization-form'
+                ),
+                id='service',
+            ),
+        ],
+    )
+    UNICODE_NORMALIZATION_WARNING_INPUTS = pytest.mark.parametrize(
+        ['main_config', 'command_line', 'input', 'warning_message'],
+        [
+            pytest.param(
+                '',
+                ['--import', '-'],
+                json.dumps({
+                    'global': {'phrase': 'Du\u0308sseldorf'},
+                    'services': {},
+                }),
+                'The $.global passphrase is not NFC-normalized',
+                id='global-NFC',
+            ),
+            pytest.param(
+                '',
+                ['--import', '-'],
+                json.dumps({
+                    'services': {
+                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
+                        'weird entry name': {'phrase': 'Du\u0308sseldorf'},
+                    }
+                }),
+                (
+                    'The $.services["weird entry name"] passphrase '
+                    'is not NFC-normalized'
+                ),
+                id='service-weird-name-NFC',
+            ),
+            pytest.param(
+                '',
+                ['--config', '-p', '--', DUMMY_SERVICE],
+                'Du\u0308sseldorf',
+                (
+                    f'The $.services.{DUMMY_SERVICE} passphrase '
+                    f'is not NFC-normalized'
+                ),
+                id='config-NFC',
+            ),
+            pytest.param(
+                '',
+                ['-p', '--', DUMMY_SERVICE],
+                'Du\u0308sseldorf',
+                'The interactive input passphrase is not NFC-normalized',
+                id='direct-input-NFC',
+            ),
+            pytest.param(
+                textwrap.dedent(r"""
+                [vault]
+                default-unicode-normalization-form = 'NFD'
+                """),
+                ['--import', '-'],
+                json.dumps({
+                    'global': {
+                        'phrase': 'D\u00fcsseldorf',
+                    },
+                    'services': {},
+                }),
+                'The $.global passphrase is not NFD-normalized',
+                id='global-NFD',
+            ),
+            pytest.param(
+                textwrap.dedent(r"""
+                [vault]
+                default-unicode-normalization-form = 'NFD'
+                """),
+                ['--import', '-'],
+                json.dumps({
+                    'services': {
+                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
+                        'weird entry name': {'phrase': 'D\u00fcsseldorf'},
+                    },
+                }),
+                (
+                    'The $.services["weird entry name"] passphrase '
+                    'is not NFD-normalized'
+                ),
+                id='service-weird-name-NFD',
+            ),
+            pytest.param(
+                textwrap.dedent(r"""
+                [vault.unicode-normalization-form]
+                'weird entry name 2' = 'NFKD'
+                """),
+                ['--import', '-'],
+                json.dumps({
+                    'services': {
+                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
+                        'weird entry name 1': {'phrase': 'D\u00fcsseldorf'},
+                        'weird entry name 2': {'phrase': 'D\u00fcsseldorf'},
+                    },
+                }),
+                (
+                    'The $.services["weird entry name 2"] passphrase '
+                    'is not NFKD-normalized'
+                ),
+                id='service-weird-name-2-NFKD',
+            ),
+        ],
+    )
+    CONFIG_SETTING_MODE = pytest.mark.parametrize('mode', ['config', 'import'])
+    NO_COLOR = pytest.mark.parametrize(
+        'no_color',
+        [False, True],
+        ids=['yescolor', 'nocolor'],
+    )
+    VAULT_CHARSET_OPTION = pytest.mark.parametrize(
+        'option',
+        [
+            '--lower',
+            '--upper',
+            '--number',
+            '--space',
+            '--dash',
+            '--symbol',
+            '--repeat',
+            '--length',
+        ],
+    )
+    OPTION_COMBINATIONS_INCOMPATIBLE = pytest.mark.parametrize(
+        ['options', 'service'],
+        [
+            pytest.param(o.options, o.needs_service, id=' '.join(o.options))
+            for o in INTERESTING_OPTION_COMBINATIONS
+            if o.incompatible
+        ],
+    )
+    OPTION_COMBINATIONS_SERVICE_NEEDED = pytest.mark.parametrize(
+        ['options', 'service', 'input', 'check_success'],
+        [
+            pytest.param(
+                o.options,
+                o.needs_service,
+                o.input,
+                o.check_success,
+                id=' '.join(o.options),
+            )
+            for o in INTERESTING_OPTION_COMBINATIONS
+            if not o.incompatible
+        ],
+    )
+    COMPLETABLE_ITEMS = pytest.mark.parametrize(
+        ['partial', 'is_completable'],
+        [
+            ('', True),
+            (DUMMY_SERVICE, True),
+            ('a\bn', False),
+            ('\b', False),
+            ('\x00', False),
+            ('\x20', True),
+            ('\x7f', False),
+            ('service with spaces', True),
+            ('service\nwith\nnewlines', False),
+        ],
+    )
+    SHELL_FORMATTER = pytest.mark.parametrize(
+        ['shell', 'format_func'],
+        [
+            pytest.param('bash', bash_format, id='bash'),
+            pytest.param('fish', fish_format, id='fish'),
+            pytest.param('zsh', zsh_format, id='zsh'),
+        ],
+    )
+    TRY_RACE_FREE_IMPLEMENTATION = pytest.mark.parametrize(
+        'try_race_free_implementation', [True, False]
+    )
+    VALIDATION_FUNCTION_INPUT = pytest.mark.parametrize(
+        ['vfunc', 'input'],
+        [
+            (cli_machinery.validate_occurrence_constraint, 20),
+            (cli_machinery.validate_length, 20),
+        ],
+    )
+
+
 class TestAllCLI:
     """Tests uniformly for all command-line interfaces."""
 
@@ -424,56 +1441,8 @@ class TestAllCLI:
             empty_stderr=True, output='Use $VISUAL or $EDITOR to configure'
         ), 'expected clean exit, and option group epilog in help text'
 
-    @pytest.mark.parametrize(
-        ['command', 'non_eager_arguments'],
-        [
-            pytest.param(
-                [],
-                [],
-                id='top-nothing',
-            ),
-            pytest.param(
-                [],
-                ['export'],
-                id='top-export',
-            ),
-            pytest.param(
-                ['export'],
-                [],
-                id='export-nothing',
-            ),
-            pytest.param(
-                ['export'],
-                ['vault'],
-                id='export-vault',
-            ),
-            pytest.param(
-                ['export', 'vault'],
-                [],
-                id='export-vault-nothing',
-            ),
-            pytest.param(
-                ['export', 'vault'],
-                ['--format', 'this-format-doesnt-exist'],
-                id='export-vault-args',
-            ),
-            pytest.param(
-                ['vault'],
-                [],
-                id='vault-nothing',
-            ),
-            pytest.param(
-                ['vault'],
-                ['--export', './'],
-                id='vault-args',
-            ),
-        ],
-    )
-    @pytest.mark.parametrize(
-        'arguments',
-        [['--help'], ['--version']],
-        ids=['help', 'version'],
-    )
+    @Parametrize.COMMAND_NON_EAGER_ARGUMENTS
+    @Parametrize.EAGER_ARGUMENTS
     def test_200_eager_options(
         self,
         command: list[str],
@@ -501,31 +1470,10 @@ class TestAllCLI:
             result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
-    @pytest.mark.parametrize(
-        'no_color',
-        [False, True],
-        ids=['yescolor', 'nocolor'],
-    )
-    @pytest.mark.parametrize(
-        'force_color',
-        [False, True],
-        ids=['noforce', 'force'],
-    )
-    @pytest.mark.parametrize(
-        'isatty',
-        [False, True],
-        ids=['notty', 'tty'],
-    )
-    @pytest.mark.parametrize(
-        ['command_line', 'input'],
-        [
-            (
-                ['vault', '--import', '-'],
-                '{"services": {"": {"length": 20}}}',
-            ),
-        ],
-        ids=['cmd'],
-    )
+    @Parametrize.NO_COLOR
+    @Parametrize.FORCE_COLOR
+    @Parametrize.ISATTY
+    @Parametrize.COLORFUL_COMMAND_INPUT
     def test_201_no_color_force_color(
         self,
         no_color: bool,
@@ -633,9 +1581,7 @@ class TestCLI:
             'expected clean exit, and version in help text'
         )
 
-    @pytest.mark.parametrize(
-        'charset_name', ['lower', 'upper', 'number', 'space', 'dash', 'symbol']
-    )
+    @Parametrize.CHARSET_NAME
     def test_201_disable_character_set(
         self,
         charset_name: str,
@@ -707,30 +1653,7 @@ class TestCLI:
                 f'at position {i}: {result.output!r}'
             )
 
-    @pytest.mark.parametrize(
-        'config',
-        [
-            pytest.param(
-                {
-                    'global': {'key': DUMMY_KEY1_B64},
-                    'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS},
-                },
-                id='global',
-            ),
-            pytest.param(
-                {
-                    'global': {'phrase': DUMMY_PASSPHRASE.rstrip('\n')},
-                    'services': {
-                        DUMMY_SERVICE: {
-                            'key': DUMMY_KEY1_B64,
-                            **DUMMY_CONFIG_SETTINGS,
-                        }
-                    },
-                },
-                id='service',
-            ),
-        ],
-    )
+    @Parametrize.CONFIG_WITH_KEY
     def test_204a_key_from_config(
         self,
         config: _types.VaultConfig,
@@ -811,30 +1734,8 @@ class TestCLI:
             'expected known output'
         )
 
-    @pytest.mark.parametrize(
-        'config',
-        [
-            pytest.param(
-                {
-                    'global': {'key': DUMMY_KEY1_B64},
-                    'services': {DUMMY_SERVICE: {}},
-                },
-                id='global_config',
-            ),
-            pytest.param(
-                {'services': {DUMMY_SERVICE: {'key': DUMMY_KEY2_B64}}},
-                id='service_config',
-            ),
-            pytest.param(
-                {
-                    'global': {'key': DUMMY_KEY1_B64},
-                    'services': {DUMMY_SERVICE: {'key': DUMMY_KEY2_B64}},
-                },
-                id='full_config',
-            ),
-        ],
-    )
-    @pytest.mark.parametrize('key_index', [1, 2, 3], ids=lambda i: f'index{i}')
+    @Parametrize.BASE_CONFIG_WITH_KEY_VARIATIONS
+    @Parametrize.KEY_INDEX
     def test_204c_key_override_on_command_line(
         self,
         running_ssh_agent: tests.RunningSSHAgentInfo,
@@ -920,39 +1821,7 @@ class TestCLI:
             'expected known output'
         )
 
-    @pytest.mark.parametrize(
-        ['config', 'command_line'],
-        [
-            pytest.param(
-                {
-                    'global': {'key': DUMMY_KEY1_B64},
-                    'services': {},
-                },
-                ['--config', '-p'],
-                id='global',
-            ),
-            pytest.param(
-                {
-                    'services': {
-                        DUMMY_SERVICE: {
-                            'key': DUMMY_KEY1_B64,
-                            **DUMMY_CONFIG_SETTINGS,
-                        },
-                    },
-                },
-                ['--config', '-p', '--', DUMMY_SERVICE],
-                id='service',
-            ),
-            pytest.param(
-                {
-                    'global': {'key': DUMMY_KEY1_B64},
-                    'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()},
-                },
-                ['--config', '-p', '--', DUMMY_SERVICE],
-                id='service-over-global',
-            ),
-        ],
-    )
+    @Parametrize.KEY_OVERRIDING_IN_CONFIG
     def test_206_setting_phrase_thus_overriding_key_in_config(
         self,
         running_ssh_agent: tests.RunningSSHAgentInfo,
@@ -1003,19 +1872,7 @@ class TestCLI:
             map(is_harmless_config_import_warning, caplog.record_tuples)
         ), 'unexpected error output'
 
-    @pytest.mark.parametrize(
-        'option',
-        [
-            '--lower',
-            '--upper',
-            '--number',
-            '--space',
-            '--dash',
-            '--symbol',
-            '--repeat',
-            '--length',
-        ],
-    )
+    @Parametrize.VAULT_CHARSET_OPTION
     def test_210_invalid_argument_range(
         self,
         option: str,
@@ -1045,20 +1902,7 @@ class TestCLI:
                     'expected error exit and known error message'
                 )
 
-    @pytest.mark.parametrize(
-        ['options', 'service', 'input', 'check_success'],
-        [
-            pytest.param(
-                o.options,
-                o.needs_service,
-                o.input,
-                o.check_success,
-                id=' '.join(o.options),
-            )
-            for o in INTERESTING_OPTION_COMBINATIONS
-            if not o.incompatible
-        ],
-    )
+    @Parametrize.OPTION_COMBINATIONS_SERVICE_NEEDED
     def test_211_service_needed(
         self,
         options: list[str],
@@ -1113,7 +1957,10 @@ class TestCLI:
                     tests.isolated_vault_config(
                         monkeypatch=monkeypatch,
                         runner=runner,
-                        vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                        vault_config={
+                            'global': {'phrase': 'abc'},
+                            'services': {},
+                        },
                     )
                 )
                 monkeypatch.setattr(
@@ -1194,14 +2041,7 @@ class TestCLI:
                 'services': {'': {'length': 40}},
             }, 'requested configuration change was not applied'
 
-    @pytest.mark.parametrize(
-        ['options', 'service'],
-        [
-            pytest.param(o.options, o.needs_service, id=' '.join(o.options))
-            for o in INTERESTING_OPTION_COMBINATIONS
-            if o.incompatible
-        ],
-    )
+    @Parametrize.OPTION_COMBINATIONS_INCOMPATIBLE
     def test_212_incompatible_options(
         self,
         options: list[str],
@@ -1231,14 +2071,7 @@ class TestCLI:
             'expected error exit and known error message'
         )
 
-    @pytest.mark.parametrize(
-        'config',
-        [
-            conf.config
-            for conf in TEST_CONFIGS
-            if tests.is_valid_test_config(conf)
-        ],
-    )
+    @Parametrize.VALID_TEST_CONFIGS
     def test_213_import_config_success(
         self,
         caplog: pytest.LogCaptureFixture,
@@ -1275,7 +2108,12 @@ class TestCLI:
             map(is_harmless_config_import_warning, caplog.record_tuples)
         ), 'unexpected error output'
 
-    @tests.hypothesis_settings_coverage_compatible_with_caplog
+    @hypothesis.settings(
+        suppress_health_check=[
+            *hypothesis.settings().suppress_health_check,
+            hypothesis.HealthCheck.function_scoped_fixture,
+        ],
+    )
     @hypothesis.given(
         conf=tests.smudged_vault_test_config(
             strategies.sampled_from([
@@ -1418,13 +2256,7 @@ class TestCLI:
             'expected error exit and known error message'
         )
 
-    @pytest.mark.parametrize(
-        'export_options',
-        [
-            [],
-            ['--export-as=sh'],
-        ],
-    )
+    @Parametrize.EXPORT_FORMAT_OPTIONS
     def test_214_export_settings_no_stored_settings(
         self,
         export_options: list[str],
@@ -1442,7 +2274,9 @@ class TestCLI:
                     runner=runner,
                 )
             )
-            cli_helpers.config_filename(subsystem='vault').unlink(missing_ok=True)
+            cli_helpers.config_filename(subsystem='vault').unlink(
+                missing_ok=True
+            )
             result_ = runner.invoke(
                 # Test parent context navigation by not calling
                 # `cli.derivepassphrase_vault` directly.  Used e.g. in
@@ -1455,13 +2289,7 @@ class TestCLI:
         result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
-    @pytest.mark.parametrize(
-        'export_options',
-        [
-            [],
-            ['--export-as=sh'],
-        ],
-    )
+    @Parametrize.EXPORT_FORMAT_OPTIONS
     def test_214a_export_settings_bad_stored_config(
         self,
         export_options: list[str],
@@ -1491,13 +2319,7 @@ class TestCLI:
             'expected error exit and known error message'
         )
 
-    @pytest.mark.parametrize(
-        'export_options',
-        [
-            [],
-            ['--export-as=sh'],
-        ],
-    )
+    @Parametrize.EXPORT_FORMAT_OPTIONS
     def test_214b_export_settings_not_a_file(
         self,
         export_options: list[str],
@@ -1529,13 +2351,7 @@ class TestCLI:
             'expected error exit and known error message'
         )
 
-    @pytest.mark.parametrize(
-        'export_options',
-        [
-            [],
-            ['--export-as=sh'],
-        ],
-    )
+    @Parametrize.EXPORT_FORMAT_OPTIONS
     def test_214c_export_settings_target_not_a_file(
         self,
         export_options: list[str],
@@ -1565,13 +2381,7 @@ class TestCLI:
             'expected error exit and known error message'
         )
 
-    @pytest.mark.parametrize(
-        'export_options',
-        [
-            [],
-            ['--export-as=sh'],
-        ],
-    )
+    @Parametrize.EXPORT_FORMAT_OPTIONS
     def test_214d_export_settings_settings_directory_not_a_directory(
         self,
         export_options: list[str],
@@ -1749,53 +2559,7 @@ contents go here
                 config = json.load(infile)
             assert config == {'global': {'phrase': 'abc'}, 'services': {}}
 
-    @pytest.mark.parametrize(
-        ['command_line', 'input', 'result_config'],
-        [
-            pytest.param(
-                ['--phrase'],
-                'my passphrase\n',
-                {'global': {'phrase': 'my passphrase'}, 'services': {}},
-                id='phrase',
-            ),
-            pytest.param(
-                ['--key'],
-                '1\n',
-                {
-                    'global': {'key': DUMMY_KEY1_B64, 'phrase': 'abc'},
-                    'services': {},
-                },
-                id='key',
-            ),
-            pytest.param(
-                ['--phrase', '--', 'sv'],
-                'my passphrase\n',
-                {
-                    'global': {'phrase': 'abc'},
-                    'services': {'sv': {'phrase': 'my passphrase'}},
-                },
-                id='phrase-sv',
-            ),
-            pytest.param(
-                ['--key', '--', 'sv'],
-                '1\n',
-                {
-                    'global': {'phrase': 'abc'},
-                    'services': {'sv': {'key': DUMMY_KEY1_B64}},
-                },
-                id='key-sv',
-            ),
-            pytest.param(
-                ['--key', '--length', '15', '--', 'sv'],
-                '1\n',
-                {
-                    'global': {'phrase': 'abc'},
-                    'services': {'sv': {'key': DUMMY_KEY1_B64, 'length': 15}},
-                },
-                id='key-length-sv',
-            ),
-        ],
-    )
+    @Parametrize.CONFIG_EDITING_VIA_CONFIG_FLAG
     def test_224_store_config_good(
         self,
         command_line: list[str],
@@ -1835,35 +2599,7 @@ contents go here
                 'stored config does not match expectation'
             )
 
-    @pytest.mark.parametrize(
-        ['command_line', 'input', 'err_text'],
-        [
-            pytest.param(
-                [],
-                '',
-                'Cannot update the global settings without any given settings',
-                id='None',
-            ),
-            pytest.param(
-                ['--', 'sv'],
-                '',
-                'Cannot update the service-specific settings without any given settings',
-                id='None-sv',
-            ),
-            pytest.param(
-                ['--phrase', '--', 'sv'],
-                '',
-                'No passphrase was given',
-                id='phrase-sv',
-            ),
-            pytest.param(
-                ['--key'],
-                '',
-                'No SSH key was selected',
-                id='key-sv',
-            ),
-        ],
-    )
+    @Parametrize.CONFIG_EDITING_VIA_CONFIG_FLAG_FAILURES
     def test_225_store_config_fail(
         self,
         command_line: list[str],
@@ -1990,7 +2726,7 @@ contents go here
             'expected error exit and known error message'
         )
 
-    @pytest.mark.parametrize('try_race_free_implementation', [True, False])
+    @Parametrize.TRY_RACE_FREE_IMPLEMENTATION
     def test_225d_store_config_fail_manual_read_only_file(
         self,
         try_race_free_implementation: bool,
@@ -2324,7 +3060,9 @@ contents go here
                 monkeypatch.setattr(cli_helpers, 'save_config', save_config_)
                 return save_config_(*args, **kwargs)
 
-            monkeypatch.setattr(cli_helpers, 'save_config', obstruct_config_saving)
+            monkeypatch.setattr(
+                cli_helpers, 'save_config', obstruct_config_saving
+            )
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '-p'],
@@ -2370,105 +3108,7 @@ contents go here
                 'expected error exit and known error message'
             )
 
-    @pytest.mark.parametrize(
-        ['main_config', 'command_line', 'input', 'warning_message'],
-        [
-            pytest.param(
-                '',
-                ['--import', '-'],
-                json.dumps({
-                    'global': {'phrase': 'Du\u0308sseldorf'},
-                    'services': {},
-                }),
-                'The $.global passphrase is not NFC-normalized',
-                id='global-NFC',
-            ),
-            pytest.param(
-                '',
-                ['--import', '-'],
-                json.dumps({
-                    'services': {
-                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        'weird entry name': {'phrase': 'Du\u0308sseldorf'},
-                    }
-                }),
-                (
-                    'The $.services["weird entry name"] passphrase '
-                    'is not NFC-normalized'
-                ),
-                id='service-weird-name-NFC',
-            ),
-            pytest.param(
-                '',
-                ['--config', '-p', '--', DUMMY_SERVICE],
-                'Du\u0308sseldorf',
-                (
-                    f'The $.services.{DUMMY_SERVICE} passphrase '
-                    f'is not NFC-normalized'
-                ),
-                id='config-NFC',
-            ),
-            pytest.param(
-                '',
-                ['-p', '--', DUMMY_SERVICE],
-                'Du\u0308sseldorf',
-                'The interactive input passphrase is not NFC-normalized',
-                id='direct-input-NFC',
-            ),
-            pytest.param(
-                textwrap.dedent(r"""
-                [vault]
-                default-unicode-normalization-form = 'NFD'
-                """),
-                ['--import', '-'],
-                json.dumps({
-                    'global': {
-                        'phrase': 'D\u00fcsseldorf',
-                    },
-                    'services': {},
-                }),
-                'The $.global passphrase is not NFD-normalized',
-                id='global-NFD',
-            ),
-            pytest.param(
-                textwrap.dedent(r"""
-                [vault]
-                default-unicode-normalization-form = 'NFD'
-                """),
-                ['--import', '-'],
-                json.dumps({
-                    'services': {
-                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        'weird entry name': {'phrase': 'D\u00fcsseldorf'},
-                    },
-                }),
-                (
-                    'The $.services["weird entry name"] passphrase '
-                    'is not NFD-normalized'
-                ),
-                id='service-weird-name-NFD',
-            ),
-            pytest.param(
-                textwrap.dedent(r"""
-                [vault.unicode-normalization-form]
-                'weird entry name 2' = 'NFKD'
-                """),
-                ['--import', '-'],
-                json.dumps({
-                    'services': {
-                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        'weird entry name 1': {'phrase': 'D\u00fcsseldorf'},
-                        'weird entry name 2': {'phrase': 'D\u00fcsseldorf'},
-                    },
-                }),
-                (
-                    'The $.services["weird entry name 2"] passphrase '
-                    'is not NFKD-normalized'
-                ),
-                id='service-weird-name-2-NFKD',
-            ),
-        ],
-    )
+    @Parametrize.UNICODE_NORMALIZATION_WARNING_INPUTS
     def test_300_unicode_normalization_form_warning(
         self,
         caplog: pytest.LogCaptureFixture,
@@ -2508,47 +3148,7 @@ contents go here
             'expected known warning message in stderr'
         )
 
-    @pytest.mark.parametrize(
-        ['main_config', 'command_line', 'input', 'error_message'],
-        [
-            pytest.param(
-                textwrap.dedent(r"""
-                [vault]
-                default-unicode-normalization-form = 'XXX'
-                """),
-                ['--import', '-'],
-                json.dumps({
-                    'services': {
-                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        'with_normalization': {'phrase': 'D\u00fcsseldorf'},
-                    },
-                }),
-                (
-                    "Invalid value 'XXX' for config key "
-                    'vault.default-unicode-normalization-form'
-                ),
-                id='global',
-            ),
-            pytest.param(
-                textwrap.dedent(r"""
-                [vault.unicode-normalization-form]
-                with_normalization = 'XXX'
-                """),
-                ['--import', '-'],
-                json.dumps({
-                    'services': {
-                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        'with_normalization': {'phrase': 'D\u00fcsseldorf'},
-                    },
-                }),
-                (
-                    "Invalid value 'XXX' for config key "
-                    'vault.with_normalization.unicode-normalization-form'
-                ),
-                id='service',
-            ),
-        ],
-    )
+    @Parametrize.UNICODE_NORMALIZATION_ERROR_INPUTS
     def test_301_unicode_normalization_form_error(
         self,
         main_config: str,
@@ -2589,19 +3189,7 @@ contents go here
             'expected error exit and known error message'
         )
 
-    @pytest.mark.parametrize(
-        'command_line',
-        [
-            pytest.param(
-                ['--config', '--phrase'],
-                id='configure global passphrase',
-            ),
-            pytest.param(
-                ['--phrase', '--', DUMMY_SERVICE],
-                id='interactive passphrase',
-            ),
-        ],
-    )
+    @Parametrize.UNICODE_NORMALIZATION_COMMAND_LINES
     def test_301a_unicode_normalization_form_error_from_stored_config(
         self,
         command_line: list[str],
@@ -2708,25 +3296,7 @@ contents go here
 class TestCLIUtils:
     """Tests for command-line utility functions."""
 
-    @pytest.mark.parametrize(
-        'config',
-        [
-            {'global': {'phrase': 'my passphrase'}, 'services': {}},
-            {'global': {'key': DUMMY_KEY1_B64}, 'services': {}},
-            {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'phrase': 'my passphrase'}},
-            },
-            {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'key': DUMMY_KEY1_B64}},
-            },
-            {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'key': DUMMY_KEY1_B64, 'length': 15}},
-            },
-        ],
-    )
+    @Parametrize.BASE_CONFIG_VARIATIONS
     def test_100_load_config(
         self,
         config: Any,
@@ -2991,7 +3561,9 @@ Boo.
         actually emits to standard error.
 
         """
-        warnings_cm = cli_machinery.StandardCLILogging.ensure_standard_warnings_logging()
+        warnings_cm = (
+            cli_machinery.StandardCLILogging.ensure_standard_warnings_logging()
+        )
         THE_FUTURE = 'the future will be here sooner than you think'  # noqa: N806
         JUST_TESTING = 'just testing whether warnings work'  # noqa: N806
         with warnings_cm:
@@ -3076,7 +3648,6 @@ Boo.
                 assert result.clean_exit()
             assert cli_helpers.load_config() == config
 
-    @tests.hypothesis_settings_coverage_compatible
     @hypothesis.given(
         global_config_settable=tests.vault_full_service_config(),
         global_config_importable=strategies.fixed_dictionaries(
@@ -3287,35 +3858,7 @@ Boo.
         assert _types.is_vault_config(config)
         return self.export_as_sh_helper(config)
 
-    @pytest.mark.parametrize(
-        ['command_line', 'config', 'result_config'],
-        [
-            pytest.param(
-                ['--delete-globals'],
-                {'global': {'phrase': 'abc'}, 'services': {}},
-                {'services': {}},
-                id='globals',
-            ),
-            pytest.param(
-                ['--delete', '--', DUMMY_SERVICE],
-                {
-                    'global': {'phrase': 'abc'},
-                    'services': {DUMMY_SERVICE: {'notes': '...'}},
-                },
-                {'global': {'phrase': 'abc'}, 'services': {}},
-                id='service',
-            ),
-            pytest.param(
-                ['--clear'],
-                {
-                    'global': {'phrase': 'abc'},
-                    'services': {DUMMY_SERVICE: {'notes': '...'}},
-                },
-                {'services': {}},
-                id='all',
-            ),
-        ],
-    )
+    @Parametrize.DELETE_CONFIG_INPUT
     def test_203_repeated_config_deletion(
         self,
         command_line: list[str],
@@ -3361,13 +3904,7 @@ Boo.
             == DUMMY_RESULT_KEY1
         )
 
-    @pytest.mark.parametrize(
-        ['vfunc', 'input'],
-        [
-            (cli_machinery.validate_occurrence_constraint, 20),
-            (cli_machinery.validate_length, 20),
-        ],
-    )
+    @Parametrize.VALIDATION_FUNCTION_INPUT
     def test_210a_validate_constraints_manually(
         self,
         vfunc: Callable[[click.Context, click.Parameter, Any], int | None],
@@ -3378,7 +3915,7 @@ Boo.
         param = cli.derivepassphrase_vault.params[0]
         assert vfunc(ctx, param, input) == input
 
-    @pytest.mark.parametrize('conn_hint', ['none', 'socket', 'client'])
+    @Parametrize.CONNECTION_HINTS
     def test_227_get_suitable_ssh_keys(
         self,
         running_ssh_agent: tests.RunningSSHAgentInfo,
@@ -3509,25 +4046,7 @@ Boo.
 class TestCLITransition:
     """Transition tests for the command-line interface up to v1.0."""
 
-    @pytest.mark.parametrize(
-        'config',
-        [
-            {'global': {'phrase': 'my passphrase'}, 'services': {}},
-            {'global': {'key': DUMMY_KEY1_B64}, 'services': {}},
-            {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'phrase': 'my passphrase'}},
-            },
-            {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'key': DUMMY_KEY1_B64}},
-            },
-            {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'key': DUMMY_KEY1_B64, 'length': 15}},
-            },
-        ],
-    )
+    @Parametrize.BASE_CONFIG_VARIATIONS
     def test_110_load_config_backup(
         self,
         config: Any,
@@ -3545,30 +4064,12 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            cli_helpers.config_filename(subsystem='old settings.json').write_text(
-                json.dumps(config, indent=2) + '\n', encoding='UTF-8'
-            )
+            cli_helpers.config_filename(
+                subsystem='old settings.json'
+            ).write_text(json.dumps(config, indent=2) + '\n', encoding='UTF-8')
             assert cli_helpers.migrate_and_load_old_config()[0] == config
 
-    @pytest.mark.parametrize(
-        'config',
-        [
-            {'global': {'phrase': 'my passphrase'}, 'services': {}},
-            {'global': {'key': DUMMY_KEY1_B64}, 'services': {}},
-            {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'phrase': 'my passphrase'}},
-            },
-            {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'key': DUMMY_KEY1_B64}},
-            },
-            {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'key': DUMMY_KEY1_B64, 'length': 15}},
-            },
-        ],
-    )
+    @Parametrize.BASE_CONFIG_VARIATIONS
     def test_111_migrate_config(
         self,
         config: Any,
@@ -3586,30 +4087,12 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            cli_helpers.config_filename(subsystem='old settings.json').write_text(
-                json.dumps(config, indent=2) + '\n', encoding='UTF-8'
-            )
+            cli_helpers.config_filename(
+                subsystem='old settings.json'
+            ).write_text(json.dumps(config, indent=2) + '\n', encoding='UTF-8')
             assert cli_helpers.migrate_and_load_old_config() == (config, None)
 
-    @pytest.mark.parametrize(
-        'config',
-        [
-            {'global': {'phrase': 'my passphrase'}, 'services': {}},
-            {'global': {'key': DUMMY_KEY1_B64}, 'services': {}},
-            {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'phrase': 'my passphrase'}},
-            },
-            {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'key': DUMMY_KEY1_B64}},
-            },
-            {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'key': DUMMY_KEY1_B64, 'length': 15}},
-            },
-        ],
-    )
+    @Parametrize.BASE_CONFIG_VARIATIONS
     def test_112_migrate_config_error(
         self,
         config: Any,
@@ -3627,9 +4110,9 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            cli_helpers.config_filename(subsystem='old settings.json').write_text(
-                json.dumps(config, indent=2) + '\n', encoding='UTF-8'
-            )
+            cli_helpers.config_filename(
+                subsystem='old settings.json'
+            ).write_text(json.dumps(config, indent=2) + '\n', encoding='UTF-8')
             cli_helpers.config_filename(subsystem='vault').mkdir(
                 parents=True, exist_ok=True
             )
@@ -3638,25 +4121,7 @@ class TestCLITransition:
             assert isinstance(err, OSError)
             assert err.errno == errno.EISDIR
 
-    @pytest.mark.parametrize(
-        'config',
-        [
-            {'global': '', 'services': {}},
-            {'global': 0, 'services': {}},
-            {
-                'global': {'phrase': 'abc'},
-                'services': False,
-            },
-            {
-                'global': {'phrase': 'abc'},
-                'services': True,
-            },
-            {
-                'global': {'phrase': 'abc'},
-                'services': None,
-            },
-        ],
-    )
+    @Parametrize.BAD_CONFIGS
     def test_113_migrate_config_error_bad_config_value(
         self,
         config: Any,
@@ -3674,10 +4139,12 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            cli_helpers.config_filename(subsystem='old settings.json').write_text(
-                json.dumps(config, indent=2) + '\n', encoding='UTF-8'
-            )
-            with pytest.raises(ValueError, match=cli_helpers.INVALID_VAULT_CONFIG):
+            cli_helpers.config_filename(
+                subsystem='old settings.json'
+            ).write_text(json.dumps(config, indent=2) + '\n', encoding='UTF-8')
+            with pytest.raises(
+                ValueError, match=cli_helpers.INVALID_VAULT_CONFIG
+            ):
                 cli_helpers.migrate_and_load_old_config()
 
     def test_200_forward_export_vault_path_parameter(
@@ -3748,9 +4215,7 @@ class TestCLITransition:
             'expected error exit and known error type'
         )
 
-    @pytest.mark.parametrize(
-        'charset_name', ['lower', 'upper', 'number', 'space', 'dash', 'symbol']
-    )
+    @Parametrize.CHARSET_NAME
     def test_210_forward_vault_disable_character_set(
         self,
         caplog: pytest.LogCaptureFixture,
@@ -3845,7 +4310,9 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            cli_helpers.config_filename(subsystem='old settings.json').write_text(
+            cli_helpers.config_filename(
+                subsystem='old settings.json'
+            ).write_text(
                 json.dumps(
                     {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
                     indent=2,
@@ -3884,7 +4351,9 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            cli_helpers.config_filename(subsystem='old settings.json').write_text(
+            cli_helpers.config_filename(
+                subsystem='old settings.json'
+            ).write_text(
                 json.dumps(
                     {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
                     indent=2,
@@ -3934,7 +4403,9 @@ class TestCLITransition:
                     vault_config=config,
                 )
             )
-            old_name = cli_helpers.config_filename(subsystem='old settings.json')
+            old_name = cli_helpers.config_filename(
+                subsystem='old settings.json'
+            )
             new_name = cli_helpers.config_filename(subsystem='vault')
             old_name.unlink(missing_ok=True)
             new_name.rename(old_name)
@@ -4058,7 +4529,6 @@ def vault_full_config() -> strategies.SearchStrategy[_types.VaultConfig]:
     return VAULT_FULL_CONFIG
 
 
-@tests.hypothesis_settings_coverage_compatible
 class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     """A state machine recording changes in the vault configuration.
 
@@ -4448,57 +4918,6 @@ TestConfigManagement = ConfigManagementStateMachine.TestCase
 """The [`unittest.TestCase`][] class that will actually be run."""
 
 
-def bash_format(item: click.shell_completion.CompletionItem) -> str:
-    """A formatter for `bash`-style shell completion items.
-
-    The format is `type,value`, and is dictated by [`click`][].
-
-    """
-    type, value = (  # noqa: A001
-        item.type,
-        item.value,
-    )
-    return f'{type},{value}'
-
-
-def fish_format(item: click.shell_completion.CompletionItem) -> str:
-    r"""A formatter for `fish`-style shell completion items.
-
-    The format is `type,value<tab>help`, and is dictated by [`click`][].
-
-    """
-    type, value, help = (  # noqa: A001
-        item.type,
-        item.value,
-        item.help,
-    )
-    return f'{type},{value}\t{help}' if help else f'{type},{value}'
-
-
-def zsh_format(item: click.shell_completion.CompletionItem) -> str:
-    r"""A formatter for `zsh`-style shell completion items.
-
-    The format is `type<newline>value<newline>help<newline>`, and is
-    dictated by [`click`][].  Upstream `click` currently (v8.2.0) does
-    not deal with colons in the value correctly when the help text is
-    non-degenerate.  Our formatter here does, provided the upstream
-    `zsh` completion script is used; see the
-    [`cli_machinery.ZshComplete`][] class.  A request is underway to
-    merge this change into upstream `click`; see
-    [`pallets/click#2846`][PR2846].
-
-    [PR2846]: https://github.com/pallets/click/pull/2846
-
-    """
-    empty_help = '_'
-    help_, value = (
-        (item.help, item.value.replace(':', r'\:'))
-        if item.help and item.help == empty_help
-        else (empty_help, item.value)
-    )
-    return f'{item.type}\n{value}\n{help_}'
-
-
 def completion_item(
     item: str | click.shell_completion.CompletionItem,
 ) -> click.shell_completion.CompletionItem:
@@ -4561,20 +4980,7 @@ class TestShellCompletion:
             """Return the completion items' values, as a sequence."""
             return tuple(c.value for c in self())
 
-    @pytest.mark.parametrize(
-        ['partial', 'is_completable'],
-        [
-            ('', True),
-            (DUMMY_SERVICE, True),
-            ('a\bn', False),
-            ('\b', False),
-            ('\x00', False),
-            ('\x20', True),
-            ('\x7f', False),
-            ('service with spaces', True),
-            ('service\nwith\nnewlines', False),
-        ],
-    )
+    @Parametrize.COMPLETABLE_ITEMS
     def test_100_is_completable_item(
         self,
         partial: str,
@@ -4583,106 +4989,7 @@ class TestShellCompletion:
         """Our `_is_completable_item` predicate for service names works."""
         assert cli_helpers.is_completable_item(partial) == is_completable
 
-    @pytest.mark.parametrize(
-        ['command_prefix', 'incomplete', 'completions'],
-        [
-            pytest.param(
-                (),
-                '-',
-                frozenset({
-                    '--help',
-                    '-h',
-                    '--version',
-                    '--debug',
-                    '--verbose',
-                    '-v',
-                    '--quiet',
-                    '-q',
-                }),
-                id='derivepassphrase',
-            ),
-            pytest.param(
-                ('export',),
-                '-',
-                frozenset({
-                    '--help',
-                    '-h',
-                    '--version',
-                    '--debug',
-                    '--verbose',
-                    '-v',
-                    '--quiet',
-                    '-q',
-                }),
-                id='derivepassphrase-export',
-            ),
-            pytest.param(
-                ('export', 'vault'),
-                '-',
-                frozenset({
-                    '--help',
-                    '-h',
-                    '--version',
-                    '--debug',
-                    '--verbose',
-                    '-v',
-                    '--quiet',
-                    '-q',
-                    '--format',
-                    '-f',
-                    '--key',
-                    '-k',
-                }),
-                id='derivepassphrase-export-vault',
-            ),
-            pytest.param(
-                ('vault',),
-                '-',
-                frozenset({
-                    '--help',
-                    '-h',
-                    '--version',
-                    '--debug',
-                    '--verbose',
-                    '-v',
-                    '--quiet',
-                    '-q',
-                    '--phrase',
-                    '-p',
-                    '--key',
-                    '-k',
-                    '--length',
-                    '-l',
-                    '--repeat',
-                    '-r',
-                    '--upper',
-                    '--lower',
-                    '--number',
-                    '--space',
-                    '--dash',
-                    '--symbol',
-                    '--config',
-                    '-c',
-                    '--notes',
-                    '-n',
-                    '--delete',
-                    '-x',
-                    '--delete-globals',
-                    '--clear',
-                    '-X',
-                    '--export',
-                    '-e',
-                    '--import',
-                    '-i',
-                    '--overwrite-existing',
-                    '--merge-existing',
-                    '--unset',
-                    '--export-as',
-                }),
-                id='derivepassphrase-vault',
-            ),
-        ],
-    )
+    @Parametrize.COMPLETABLE_OPTIONS
     def test_200_options(
         self,
         command_prefix: Sequence[str],
@@ -4693,23 +5000,7 @@ class TestShellCompletion:
         comp = self.Completions(command_prefix, incomplete)
         assert frozenset(comp.get_words()) == completions
 
-    @pytest.mark.parametrize(
-        ['command_prefix', 'incomplete', 'completions'],
-        [
-            pytest.param(
-                (),
-                '',
-                frozenset({'export', 'vault'}),
-                id='derivepassphrase',
-            ),
-            pytest.param(
-                ('export',),
-                '',
-                frozenset({'vault'}),
-                id='derivepassphrase-export',
-            ),
-        ],
-    )
+    @Parametrize.COMPLETABLE_SUBCOMMANDS
     def test_201_subcommands(
         self,
         command_prefix: Sequence[str],
@@ -4720,24 +5011,8 @@ class TestShellCompletion:
         comp = self.Completions(command_prefix, incomplete)
         assert frozenset(comp.get_words()) == completions
 
-    @pytest.mark.parametrize(
-        'command_prefix',
-        [
-            pytest.param(
-                ('export', 'vault'),
-                id='derivepassphrase-export-vault',
-            ),
-            pytest.param(
-                ('vault', '--export'),
-                id='derivepassphrase-vault--export',
-            ),
-            pytest.param(
-                ('vault', '--import'),
-                id='derivepassphrase-vault--import',
-            ),
-        ],
-    )
-    @pytest.mark.parametrize('incomplete', ['', 'partial'])
+    @Parametrize.COMPLETABLE_PATH_ARGUMENT
+    @Parametrize.INCOMPLETE
     def test_202_paths(
         self,
         command_prefix: Sequence[str],
@@ -4751,41 +5026,7 @@ class TestShellCompletion:
             frozenset((x.type, x.value, x.help) for x in comp()) == completions
         )
 
-    @pytest.mark.parametrize(
-        ['config', 'incomplete', 'completions'],
-        [
-            pytest.param(
-                {'services': {}},
-                '',
-                frozenset(),
-                id='no_services',
-            ),
-            pytest.param(
-                {'services': {}},
-                'partial',
-                frozenset(),
-                id='no_services_partial',
-            ),
-            pytest.param(
-                {'services': {DUMMY_SERVICE: {'length': 10}}},
-                '',
-                frozenset({DUMMY_SERVICE}),
-                id='one_service',
-            ),
-            pytest.param(
-                {'services': {DUMMY_SERVICE: {'length': 10}}},
-                DUMMY_SERVICE[:4],
-                frozenset({DUMMY_SERVICE}),
-                id='one_service_partial',
-            ),
-            pytest.param(
-                {'services': {DUMMY_SERVICE: {'length': 10}}},
-                DUMMY_SERVICE[-4:],
-                frozenset(),
-                id='one_service_partial_miss',
-            ),
-        ],
-    )
+    @Parametrize.COMPLETABLE_SERVICE_NAMES
     def test_203_service_names(
         self,
         config: _types.VaultConfig,
@@ -4809,107 +5050,8 @@ class TestShellCompletion:
             comp = self.Completions(['vault'], incomplete)
             assert frozenset(comp.get_words()) == completions
 
-    @pytest.mark.parametrize(
-        ['shell', 'format_func'],
-        [
-            pytest.param('bash', bash_format, id='bash'),
-            pytest.param('fish', fish_format, id='fish'),
-            pytest.param('zsh', zsh_format, id='zsh'),
-        ],
-    )
-    @pytest.mark.parametrize(
-        ['config', 'comp_func', 'args', 'incomplete', 'results'],
-        [
-            pytest.param(
-                {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}},
-                cli_helpers.shell_complete_service,
-                ['vault'],
-                '',
-                [DUMMY_SERVICE],
-                id='base_config-service',
-            ),
-            pytest.param(
-                {'services': {}},
-                cli_helpers.shell_complete_service,
-                ['vault'],
-                '',
-                [],
-                id='empty_config-service',
-            ),
-            pytest.param(
-                {
-                    'services': {
-                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        'newline\nin\nname': DUMMY_CONFIG_SETTINGS.copy(),
-                    }
-                },
-                cli_helpers.shell_complete_service,
-                ['vault'],
-                '',
-                [DUMMY_SERVICE],
-                id='incompletable_newline_config-service',
-            ),
-            pytest.param(
-                {
-                    'services': {
-                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        'backspace\bin\bname': DUMMY_CONFIG_SETTINGS.copy(),
-                    }
-                },
-                cli_helpers.shell_complete_service,
-                ['vault'],
-                '',
-                [DUMMY_SERVICE],
-                id='incompletable_backspace_config-service',
-            ),
-            pytest.param(
-                {
-                    'services': {
-                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        'colon:in:name': DUMMY_CONFIG_SETTINGS.copy(),
-                    }
-                },
-                cli_helpers.shell_complete_service,
-                ['vault'],
-                '',
-                sorted([DUMMY_SERVICE, 'colon:in:name']),
-                id='brittle_colon_config-service',
-            ),
-            pytest.param(
-                {
-                    'services': {
-                        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        'colon:in:name': DUMMY_CONFIG_SETTINGS.copy(),
-                        'newline\nin\nname': DUMMY_CONFIG_SETTINGS.copy(),
-                        'backspace\bin\bname': DUMMY_CONFIG_SETTINGS.copy(),
-                        'nul\x00in\x00name': DUMMY_CONFIG_SETTINGS.copy(),
-                        'del\x7fin\x7fname': DUMMY_CONFIG_SETTINGS.copy(),
-                    }
-                },
-                cli_helpers.shell_complete_service,
-                ['vault'],
-                '',
-                sorted([DUMMY_SERVICE, 'colon:in:name']),
-                id='brittle_incompletable_multi_config-service',
-            ),
-            pytest.param(
-                {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}},
-                cli_helpers.shell_complete_path,
-                ['vault', '--import'],
-                '',
-                [click.shell_completion.CompletionItem('', type='file')],
-                id='base_config-path',
-            ),
-            pytest.param(
-                {'services': {}},
-                cli_helpers.shell_complete_path,
-                ['vault', '--import'],
-                '',
-                [click.shell_completion.CompletionItem('', type='file')],
-                id='empty_config-path',
-            ),
-        ],
-    )
+    @Parametrize.SHELL_FORMATTER
+    @Parametrize.COMPLETION_FUNCTION_INPUTS
     def test_300_shell_completion_formatting(
         self,
         shell: str,
@@ -4973,156 +5115,8 @@ class TestShellCompletion:
             assert actual_items == expected_items
             assert actual_string == expected_string
 
-    @pytest.mark.parametrize('mode', ['config', 'import'])
-    @pytest.mark.parametrize(
-        ['config', 'key', 'incomplete', 'completions'],
-        [
-            pytest.param(
-                {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'newline\nin\nname': {'length': 10},
-                    },
-                },
-                'newline\nin\nname',
-                '',
-                frozenset({DUMMY_SERVICE}),
-                id='newline',
-            ),
-            pytest.param(
-                {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'newline\nin\nname': {'length': 10},
-                    },
-                },
-                'newline\nin\nname',
-                'serv',
-                frozenset({DUMMY_SERVICE}),
-                id='newline_partial_other',
-            ),
-            pytest.param(
-                {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'newline\nin\nname': {'length': 10},
-                    },
-                },
-                'newline\nin\nname',
-                'newline',
-                frozenset({}),
-                id='newline_partial_specific',
-            ),
-            pytest.param(
-                {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'nul\x00in\x00name': {'length': 10},
-                    },
-                },
-                'nul\x00in\x00name',
-                '',
-                frozenset({DUMMY_SERVICE}),
-                id='nul',
-            ),
-            pytest.param(
-                {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'nul\x00in\x00name': {'length': 10},
-                    },
-                },
-                'nul\x00in\x00name',
-                'serv',
-                frozenset({DUMMY_SERVICE}),
-                id='nul_partial_other',
-            ),
-            pytest.param(
-                {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'nul\x00in\x00name': {'length': 10},
-                    },
-                },
-                'nul\x00in\x00name',
-                'nul',
-                frozenset({}),
-                id='nul_partial_specific',
-            ),
-            pytest.param(
-                {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'backspace\bin\bname': {'length': 10},
-                    },
-                },
-                'backspace\bin\bname',
-                '',
-                frozenset({DUMMY_SERVICE}),
-                id='backspace',
-            ),
-            pytest.param(
-                {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'backspace\bin\bname': {'length': 10},
-                    },
-                },
-                'backspace\bin\bname',
-                'serv',
-                frozenset({DUMMY_SERVICE}),
-                id='backspace_partial_other',
-            ),
-            pytest.param(
-                {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'backspace\bin\bname': {'length': 10},
-                    },
-                },
-                'backspace\bin\bname',
-                'back',
-                frozenset({}),
-                id='backspace_partial_specific',
-            ),
-            pytest.param(
-                {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'del\x7fin\x7fname': {'length': 10},
-                    },
-                },
-                'del\x7fin\x7fname',
-                '',
-                frozenset({DUMMY_SERVICE}),
-                id='del',
-            ),
-            pytest.param(
-                {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'del\x7fin\x7fname': {'length': 10},
-                    },
-                },
-                'del\x7fin\x7fname',
-                'serv',
-                frozenset({DUMMY_SERVICE}),
-                id='del_partial_other',
-            ),
-            pytest.param(
-                {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'del\x7fin\x7fname': {'length': 10},
-                    },
-                },
-                'del\x7fin\x7fname',
-                'del',
-                frozenset({}),
-                id='del_partial_specific',
-            ),
-        ],
-    )
+    @Parametrize.CONFIG_SETTING_MODE
+    @Parametrize.SERVICE_NAME_COMPLETION_INPUTS
     def test_400_incompletable_service_names(
         self,
         caplog: pytest.LogCaptureFixture,
@@ -5191,14 +5185,16 @@ class TestShellCompletion:
                     },
                 )
             )
-            cli_helpers.config_filename(subsystem='vault').unlink(missing_ok=True)
+            cli_helpers.config_filename(subsystem='vault').unlink(
+                missing_ok=True
+            )
             assert not cli_helpers.shell_complete_service(
                 click.Context(cli.derivepassphrase),
                 click.Argument(['some_parameter']),
                 '',
             )
 
-    @pytest.mark.parametrize('exc_type', [RuntimeError, KeyError, ValueError])
+    @Parametrize.SERVICE_NAME_EXCEPTIONS
     def test_410b_service_name_exceptions_custom_error(
         self,
         exc_type: type[Exception],

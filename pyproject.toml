@@ -10,46 +10,64 @@ requires-python = ">= 3.9"
 license = { text = "zlib/libpng" }
 keywords = []
 authors = [
-  { name = "Marco Ricci", email = "software@the13thletter.info" },
+    { name = "Marco Ricci", email = "software@the13thletter.info" },
 ]
 classifiers = [
-  "Development Status :: 4 - Beta",
-  "Environment :: Console",
-  "License :: OSI Approved :: zlib/libpng License",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
-  "Programming Language :: Python :: Implementation :: CPython",
-  "Programming Language :: Python :: Implementation :: PyPy",
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "License :: OSI Approved :: zlib/libpng License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  # We use click for the command-line interface.  We require version 8.1.0
-  # or higher due to click issue #1985.
-  "click >= 8.1",
-  # We include type annotations, and use facilities that are not readily
-  # available in older Pythons (such as typing.Self).  These are loaded from
-  # typing_extensions, instead of using explicit version guards.
-  "typing_extensions",
-  # We read configuration files in JSON and TOML format.  The latter is
-  # unavailable in the Python standard library until Python 3.11.
-  'tomli; python_version < "3.11"'
+    # We use click for the command-line interface.  We require version
+    # 8.1.0 or higher due to click issue #1985.
+    "click >= 8.1",
+    # We include type annotations, and use facilities that are not
+    # readily available in older Pythons (such as typing.Self).  These
+    # are loaded from typing_extensions, instead of using explicit
+    # version guards.
+    "typing_extensions",
+    # We read configuration files in JSON and TOML format.  The latter
+    # is unavailable in the Python standard library until Python 3.11.
+    'tomli; python_version < "3.11"'
 ]
 dynamic = ['version']
 
 [project.optional-dependencies]
 dev = [
-  # Development uses the hatch build system, to isolate all tools in their
-  # own virtual environment.
-  "hatch ~= 1.10",
+    # Development uses the hatch build system, to isolate all tools in
+    # their own virtual environment...
+    "hatch >= 1.10",
+    # ...but it is still sensible to have most static analysis tools
+    # available in the main virtual environment as well, so that your
+    # editor/IDE setup can access them as well.
+    "mypy >= 1.0",
+    "ruff >= 0.9.0",
+    # Test dependencies should be installed as well, to have static
+    # analysis in the test suite working too.  `packaging` is needed
+    # because the test suite compares version numbers.
+    "coverage[toml] >= 7.4",
+    "coverage-enable-subprocess >= 1.0",
+    "hypothesis >= 6.0",
+    "packaging",
+    "pytest >= 8.1",
+    "pytest-randomly >= 3.15",
+    "pytest-xdist[psutil] >= 3.6.0",
 ]
 export = [
-  # The vault configuration exporter relies on cryptography.  Version 38 was
-  # the first to include the `algorithms.AES256` interface, instead of only
-  # the `algorithms.AES` interface.
-  "cryptography >= 38.0.0",
+    # The vault configuration exporter relies on cryptography.
+    # Version 38 was the first to include the `algorithms.AES256`
+    # interface, instead of only the `algorithms.AES` interface, but
+    # this was never tested, so we require the earliest cryptography
+    # version we tested on.
+    "cryptography >= 42.0.0",
 ]
 
 [project.scripts]
@@ -75,14 +93,14 @@ partial_branches = [
     'pragma: no branch',
 ]
 exclude_also = [
-  "if __name__ == .__main__.:",
-  'if (?:typing\.)?TYPE_CHECKING:',
-  "raise AssertionError",
-  "raise NotImplementedError",
-  'assert False',
-  '(?:typing\.)?assert_never\(',
-  '@overload',
-  'class .*\(Protocol\):',
+    "if __name__ == .__main__.:",
+    'if (?:typing\.)?TYPE_CHECKING:',
+    "raise AssertionError",
+    "raise NotImplementedError",
+    'assert False',
+    '(?:typing\.)?assert_never\(',
+    '@overload',
+    'class .*\(Protocol\):',
 ]
 
 [tool.coverage.run]
@@ -90,7 +108,7 @@ source_pkgs = ["derivepassphrase", "tests"]
 branch = true
 parallel = true
 omit = [
-  "__main__.py",
+    "__main__.py",
 ]
 dynamic_context = 'test_function'
 
@@ -104,7 +122,7 @@ packages = ['src/derivepassphrase']
 
 [tool.hatch.env]
 requires = [
-  "hatch-mkdocs",
+    "hatch-mkdocs",
 ]
 
 [tool.hatch.env.collectors.mkdocs.docs]
@@ -112,53 +130,57 @@ path = "mkdocs.yml"
 
 [tool.hatch.envs.docs]
 extra-dependencies = [
-  # Our documentation uses formatted function signatures (i.e. with
-  # formatted type annotations), which requires `black`.
-  "black",
-  # We actually use functionality from MkDocs 1.6, so ensure the version is
-  # at least this high.
-  "mkdocs >= 1.6",
-  # Our changelog is assembled from singular entries, orchestrated by
-  # `scriv`.
-  "scriv >= 1.4"
+    # Our documentation uses formatted function signatures (i.e. with
+    # formatted type annotations), which requires `black`.
+    "black",
+    # We actually use functionality from MkDocs 1.6, so ensure the
+    # version is at least this high.
+    "mkdocs >= 1.6",
+    # Our changelog is assembled from singular entries, orchestrated by
+    # `scriv`.
+    "scriv >= 1.4",
 ]
 detached = false
 
 [tool.hatch.envs.hatch-static-analysis]
 config-path = "/dev/null"
 dependencies = [
-  "ruff ~= 0.8.0",
+    # Override the default dependencies, lest the ruff requirements
+    # conflict.
+]
+features = [
+    "dev",
 ]
 
 [tool.hatch.envs.hatch-test]
 default-args = ['src', 'tests']
-extra-dependencies = [
+# See "dev" extra in main project section for commentary on the
+# dependencies.  We override them here because hatch is too restrictive
+# by default.
+dependencies = [
+    "coverage[toml] >= 7.4",
+    "coverage-enable-subprocess >= 1.0",
     "hypothesis >= 6.0",
+    "packaging",
+    "pytest >= 8.1",
+    "pytest-randomly >= 3.15",
+    "pytest-xdist[psutil] >= 3.6.0",
 ]
 matrix-name-format = '{variable}_{value}'
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = ["3.13", "3.12", "3.11", "3.10", "3.9", "pypy3.10", "pypy3.9"]
 cryptography = ["no", "yes"]
-hypothesis-profile = ["user-default"]
 parser-version = ["PEG"]
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = ["3.9", "pypy3.9"]
 cryptography = ["no", "yes"]
-hypothesis-profile = ["user-default"]
 parser-version = ["LL1"]
-
-[[tool.hatch.envs.hatch-test.matrix]]
-cryptography = ["yes"]
-hypothesis-profile = ["ci"]
 
 [tool.hatch.envs.hatch-test.overrides]
 matrix.cryptography.features = [
     { value = "export", if = ["yes"] },
-]
-matrix.hypothesis-profile.env-vars = [
-    { key = "HYPOTHESIS_PROFILE", if = ["ci", "default", "dev", "debug"] },
 ]
 matrix.parser-version.env-vars = [
     { key = "PYTHONOLDPARSER", value = "1", if = ["LL1"] },
@@ -171,12 +193,8 @@ cov-combine = "coverage combine"
 cov-report = "coverage report"
 
 [tool.hatch.envs.types]
-extra-dependencies = [
-  "hypothesis >= 6.0",
-  "mypy ~= 1.0",
-  "pytest ~= 8.1",
-]
 features = [
+    "dev",
     "export",
 ]
 
@@ -195,7 +213,7 @@ sqlite_cache = true
 enable_error_code = ['ignore-without-code']
 
 [tool.pytest.ini_options]
-addopts = '--doctest-modules'
+addopts = '--doctest-modules --dist=worksteal'
 pythonpath = ['src']
 testpaths = ['src', 'tests']
 xfail_strict = true
@@ -264,59 +282,60 @@ select = [
 
 [tool.ruff.lint.per-file-ignores]
 "**/scripts/*" = [
-  # Suggested by hatch.
-  'INP',
-  # Suggested by hatch.
-  'T20',
+    # Suggested by hatch.
+    'INP',
+    # Suggested by hatch.
+    'T20',
 ]
 "**/tests/**/*" = [
-  # Suggested by hatch, assumingly because it may be important to verify
-  # that the value is exactly the empty string, and not just any falsy
-  # value.
-  'PLC1901',
-  # Suggested by hatch, assumingly because tests may use "magic values".
-  'PLR2004',
-  # Suggested by hatch, because tests are typically organized as classes
-  # and instance methods but may not really be using the `self`
-  # argument.
-  'PLR6301',
-  # Suggested by hatch, because these warnings may be precisely what the
-  # tests are supposed to test.
-  'S',
-  # Suggested by hatch, because pytest-style tests conventionally import
-  # code from each other via relative imports.
-  'TID252',
-  # Our tests regularly use arguments named `input` to store an input
-  # (text-/byte-)string.
-  'A002',
-  # We regularly annotate pytest fixtures like monkeypatch as `Any`.
-  'ANN401',
-  # Our tests generally don't contain docstrings.
-  'D', 'DOC',
-  # Our tests are regularly parametrized with booleans, for benign
-  # purposes.
-  'FBT',
-  # One of our standard modules is called `derivepassphrase._types`.
-  # Importing this from the tests directory would then automatically
-  # trigger `PLC2701`.
-  'PLC2701',
-  # Too many public methods/arguments/returns/branches/locals doesn't
-  # really apply here.
-  'PLR0904', 'PLR0911', 'PLR0912', 'PLR0913', 'PLR0914', 'PLR0915',
-  'PLR0916', 'PLR0917',
-  # To fully test the `derivepassphrase.cli` module (and a couple other
-  # things), we need to call and to mock several internal functions,
-  # which would automatically trigger `SLF001`.
-  'SLF001',
-  # pytest does not support sensible introspection of `assert all(...)`
-  # expressions in tests the same way it supports introspection in
-  # `asssert all([...])`.  So the extra list comprehension actually
-  # improves debuggability in this case.
-  'C419',
-  # The tests sometimes include long strings (in non-Python formats)
-  # that should be included verbatim, without artificial line breaking,
-  # so they can be grepped for.
-  'E501',
+    # Suggested by hatch, assumingly because it may be important to
+    # verify that the value is exactly the empty string, and not just
+    # any falsy value.
+    'PLC1901',
+    # Suggested by hatch, assumingly because tests may use "magic
+    # values".
+    'PLR2004',
+    # Suggested by hatch, because tests are typically organized as
+    # classes and instance methods but may not really be using the
+    # `self` argument.
+    'PLR6301',
+    # Suggested by hatch, because these warnings may be precisely what
+    # the tests are supposed to test.
+    'S',
+    # Suggested by hatch, because pytest-style tests conventionally
+    # import code from each other via relative imports.
+    'TID252',
+    # Our tests regularly use arguments named `input` to store an input
+    # (text-/byte-)string.
+    'A002',
+    # We regularly annotate pytest fixtures like monkeypatch as `Any`.
+    'ANN401',
+    # Our tests generally don't contain docstrings.
+    'D', 'DOC',
+    # Our tests are regularly parametrized with booleans, for benign
+    # purposes.
+    'FBT',
+    # One of our standard modules is called `derivepassphrase._types`.
+    # Importing this from the tests directory would then automatically
+    # trigger `PLC2701`.
+    'PLC2701',
+    # Too many public methods/arguments/returns/branches/locals doesn't
+    # really apply here.
+    'PLR0904', 'PLR0911', 'PLR0912', 'PLR0913', 'PLR0914', 'PLR0915',
+    'PLR0916', 'PLR0917',
+    # To fully test the `derivepassphrase.cli` module (and a couple
+    # other things), we need to call and to mock several internal
+    # functions, which would automatically trigger `SLF001`.
+    'SLF001',
+    # pytest does not support sensible introspection of
+    # `assert all(...)` expressions in tests the same way it supports
+    # introspection in `asssert all([...])`.  So the extra list
+    # comprehension actually improves debuggability in this case.
+    'C419',
+    # The tests sometimes include long strings (in non-Python formats)
+    # that should be included verbatim, without artificial line
+    # breaking, so they can be grepped for.
+    'E501',
 ]
 
 [tool.ruff.lint.flake8-copyright]

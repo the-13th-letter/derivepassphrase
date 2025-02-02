@@ -11,6 +11,7 @@ import contextlib
 import functools
 import math
 import operator
+import types
 from typing import TYPE_CHECKING, NamedTuple
 
 import hypothesis
@@ -52,6 +53,29 @@ def bits(num: int, /, byte_width: int | None = None) -> list[int]:
 def bitseq(string: str) -> list[int]:
     """Convert a 0/1-string into a list of bits."""
     return [int(char, 2) for char in string]
+
+
+class Parametrize(types.SimpleNamespace):
+    BIG_ENDIAN_NUMBER_EXCEPTIONS = pytest.mark.parametrize(
+        ['exc_type', 'exc_pattern', 'sequence', 'base'],
+        [
+            (ValueError, 'invalid base 3 digit:', [-1], 3),
+            (ValueError, 'invalid base:', [0], 1),
+            (TypeError, 'not an integer:', [0.0, 1.0, 0.0, 1.0], 2),
+        ],
+    )
+    INVALID_SEQUIN_INPUTS = pytest.mark.parametrize(
+        ['sequence', 'is_bitstring', 'exc_type', 'exc_pattern'],
+        [
+            (
+                [0, 1, 2, 3, 4, 5, 6, 7],
+                True,
+                ValueError,
+                'sequence item out of range',
+            ),
+            ('こんにちは。', False, ValueError, 'sequence item out of range'),
+        ],
+    )
 
 
 class TestStaticFunctionality:
@@ -175,14 +199,7 @@ class TestStaticFunctionality:
             sequin.Sequin._big_endian_number(sequence, base=base)
         ) == expected
 
-    @pytest.mark.parametrize(
-        ['exc_type', 'exc_pattern', 'sequence', 'base'],
-        [
-            (ValueError, 'invalid base 3 digit:', [-1], 3),
-            (ValueError, 'invalid base:', [0], 1),
-            (TypeError, 'not an integer:', [0.0, 1.0, 0.0, 1.0], 2),
-        ],
-    )
+    @Parametrize.BIG_ENDIAN_NUMBER_EXCEPTIONS
     def test_300_big_endian_number_exceptions(
         self,
         exc_type: type[Exception],
@@ -524,18 +541,7 @@ class TestSequin:
                     f'After step {i}, the bit sequence is not exhausted yet'
                 )
 
-    @pytest.mark.parametrize(
-        ['sequence', 'is_bitstring', 'exc_type', 'exc_pattern'],
-        [
-            (
-                [0, 1, 2, 3, 4, 5, 6, 7],
-                True,
-                ValueError,
-                'sequence item out of range',
-            ),
-            ('こんにちは。', False, ValueError, 'sequence item out of range'),
-        ],
-    )
+    @Parametrize.INVALID_SEQUIN_INPUTS
     def test_300_constructor_exceptions(
         self,
         sequence: list[int] | str,

@@ -16,8 +16,8 @@ import pathlib
 import re
 import shlex
 import stat
-import sys
 import tempfile
+import types
 import zipfile
 from typing import TYPE_CHECKING
 
@@ -543,20 +543,20 @@ class KnownSSHAgent(str, enum.Enum):
     """Known SSH agents.
 
     Attributes:
-        UNKNOWN:
+        UNKNOWN (str):
             Not a known agent, or not known statically.
-        Pageant:
+        Pageant (str):
             The agent from Simon Tatham's PuTTY suite.
-        OpenSSHAgent:
+        OpenSSHAgent (str):
             The agent from OpenBSD's OpenSSH suite.
 
     """
 
-    UNKNOWN: str = '(unknown)'
+    UNKNOWN = '(unknown)'
     """"""
-    Pageant: str = 'Pageant'
+    Pageant = 'Pageant'
     """"""
-    OpenSSHAgent: str = 'OpenSSHAgent'
+    OpenSSHAgent = 'OpenSSHAgent'
     """"""
 
 
@@ -1604,83 +1604,6 @@ on cryptography support being available.
 """
 
 
-def hypothesis_settings_coverage_compatible(
-    f: Any = None,
-) -> Any:
-    """Return (or decorate `f` with) coverage-friendly hypothesis settings.
-
-    Specifically, we increase the deadline 40-fold if we detect we are
-    running under coverage testing, because the slow Python trace
-    function (necessary on PyPy) drastically increases runtime for
-    hypothesis tests.
-
-    In any case, we *also* reduce the state machine step count to 32
-    steps per run, because the current state machines defined in the
-    tests rather benefit from broad testing rather than deep testing.
-
-    Args:
-        f:
-            An optional object to decorate with these settings.
-
-    Returns:
-        The modified hypothesis settings, as a settings object.  If
-        decorating a function/class, return that function/class
-        directly, after decorating.
-
-    """
-    settings = (
-        hypothesis.settings(
-            # Running under coverage with the Python tracer increases
-            # running times 40-fold, on my machines.  Sadly, not every
-            # Python version offers the C tracer, so sometimes the Python
-            # tracer is used anyway.
-            deadline=(
-                40 * deadline
-                if (deadline := hypothesis.settings().deadline) is not None
-                else None
-            ),
-            stateful_step_count=32,
-            suppress_health_check=(hypothesis.HealthCheck.too_slow,),
-        )
-        if sys.gettrace() is not None
-        else hypothesis.settings(
-            stateful_step_count=32,
-            suppress_health_check=(hypothesis.HealthCheck.too_slow,),
-        )
-    )
-    return settings if f is None else settings(f)
-
-
-def hypothesis_settings_coverage_compatible_with_caplog(
-    f: Any = None,
-) -> Any:
-    """Return (or decorate `f` with) coverage-friendly hypothesis settings.
-
-    This variant of [`hypothesis_settings_coverage_compatible`][] does
-    all the same, and additionally disables the check for function
-    scoped pytest fixtures such as `caplog`.
-
-    Args:
-        f:
-            An optional object to decorate with these settings.
-
-    Returns:
-        The modified hypothesis settings, as a settings object.  If
-        decorating a function/class, return that function/class
-        directly, after decorating.
-
-    """
-    parent_settings = hypothesis_settings_coverage_compatible()
-    settings = hypothesis.settings(
-        parent=parent_settings,
-        suppress_health_check={
-            hypothesis.HealthCheck.function_scoped_fixture,
-        }
-        | set(parent_settings.suppress_health_check),
-    )
-    return settings if f is None else settings(f)
-
-
 def list_keys(self: Any = None) -> list[_types.SSHKeyCommentPair]:
     """Return a list of all SSH test keys, as key/comment pairs.
 
@@ -2195,3 +2118,29 @@ deprecation_info_emitted = message_emitted_factory(
     logging.INFO, logger_name=f'{cli.PROG_NAME}.deprecation'
 )
 error_emitted = message_emitted_factory(logging.ERROR)
+
+
+class Parametrize(types.SimpleNamespace):
+    VAULT_CONFIG_FORMATS_DATA = pytest.mark.parametrize(
+        ['config', 'format', 'config_data'],
+        [
+            pytest.param(
+                VAULT_V02_CONFIG,
+                'v0.2',
+                VAULT_V02_CONFIG_DATA,
+                id='0.2',
+            ),
+            pytest.param(
+                VAULT_V03_CONFIG,
+                'v0.3',
+                VAULT_V03_CONFIG_DATA,
+                id='0.3',
+            ),
+            pytest.param(
+                VAULT_STOREROOM_CONFIG_ZIPPED,
+                'storeroom',
+                VAULT_STOREROOM_CONFIG_DATA,
+                id='storeroom',
+            ),
+        ],
+    )

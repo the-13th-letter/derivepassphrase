@@ -12,6 +12,7 @@ import gettext
 import os
 import re
 import string
+import types
 from typing import TYPE_CHECKING, cast
 
 import hypothesis
@@ -22,6 +23,13 @@ from derivepassphrase._internals import cli_messages as msg
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+
+
+class Parametrize(types.SimpleNamespace):
+    MAYBE_FORMAT_STRINGS = pytest.mark.parametrize(
+        's', ['{spam}', '{spam}abc', '{', '}', '{{{']
+    )
+
 
 all_translatable_strings_dict: dict[
     msg.TranslatableString,
@@ -203,7 +211,7 @@ class TestL10nMachineryWithDebugTranslations:
             assert ts0 != ts1
             assert len({ts0, ts1}) == 2
 
-    @pytest.mark.parametrize('s', ['{spam}', '{spam}abc', '{', '}', '{{{'])
+    @Parametrize.MAYBE_FORMAT_STRINGS
     def test_102_translated_strings_suppressed_interpolation_fail(
         self,
         s: str,

@@ -868,6 +868,7 @@ class TopLevelCLIEntryPoint(DefaultToVaultGroup):
 # Actual option groups and callbacks used by derivepassphrase
 # ===========================================================
 
+
 def color_forcing_callback(
     ctx: click.Context,
     param: click.Parameter,
@@ -1097,6 +1098,7 @@ def standard_logging_options(f: Callable[P, R]) -> Callable[P, R]:
 
 # Shell completion
 # ================
+
 
 # TODO(the-13th-letter): Remove this once upstream click's Zsh completion
 # script properly supports colons.

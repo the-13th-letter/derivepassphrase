@@ -9,6 +9,7 @@ import operator
 import os
 import pathlib
 import string
+import types
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 import click.testing
@@ -21,6 +22,33 @@ from derivepassphrase import cli, exporter
 
 if TYPE_CHECKING:
     from typing_extensions import Buffer
+
+
+class Parametrize(types.SimpleNamespace):
+    EXPECTED_VAULT_PATH = pytest.mark.parametrize(
+        ['expected', 'path'],
+        [
+            (pathlib.Path('/tmp'), pathlib.Path('/tmp')),
+            (pathlib.Path('~'), pathlib.Path()),
+            (pathlib.Path('~/.vault'), None),
+        ],
+    )
+    EXPORT_VAULT_CONFIG_DATA_HANDLER_NAMELISTS = pytest.mark.parametrize(
+        ['namelist', 'err_pat'],
+        [
+            pytest.param((), '[Nn]o names given', id='empty'),
+            pytest.param(
+                ('name1', '', 'name2'),
+                '[Uu]nder an empty name',
+                id='empty-string',
+            ),
+            pytest.param(
+                ('dummy', 'name1', 'name2'),
+                '[Aa]lready registered',
+                id='existing',
+            ),
+        ],
+    )
 
 
 class Test001ExporterUtils:
@@ -194,14 +222,7 @@ class Test001ExporterUtils:
                     monkeypatch.setenv(key, value)
             assert os.fsdecode(exporter.get_vault_key()) == expected
 
-    @pytest.mark.parametrize(
-        ['expected', 'path'],
-        [
-            (pathlib.Path('/tmp'), pathlib.Path('/tmp')),
-            (pathlib.Path('~'), pathlib.Path()),
-            (pathlib.Path('~/.vault'), None),
-        ],
-    )
+    @Parametrize.EXPECTED_VAULT_PATH
     def test_210_get_vault_path(
         self,
         expected: pathlib.Path,
@@ -304,22 +325,7 @@ class Test001ExporterUtils:
             ):
                 exporter.get_vault_path()
 
-    @pytest.mark.parametrize(
-        ['namelist', 'err_pat'],
-        [
-            pytest.param((), '[Nn]o names given', id='empty'),
-            pytest.param(
-                ('name1', '', 'name2'),
-                '[Uu]nder an empty name',
-                id='empty-string',
-            ),
-            pytest.param(
-                ('dummy', 'name1', 'name2'),
-                '[Aa]lready registered',
-                id='existing',
-            ),
-        ],
-    )
+    @Parametrize.EXPORT_VAULT_CONFIG_DATA_HANDLER_NAMELISTS
     def test_320_register_export_vault_config_data_handler_errors(
         self,
         namelist: tuple[str, ...],
@@ -398,37 +404,16 @@ class Test002CLI:
             )
 
     @tests.skip_if_cryptography_support
-    @pytest.mark.parametrize(
-        ['format', 'config', 'key'],
-        [
-            pytest.param(
-                'v0.2',
-                tests.VAULT_V02_CONFIG,
-                tests.VAULT_MASTER_KEY,
-                id='v0.2',
-            ),
-            pytest.param(
-                'v0.3',
-                tests.VAULT_V03_CONFIG,
-                tests.VAULT_MASTER_KEY,
-                id='v0.3',
-            ),
-            pytest.param(
-                'storeroom',
-                tests.VAULT_STOREROOM_CONFIG_ZIPPED,
-                tests.VAULT_MASTER_KEY,
-                id='storeroom',
-            ),
-        ],
-    )
+    @tests.Parametrize.VAULT_CONFIG_FORMATS_DATA
     def test_999_no_cryptography_error_message(
         self,
         caplog: pytest.LogCaptureFixture,
-        format: str,
         config: str | bytes,
-        key: str,
+        format: str,
+        config_data: str,
     ) -> None:
         """Abort export call if no cryptography is available."""
+        del config_data
         runner = click.testing.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -440,7 +425,7 @@ class Test002CLI:
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config=config,
-                    vault_key=key,
+                    vault_key=tests.VAULT_MASTER_KEY,
                 )
             )
             result_ = runner.invoke(

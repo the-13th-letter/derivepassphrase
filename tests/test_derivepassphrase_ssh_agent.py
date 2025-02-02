@@ -11,6 +11,7 @@ import contextlib
 import io
 import re
 import socket
+import types
 from typing import TYPE_CHECKING
 
 import click
@@ -21,7 +22,7 @@ from hypothesis import strategies
 
 import tests
 from derivepassphrase import _types, ssh_agent, vault
-from derivepassphrase._internals import cli_helpers, cli_machinery
+from derivepassphrase._internals import cli_helpers
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -29,74 +30,142 @@ if TYPE_CHECKING:
     from typing_extensions import Any, Buffer
 
 
-class TestStaticFunctionality:
-    """Test the static functionality of the `ssh_agent` module."""
-
-    @staticmethod
-    def as_ssh_string(bytestring: bytes) -> bytes:
-        """Return an encoded SSH string from a bytestring.
-
-        This is a helper function for hypothesis data generation.
-
-        """
-        return int.to_bytes(len(bytestring), 4, 'big') + bytestring
-
-    @staticmethod
-    def canonicalize1(data: bytes) -> bytes:
-        """Return an encoded SSH string from a bytestring.
-
-        This is a helper function for hypothesis testing.
-
-        References:
-
-          * [David R. MacIver: Another invariant to test for
-            encoders][DECODE_ENCODE]
-
-        [DECODE_ENCODE]: https://hypothesis.works/articles/canonical-serialization/
-
-        """
-        return ssh_agent.SSHAgentClient.string(
-            ssh_agent.SSHAgentClient.unstring(data)
-        )
-
-    @staticmethod
-    def canonicalize2(data: bytes) -> bytes:
-        """Return an encoded SSH string from a bytestring.
-
-        This is a helper function for hypothesis testing.
-
-        References:
-
-          * [David R. MacIver: Another invariant to test for
-            encoders][DECODE_ENCODE]
-
-        [DECODE_ENCODE]: https://hypothesis.works/articles/canonical-serialization/
-
-        """
-        unstringed, trailer = ssh_agent.SSHAgentClient.unstring_prefix(data)
-        assert not trailer
-        return ssh_agent.SSHAgentClient.string(unstringed)
-
-    # TODO(the-13th-letter): Re-evaluate if this check is worth keeping.
-    # It cannot provide true tamper-resistence, but probably appears to.
-    @pytest.mark.parametrize(
-        ['public_key', 'public_key_data'],
+class Parametrize(types.SimpleNamespace):
+    SSH_STRING_EXCEPTIONS = pytest.mark.parametrize(
+        ['input', 'exc_type', 'exc_pattern'],
         [
-            (val.public_key, val.public_key_data)
-            for val in tests.SUPPORTED_KEYS.values()
+            pytest.param(
+                'some string', TypeError, 'invalid payload type', id='str'
+            ),
         ],
-        ids=list(tests.SUPPORTED_KEYS.keys()),
     )
-    def test_100_key_decoding(
-        self, public_key: bytes, public_key_data: bytes
-    ) -> None:
-        """The [`tests.ALL_KEYS`][] public key data looks sane."""
-        keydata = base64.b64decode(public_key.split(None, 2)[1])
-        assert keydata == public_key_data, (
-            "recorded public key data doesn't match"
-        )
-
-    @pytest.mark.parametrize(
+    UINT32_EXCEPTIONS = pytest.mark.parametrize(
+        ['input', 'exc_type', 'exc_pattern'],
+        [
+            pytest.param(
+                10000000000000000,
+                OverflowError,
+                'int too big to convert',
+                id='10000000000000000',
+            ),
+            pytest.param(
+                -1,
+                OverflowError,
+                "can't convert negative int to unsigned",
+                id='-1',
+            ),
+        ],
+    )
+    SSH_UNSTRING_EXCEPTIONS = pytest.mark.parametrize(
+        ['input', 'exc_type', 'exc_pattern', 'has_trailer', 'parts'],
+        [
+            pytest.param(
+                b'ssh',
+                ValueError,
+                'malformed SSH byte string',
+                False,
+                None,
+                id='unencoded',
+            ),
+            pytest.param(
+                b'\x00\x00\x00\x08ssh-rsa',
+                ValueError,
+                'malformed SSH byte string',
+                False,
+                None,
+                id='truncated',
+            ),
+            pytest.param(
+                b'\x00\x00\x00\x04XXX trailing text',
+                ValueError,
+                'malformed SSH byte string',
+                True,
+                (b'XXX ', b'trailing text'),
+                id='trailing-data',
+            ),
+        ],
+    )
+    SSH_STRING_INPUT = pytest.mark.parametrize(
+        ['input', 'expected'],
+        [
+            pytest.param(
+                b'ssh-rsa',
+                b'\x00\x00\x00\x07ssh-rsa',
+                id='ssh-rsa',
+            ),
+            pytest.param(
+                b'ssh-ed25519',
+                b'\x00\x00\x00\x0bssh-ed25519',
+                id='ssh-ed25519',
+            ),
+            pytest.param(
+                ssh_agent.SSHAgentClient.string(b'ssh-ed25519'),
+                b'\x00\x00\x00\x0f\x00\x00\x00\x0bssh-ed25519',
+                id='string(ssh-ed25519)',
+            ),
+        ],
+    )
+    SSH_UNSTRING_INPUT = pytest.mark.parametrize(
+        ['input', 'expected'],
+        [
+            pytest.param(
+                b'\x00\x00\x00\x07ssh-rsa',
+                b'ssh-rsa',
+                id='ssh-rsa',
+            ),
+            pytest.param(
+                ssh_agent.SSHAgentClient.string(b'ssh-ed25519'),
+                b'ssh-ed25519',
+                id='ssh-ed25519',
+            ),
+        ],
+    )
+    UINT32_INPUT = pytest.mark.parametrize(
+        ['input', 'expected'],
+        [
+            pytest.param(16777216, b'\x01\x00\x00\x00', id='16777216'),
+        ],
+    )
+    SIGN_ERROR_RESPONSES = pytest.mark.parametrize(
+        [
+            'key',
+            'check',
+            'response_code',
+            'response',
+            'exc_type',
+            'exc_pattern',
+        ],
+        [
+            pytest.param(
+                b'invalid-key',
+                True,
+                _types.SSH_AGENT.FAILURE,
+                b'',
+                KeyError,
+                'target SSH key not loaded into agent',
+                id='key-not-loaded',
+            ),
+            pytest.param(
+                tests.SUPPORTED_KEYS['ed25519'].public_key_data,
+                True,
+                _types.SSH_AGENT.FAILURE,
+                b'',
+                ssh_agent.SSHAgentFailedError,
+                'failed to complete the request',
+                id='failed-to-complete',
+            ),
+        ],
+    )
+    SSH_KEY_SELECTION = pytest.mark.parametrize(
+        ['key', 'single'],
+        [
+            (value.public_key_data, False)
+            for value in tests.SUPPORTED_KEYS.values()
+        ]
+        + [(tests.list_keys_singleton()[0].key, True)],
+        ids=[*tests.SUPPORTED_KEYS.keys(), 'singleton'],
+    )
+    SH_EXPORT_LINES = pytest.mark.parametrize(
         ['line', 'env_name', 'value'],
         [
             pytest.param(
@@ -167,6 +236,151 @@ class TestStaticFunctionality:
             ),
         ],
     )
+    PUBLIC_KEY_DATA = pytest.mark.parametrize(
+        'public_key_struct',
+        list(tests.SUPPORTED_KEYS.values()),
+        ids=list(tests.SUPPORTED_KEYS.keys()),
+    )
+    REQUEST_ERROR_RESPONSES = pytest.mark.parametrize(
+        ['request_code', 'response_code', 'exc_type', 'exc_pattern'],
+        [
+            pytest.param(
+                _types.SSH_AGENTC.REQUEST_IDENTITIES,
+                _types.SSH_AGENT.SUCCESS,
+                ssh_agent.SSHAgentFailedError,
+                re.escape(
+                    f'[Code {_types.SSH_AGENT.IDENTITIES_ANSWER.value}]'
+                ),
+                id='REQUEST_IDENTITIES-expect-SUCCESS',
+            ),
+        ],
+    )
+    TRUNCATED_AGENT_RESPONSES = pytest.mark.parametrize(
+        'response',
+        [
+            b'\x00\x00',
+            b'\x00\x00\x00\x1f some bytes missing',
+        ],
+        ids=['in-header', 'in-body'],
+    )
+    LIST_KEYS_ERROR_RESPONSES = pytest.mark.parametrize(
+        ['response_code', 'response', 'exc_type', 'exc_pattern'],
+        [
+            pytest.param(
+                _types.SSH_AGENT.FAILURE,
+                b'',
+                ssh_agent.SSHAgentFailedError,
+                'failed to complete the request',
+                id='failed-to-complete',
+            ),
+            pytest.param(
+                _types.SSH_AGENT.IDENTITIES_ANSWER,
+                b'\x00\x00\x00\x01',
+                EOFError,
+                'truncated response',
+                id='truncated-response',
+            ),
+            pytest.param(
+                _types.SSH_AGENT.IDENTITIES_ANSWER,
+                b'\x00\x00\x00\x00abc',
+                ssh_agent.TrailingDataError,
+                'Overlong response',
+                id='overlong-response',
+            ),
+        ],
+    )
+    QUERY_EXTENSIONS_MALFORMED_RESPONSES = pytest.mark.parametrize(
+        'response_data',
+        [
+            pytest.param(b'\xde\xad\xbe\xef', id='truncated'),
+            pytest.param(
+                b'\x00\x00\x00\x0fwrong extension', id='wrong-extension'
+            ),
+            pytest.param(
+                b'\x00\x00\x00\x05query\xde\xad\xbe\xef', id='with-trailer'
+            ),
+            pytest.param(
+                b'\x00\x00\x00\x05query\x00\x00\x00\x04ext1\x00\x00',
+                id='with-extra-fields',
+            ),
+        ],
+    )
+    SUPPORTED_SSH_TEST_KEYS = pytest.mark.parametrize(
+        ['ssh_test_key_type', 'ssh_test_key'],
+        list(tests.SUPPORTED_KEYS.items()),
+        ids=tests.SUPPORTED_KEYS.keys(),
+    )
+    UNSUITABLE_SSH_TEST_KEYS = pytest.mark.parametrize(
+        ['ssh_test_key_type', 'ssh_test_key'],
+        list(tests.UNSUITABLE_KEYS.items()),
+        ids=tests.UNSUITABLE_KEYS.keys(),
+    )
+
+
+class TestStaticFunctionality:
+    """Test the static functionality of the `ssh_agent` module."""
+
+    @staticmethod
+    def as_ssh_string(bytestring: bytes) -> bytes:
+        """Return an encoded SSH string from a bytestring.
+
+        This is a helper function for hypothesis data generation.
+
+        """
+        return int.to_bytes(len(bytestring), 4, 'big') + bytestring
+
+    @staticmethod
+    def canonicalize1(data: bytes) -> bytes:
+        """Return an encoded SSH string from a bytestring.
+
+        This is a helper function for hypothesis testing.
+
+        References:
+
+          * [David R. MacIver: Another invariant to test for
+            encoders][DECODE_ENCODE]
+
+        [DECODE_ENCODE]: https://hypothesis.works/articles/canonical-serialization/
+
+        """
+        return ssh_agent.SSHAgentClient.string(
+            ssh_agent.SSHAgentClient.unstring(data)
+        )
+
+    @staticmethod
+    def canonicalize2(data: bytes) -> bytes:
+        """Return an encoded SSH string from a bytestring.
+
+        This is a helper function for hypothesis testing.
+
+        References:
+
+          * [David R. MacIver: Another invariant to test for
+            encoders][DECODE_ENCODE]
+
+        [DECODE_ENCODE]: https://hypothesis.works/articles/canonical-serialization/
+
+        """
+        unstringed, trailer = ssh_agent.SSHAgentClient.unstring_prefix(data)
+        assert not trailer
+        return ssh_agent.SSHAgentClient.string(unstringed)
+
+    # TODO(the-13th-letter): Re-evaluate if this check is worth keeping.
+    # It cannot provide true tamper-resistence, but probably appears to.
+    @Parametrize.PUBLIC_KEY_DATA
+    def test_100_key_decoding(
+        self,
+        public_key_struct: tests.SSHTestKey,
+    ) -> None:
+        """The [`tests.ALL_KEYS`][] public key data looks sane."""
+        keydata = base64.b64decode(
+            public_key_struct.public_key.split(None, 2)[1]
+        )
+        assert keydata == public_key_struct.public_key_data, (
+            "recorded public key data doesn't match"
+        )
+
+    @Parametrize.SH_EXPORT_LINES
     def test_190_sh_export_line_parsing(
         self, line: str, env_name: str, value: str | None
     ) -> None:
@@ -190,12 +404,7 @@ class TestStaticFunctionality:
             ):
                 ssh_agent.SSHAgentClient()
 
-    @pytest.mark.parametrize(
-        ['input', 'expected'],
-        [
-            pytest.param(16777216, b'\x01\x00\x00\x00', id='16777216'),
-        ],
-    )
+    @Parametrize.UINT32_INPUT
     def test_210_uint32(self, input: int, expected: bytes | bytearray) -> None:
         """`uint32` encoding works."""
         uint32 = ssh_agent.SSHAgentClient.uint32
@@ -220,26 +429,7 @@ class TestStaticFunctionality:
             == bytestring
         )
 
-    @pytest.mark.parametrize(
-        ['input', 'expected'],
-        [
-            pytest.param(
-                b'ssh-rsa',
-                b'\x00\x00\x00\x07ssh-rsa',
-                id='ssh-rsa',
-            ),
-            pytest.param(
-                b'ssh-ed25519',
-                b'\x00\x00\x00\x0bssh-ed25519',
-                id='ssh-ed25519',
-            ),
-            pytest.param(
-                ssh_agent.SSHAgentClient.string(b'ssh-ed25519'),
-                b'\x00\x00\x00\x0f\x00\x00\x00\x0bssh-ed25519',
-                id='string(ssh-ed25519)',
-            ),
-        ],
-    )
+    @Parametrize.SSH_STRING_INPUT
     def test_211_string(
         self, input: bytes | bytearray, expected: bytes | bytearray
     ) -> None:
@@ -258,21 +448,7 @@ class TestStaticFunctionality:
         assert int.from_bytes(res[:4], 'big', signed=False) == len(bytestring)
         assert res[4:] == bytestring
 
-    @pytest.mark.parametrize(
-        ['input', 'expected'],
-        [
-            pytest.param(
-                b'\x00\x00\x00\x07ssh-rsa',
-                b'ssh-rsa',
-                id='ssh-rsa',
-            ),
-            pytest.param(
-                ssh_agent.SSHAgentClient.string(b'ssh-ed25519'),
-                b'ssh-ed25519',
-                id='ssh-ed25519',
-            ),
-        ],
-    )
+    @Parametrize.SSH_UNSTRING_INPUT
     def test_212_unstring(
         self, input: bytes | bytearray, expected: bytes | bytearray
     ) -> None:
@@ -337,39 +513,16 @@ class TestStaticFunctionality:
                 assert canon1(encoded) == canon2(encoded)
                 assert canon1(canon2(encoded)) == canon1(encoded)
 
-    @pytest.mark.parametrize(
-        ['value', 'exc_type', 'exc_pattern'],
-        [
-            pytest.param(
-                10000000000000000,
-                OverflowError,
-                'int too big to convert',
-                id='10000000000000000',
-            ),
-            pytest.param(
-                -1,
-                OverflowError,
-                "can't convert negative int to unsigned",
-                id='-1',
-            ),
-        ],
-    )
+    @Parametrize.UINT32_EXCEPTIONS
     def test_310_uint32_exceptions(
-        self, value: int, exc_type: type[Exception], exc_pattern: str
+        self, input: int, exc_type: type[Exception], exc_pattern: str
     ) -> None:
         """`uint32` encoding fails for out-of-bound values."""
         uint32 = ssh_agent.SSHAgentClient.uint32
         with pytest.raises(exc_type, match=exc_pattern):
-            uint32(value)
+            uint32(input)
 
-    @pytest.mark.parametrize(
-        ['input', 'exc_type', 'exc_pattern'],
-        [
-            pytest.param(
-                'some string', TypeError, 'invalid payload type', id='str'
-            ),
-        ],
-    )
+    @Parametrize.SSH_STRING_EXCEPTIONS
     def test_311_string_exceptions(
         self, input: Any, exc_type: type[Exception], exc_pattern: str
     ) -> None:
@@ -378,35 +531,7 @@ class TestStaticFunctionality:
         with pytest.raises(exc_type, match=exc_pattern):
             string(input)
 
-    @pytest.mark.parametrize(
-        ['input', 'exc_type', 'exc_pattern', 'has_trailer', 'parts'],
-        [
-            pytest.param(
-                b'ssh',
-                ValueError,
-                'malformed SSH byte string',
-                False,
-                None,
-                id='unencoded',
-            ),
-            pytest.param(
-                b'\x00\x00\x00\x08ssh-rsa',
-                ValueError,
-                'malformed SSH byte string',
-                False,
-                None,
-                id='truncated',
-            ),
-            pytest.param(
-                b'\x00\x00\x00\x04XXX trailing text',
-                ValueError,
-                'malformed SSH byte string',
-                True,
-                (b'XXX ', b'trailing text'),
-                id='trailing-data',
-            ),
-        ],
-    )
+    @Parametrize.SSH_UNSTRING_EXCEPTIONS
     def test_312_unstring_exceptions(
         self,
         input: bytes | bytearray,
@@ -430,17 +555,11 @@ class TestStaticFunctionality:
 class TestAgentInteraction:
     """Test actually talking to the SSH agent."""
 
-    # TODO(the-13th-letter): Convert skip into xfail, and include the
-    # key type in the skip/xfail message.  This means the key type needs
-    # to be passed to the test function as well.
-    @pytest.mark.parametrize(
-        'ssh_test_key',
-        list(tests.SUPPORTED_KEYS.values()),
-        ids=tests.SUPPORTED_KEYS.keys(),
-    )
+    @Parametrize.SUPPORTED_SSH_TEST_KEYS
     def test_200_sign_data_via_agent(
         self,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
+        ssh_test_key_type: str,
         ssh_test_key: tests.SSHTestKey,
     ) -> None:
         """Signing data with specific SSH keys works.
@@ -458,31 +577,29 @@ class TestAgentInteraction:
         assert expected_signature is not None
         assert derived_passphrase is not None
         if public_key_data not in key_comment_pairs:  # pragma: no cover
-            pytest.skip('prerequisite SSH key not loaded')
+            pytest.skip(f'prerequisite {ssh_test_key_type} SSH key not loaded')
         signature = bytes(
             client.sign(payload=vault.Vault.UUID, key=public_key_data)
         )
-        assert signature == expected_signature, 'SSH signature mismatch'
+        assert signature == expected_signature, (
+            f'SSH signature mismatch ({ssh_test_key_type})'
+        )
         signature2 = bytes(
             client.sign(payload=vault.Vault.UUID, key=public_key_data)
         )
-        assert signature2 == expected_signature, 'SSH signature mismatch'
+        assert signature2 == expected_signature, (
+            f'SSH signature mismatch ({ssh_test_key_type})'
+        )
         assert (
             vault.Vault.phrase_from_key(public_key_data, conn=client)
             == derived_passphrase
-        ), 'SSH signature mismatch'
+        ), f'SSH signature mismatch ({ssh_test_key_type})'
 
-    # TODO(the-13th-letter): Include the key type in the skip message.
-    # This means the key type needs to be passed to the test function as
-    # well.
-    @pytest.mark.parametrize(
-        'ssh_test_key',
-        list(tests.UNSUITABLE_KEYS.values()),
-        ids=tests.UNSUITABLE_KEYS.keys(),
-    )
+    @Parametrize.UNSUITABLE_SSH_TEST_KEYS
     def test_201_sign_data_via_agent_unsupported(
         self,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
+        ssh_test_key_type: str,
         ssh_test_key: tests.SSHTestKey,
     ) -> None:
         """Using an unsuitable key with [`vault.Vault`][] fails.
@@ -498,24 +615,18 @@ class TestAgentInteraction:
         key_comment_pairs = {bytes(k): bytes(c) for k, c in client.list_keys()}
         public_key_data = ssh_test_key.public_key_data
         if public_key_data not in key_comment_pairs:  # pragma: no cover
-            pytest.skip('prerequisite SSH key not loaded')
+            pytest.skip(f'prerequisite {ssh_test_key_type} SSH key not loaded')
         assert not vault.Vault.is_suitable_ssh_key(
             public_key_data, client=None
-        ), 'Expected key to be unsuitable in general'
+        ), f'Expected {ssh_test_key_type} key to be unsuitable in general'
         if vault.Vault.is_suitable_ssh_key(public_key_data, client=client):
-            pytest.skip('agent automatically ensures key is suitable')
+            pytest.skip(
+                f'agent automatically ensures {ssh_test_key_type} key is suitable'
+            )
         with pytest.raises(ValueError, match='unsuitable SSH key'):
             vault.Vault.phrase_from_key(public_key_data, conn=client)
 
-    @pytest.mark.parametrize(
-        ['key', 'single'],
-        [
-            (value.public_key_data, False)
-            for value in tests.SUPPORTED_KEYS.values()
-        ]
-        + [(tests.list_keys_singleton()[0].key, True)],
-        ids=[*tests.SUPPORTED_KEYS.keys(), 'singleton'],
-    )
+    @Parametrize.SSH_KEY_SELECTION
     def test_210_ssh_key_selector(
         self,
         monkeypatch: pytest.MonkeyPatch,
@@ -616,14 +727,7 @@ class TestAgentInteraction:
             ):
                 ssh_agent.SSHAgentClient()
 
-    @pytest.mark.parametrize(
-        'response',
-        [
-            b'\x00\x00',
-            b'\x00\x00\x00\x1f some bytes missing',
-        ],
-        ids=['in-header', 'in-body'],
-    )
+    @Parametrize.TRUNCATED_AGENT_RESPONSES
     def test_310_truncated_server_response(
         self,
         running_ssh_agent: tests.RunningSSHAgentInfo,
@@ -647,32 +751,7 @@ class TestAgentInteraction:
             with pytest.raises(EOFError):
                 client.request(255, b'')
 
-    @pytest.mark.parametrize(
-        ['response_code', 'response', 'exc_type', 'exc_pattern'],
-        [
-            pytest.param(
-                _types.SSH_AGENT.FAILURE,
-                b'',
-                ssh_agent.SSHAgentFailedError,
-                'failed to complete the request',
-                id='failed-to-complete',
-            ),
-            pytest.param(
-                _types.SSH_AGENT.IDENTITIES_ANSWER,
-                b'\x00\x00\x00\x01',
-                EOFError,
-                'truncated response',
-                id='truncated-response',
-            ),
-            pytest.param(
-                _types.SSH_AGENT.IDENTITIES_ANSWER,
-                b'\x00\x00\x00\x00abc',
-                ssh_agent.TrailingDataError,
-                'Overlong response',
-                id='overlong-response',
-            ),
-        ],
-    )
+    @Parametrize.LIST_KEYS_ERROR_RESPONSES
     def test_320_list_keys_error_responses(
         self,
         running_ssh_agent: tests.RunningSSHAgentInfo,
@@ -695,6 +774,8 @@ class TestAgentInteraction:
 
         passed_response_code = response_code
 
+        # TODO(the-13th-letter): Extract this mock function into a common
+        # top-level "request" mock function.
         def request(
             request_code: int | _types.SSH_AGENTC,
             payload: bytes | bytearray,
@@ -730,36 +811,7 @@ class TestAgentInteraction:
             with pytest.raises(exc_type, match=exc_pattern):
                 client.list_keys()
 
-    @pytest.mark.parametrize(
-        [
-            'key',
-            'check',
-            'response_code',
-            'response',
-            'exc_type',
-            'exc_pattern',
-        ],
-        [
-            pytest.param(
-                b'invalid-key',
-                True,
-                _types.SSH_AGENT.FAILURE,
-                b'',
-                KeyError,
-                'target SSH key not loaded into agent',
-                id='key-not-loaded',
-            ),
-            pytest.param(
-                tests.SUPPORTED_KEYS['ed25519'].public_key_data,
-                True,
-                _types.SSH_AGENT.FAILURE,
-                b'',
-                ssh_agent.SSHAgentFailedError,
-                'failed to complete the request',
-                id='failed-to-complete',
-            ),
-        ],
-    )
+    @Parametrize.SIGN_ERROR_RESPONSES
     def test_330_sign_error_responses(
         self,
         running_ssh_agent: tests.RunningSSHAgentInfo,
@@ -782,6 +834,8 @@ class TestAgentInteraction:
         del running_ssh_agent
         passed_response_code = response_code
 
+        # TODO(the-13th-letter): Extract this mock function into a common
+        # top-level "request" mock function.
         def request(
             request_code: int | _types.SSH_AGENTC,
             payload: bytes | bytearray,
@@ -826,20 +880,7 @@ class TestAgentInteraction:
             with pytest.raises(exc_type, match=exc_pattern):
                 client.sign(key, b'abc', check_if_key_loaded=check)
 
-    @pytest.mark.parametrize(
-        ['request_code', 'response_code', 'exc_type', 'exc_pattern'],
-        [
-            pytest.param(
-                _types.SSH_AGENTC.REQUEST_IDENTITIES,
-                _types.SSH_AGENT.SUCCESS,
-                ssh_agent.SSHAgentFailedError,
-                re.escape(
-                    f'[Code {_types.SSH_AGENT.IDENTITIES_ANSWER.value}]'
-                ),
-                id='REQUEST_IDENTITIES-expect-SUCCESS',
-            ),
-        ],
-    )
+    @Parametrize.REQUEST_ERROR_RESPONSES
     def test_340_request_error_responses(
         self,
         running_ssh_agent: tests.RunningSSHAgentInfo,
@@ -867,22 +908,7 @@ class TestAgentInteraction:
             client = stack.enter_context(ssh_agent.SSHAgentClient())
             client.request(request_code, b'', response_code=response_code)
 
-    @pytest.mark.parametrize(
-        'response_data',
-        [
-            pytest.param(b'\xde\xad\xbe\xef', id='truncated'),
-            pytest.param(
-                b'\x00\x00\x00\x0fwrong extension', id='wrong-extension'
-            ),
-            pytest.param(
-                b'\x00\x00\x00\x05query\xde\xad\xbe\xef', id='with-trailer'
-            ),
-            pytest.param(
-                b'\x00\x00\x00\x05query\x00\x00\x00\x04ext1\x00\x00',
-                id='with-extra-fields',
-            ),
-        ],
-    )
+    @Parametrize.QUERY_EXTENSIONS_MALFORMED_RESPONSES
     def test_350_query_extensions_malformed_responses(
         self,
         monkeypatch: pytest.MonkeyPatch,
@@ -892,6 +918,9 @@ class TestAgentInteraction:
         """Fail on malformed responses while querying extensions."""
         del running_ssh_agent
 
+        # TODO(the-13th-letter): Extract this mock function into a common
+        # top-level "request" mock function after removing the
+        # payload-specific parts.
         def request(
             code: int | _types.SSH_AGENTC,
             payload: Buffer,

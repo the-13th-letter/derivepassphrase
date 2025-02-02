@@ -35,8 +35,8 @@ import pathlib
 import warnings
 from typing import TYPE_CHECKING
 
-from derivepassphrase._internals import cli_messages as _msg
 from derivepassphrase import exporter, vault
+from derivepassphrase._internals import cli_messages as _msg
 
 if TYPE_CHECKING:
     from typing import Any
