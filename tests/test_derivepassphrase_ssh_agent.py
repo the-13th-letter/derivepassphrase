@@ -219,14 +219,9 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
-    # TODO(the-13th-letter): Modify receiver to receive the whole struct
-    # directly.
     PUBLIC_KEY_DATA = pytest.mark.parametrize(
-        ['public_key', 'public_key_data'],
-        [
-            (val.public_key, val.public_key_data)
-            for val in tests.SUPPORTED_KEYS.values()
-        ],
+        'public_key_struct',
+        list(tests.SUPPORTED_KEYS.values()),
         ids=list(tests.SUPPORTED_KEYS.keys()),
     )
     REQUEST_ERROR_RESPONSES = pytest.mark.parametrize(
@@ -293,21 +288,18 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
-    # TODO(the-13th-letter): Also yield the key type, for reporting purposes.
     SUPPORTED_SSH_TEST_KEYS = pytest.mark.parametrize(
-        'ssh_test_key',
-        list(tests.SUPPORTED_KEYS.values()),
+        ['ssh_test_key_type', 'ssh_test_key'],
+        list(tests.SUPPORTED_KEYS.items()),
         ids=tests.SUPPORTED_KEYS.keys(),
     )
-    # TODO(the-13th-letter): Also yield the key type, for reporting purposes.
     UNSUITABLE_SSH_TEST_KEYS = pytest.mark.parametrize(
-        'ssh_test_key',
-        list(tests.UNSUITABLE_KEYS.values()),
+        ['ssh_test_key_type', 'ssh_test_key'],
+        list(tests.UNSUITABLE_KEYS.items()),
         ids=tests.UNSUITABLE_KEYS.keys(),
     )
-    # TODO(the-13th-letter): Rename "value" to "input".
     UINT32_EXCEPTIONS = pytest.mark.parametrize(
-        ['value', 'exc_type', 'exc_pattern'],
+        ['input', 'exc_type', 'exc_pattern'],
         [
             pytest.param(
                 10000000000000000,
@@ -375,15 +367,16 @@ class TestStaticFunctionality:
 
     # TODO(the-13th-letter): Re-evaluate if this check is worth keeping.
     # It cannot provide true tamper-resistence, but probably appears to.
-    # TODO(the-13th-letter): Modify parametrization to work directly on the
-    # struct.
     @Parametrize.PUBLIC_KEY_DATA
     def test_100_key_decoding(
-        self, public_key: bytes, public_key_data: bytes
+        self,
+        public_key_struct: tests.SSHTestKey,
     ) -> None:
         """The [`tests.ALL_KEYS`][] public key data looks sane."""
-        keydata = base64.b64decode(public_key.split(None, 2)[1])
-        assert keydata == public_key_data, (
+        keydata = base64.b64decode(
+            public_key_struct.public_key.split(None, 2)[1]
+        )
+        assert keydata == public_key_struct.public_key_data, (
             "recorded public key data doesn't match"
         )
 
@@ -520,15 +513,14 @@ class TestStaticFunctionality:
                 assert canon1(encoded) == canon2(encoded)
                 assert canon1(canon2(encoded)) == canon1(encoded)
 
-    # TODO(the-13th-letter): Rename "value" to "input".
     @Parametrize.UINT32_EXCEPTIONS
     def test_310_uint32_exceptions(
-        self, value: int, exc_type: type[Exception], exc_pattern: str
+        self, input: int, exc_type: type[Exception], exc_pattern: str
     ) -> None:
         """`uint32` encoding fails for out-of-bound values."""
         uint32 = ssh_agent.SSHAgentClient.uint32
         with pytest.raises(exc_type, match=exc_pattern):
-            uint32(value)
+            uint32(input)
 
     @Parametrize.SSH_STRING_EXCEPTIONS
     def test_311_string_exceptions(
@@ -563,13 +555,11 @@ class TestStaticFunctionality:
 class TestAgentInteraction:
     """Test actually talking to the SSH agent."""
 
-    # TODO(the-13th-letter): Convert skip into xfail, and include the
-    # key type in the skip/xfail message.  This means the key type needs
-    # to be passed to the test function as well.
     @Parametrize.SUPPORTED_SSH_TEST_KEYS
     def test_200_sign_data_via_agent(
         self,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
+        ssh_test_key_type: str,
         ssh_test_key: tests.SSHTestKey,
     ) -> None:
         """Signing data with specific SSH keys works.
@@ -587,27 +577,29 @@ class TestAgentInteraction:
         assert expected_signature is not None
         assert derived_passphrase is not None
         if public_key_data not in key_comment_pairs:  # pragma: no cover
-            pytest.skip('prerequisite SSH key not loaded')
+            pytest.skip(f'prerequisite {ssh_test_key_type} SSH key not loaded')
         signature = bytes(
             client.sign(payload=vault.Vault.UUID, key=public_key_data)
         )
-        assert signature == expected_signature, 'SSH signature mismatch'
+        assert signature == expected_signature, (
+            f'SSH signature mismatch ({ssh_test_key_type})'
+        )
         signature2 = bytes(
             client.sign(payload=vault.Vault.UUID, key=public_key_data)
         )
-        assert signature2 == expected_signature, 'SSH signature mismatch'
+        assert signature2 == expected_signature, (
+            f'SSH signature mismatch ({ssh_test_key_type})'
+        )
         assert (
             vault.Vault.phrase_from_key(public_key_data, conn=client)
             == derived_passphrase
-        ), 'SSH signature mismatch'
+        ), f'SSH signature mismatch ({ssh_test_key_type})'
 
-    # TODO(the-13th-letter): Include the key type in the skip message.
-    # This means the key type needs to be passed to the test function as
-    # well.
     @Parametrize.UNSUITABLE_SSH_TEST_KEYS
     def test_201_sign_data_via_agent_unsupported(
         self,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
+        ssh_test_key_type: str,
         ssh_test_key: tests.SSHTestKey,
     ) -> None:
         """Using an unsuitable key with [`vault.Vault`][] fails.
@@ -623,12 +615,14 @@ class TestAgentInteraction:
         key_comment_pairs = {bytes(k): bytes(c) for k, c in client.list_keys()}
         public_key_data = ssh_test_key.public_key_data
         if public_key_data not in key_comment_pairs:  # pragma: no cover
-            pytest.skip('prerequisite SSH key not loaded')
+            pytest.skip(f'prerequisite {ssh_test_key_type} SSH key not loaded')
         assert not vault.Vault.is_suitable_ssh_key(
             public_key_data, client=None
-        ), 'Expected key to be unsuitable in general'
+        ), f'Expected {ssh_test_key_type} key to be unsuitable in general'
         if vault.Vault.is_suitable_ssh_key(public_key_data, client=client):
-            pytest.skip('agent automatically ensures key is suitable')
+            pytest.skip(
+                f'agent automatically ensures {ssh_test_key_type} key is suitable'
+            )
         with pytest.raises(ValueError, match='unsuitable SSH key'):
             vault.Vault.phrase_from_key(public_key_data, conn=client)
 

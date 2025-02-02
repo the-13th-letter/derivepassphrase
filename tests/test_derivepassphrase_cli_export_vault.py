@@ -44,9 +44,8 @@ class Parametrize(types.SimpleNamespace):
     BAD_CONFIG = pytest.mark.parametrize(
         'config', ['xxx', 'null', '{"version": 255}']
     )
-    # TODO(the-13th-letter): Rename "result" to "config_data".
     VAULT_NATIVE_CONFIG_DATA = pytest.mark.parametrize(
-        ['config', 'format', 'result'],
+        ['config', 'format', 'config_data'],
         [
             pytest.param(
                 tests.VAULT_V02_CONFIG,
@@ -131,20 +130,18 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
-    # TODO(the-13th-letter): Reorder and rename to "config", "parser_class",
-    # "config_data".
     VAULT_NATIVE_PARSER_CLASS_DATA = pytest.mark.parametrize(
-        ['parser_class', 'config', 'result'],
+        ['config', 'parser_class', 'config_data'],
         [
             pytest.param(
-                vault_native.VaultNativeV02ConfigParser,
                 tests.VAULT_V02_CONFIG,
+                vault_native.VaultNativeV02ConfigParser,
                 tests.VAULT_V02_CONFIG_DATA,
                 id='0.2',
             ),
             pytest.param(
-                vault_native.VaultNativeV03ConfigParser,
                 tests.VAULT_V03_CONFIG,
+                vault_native.VaultNativeV03ConfigParser,
                 tests.VAULT_V03_CONFIG_DATA,
                 id='0.3',
             ),
@@ -238,8 +235,8 @@ class TestCLI:
     @tests.Parametrize.VAULT_CONFIG_FORMATS_DATA
     def test_210_load_vault_v02_v03_storeroom(
         self,
-        format: str,
         config: str | bytes,
+        format: str,
         config_data: dict[str, Any],
     ) -> None:
         """Passing a specific format works.
@@ -691,7 +688,7 @@ class TestVaultNativeConfig:
         self,
         config: str,
         format: Literal['v0.2', 'v0.3'],
-        result: _types.VaultConfig | type[Exception],
+        config_data: _types.VaultConfig | type[Exception],
         handler: exporter.ExportVaultConfigDataFunction,
     ) -> None:
         """Accept data only of the correct version.
@@ -718,12 +715,12 @@ class TestVaultNativeConfig:
                     vault_key=tests.VAULT_MASTER_KEY,
                 )
             )
-            if isinstance(result, type):
-                with pytest.raises(result):
+            if isinstance(config_data, type):
+                with pytest.raises(config_data):
                     handler(None, format=format)
             else:
                 parsed_config = handler(None, format=format)
-                assert parsed_config == result
+                assert parsed_config == config_data
 
     @Parametrize.PATH
     @Parametrize.KEY_FORMATS
@@ -762,9 +759,9 @@ class TestVaultNativeConfig:
     @Parametrize.VAULT_NATIVE_PARSER_CLASS_DATA
     def test_300_result_caching(
         self,
-        parser_class: type[vault_native.VaultNativeConfigParser],
         config: str,
-        result: dict[str, Any],
+        parser_class: type[vault_native.VaultNativeConfigParser],
+        config_data: dict[str, Any],
     ) -> None:
         """Cache the results of decrypting/decoding a configuration."""
 
@@ -791,7 +788,7 @@ class TestVaultNativeConfig:
             parser = parser_class(
                 base64.b64decode(config), tests.VAULT_MASTER_KEY
             )
-            assert parser() == result
+            assert parser() == config_data
             # Now stub out all functions used to calculate the above result.
             monkeypatch.setattr(
                 parser, '_parse_contents', null_func('_parse_contents')
@@ -805,9 +802,9 @@ class TestVaultNativeConfig:
             monkeypatch.setattr(
                 parser, '_decrypt_payload', null_func('_decrypt_payload')
             )
-            assert parser() == result
+            assert parser() == config_data
             super_call = vault_native.VaultNativeConfigParser.__call__
-            assert super_call(parser) == result
+            assert super_call(parser) == config_data
 
     def test_400_no_password(self) -> None:
         """Fail on empty master keys/master passphrases."""

@@ -400,13 +400,16 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
-    # TODO(the-13th-letter): Add "configure service passphrase" example.
     UNICODE_NORMALIZATION_COMMAND_LINES = pytest.mark.parametrize(
         'command_line',
         [
             pytest.param(
                 ['--config', '--phrase'],
                 id='configure global passphrase',
+            ),
+            pytest.param(
+                ['--config', '--phrase', '--', 'DUMMY_SERVICE'],
+                id='configure service passphrase',
             ),
             pytest.param(
                 ['--phrase', '--', DUMMY_SERVICE],
