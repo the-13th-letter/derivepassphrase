@@ -39,6 +39,23 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
+    UINT32_EXCEPTIONS = pytest.mark.parametrize(
+        ['input', 'exc_type', 'exc_pattern'],
+        [
+            pytest.param(
+                10000000000000000,
+                OverflowError,
+                'int too big to convert',
+                id='10000000000000000',
+            ),
+            pytest.param(
+                -1,
+                OverflowError,
+                "can't convert negative int to unsigned",
+                id='-1',
+            ),
+        ],
+    )
     SSH_UNSTRING_EXCEPTIONS = pytest.mark.parametrize(
         ['input', 'exc_type', 'exc_pattern', 'has_trailer', 'parts'],
         [
@@ -297,23 +314,6 @@ class Parametrize(types.SimpleNamespace):
         ['ssh_test_key_type', 'ssh_test_key'],
         list(tests.UNSUITABLE_KEYS.items()),
         ids=tests.UNSUITABLE_KEYS.keys(),
-    )
-    UINT32_EXCEPTIONS = pytest.mark.parametrize(
-        ['input', 'exc_type', 'exc_pattern'],
-        [
-            pytest.param(
-                10000000000000000,
-                OverflowError,
-                'int too big to convert',
-                id='10000000000000000',
-            ),
-            pytest.param(
-                -1,
-                OverflowError,
-                "can't convert negative int to unsigned",
-                id='-1',
-            ),
-        ],
     )
 
 

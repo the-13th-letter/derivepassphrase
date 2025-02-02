@@ -73,6 +73,23 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
+    VAULT_NATIVE_PARSER_CLASS_DATA = pytest.mark.parametrize(
+        ['config', 'parser_class', 'config_data'],
+        [
+            pytest.param(
+                tests.VAULT_V02_CONFIG,
+                vault_native.VaultNativeV02ConfigParser,
+                tests.VAULT_V02_CONFIG_DATA,
+                id='0.2',
+            ),
+            pytest.param(
+                tests.VAULT_V03_CONFIG,
+                vault_native.VaultNativeV03ConfigParser,
+                tests.VAULT_V03_CONFIG_DATA,
+                id='0.3',
+            ),
+        ],
+    )
     BAD_MASTER_KEYS_DATA = pytest.mark.parametrize(
         ['data', 'err_msg'],
         [
@@ -127,23 +144,6 @@ class Parametrize(types.SimpleNamespace):
             pytest.param(
                 memoryview(tests.VAULT_MASTER_KEY.encode('ascii')),
                 id='memoryview',
-            ),
-        ],
-    )
-    VAULT_NATIVE_PARSER_CLASS_DATA = pytest.mark.parametrize(
-        ['config', 'parser_class', 'config_data'],
-        [
-            pytest.param(
-                tests.VAULT_V02_CONFIG,
-                vault_native.VaultNativeV02ConfigParser,
-                tests.VAULT_V02_CONFIG_DATA,
-                id='0.2',
-            ),
-            pytest.param(
-                tests.VAULT_V03_CONFIG,
-                vault_native.VaultNativeV03ConfigParser,
-                tests.VAULT_V03_CONFIG_DATA,
-                id='0.3',
             ),
         ],
     )
