@@ -2455,7 +2455,7 @@ class TestCLI:
         edit_result = """
 
 # - - - - - >8 - - - - - >8 - - - - - >8 - - - - - >8 - - - - -
-contents go here
+insert witty notes here
 """
         runner = click.testing.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
@@ -2467,10 +2467,13 @@ contents go here
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={
+                        'global': {'phrase': 'abc'},
+                        'services': {'sv': {'notes': 'Contents go here'}},
+                    },
                 )
             )
-            monkeypatch.setattr(click, 'edit', lambda *a, **kw: edit_result)  # noqa: ARG005
+            monkeypatch.setattr(click, 'edit', lambda *_a, **_kw: edit_result)
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '--notes', '--', 'sv'],
@@ -2484,7 +2487,7 @@ contents go here
                 config = json.load(infile)
             assert config == {
                 'global': {'phrase': 'abc'},
-                'services': {'sv': {'notes': 'contents go here'}},
+                'services': {'sv': {'notes': 'insert witty notes here'}},
             }
 
     def test_221_edit_notes_noop(
@@ -2548,10 +2551,13 @@ contents go here
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={
+                        'global': {'phrase': 'abc'},
+                        'services': {'sv': {'notes': 'Contents go here'}},
+                    },
                 )
             )
-            monkeypatch.setattr(click, 'edit', lambda *a, **kw: 'long\ntext')  # noqa: ARG005
+            monkeypatch.setattr(click, 'edit', lambda *_a, **_kw: 'long\ntext')
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '--notes', '--', 'sv'],
@@ -2582,10 +2588,13 @@ contents go here
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={
+                        'global': {'phrase': 'abc'},
+                        'services': {'sv': {'notes': 'Contents go here'}},
+                    },
                 )
             )
-            monkeypatch.setattr(click, 'edit', lambda *a, **kw: '\n\n')  # noqa: ARG005
+            monkeypatch.setattr(click, 'edit', lambda *_a, **_kw: '')
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '--notes', '--', 'sv'],
@@ -2599,7 +2608,10 @@ contents go here
                 encoding='UTF-8'
             ) as infile:
                 config = json.load(infile)
-            assert config == {'global': {'phrase': 'abc'}, 'services': {}}
+            assert config == {
+                'global': {'phrase': 'abc'},
+                'services': {'sv': {'notes': 'Contents go here'}},
+            }
 
     @Parametrize.CONFIG_EDITING_VIA_CONFIG_FLAG
     def test_224_store_config_good(
