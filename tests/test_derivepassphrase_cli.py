@@ -96,7 +96,6 @@ CONFIGURATION_OPTIONS: list[tuple[str, ...]] = [
     ('--clear',),
 ]
 CONFIGURATION_COMMANDS: list[tuple[str, ...]] = [
-    ('--notes',),
     ('--delete',),
     ('--delete-globals',),
     ('--clear',),
@@ -136,15 +135,7 @@ INCOMPATIBLE: dict[tuple[str, ...], IncompatibleConfiguration] = {
         CONFIGURATION_COMMANDS + STORAGE_OPTIONS, True, DUMMY_PASSPHRASE
     ),
     ('--notes',): IncompatibleConfiguration(
-        [
-            ('--config',),
-            ('--delete',),
-            ('--delete-globals',),
-            ('--clear',),
-            *STORAGE_OPTIONS,
-        ],
-        True,
-        None,
+        CONFIGURATION_COMMANDS + STORAGE_OPTIONS, True, None
     ),
     ('--config', '-p'): IncompatibleConfiguration(
         [('--delete',), ('--delete-globals',), ('--clear',), *STORAGE_OPTIONS],
@@ -1872,11 +1863,6 @@ class TestCLI:
             map(is_harmless_config_import_warning, caplog.record_tuples)
         ), 'unexpected error output'
 
-    @pytest.mark.xfail(  # pragma: no cover
-        reason='not implemented yet',
-        raises=AssertionError,
-        strict=True,
-    )
     def test_207_service_with_notes_actually_prints_notes(
         self,
     ) -> None:
@@ -2487,7 +2473,7 @@ contents go here
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: edit_result)  # noqa: ARG005
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--notes', '--', 'sv'],
+                ['--config', '--notes', '--', 'sv'],
                 catch_exceptions=False,
             )
             result = tests.ReadableResult.parse(result_)
@@ -2521,7 +2507,7 @@ contents go here
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: None)  # noqa: ARG005
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--notes', '--', 'sv'],
+                ['--config', '--notes', '--', 'sv'],
                 catch_exceptions=False,
             )
             result = tests.ReadableResult.parse(result_)
@@ -2530,7 +2516,10 @@ contents go here
                 encoding='UTF-8'
             ) as infile:
                 config = json.load(infile)
-            assert config == {'global': {'phrase': 'abc'}, 'services': {}}
+            assert config == {
+                'global': {'phrase': 'abc'},
+                'services': {'sv': {}},
+            }
 
     # TODO(the-13th-letter): Keep this behavior or not, with or without
     # warning?
@@ -2558,7 +2547,7 @@ contents go here
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: 'long\ntext')  # noqa: ARG005
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--notes', '--', 'sv'],
+                ['--config', '--notes', '--', 'sv'],
                 catch_exceptions=False,
             )
             result = tests.ReadableResult.parse(result_)
@@ -2592,7 +2581,7 @@ contents go here
             monkeypatch.setattr(click, 'edit', lambda *a, **kw: '\n\n')  # noqa: ARG005
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--notes', '--', 'sv'],
+                ['--config', '--notes', '--', 'sv'],
                 catch_exceptions=False,
             )
             result = tests.ReadableResult.parse(result_)

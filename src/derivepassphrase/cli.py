@@ -577,6 +577,7 @@ def derivepassphrase_export_vault(
         'space',
         'dash',
         'symbol',
+        'notes',
     ]),
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_UNSET_HELP_TEXT
@@ -913,7 +914,10 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         cli_machinery.StorageManagementOption,
     ):
         for opt in options_in_group[group]:
-            if opt != params_by_str['--config']:
+            if opt not in {
+                params_by_str['--config'],
+                params_by_str['--notes'],
+            }:
                 for other_opt in options_in_group[
                     cli_machinery.PassphraseGenerationOption
                 ]:
@@ -927,7 +931,11 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             for other_opt in options_in_group[
                 cli_machinery.ConfigurationOption
             ]:
-                check_incompatible_options(opt, other_opt)
+                if {opt, other_opt} != {
+                    params_by_str['--config'],
+                    params_by_str['--notes'],
+                }:
+                    check_incompatible_options(opt, other_opt)
             for other_opt in options_in_group[
                 cli_machinery.StorageManagementOption
             ]:
@@ -979,45 +987,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             extra={'color': ctx.color},
         )
 
-    if edit_notes:
-        assert service is not None
-        configuration = get_config()
-        notes_instructions = _msg.TranslatedString(
-            _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_INSTRUCTION_TEXT
-        )
-        notes_marker = _msg.TranslatedString(
-            _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_MARKER
-        )
-        old_notes_value = (
-            configuration['services']
-            .get(service, cast('_types.VaultConfigServicesSettings', {}))
-            .get('notes', '')
-        )
-        text = '\n'.join([
-            str(notes_instructions),
-            str(notes_marker),
-            old_notes_value,
-        ])
-        notes_value = click.edit(text=text)
-        if notes_value is not None:
-            notes_lines = collections.deque(notes_value.splitlines(True))  # noqa: FBT003
-            while notes_lines:
-                line = notes_lines.popleft()
-                if line.startswith(str(notes_marker)):
-                    notes_value = ''.join(notes_lines)
-                    break
-            else:
-                if not notes_value.strip():
-                    err(
-                        _msg.TranslatedString(
-                            _msg.ErrMsgTemplate.USER_ABORTED_EDIT
-                        )
-                    )
-            configuration['services'].setdefault(service, {})['notes'] = (
-                notes_value.strip('\n')
-            )
-            put_config(configuration)
-    elif delete_service_settings:
+    if delete_service_settings:  # noqa: PLR1702
         assert service is not None
         configuration = get_config()
         if service in configuration['services']:
@@ -1370,7 +1340,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                             _msg.WarnMsgTemplate.GLOBAL_PASSPHRASE_INEFFECTIVE
                         )
                     logger.warning(w_msg, extra={'color': ctx.color})
-            if not view.maps[0] and not unset_settings:
+            if not view.maps[0] and not unset_settings and not edit_notes:
                 err_msg = _msg.TranslatedString(
                     _msg.ErrMsgTemplate.CANNOT_UPDATE_SETTINGS_NO_SETTINGS,
                     settings_type=_msg.TranslatedString(
@@ -1409,6 +1379,38 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             assert _types.is_vault_config(configuration), (
                 f'Invalid vault configuration: {configuration!r}'
             )
+            if edit_notes:
+                assert service is not None
+                notes_instructions = _msg.TranslatedString(
+                    _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_INSTRUCTION_TEXT
+                )
+                notes_marker = _msg.TranslatedString(
+                    _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_MARKER
+                )
+                old_notes_value = subtree.get('notes', '')
+                text = '\n'.join([
+                    str(notes_instructions),
+                    str(notes_marker),
+                    old_notes_value,
+                ])
+                notes_value = click.edit(text=text)
+                if notes_value is not None:
+                    notes_lines = collections.deque(
+                        notes_value.splitlines(True)  # noqa: FBT003
+                    )
+                    while notes_lines:
+                        line = notes_lines.popleft()
+                        if line.startswith(str(notes_marker)):
+                            notes_value = ''.join(notes_lines)
+                            break
+                    else:
+                        if not notes_value.strip():
+                            err(
+                                _msg.TranslatedString(
+                                    _msg.ErrMsgTemplate.USER_ABORTED_EDIT
+                                )
+                            )
+                    subtree['notes'] = notes_value.strip('\n')
             put_config(configuration)
         else:
             assert service is not None
@@ -1457,7 +1459,12 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 )
                 raise click.UsageError(str(err_msg))
             kwargs.pop('key', '')
+            service_notes = (
+                f'\n{settings["notes"]}\n\n' if 'notes' in settings else ''
+            )
             result = vault.Vault(**kwargs).generate(service)
+            if service_notes.strip():
+                click.echo(service_notes, err=True, color=ctx.color)
             click.echo(result.decode('ASCII'), color=ctx.color)
 
 
