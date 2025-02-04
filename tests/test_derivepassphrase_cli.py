@@ -1872,6 +1872,52 @@ class TestCLI:
             map(is_harmless_config_import_warning, caplog.record_tuples)
         ), 'unexpected error output'
 
+    @pytest.mark.xfail(  # pragma: no cover
+        reason='not implemented yet',
+        raises=AssertionError,
+        strict=True,
+    )
+    def test_207_service_with_notes_actually_prints_notes(
+        self,
+    ) -> None:
+        """Service notes are printed, if they exist."""
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={
+                        'global': {
+                            'phrase': DUMMY_PASSPHRASE,
+                        },
+                        'services': {
+                            DUMMY_SERVICE: {
+                                'notes': 'Some notes here',
+                                **DUMMY_CONFIG_SETTINGS,
+                            },
+                        },
+                    },
+                )
+            )
+            result_ = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--', DUMMY_SERVICE],
+            )
+        result = tests.ReadableResult.parse(result_)
+        assert result.clean_exit(), 'expected clean exit'
+        assert result.output, 'expected program output'
+        assert result.output.strip() == DUMMY_RESULT_PASSPHRASE.decode('ascii'), 'expected known program output'
+        assert result.stderr, 'expected stderr'
+        assert 'Error:' not in result.stderr, (
+            'expected no error messages on stderr'
+        )
+        assert result.stderr.strip() == 'Some notes here', 'expected known stderr contents'
+
     @Parametrize.VAULT_CHARSET_OPTION
     def test_210_invalid_argument_range(
         self,
