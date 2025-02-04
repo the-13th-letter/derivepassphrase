@@ -1393,8 +1393,9 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                     str(notes_marker),
                     old_notes_value,
                 ])
-                notes_value = click.edit(text=text)
-                if notes_value is not None:
+                notes_value = click.edit(text=text, require_save=False)
+                assert notes_value is not None
+                if notes_value != text:
                     notes_lines = collections.deque(
                         notes_value.splitlines(True)  # noqa: FBT003
                     )

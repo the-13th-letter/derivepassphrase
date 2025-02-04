@@ -2501,10 +2501,17 @@ contents go here
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={
+                        'global': {'phrase': 'abc'},
+                        'services': {'sv': {'notes': 'Contents go here'}},
+                    },
                 )
             )
-            monkeypatch.setattr(click, 'edit', lambda *a, **kw: None)  # noqa: ARG005
+
+            def space(text: str, *_args: Any, **_kwargs: Any) -> str:
+                return '       ' + text + '\n\n\n\n\n\n'
+
+            monkeypatch.setattr(click, 'edit', space)
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '--notes', '--', 'sv'],
@@ -2518,7 +2525,7 @@ contents go here
                 config = json.load(infile)
             assert config == {
                 'global': {'phrase': 'abc'},
-                'services': {'sv': {}},
+                'services': {'sv': {'notes': 'Contents go here'}},
             }
 
     # TODO(the-13th-letter): Keep this behavior or not, with or without
