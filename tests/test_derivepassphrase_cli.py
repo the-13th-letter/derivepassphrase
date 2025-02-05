@@ -1863,10 +1863,22 @@ class TestCLI:
             map(is_harmless_config_import_warning, caplog.record_tuples)
         ), 'unexpected error output'
 
+    @hypothesis.given(
+        notes=strategies.text(
+            strategies.characters(
+                min_codepoint=32,
+                max_codepoint=126,
+                include_characters='\n',
+            ),
+            max_size=256,
+        ),
+    )
     def test_207_service_with_notes_actually_prints_notes(
         self,
+        notes: str,
     ) -> None:
         """Service notes are printed, if they exist."""
+        hypothesis.assume('Error:' not in notes)
         runner = click.testing.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -1883,7 +1895,7 @@ class TestCLI:
                         },
                         'services': {
                             DUMMY_SERVICE: {
-                                'notes': 'Some notes here',
+                                'notes': notes,
                                 **DUMMY_CONFIG_SETTINGS,
                             },
                         },
@@ -1897,12 +1909,16 @@ class TestCLI:
         result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(), 'expected clean exit'
         assert result.output, 'expected program output'
-        assert result.output.strip() == DUMMY_RESULT_PASSPHRASE.decode('ascii'), 'expected known program output'
-        assert result.stderr, 'expected stderr'
+        assert result.output.strip() == DUMMY_RESULT_PASSPHRASE.decode(
+            'ascii'
+        ), 'expected known program output'
+        assert result.stderr or not notes.strip(), 'expected stderr'
         assert 'Error:' not in result.stderr, (
             'expected no error messages on stderr'
         )
-        assert result.stderr.strip() == 'Some notes here', 'expected known stderr contents'
+        assert result.stderr.strip() == notes.strip(), (
+            'expected known stderr contents'
+        )
 
     @Parametrize.VAULT_CHARSET_OPTION
     def test_210_invalid_argument_range(
