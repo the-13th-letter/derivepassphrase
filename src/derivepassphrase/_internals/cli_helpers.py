@@ -296,7 +296,9 @@ def save_config(config: _types.VaultConfig, /) -> None:
     filedir = filename.resolve().parent
     filedir.mkdir(parents=True, exist_ok=True)
     with filename.open('w', encoding='UTF-8') as fileobj:
-        json.dump(config, fileobj)
+        json.dump(
+            config, fileobj, ensure_ascii=False, indent=2, sort_keys=True
+        )
 
 
 def load_user_config() -> dict[str, Any]:

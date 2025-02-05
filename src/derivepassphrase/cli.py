@@ -297,7 +297,9 @@ def derivepassphrase_export_vault(
                 )
                 ctx.exit(1)
             click.echo(
-                json.dumps(config, indent=2, sort_keys=True),
+                json.dumps(
+                    config, ensure_ascii=False, indent=2, sort_keys=True
+                ),
                 color=ctx.color,
             )
             break
@@ -1227,7 +1229,13 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                         prog_name_list=prog_name_pieces,
                     )
                 else:
-                    json.dump(configuration, outfile)
+                    json.dump(
+                        configuration,
+                        outfile,
+                        ensure_ascii=False,
+                        indent=2,
+                        sort_keys=True,
+                    )
         except OSError as exc:
             err(
                 _msg.TranslatedString(

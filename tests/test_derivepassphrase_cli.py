@@ -2111,10 +2111,6 @@ class TestCLI:
             'expected error exit and known error message'
         )
 
-    @pytest.mark.xfail(
-        reason='config are currently stored as single lines',
-        raises=AssertionError,
-    )
     @Parametrize.VALID_TEST_CONFIGS
     def test_213_import_config_success(
         self,
@@ -2153,10 +2149,6 @@ class TestCLI:
         ), 'unexpected error output'
         assert_vault_config_is_indented_and_line_broken(config_txt)
 
-    @pytest.mark.xfail(
-        reason='config are currently stored as single lines',
-        raises=AssertionError,
-    )
     @hypothesis.settings(
         suppress_health_check=[
             *hypothesis.settings().suppress_health_check,
@@ -2306,10 +2298,6 @@ class TestCLI:
             'expected error exit and known error message'
         )
 
-    @pytest.mark.xfail(
-        reason='config exports are currently single-line',
-        raises=AssertionError,
-    )
     @Parametrize.VALID_TEST_CONFIGS
     def test_214_export_config_success(
         self,
@@ -2655,10 +2643,6 @@ contents go here
                 config = json.load(infile)
             assert config == {'global': {'phrase': 'abc'}, 'services': {}}
 
-    @pytest.mark.xfail(
-        reason='config are currently stored as single lines',
-        raises=AssertionError,
-    )
     @Parametrize.CONFIG_EDITING_VIA_CONFIG_FLAG
     def test_224_store_config_good(
         self,
