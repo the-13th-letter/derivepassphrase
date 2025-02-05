@@ -236,6 +236,46 @@ def is_harmless_config_import_warning(record: tuple[str, int, str]) -> bool:
     return any(tests.warning_emitted(w, [record]) for w in possible_warnings)
 
 
+def assert_vault_config_is_indented_and_line_broken(
+    config_txt: str,
+    /,
+) -> None:
+    """Return true if the vault configuration is indented and line broken.
+
+    Indented and rewrapped vault configurations as produced by
+    `json.dump` contain the closing '}' of the '$.services' object
+    on a separate, indented line:
+
+    ~~~~
+    {
+      "services": {
+        ...
+      }  <-- this brace here
+    }
+    ~~~~
+
+    or, if there are no services, then the indented line
+
+    ~~~~
+      "services": {}
+    ~~~~
+
+    Both variations may end with a comma if there are more top-level
+    keys.
+
+    """
+    known_indented_lines = {
+        '}',
+        '},',
+        '"services": {}',
+        '"services": {},',
+    }
+    assert any([
+        line.strip() in known_indented_lines and line.startswith((' ', '\t'))
+        for line in config_txt.splitlines()
+    ])
+
+
 def vault_config_exporter_shell_interpreter(  # noqa: C901
     script: str | Iterable[str],
     /,
@@ -2097,16 +2137,17 @@ class TestCLI:
                 input=json.dumps(config),
                 catch_exceptions=False,
             )
-            with cli_helpers.config_filename(subsystem='vault').open(
-                encoding='UTF-8'
-            ) as infile:
-                config2 = json.load(infile)
+            config_txt = cli_helpers.config_filename(
+                subsystem='vault'
+            ).read_text(encoding='UTF-8')
+            config2 = json.loads(config_txt)
         result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert config2 == config, 'config not imported correctly'
         assert not result.stderr or all(  # pragma: no branch
             map(is_harmless_config_import_warning, caplog.record_tuples)
         ), 'unexpected error output'
+        assert_vault_config_is_indented_and_line_broken(config_txt)
 
     @hypothesis.settings(
         suppress_health_check=[
@@ -2155,16 +2196,17 @@ class TestCLI:
                 input=json.dumps(config),
                 catch_exceptions=False,
             )
-            with cli_helpers.config_filename(subsystem='vault').open(
-                encoding='UTF-8'
-            ) as infile:
-                config3 = json.load(infile)
+            config_txt = cli_helpers.config_filename(
+                subsystem='vault'
+            ).read_text(encoding='UTF-8')
+            config3 = json.loads(config_txt)
         result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert config3 == config2, 'config not imported correctly'
         assert not result.stderr or all(
             map(is_harmless_config_import_warning, caplog.record_tuples)
         ), 'unexpected error output'
+        assert_vault_config_is_indented_and_line_broken(config_txt)
 
     def test_213b_import_bad_config_not_vault_config(
         self,
@@ -2256,8 +2298,50 @@ class TestCLI:
             'expected error exit and known error message'
         )
 
+    @Parametrize.VALID_TEST_CONFIGS
+    def test_214_export_config_success(
+        self,
+        caplog: pytest.LogCaptureFixture,
+        config: Any,
+    ) -> None:
+        """Exporting a configuration works."""
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config=config,
+                )
+            )
+            with cli_helpers.config_filename(subsystem='vault').open(
+                'w', encoding='UTF-8'
+            ) as outfile:
+                # Ensure the config is written on one line.
+                json.dump(config, outfile, indent=None)
+            result_ = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--export', '-'],
+                catch_exceptions=False,
+            )
+            with cli_helpers.config_filename(subsystem='vault').open(
+                encoding='UTF-8'
+            ) as infile:
+                config2 = json.load(infile)
+        result = tests.ReadableResult.parse(result_)
+        assert result.clean_exit(empty_stderr=False), 'expected clean exit'
+        assert config2 == config, 'config not imported correctly'
+        assert not result.stderr or all(  # pragma: no branch
+            map(is_harmless_config_import_warning, caplog.record_tuples)
+        ), 'unexpected error output'
+        assert_vault_config_is_indented_and_line_broken(result.output)
+
     @Parametrize.EXPORT_FORMAT_OPTIONS
-    def test_214_export_settings_no_stored_settings(
+    def test_214a_export_settings_no_stored_settings(
         self,
         export_options: list[str],
     ) -> None:
@@ -2290,7 +2374,7 @@ class TestCLI:
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
     @Parametrize.EXPORT_FORMAT_OPTIONS
-    def test_214a_export_settings_bad_stored_config(
+    def test_214b_export_settings_bad_stored_config(
         self,
         export_options: list[str],
     ) -> None:
@@ -2320,7 +2404,7 @@ class TestCLI:
         )
 
     @Parametrize.EXPORT_FORMAT_OPTIONS
-    def test_214b_export_settings_not_a_file(
+    def test_214c_export_settings_not_a_file(
         self,
         export_options: list[str],
     ) -> None:
@@ -2352,7 +2436,7 @@ class TestCLI:
         )
 
     @Parametrize.EXPORT_FORMAT_OPTIONS
-    def test_214c_export_settings_target_not_a_file(
+    def test_214d_export_settings_target_not_a_file(
         self,
         export_options: list[str],
     ) -> None:
@@ -2382,7 +2466,7 @@ class TestCLI:
         )
 
     @Parametrize.EXPORT_FORMAT_OPTIONS
-    def test_214d_export_settings_settings_directory_not_a_directory(
+    def test_214e_export_settings_settings_directory_not_a_directory(
         self,
         export_options: list[str],
     ) -> None:
@@ -2566,7 +2650,12 @@ contents go here
         input: str,
         result_config: Any,
     ) -> None:
-        """Storing valid settings via `--config` works."""
+        """Storing valid settings via `--config` works.
+
+        The format also contains embedded newlines and indentation to make
+        the config more readable.
+
+        """
         runner = click.testing.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -2591,13 +2680,14 @@ contents go here
             )
             result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(), 'expected clean exit'
-            with cli_helpers.config_filename(subsystem='vault').open(
-                encoding='UTF-8'
-            ) as infile:
-                config = json.load(infile)
+            config_txt = cli_helpers.config_filename(
+                subsystem='vault'
+            ).read_text(encoding='UTF-8')
+            config = json.loads(config_txt)
             assert config == result_config, (
                 'stored config does not match expectation'
             )
+            assert_vault_config_is_indented_and_line_broken(config_txt)
 
     @Parametrize.CONFIG_EDITING_VIA_CONFIG_FLAG_FAILURES
     def test_225_store_config_fail(
