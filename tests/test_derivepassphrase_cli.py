@@ -29,7 +29,11 @@ from typing_extensions import Any, NamedTuple
 
 import tests
 from derivepassphrase import _types, cli, ssh_agent, vault
-from derivepassphrase._internals import cli_helpers, cli_machinery
+from derivepassphrase._internals import (
+    cli_helpers,
+    cli_machinery,
+    cli_messages,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator, Sequence
@@ -2464,14 +2468,24 @@ class TestCLI:
             'expected error exit and known error message'
         )
 
+    @hypothesis.given(
+        notes=strategies.text(
+            strategies.characters(
+                min_codepoint=32, max_codepoint=126, include_characters='\n'
+            ),
+            min_size=1,
+            max_size=512,
+        ).filter(str.strip),
+    )
     def test_220_edit_notes_successfully(
         self,
+        notes: str,
     ) -> None:
         """Editing notes works."""
-        edit_result = """
+        edit_result = f"""
 
 # - - - - - >8 - - - - - >8 - - - - - >8 - - - - - >8 - - - - -
-insert witty notes here
+{notes}
 """
         runner = click.testing.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
@@ -2503,13 +2517,34 @@ insert witty notes here
                 config = json.load(infile)
             assert config == {
                 'global': {'phrase': 'abc'},
-                'services': {'sv': {'notes': 'insert witty notes here'}},
+                'services': {'sv': {'notes': notes.strip()}},
             }
 
+    @pytest.mark.parametrize('edit_func_name', ['empty', 'space'])
+    @hypothesis.given(
+        notes=strategies.text(
+            strategies.characters(
+                min_codepoint=32, max_codepoint=126, include_characters='\n'
+            ),
+            min_size=1,
+            max_size=512,
+        ).filter(str.strip),
+    )
     def test_221_edit_notes_noop(
         self,
+        edit_func_name: Literal['empty', 'space'],
+        notes: str,
     ) -> None:
         """Abandoning edited notes works."""
+
+        def empty(text: str, *_args: Any, **_kwargs: Any) -> None:
+            del text
+
+        def space(text: str, *_args: Any, **_kwargs: Any) -> str:
+            del text
+            return '       ' + notes + '\n\n\n\n\n\n'
+
+        edit_funcs = {'empty': empty, 'space': space}
         runner = click.testing.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -2522,15 +2557,12 @@ insert witty notes here
                     runner=runner,
                     vault_config={
                         'global': {'phrase': 'abc'},
-                        'services': {'sv': {'notes': 'Contents go here'}},
+                        'services': {'sv': {'notes': notes}},
                     },
                 )
             )
 
-            def space(text: str, *_args: Any, **_kwargs: Any) -> str:
-                return '       ' + text + '\n\n\n\n\n\n'
-
-            monkeypatch.setattr(click, 'edit', space)
+            monkeypatch.setattr(click, 'edit', edit_funcs[edit_func_name])
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '--notes', '--', 'sv'],
@@ -2544,19 +2576,33 @@ insert witty notes here
                 config = json.load(infile)
             assert config == {
                 'global': {'phrase': 'abc'},
-                'services': {'sv': {'notes': 'Contents go here'}},
+                'services': {'sv': {'notes': notes}},
             }
 
     # TODO(the-13th-letter): Keep this behavior or not, with or without
     # warning?
+    @hypothesis.given(
+        notes=strategies.text(
+            strategies.characters(
+                min_codepoint=32, max_codepoint=126, include_characters='\n'
+            ),
+            min_size=1,
+            max_size=512,
+        ).filter(str.strip),
+    )
     def test_222_edit_notes_marker_removed(
         self,
+        notes: str,
     ) -> None:
         """Removing the notes marker still saves the notes.
 
         TODO: Keep this behavior or not, with or without warning?
 
         """
+        notes_marker = cli_messages.TranslatedString(
+            cli_messages.Label.DERIVEPASSPHRASE_VAULT_NOTES_MARKER
+        )
+        hypothesis.assume(str(notes_marker) not in notes.strip())
         runner = click.testing.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -2573,7 +2619,7 @@ insert witty notes here
                     },
                 )
             )
-            monkeypatch.setattr(click, 'edit', lambda *_a, **_kw: 'long\ntext')
+            monkeypatch.setattr(click, 'edit', lambda *_a, **_kw: notes)
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '--notes', '--', 'sv'],
@@ -2587,11 +2633,21 @@ insert witty notes here
                 config = json.load(infile)
             assert config == {
                 'global': {'phrase': 'abc'},
-                'services': {'sv': {'notes': 'long\ntext'}},
+                'services': {'sv': {'notes': notes.strip()}},
             }
 
+    @hypothesis.given(
+        notes=strategies.text(
+            strategies.characters(
+                min_codepoint=32, max_codepoint=126, include_characters='\n'
+            ),
+            min_size=1,
+            max_size=512,
+        ).filter(str.strip),
+    )
     def test_223_edit_notes_abort(
         self,
+        notes: str,
     ) -> None:
         """Aborting editing notes works."""
         runner = click.testing.CliRunner(mix_stderr=False)
@@ -2606,7 +2662,7 @@ insert witty notes here
                     runner=runner,
                     vault_config={
                         'global': {'phrase': 'abc'},
-                        'services': {'sv': {'notes': 'Contents go here'}},
+                        'services': {'sv': {'notes': notes.strip()}},
                     },
                 )
             )
@@ -2626,7 +2682,46 @@ insert witty notes here
                 config = json.load(infile)
             assert config == {
                 'global': {'phrase': 'abc'},
-                'services': {'sv': {'notes': 'Contents go here'}},
+                'services': {'sv': {'notes': notes.strip()}},
+            }
+
+    def test_223a_edit_empty_notes_abort(
+        self,
+    ) -> None:
+        """Aborting editing notes works even if no notes are stored yet."""
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={
+                        'global': {'phrase': 'abc'},
+                        'services': {},
+                    },
+                )
+            )
+            monkeypatch.setattr(click, 'edit', lambda *_a, **_kw: '')
+            result_ = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--config', '--notes', '--', 'sv'],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(result_)
+            assert result.error_exit(error='the user aborted the request'), (
+                'expected known error message'
+            )
+            with cli_helpers.config_filename(subsystem='vault').open(
+                encoding='UTF-8'
+            ) as infile:
+                config = json.load(infile)
+            assert config == {
+                'global': {'phrase': 'abc'},
+                'services': {},
             }
 
     @Parametrize.CONFIG_EDITING_VIA_CONFIG_FLAG
