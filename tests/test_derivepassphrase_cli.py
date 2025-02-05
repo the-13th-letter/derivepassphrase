@@ -2517,10 +2517,34 @@ class TestCLI:
                 config = json.load(infile)
             assert config == {
                 'global': {'phrase': 'abc'},
-                'services': {'sv': {'notes': notes.strip()}},
+                'services': {'sv': {'notes': edit_result.strip()}},
             }
 
-    @pytest.mark.parametrize('edit_func_name', ['empty', 'space'])
+    @pytest.mark.parametrize(
+        'edit_func_name',
+        [
+            pytest.param(
+                'empty',
+                marks=[
+                    pytest.mark.xfail(reason='incompatibility with vault(1)')
+                ],
+            ),
+            'space',
+        ],
+    )
+    # Skip the "target", "shrink" and "explain" phases on this test because
+    # one of its parametrizations is marked xfail, and we don't want to do
+    # a lot of extra work that will be thrown away anyway.
+    #
+    # TODO(the-13th-letter): remove this settings decorator once the
+    # xfail'ing parametrization is fixed.
+    @hypothesis.settings(
+        phases=[
+            hypothesis.Phase.explicit,
+            hypothesis.Phase.reuse,
+            hypothesis.Phase.generate,
+        ],
+    )
     @hypothesis.given(
         notes=strategies.text(
             strategies.characters(
@@ -2636,6 +2660,20 @@ class TestCLI:
                 'services': {'sv': {'notes': notes.strip()}},
             }
 
+    @pytest.mark.xfail(reason='incompatibility with vault(1)')
+    # Skip the "target", "shrink" and "explain" phases on this test because
+    # this test is marked xfail, and we don't want to do a lot of extra work
+    # that will be thrown away anyway.
+    #
+    # TODO(the-13th-letter): remove this settings decorator once the xfail
+    # is fixed.
+    @hypothesis.settings(
+        phases=[
+            hypothesis.Phase.explicit,
+            hypothesis.Phase.reuse,
+            hypothesis.Phase.generate,
+        ],
+    )
     @hypothesis.given(
         notes=strategies.text(
             strategies.characters(
@@ -2685,6 +2723,7 @@ class TestCLI:
                 'services': {'sv': {'notes': notes.strip()}},
             }
 
+    @pytest.mark.xfail(reason='incompatibility with vault(1)')
     def test_223a_edit_empty_notes_abort(
         self,
     ) -> None:

@@ -987,7 +987,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             extra={'color': ctx.color},
         )
 
-    if delete_service_settings:  # noqa: PLR1702
+    if delete_service_settings:
         assert service is not None
         configuration = get_config()
         if service in configuration['services']:
@@ -1395,23 +1395,8 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 ])
                 notes_value = click.edit(text=text, require_save=False)
                 assert notes_value is not None
-                if notes_value != text:
-                    notes_lines = collections.deque(
-                        notes_value.splitlines(True)  # noqa: FBT003
-                    )
-                    while notes_lines:
-                        line = notes_lines.popleft()
-                        if line.startswith(str(notes_marker)):
-                            notes_value = ''.join(notes_lines)
-                            break
-                    else:
-                        if not notes_value.strip():
-                            err(
-                                _msg.TranslatedString(
-                                    _msg.ErrMsgTemplate.USER_ABORTED_EDIT
-                                )
-                            )
-                    subtree['notes'] = notes_value.strip('\n')
+                if notes_value.strip() != old_notes_value.strip():
+                    subtree['notes'] = notes_value.strip()
             put_config(configuration)
         else:
             assert service is not None

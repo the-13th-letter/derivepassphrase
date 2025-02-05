@@ -101,6 +101,7 @@ exclude_also = [
     '(?:typing\.)?assert_never\(',
     '@overload',
     'class .*\(Protocol\):',
+    '@(?:(?:pytest\.)?mark\.)?xfail\(',
 ]
 
 [tool.coverage.run]
