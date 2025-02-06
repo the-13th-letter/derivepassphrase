@@ -1740,6 +1740,13 @@ class InfoMsgTemplate(enum.Enum):
 class WarnMsgTemplate(enum.Enum):
     """Warning messages for the `derivepassphrase` command-line."""
 
+    EDITING_NOTES_BUT_NOT_STORING_CONFIG = commented(
+        '',
+    )(
+        'Warning message',
+        'Specifying --notes without --config is ineffective.  '
+        'No notes will be edited.',
+    )
     EMPTY_SERVICE_NOT_SUPPORTED = commented(
         '',
     )(

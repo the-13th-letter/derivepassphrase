@@ -2763,6 +2763,81 @@ class TestCLI:
                 'services': {},
             }
 
+    @hypothesis.settings(
+        suppress_health_check=[
+            *hypothesis.settings().suppress_health_check,
+            hypothesis.HealthCheck.function_scoped_fixture,
+        ],
+    )
+    @hypothesis.given(
+        notes=strategies.text(
+            strategies.characters(
+                min_codepoint=32, max_codepoint=126, include_characters='\n'
+            ),
+            max_size=512,
+        ),
+    )
+    def test_223b_edit_notes_fail_config_option_missing(
+        self,
+        caplog: pytest.LogCaptureFixture,
+        notes: str,
+    ) -> None:
+        """Editing notes fails (and warns) if `--config` is missing."""
+        maybe_notes = {'notes': notes.strip()} if notes.strip() else {}
+        vault_config = {
+            'global': {'phrase': DUMMY_PASSPHRASE},
+            'services': {
+                DUMMY_SERVICE: {**maybe_notes, **DUMMY_CONFIG_SETTINGS}
+            },
+        }
+        # Reset caplog between hypothesis runs.
+        caplog.clear()
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config=vault_config,
+                )
+            )
+            EDIT_ATTEMPTED = 'edit attempted!'  # noqa: N806
+
+            def raiser(*_args: Any, **_kwargs: Any) -> NoReturn:
+                pytest.fail(EDIT_ATTEMPTED)
+
+            monkeypatch.setattr(click, 'edit', raiser)
+            result_ = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--notes', '--', DUMMY_SERVICE],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(result_)
+            assert result.clean_exit(
+                output=DUMMY_RESULT_PASSPHRASE.decode('ascii')
+            ), 'expected clean exit'
+            assert result.stderr
+            assert notes.strip() in result.stderr
+            assert all(
+                is_warning_line(line)
+                for line in result.stderr.splitlines(True)
+                if line.startswith(f'{cli.PROG_NAME}: ')
+            )
+            assert tests.warning_emitted(
+                'Specifying --notes without --config is ineffective.  '
+                'No notes will be edited.',
+                caplog.record_tuples,
+            ), 'expected known warning message in stderr'
+            with cli_helpers.config_filename(subsystem='vault').open(
+                encoding='UTF-8'
+            ) as infile:
+                config = json.load(infile)
+            assert config == vault_config
+
     @Parametrize.CONFIG_EDITING_VIA_CONFIG_FLAG
     def test_224_store_config_good(
         self,

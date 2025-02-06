@@ -987,6 +987,15 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             extra={'color': ctx.color},
         )
 
+    if edit_notes and not store_config_only:
+        logger.warning(
+            _msg.TranslatedString(
+                _msg.WarnMsgTemplate.EDITING_NOTES_BUT_NOT_STORING_CONFIG,
+                service_metavar=service_metavar,
+            ),
+            extra={'color': ctx.color},
+        )
+
     if delete_service_settings:
         assert service is not None
         configuration = get_config()
