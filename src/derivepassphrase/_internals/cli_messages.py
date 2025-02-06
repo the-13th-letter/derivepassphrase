@@ -809,7 +809,8 @@ class Label(enum.Enum):
     """"""
     DERIVEPASSPHRASE_VAULT_NOTES_INSTRUCTION_TEXT = commented(
         "This instruction text is shown above the user's old stored notes "
-        'for this service, if any.  '
+        'for this service, if any, if the recommended '
+        '"modern" editor interface is used.  '
         'The next line is the cut marking defined in '
         'Label.DERIVEPASSPHRASE_VAULT_NOTES_MARKER.'
     )(
@@ -824,6 +825,21 @@ class Label(enum.Enum):
 # retained.
 #
 """,
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_NOTES_LEGACY_INSTRUCTION_TEXT = commented(
+        "This instruction text is shown above the user's old stored notes "
+        'for this service, if any, if the vault(1)-compatible '
+        '"legacy" editor interface is used.  '
+        'The interface does not support commentary in the notes, '
+        'so we fill this with obvious placeholder text instead.  '
+        '(Please replace this with what *your* language/culture would '
+        'obviously recognize as placeholder text.)'
+    )(
+        'Label :: Help text :: Explanation',
+        'Lorem ipsum dolor sit amet, consectetur adipiscing elit, '
+        'sed do eiusmod tempor incididunt ut labore '
+        'et dolore magna aliqua.',
     )
     """"""
     DEPRECATED_COMMAND_LABEL = commented(
@@ -1080,6 +1096,21 @@ class Label(enum.Enum):
     )(
         'Label :: Help text :: One-line description',
         'when exporting, export as JSON (default) or POSIX sh',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_EDITOR_INTERFACE_HELP_TEXT = commented(
+        'The corresponding option is displayed as '
+        '"--modern-editor-interface / --vault-legacy-editor-interface", '
+        'so you may want to hint that the default (legacy) '
+        'is the second of those options.  '
+        'Though the vault(1) legacy editor interface clearly has deficiencies '
+        'and (in my opinion) should only be used for compatibility purposes, '
+        'the one-line help text should try not to sound too judgmental, '
+        'if possible.',
+    )(
+        'Label :: Help text :: One-line description',
+        'edit notes using the modern editor interface '
+        'or the vault-like legacy one (default)',
     )
     """"""
 
@@ -1785,6 +1816,16 @@ class WarnMsgTemplate(enum.Enum):
         'because a key is also set.',
     )
     """"""
+    LEGACY_EDITOR_INTERFACE_NOTES_BACKUP = commented(
+        '',
+    )(
+        'Warning message',
+        'Using the vault(1)-compatible legacy editor interface, '
+        'which does not allow aborting mid-edit.  '
+        'A backup copy of the old notes was saved to {filename!r} '
+        'to guard against editing mistakes.',
+        flags='python-brace-format',
+    )
     PASSPHRASE_NOT_NORMALIZED = commented(
         'The key is a (vault) configuration key, in JSONPath syntax, '
         'typically "$.global" for the global passphrase or '

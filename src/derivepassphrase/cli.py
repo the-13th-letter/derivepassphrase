@@ -593,6 +593,15 @@ def derivepassphrase_export_vault(
     ),
     cls=cli_machinery.CompatibilityOption,
 )
+@click.option(
+    '--modern-editor-interface/--vault-legacy-editor-interface',
+    'modern_editor_interface',
+    default=False,
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_EDITOR_INTERFACE_HELP_TEXT
+    ),
+    cls=cli_machinery.CompatibilityOption,
+)
 @cli_machinery.version_option
 @cli_machinery.color_forcing_pseudo_option
 @cli_machinery.standard_logging_options
@@ -629,6 +638,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     overwrite_config: bool = False,
     unset_settings: Sequence[str] = (),
     export_as: Literal['json', 'sh'] = 'json',
+    modern_editor_interface: bool = False,
 ) -> None:
     """Derive a passphrase using the vault(1) derivation scheme.
 
@@ -722,6 +732,12 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             Command-line argument `--export-as`.  If given together with
             `--export`, selects the format to export the current
             configuration as: JSON ("json", default) or POSIX sh ("sh").
+        modern_editor_interface:
+            Command-line arguments `--modern-editor-interface` (True)
+            and `--vault-legacy-editor-interface` (False).  Controls
+            whether editing notes uses a modern editor interface
+            (supporting comments and aborting) or a vault(1)-compatible
+            legacy editor interface (WYSIWYG notes contents).
 
     """  # noqa: DOC501
     logger = logging.getLogger(PROG_NAME)
@@ -996,7 +1012,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             extra={'color': ctx.color},
         )
 
-    if delete_service_settings:
+    if delete_service_settings:  # noqa: PLR1702
         assert service is not None
         configuration = get_config()
         if service in configuration['services']:
@@ -1396,15 +1412,55 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 notes_marker = _msg.TranslatedString(
                     _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_MARKER
                 )
+                notes_legacy_instructions = _msg.TranslatedString(
+                    _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_LEGACY_INSTRUCTION_TEXT
+                )
                 old_notes_value = subtree.get('notes', '')
-                text = '\n'.join([
-                    str(notes_instructions),
-                    str(notes_marker),
-                    old_notes_value,
-                ])
+                if modern_editor_interface:
+                    text = '\n'.join([
+                        str(notes_instructions),
+                        str(notes_marker),
+                        old_notes_value,
+                    ])
+                else:
+                    text = str(notes_legacy_instructions)
                 notes_value = click.edit(text=text, require_save=False)
                 assert notes_value is not None
-                if notes_value.strip() != old_notes_value.strip():
+                if (
+                    not modern_editor_interface
+                    and notes_value.strip() != old_notes_value.strip()
+                ):
+                    backup_file = cli_helpers.config_filename(
+                        subsystem='notes backup'
+                    )
+                    backup_file.write_text(old_notes_value, encoding='UTF-8')
+                    logger.warning(
+                        _msg.TranslatedString(
+                            _msg.WarnMsgTemplate.LEGACY_EDITOR_INTERFACE_NOTES_BACKUP,
+                            filename=str(backup_file),
+                        ),
+                        extra={'color': ctx.color},
+                    )
+                    subtree['notes'] = notes_value.strip()
+                elif (
+                    modern_editor_interface
+                    and notes_value.strip() != text.strip()
+                ):
+                    notes_lines = collections.deque(
+                        notes_value.splitlines(True)  # noqa: FBT003
+                    )
+                    while notes_lines:
+                        line = notes_lines.popleft()
+                        if line.startswith(str(notes_marker)):
+                            notes_value = ''.join(notes_lines)
+                            break
+                    else:
+                        if not notes_value.strip():
+                            err(
+                                _msg.TranslatedString(
+                                    _msg.ErrMsgTemplate.USER_ABORTED_EDIT
+                                )
+                            )
                     subtree['notes'] = notes_value.strip()
             put_config(configuration)
         else:
