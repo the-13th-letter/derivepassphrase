@@ -9,7 +9,8 @@ derivepassphrase-vault – derive a passphrase using the vault derivation scheme
 <pre>
 <code><b>derivepassphrase vault</b> [--phrase | --key] [--length <var>n</var>] [--repeat <var>n</var>] [--lower <var>n</var>] [--upper <var>n</var>] [--number <var>n</var>] [--space <var>n</var>] [--dash <var>n</var>] [--symbol <var>n</var>] <var>SERVICE</var></code>
 <code><b>derivepassphrase vault</b> {--phrase | --key | … | --symbol <var>n</var>} … --config [--unset <var>setting</var> …] [--overwrite-existing | --merge-existing] [<var>SERVICE</var>]</code>
-<code><b>derivepassphrase vault</b> {--notes <var>SERVICE</var> | --delete <var>SERVICE</var> | --delete-globals | --clear}</code>
+<code><b>derivepassphrase vault</b> [--phrase | --key | … | --symbol <var>n</var>] … --config --notes [--unset <var>setting</var> …] [--overwrite-existing | --merge-existing] [--modern-editor-interface | --vault-legacy-editor-interface] <var>SERVICE</var></code>
+<code><b>derivepassphrase vault</b> {--delete <var>SERVICE</var> | --delete-globals | --clear}</code>
 <code><b>derivepassphrase vault</b> [--export-as {json | sh}] {--import <var>PATH</var> | --export <var>PATH</var>}</code>
 </pre>
 
@@ -30,7 +31,7 @@ In lieu of a master passphrase, a master SSH key can also be used if there is a 
 
 The passphrase generation options can be divided into "passphrase source" options (`--phrase`, `--key`) and "passphrase constraint" options (all others).
 The passphrase source options are mutually exclusive --- you may only specify one of them --- while the passphrase constraint options may be combined in any way.
-The <var>SERVICE</var> is mandatory (see synopsis #1), unless the `--config` option is specified (see synopsis #2).
+The <var>SERVICE</var> is mandatory (see synopsis #1 and #3), unless the `--config` option is specified and the `--notes` option is not (see synopsis #2).
 All character constraints refer to ASCII printable characters only (space (`U+0020`) to tilde (`U+007E`), excluding the grave accent (`U+0060`)).
 
 <b>-p</b>, <b>-</b><b>-phrase</b>
@@ -88,17 +89,20 @@ All character constraints refer to ASCII printable characters only (space (`U+00
 ### Configuration
 
 The configuration options directly modify the stored settings: default settings, known services, and service-specific settings.
-They are mutually exclusive; you may only specify one of them.
-The <var>SERVICE</var> is mandatory for `--notes` and `--delete`, optional for `--config`, and forbidden for `--delete-globals` and `--clear` (see synopsis #2 and synopsis #3).
+The `--notes` option requires the `--config` option, and modifies its operation.
+All others are mutually exclusive; you may only specify one of them.
+The <var>SERVICE</var> is mandatory for `--notes` and `--delete`, optional for `--config`, and forbidden for `--delete-globals` and `--clear` (see synopses #2, #3 and #4).
 
 <b>-n</b>, <b>-</b><b>-notes</b>
 :   Spawn an editor to edit notes for <var>SERVICE</var>.
     Use the `VISUAL` or `EDITOR` environment variables to configure the spawned editor.
+    Must be used together with `--config` to have any effect.
 
 <b>-c</b>, <b>-</b><b>-config</b>
 :   Save the given settings for <var>SERVICE</var> (if given), or save the given settings as global default settings.
 
-    See the ["Passphrase generation"](#passphrase-generation) and ["Compatibility and extension options"](#compatibility-and-extension-options) sections for other options compatible with `--config`.
+    The `--notes` option is compatible with `--config`.
+    See the ["Passphrase generation"](#passphrase-generation) and ["Compatibility and extension options"](#compatibility-and-extension-options) sections for other compatible options.
 
     !!! danger
 
@@ -155,6 +159,20 @@ The compatibility and extension options modify the behavior to enable additional
     For the shell script format, see the ["SHELL SCRIPT EXPORT FORMAT"](#shell-script-export-format) section for details.
 
     (vault(1) behaves as if `--export-as json` were always given.)
+
+<b>-</b><b>-modern-editor-interface</b> | <b>-</b><b>-vault-legacy-editor-interface</b>
+:   When editing notes, use a modern editor interface similar to <i>git</i>(1), or use the <i>vault</i>(1) legacy editing interface.
+
+    The modern editor interface supports aborting the edit (i.e., leaving the stored notes (if any) unchanged) by leaving the edited file empty, and automatically removes the editing instructions text (which it inserts into the file prior to editing).
+    This is similar to how version-control systems/source code management systems such as <i>git</i>(1), <i>hg</i>(1) or <i>svn</i>(1) use text editors for commit messages.
+
+    The <i>vault</i>(1) legacy editing interface uses the file contents directly, including any leftover editing instructions, and does not support aborting the edit.
+    Its use is not recommended, unless required for compatibility.
+
+    <b>derivepassphrase vault</b> will use different editing instructions texts to reflect the editing interface in use.
+    Additionally, for the legacy editing interface, a backup of the old notes contents will be stored in the configuration directory if the new notes differ from the old notes, to mitigate the risk of data loss because the edit cannot be aborted.
+
+    (vault(1) behaves as if `--vault-legacy-editor-interface` were always given.)
 
 ### Other Options
 
@@ -215,6 +233,9 @@ This is a property specific to the key type, and sometimes the agent used:
 `$DERIVEPASSPHRASE_PATH/vault.json`
 :   The stored configuration for <b>derivepassphrase vault</b>: the default passphrase generation settings, the known service names, and the service-specific settings.
     This file is <em>not</em> intended for the user to edit.
+
+`$DERIVEPASSPHRASE_PATH/old-notes.txt`
+:   A backup copy of the old notes from the last successful notes editing operation, using the <i>vault</i>(1) legacy editor interface.
 
 ## SECURITY
 
@@ -427,6 +448,15 @@ The <b>derivepassphrase vault</b> utility exits 0 on success, and >0 if an error
     [Since v0.2.0, until v1.0.]
     A configuration file has been renamed.
     <b>derivepassphrase vault</b> will attempt to rename the file itself (`Successfully migrated to %s.`), or complain if it cannot rename it (`Failed to migrate to %s: %s`).
+
+??? warning "`Specifying --notes without --config is ineffective.`"
+
+    (Exactly what it says.)
+
+??? warning "`A backup copy of the notes was saved to %s.`"
+
+    The <i>vault</i>(1) legacy editor interface is in use, which carries a high risk of accidentally losing or corrupting the old notes because a notes editing session cannot be aborted mid-editing.
+    To guard against such accidental data loss, a backup copy of the old notes was saved to the <b>derivepassphrase</b> configuration directory.
 
 ## COMPATIBILITY
 

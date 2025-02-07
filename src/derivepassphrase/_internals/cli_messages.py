@@ -828,9 +828,8 @@ class Label(enum.Enum):
     )
     """"""
     DERIVEPASSPHRASE_VAULT_NOTES_LEGACY_INSTRUCTION_TEXT = commented(
-        "This instruction text is shown above the user's old stored notes "
-        'for this service, if any, if the vault(1)-compatible '
-        '"legacy" editor interface is used.  '
+        'This instruction text is shown if the vault(1)-compatible '
+        '"legacy" editor interface is used and no previous notes exist.  '
         'The interface does not support commentary in the notes, '
         'so we fill this with obvious placeholder text instead.  '
         '(Please replace this with what *your* language/culture would '
@@ -1820,10 +1819,10 @@ class WarnMsgTemplate(enum.Enum):
         '',
     )(
         'Warning message',
-        'Using the vault(1)-compatible legacy editor interface, '
-        'which does not allow aborting mid-edit.  '
-        'A backup copy of the old notes was saved to {filename!r} '
-        'to guard against editing mistakes.',
+        'A backup copy of the old notes was saved to {filename!r}.  '
+        'This is a safeguard against editing mistakes, because the '
+        'vault(1)-compatible legacy editor interface does not allow '
+        'aborting mid-edit, and because the notes were actually changed.',
         flags='python-brace-format',
     )
     PASSPHRASE_NOT_NORMALIZED = commented(

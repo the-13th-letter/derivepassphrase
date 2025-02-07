@@ -31,10 +31,16 @@
 .Op Ar SERVICE
 .
 .Nm derivepassphrase vault
-.Bro
-.Fl \-notes
+.Op Fl \-phrase | \-key | No .\|.\|. | Fl \-symbol Ar n
+.No .\|.\|.
+.Fl \-config \-notes
+.Op Fl \-unset Ar setting No .\|.\|.
+.Op Fl \-overwrite\-existing | Fl \-merge\-existing
+.Op Fl \-modern\-editor\-interface | Fl \-vault-legacy-editor-interface
 .Ar SERVICE
-|
+.
+.Nm derivepassphrase vault
+.Bro
 .Fl \-delete
 .Ar SERVICE
 |
@@ -104,9 +110,11 @@ specify one of them \(em while the passphrase constraint options may be
 combined in any way.
 The
 .Ar SERVICE
-is mandatory (see synopsis\~#1), unless the
+is mandatory (see synopsis\~#1 and #3), unless the
 .Fl \-config
-option is specified (see synopsis\~#2).
+option is specified and the
+.Fl \-notes
+option is not (see synopsis\~#2).
 All character constraints refer to ASCII printable characters only (space
 .Pq Li U+0020
 to tilde
@@ -234,7 +242,12 @@ The default is to not constain the occurrences in any manner.
 .
 The configuration options directly modify the stored settings: default
 settings, known services, and service-specific settings.
-They are mutually exclusive; you may only specify one of them.
+The
+.Fl \-notes
+option requires the
+.Fl \-config
+option, and modifies its operation.
+All others are mutually exclusive; you may only specify one of them.
 The
 .Ar SERVICE
 is mandatory for
@@ -247,7 +260,7 @@ and forbidden for
 .Fl \-delete\-globals
 and
 .Fl \-clear
-(see synopsis\~#2 and synopsis\~#3).
+(see synopses\~#2, #3 and #4).
 .
 .Bl -tag -width ".Fl p , \-phrase"
 .
@@ -259,6 +272,9 @@ Use the
 or
 .Ev EDITOR
 environment variables to configure the spawned editor.
+Must be used together with
+.Fl \-config
+to have any effect.
 .
 .It Fl c , \-config
 Save the given settings for
@@ -266,12 +282,15 @@ Save the given settings for
 (if given), or save the given settings as global default settings.
 .Pp
 .
+The
+.Fl \-notes
+option is compatible with
+.Fl \-config .
 See the
 .Sx Passphrase generation
 and
 .Sx Compatibility and extension options
-sections for other options compatible with
-.Fl \-config .
+sections for other compatible options.
 .Pp
 .
 .Bf -symbolic
@@ -400,6 +419,48 @@ section for details.
 .Xr ( vault 1
 behaves as if
 .Fl \-export\-as Li json
+were always given.)
+.
+.It Fl \-modern\-editor\-interface | Fl \-vault\-legacy\-editor\-interface
+When editing notes, use a modern editor interface similar to
+.Xr git 1 ,
+or use the
+.Xr vault 1
+legacy editing interface.
+.Pp
+.
+The modern editor interface supports aborting the edit
+.Pq i.e., leaving the stored notes (if any) unchanged
+by leaving the edited file empty, and automatically removes the editing
+instructions text (which it inserts into the file prior to editing).
+This is similar to how version-control systems/source code management systems
+such as
+.Xr git 1 ,
+.Xr hg 1
+or
+.Xr svn 1
+use text editors for commit messages.
+.Pp
+.
+The
+.Xr vault 1
+legacy edititng interface uses the file contents directly, including any
+leftover editing instructions, and does not support aborting the edit.
+Its use is not recommended, unless required for compatibility.
+.Pp
+.
+.Nm derivepassphrase vault
+will use different editing instructions texts to reflect the editing
+interface in use.
+Additionally, for the legacy editing interface, a backup of the old notes
+contents will be stored in the configuration directory if the new notes differ
+from the old notes, to mitigate the risk of data loss because the edit cannot
+be aborted.
+.Pp
+.
+.Xr ( vault 1
+behaves as if
+.Fl \-vault\-legacy\-editor\-interface
 were always given.)
 .
 .El
@@ -547,6 +608,12 @@ service-specific settings.
 This file is
 .Em not
 intended for the user to edit.
+.
+.It Ev $DERIVEPASSPHRASE_PATH Ns Pa /old-notes.txt
+A backup copy of the old notes from the last successful notes editing
+operation, using the
+.Xr vault 1
+legacy editor interface.
 .
 .El
 .
@@ -870,6 +937,20 @@ will attempt to rename the file itself
 .Pq Qq Li Successfully migrated to %s. ,
 or complain if it cannot rename it
 .Pq Qq Li Failed to migrate to %s: %s .
+.
+.It Specifying \-\-notes without \-\-config is ineffective.
+(Exactly what it says.)
+.
+.It A backup copy of the notes was saved to %s.
+The
+.Xr vault 1
+legacy editor interface is in use, which carries a high risk of
+accidentally losing or corrupting the old notes because a notes editing
+session cannot be aborted mid-editing.
+To guard against such accidental data loss, a backup copy of the old
+notes was saved to the
+.Nm derivepassphrase
+configuration directory.
 .
 .El
 .

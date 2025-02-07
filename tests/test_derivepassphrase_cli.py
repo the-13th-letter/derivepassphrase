@@ -2543,8 +2543,6 @@ class TestCLI:
             assert result.clean_exit(), 'expected clean exit'
             assert all(map(is_warning_line, result.stderr.splitlines(True)))
             assert modern_editor_interface or tests.warning_emitted(
-                'Using the vault(1)-compatible legacy editor interface, '
-                'which does not allow aborting mid-edit.  '
                 'A backup copy of the old notes was saved',
                 caplog.record_tuples,
             ), 'expected known warning message in stderr'
@@ -2737,8 +2735,6 @@ class TestCLI:
                 map(is_warning_line, result.stderr.splitlines(True))
             )
             assert not caplog.record_tuples or tests.warning_emitted(
-                'Using the vault(1)-compatible legacy editor interface, '
-                'which does not allow aborting mid-edit.  '
                 'A backup copy of the old notes was saved',
                 caplog.record_tuples,
             ), 'expected known warning message in stderr'

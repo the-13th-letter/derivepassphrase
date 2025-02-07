@@ -1423,7 +1423,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                         old_notes_value,
                     ])
                 else:
-                    text = str(notes_legacy_instructions)
+                    text = old_notes_value or str(notes_legacy_instructions)
                 notes_value = click.edit(text=text, require_save=False)
                 assert notes_value is not None
                 if (
