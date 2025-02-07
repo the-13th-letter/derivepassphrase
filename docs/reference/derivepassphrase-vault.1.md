@@ -7,7 +7,7 @@ derivepassphrase-vault – derive a passphrase using the vault derivation scheme
 ## SYNOPSIS
 
 <pre>
-<code><b>derivepassphrase vault</b> [--phrase | --key] [--length <var>n</var>] [--repeat <var>n</var>] [--lower <var>n</var>] [--upper <var>n</var>] [--number <var>n</var>] [--space <var>n</var>] [--dash <var>n</var>] [--symbol <var>n</var>] <var>SERVICE</var></code>
+<code><b>derivepassphrase vault</b> [--phrase | --key] [--length <var>n</var>] [--repeat <var>n</var>] [--lower <var>n</var>] [--upper <var>n</var>] [--number <var>n</var>] [--space <var>n</var>] [--dash <var>n</var>] [--symbol <var>n</var>] [--print-notes-before | --print-notes-after] <var>SERVICE</var></code>
 <code><b>derivepassphrase vault</b> {--phrase | --key | … | --symbol <var>n</var>} … --config [--unset <var>setting</var> …] [--overwrite-existing | --merge-existing] [<var>SERVICE</var>]</code>
 <code><b>derivepassphrase vault</b> [--phrase | --key | … | --symbol <var>n</var>] … --config --notes [--unset <var>setting</var> …] [--overwrite-existing | --merge-existing] [--modern-editor-interface | --vault-legacy-editor-interface] <var>SERVICE</var></code>
 <code><b>derivepassphrase vault</b> {--delete <var>SERVICE</var> | --delete-globals | --clear}</code>
@@ -173,6 +173,11 @@ The compatibility and extension options modify the behavior to enable additional
     Additionally, for the legacy editing interface, a backup of the old notes contents will be stored in the configuration directory if the new notes differ from the old notes, to mitigate the risk of data loss because the edit cannot be aborted.
 
     (vault(1) behaves as if `--vault-legacy-editor-interface` were always given.)
+
+<b>-</b><b>-print-notes-before</b> / <b>-</b><b>-print-notes-after</b>
+:   When deriving a passphrase, if the service has any service notes, print these notes before or after (<em>default</em>) the passphrase.
+
+    (<i>vault</i>(1) behaves as if `--print-notes-after` were always given.)
 
 ### Other Options
 

@@ -602,6 +602,15 @@ def derivepassphrase_export_vault(
     ),
     cls=cli_machinery.CompatibilityOption,
 )
+@click.option(
+    '--print-notes-before/--print-notes-after',
+    'print_notes_before',
+    default=False,
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_PRINT_NOTES_BEFORE_HELP_TEXT
+    ),
+    cls=cli_machinery.CompatibilityOption,
+)
 @cli_machinery.version_option
 @cli_machinery.color_forcing_pseudo_option
 @cli_machinery.standard_logging_options
@@ -639,6 +648,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     unset_settings: Sequence[str] = (),
     export_as: Literal['json', 'sh'] = 'json',
     modern_editor_interface: bool = False,
+    print_notes_before: bool = False,
 ) -> None:
     """Derive a passphrase using the vault(1) derivation scheme.
 
@@ -738,6 +748,10 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             whether editing notes uses a modern editor interface
             (supporting comments and aborting) or a vault(1)-compatible
             legacy editor interface (WYSIWYG notes contents).
+        print_notes_before:
+            Command-line arguments `--print-notes-before` (True) and
+            `--print-notes-after` (False).  Controls whether the service
+            notes (if any) are printed before the passphrase, or after.
 
     """  # noqa: DOC501
     logger = logging.getLogger(PROG_NAME)
@@ -1510,13 +1524,13 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 )
                 raise click.UsageError(str(err_msg))
             kwargs.pop('key', '')
-            service_notes = (
-                f'\n{settings["notes"]}\n\n' if 'notes' in settings else ''
-            )
+            service_notes = settings.get('notes', '').strip()
             result = vault.Vault(**kwargs).generate(service)
-            if service_notes.strip():
-                click.echo(service_notes, err=True, color=ctx.color)
+            if print_notes_before and service_notes.strip():
+                click.echo(f'{service_notes}\n', err=True, color=ctx.color)
             click.echo(result.decode('ASCII'), color=ctx.color)
+            if not print_notes_before and service_notes.strip():
+                click.echo(f'\n{service_notes}\n', err=True, color=ctx.color)
 
 
 if __name__ == '__main__':

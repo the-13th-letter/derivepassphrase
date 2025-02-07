@@ -641,6 +641,8 @@ class Parametrize(types.SimpleNamespace):
                     '--export-as',
                     '--modern-editor-interface',
                     '--vault-legacy-editor-interface',
+                    '--print-notes-before',
+                    '--print-notes-after',
                 }),
                 id='derivepassphrase-vault',
             ),
@@ -2469,6 +2471,62 @@ class TestCLI:
         ) or result.error_exit(error='Cannot load user config:'), (
             'expected error exit and known error message'
         )
+
+    @pytest.mark.parametrize(
+        ['notes_placement', 'placement_args'],
+        [
+            pytest.param('after', ['--print-notes-after'], id='after'),
+            pytest.param('before', ['--print-notes-before'], id='before'),
+        ],
+    )
+    @hypothesis.given(
+        notes=strategies.text(
+            strategies.characters(
+                min_codepoint=32, max_codepoint=126, include_characters='\n'
+            ),
+            min_size=1,
+            max_size=512,
+        ).filter(str.strip),
+    )
+    def test_215_notes_placement(
+        self,
+        notes_placement: Literal['before', 'after'],
+        placement_args: list[str],
+        notes: str,
+    ) -> None:
+        maybe_notes = {'notes': notes.strip()} if notes.strip() else {}
+        vault_config = {
+            'global': {'phrase': DUMMY_PASSPHRASE},
+            'services': {
+                DUMMY_SERVICE: {**maybe_notes, **DUMMY_CONFIG_SETTINGS}
+            },
+        }
+        result_phrase = DUMMY_RESULT_PASSPHRASE.decode('ascii')
+        expected = (
+            f'{notes}\n\n{result_phrase}\n'
+            if notes_placement == 'before'
+            else f'{result_phrase}\n\n{notes}\n\n'
+        )
+        runner = click.testing.CliRunner(mix_stderr=True)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config=vault_config,
+                )
+            )
+            result_ = runner.invoke(
+                cli.derivepassphrase_vault,
+                [*placement_args, '--', DUMMY_SERVICE],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(result_)
+            assert result.clean_exit(output=expected), 'expected clean exit'
 
     @pytest.mark.parametrize(
         'modern_editor_interface', [False, True], ids=['legacy', 'modern']

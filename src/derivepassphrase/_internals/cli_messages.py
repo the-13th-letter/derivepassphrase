@@ -1112,6 +1112,16 @@ class Label(enum.Enum):
         'or the vault-like legacy one (default)',
     )
     """"""
+    DERIVEPASSPHRASE_VAULT_PRINT_NOTES_BEFORE_HELP_TEXT = commented(
+        'The corresponding option is displayed as '
+        '"--print-notes-before / --print-notes-after", so you may want to '
+        'hint that the default (after) is the second of those options.',
+    )(
+        'Label :: Help text :: One-line description',
+        'print the service notes (if any) before or after (default) '
+        'the existing configuration',
+    )
+    """"""
 
     EXPORT_VAULT_FORMAT_METAVAR_FMT = commented(
         '',

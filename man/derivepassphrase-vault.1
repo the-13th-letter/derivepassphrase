@@ -20,6 +20,7 @@
 .Op Fl \-space Ar n
 .Op Fl \-dash Ar n
 .Op Fl \-symbol Ar n
+.Op Fl \-print\-notes\-before | Fl \-print\-notes\-after
 .Ar SERVICE
 .
 .Nm derivepassphrase vault
@@ -461,6 +462,18 @@ be aborted.
 .Xr ( vault 1
 behaves as if
 .Fl \-vault\-legacy\-editor\-interface
+were always given.)
+.
+.It Fl \-print\-notes\-before No "" / "" Fl \-print\-notes\-after
+When deriving a passphrase, if the service has any service notes,
+print these notes before or after
+.Em ( default )
+the passphrase.
+.Pp
+.
+.Xr ( vault 1
+behaves as if
+.Fl \-print\-notes\-after
 were always given.)
 .
 .El
