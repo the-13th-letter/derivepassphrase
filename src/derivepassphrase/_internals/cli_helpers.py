@@ -168,6 +168,7 @@ config_filename_table = {
     # TODO(the-13th-letter): Remove the old settings.json file.
     # https://the13thletter.info/derivepassphrase/latest/upgrade-notes.html#v1.0-old-settings-file
     'old settings.json': 'settings.json',
+    'notes backup': 'old-notes.txt',
 }
 
 

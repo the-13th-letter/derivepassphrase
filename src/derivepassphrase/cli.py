@@ -579,6 +579,7 @@ def derivepassphrase_export_vault(
         'space',
         'dash',
         'symbol',
+        'notes',
     ]),
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_UNSET_HELP_TEXT
@@ -591,6 +592,24 @@ def derivepassphrase_export_vault(
     default='json',
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_EXPORT_AS_HELP_TEXT
+    ),
+    cls=cli_machinery.CompatibilityOption,
+)
+@click.option(
+    '--modern-editor-interface/--vault-legacy-editor-interface',
+    'modern_editor_interface',
+    default=False,
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_EDITOR_INTERFACE_HELP_TEXT
+    ),
+    cls=cli_machinery.CompatibilityOption,
+)
+@click.option(
+    '--print-notes-before/--print-notes-after',
+    'print_notes_before',
+    default=False,
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_PRINT_NOTES_BEFORE_HELP_TEXT
     ),
     cls=cli_machinery.CompatibilityOption,
 )
@@ -630,6 +649,8 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
     overwrite_config: bool = False,
     unset_settings: Sequence[str] = (),
     export_as: Literal['json', 'sh'] = 'json',
+    modern_editor_interface: bool = False,
+    print_notes_before: bool = False,
 ) -> None:
     """Derive a passphrase using the vault(1) derivation scheme.
 
@@ -723,6 +744,16 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             Command-line argument `--export-as`.  If given together with
             `--export`, selects the format to export the current
             configuration as: JSON ("json", default) or POSIX sh ("sh").
+        modern_editor_interface:
+            Command-line arguments `--modern-editor-interface` (True)
+            and `--vault-legacy-editor-interface` (False).  Controls
+            whether editing notes uses a modern editor interface
+            (supporting comments and aborting) or a vault(1)-compatible
+            legacy editor interface (WYSIWYG notes contents).
+        print_notes_before:
+            Command-line arguments `--print-notes-before` (True) and
+            `--print-notes-after` (False).  Controls whether the service
+            notes (if any) are printed before the passphrase, or after.
 
     """  # noqa: DOC501
     logger = logging.getLogger(PROG_NAME)
@@ -915,7 +946,10 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
         cli_machinery.StorageManagementOption,
     ):
         for opt in options_in_group[group]:
-            if opt != params_by_str['--config']:
+            if opt not in {
+                params_by_str['--config'],
+                params_by_str['--notes'],
+            }:
                 for other_opt in options_in_group[
                     cli_machinery.PassphraseGenerationOption
                 ]:
@@ -929,7 +963,11 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             for other_opt in options_in_group[
                 cli_machinery.ConfigurationOption
             ]:
-                check_incompatible_options(opt, other_opt)
+                if {opt, other_opt} != {
+                    params_by_str['--config'],
+                    params_by_str['--notes'],
+                }:
+                    check_incompatible_options(opt, other_opt)
             for other_opt in options_in_group[
                 cli_machinery.StorageManagementOption
             ]:
@@ -981,45 +1019,16 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             extra={'color': ctx.color},
         )
 
-    if edit_notes:
-        assert service is not None
-        configuration = get_config()
-        notes_instructions = _msg.TranslatedString(
-            _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_INSTRUCTION_TEXT
+    if edit_notes and not store_config_only:
+        logger.warning(
+            _msg.TranslatedString(
+                _msg.WarnMsgTemplate.EDITING_NOTES_BUT_NOT_STORING_CONFIG,
+                service_metavar=service_metavar,
+            ),
+            extra={'color': ctx.color},
         )
-        notes_marker = _msg.TranslatedString(
-            _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_MARKER
-        )
-        old_notes_value = (
-            configuration['services']
-            .get(service, cast('_types.VaultConfigServicesSettings', {}))
-            .get('notes', '')
-        )
-        text = '\n'.join([
-            str(notes_instructions),
-            str(notes_marker),
-            old_notes_value,
-        ])
-        notes_value = click.edit(text=text)
-        if notes_value is not None:
-            notes_lines = collections.deque(notes_value.splitlines(True))  # noqa: FBT003
-            while notes_lines:
-                line = notes_lines.popleft()
-                if line.startswith(str(notes_marker)):
-                    notes_value = ''.join(notes_lines)
-                    break
-            else:
-                if not notes_value.strip():
-                    err(
-                        _msg.TranslatedString(
-                            _msg.ErrMsgTemplate.USER_ABORTED_EDIT
-                        )
-                    )
-            configuration['services'].setdefault(service, {})['notes'] = (
-                notes_value.strip('\n')
-            )
-            put_config(configuration)
-    elif delete_service_settings:
+
+    if delete_service_settings:  # noqa: PLR1702
         assert service is not None
         configuration = get_config()
         if service in configuration['services']:
@@ -1378,7 +1387,7 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                             _msg.WarnMsgTemplate.GLOBAL_PASSPHRASE_INEFFECTIVE
                         )
                     logger.warning(w_msg, extra={'color': ctx.color})
-            if not view.maps[0] and not unset_settings:
+            if not view.maps[0] and not unset_settings and not edit_notes:
                 err_msg = _msg.TranslatedString(
                     _msg.ErrMsgTemplate.CANNOT_UPDATE_SETTINGS_NO_SETTINGS,
                     settings_type=_msg.TranslatedString(
@@ -1417,6 +1426,64 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             assert _types.is_vault_config(configuration), (
                 f'Invalid vault configuration: {configuration!r}'
             )
+            if edit_notes:
+                assert service is not None
+                notes_instructions = _msg.TranslatedString(
+                    _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_INSTRUCTION_TEXT
+                )
+                notes_marker = _msg.TranslatedString(
+                    _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_MARKER
+                )
+                notes_legacy_instructions = _msg.TranslatedString(
+                    _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_LEGACY_INSTRUCTION_TEXT
+                )
+                old_notes_value = subtree.get('notes', '')
+                if modern_editor_interface:
+                    text = '\n'.join([
+                        str(notes_instructions),
+                        str(notes_marker),
+                        old_notes_value,
+                    ])
+                else:
+                    text = old_notes_value or str(notes_legacy_instructions)
+                notes_value = click.edit(text=text, require_save=False)
+                assert notes_value is not None
+                if (
+                    not modern_editor_interface
+                    and notes_value.strip() != old_notes_value.strip()
+                ):
+                    backup_file = cli_helpers.config_filename(
+                        subsystem='notes backup'
+                    )
+                    backup_file.write_text(old_notes_value, encoding='UTF-8')
+                    logger.warning(
+                        _msg.TranslatedString(
+                            _msg.WarnMsgTemplate.LEGACY_EDITOR_INTERFACE_NOTES_BACKUP,
+                            filename=str(backup_file),
+                        ),
+                        extra={'color': ctx.color},
+                    )
+                    subtree['notes'] = notes_value.strip()
+                elif (
+                    modern_editor_interface
+                    and notes_value.strip() != text.strip()
+                ):
+                    notes_lines = collections.deque(
+                        notes_value.splitlines(True)  # noqa: FBT003
+                    )
+                    while notes_lines:
+                        line = notes_lines.popleft()
+                        if line.startswith(str(notes_marker)):
+                            notes_value = ''.join(notes_lines)
+                            break
+                    else:
+                        if not notes_value.strip():
+                            err(
+                                _msg.TranslatedString(
+                                    _msg.ErrMsgTemplate.USER_ABORTED_EDIT
+                                )
+                            )
+                    subtree['notes'] = notes_value.strip()
             put_config(configuration)
         else:
             assert service is not None
@@ -1465,8 +1532,13 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
                 )
                 raise click.UsageError(str(err_msg))
             kwargs.pop('key', '')
+            service_notes = settings.get('notes', '').strip()
             result = vault.Vault(**kwargs).generate(service)
+            if print_notes_before and service_notes.strip():
+                click.echo(f'{service_notes}\n', err=True, color=ctx.color)
             click.echo(result.decode('ASCII'), color=ctx.color)
+            if not print_notes_before and service_notes.strip():
+                click.echo(f'\n{service_notes}\n', err=True, color=ctx.color)
 
 
 if __name__ == '__main__':

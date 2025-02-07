@@ -29,7 +29,11 @@ from typing_extensions import Any, NamedTuple
 
 import tests
 from derivepassphrase import _types, cli, ssh_agent, vault
-from derivepassphrase._internals import cli_helpers, cli_machinery
+from derivepassphrase._internals import (
+    cli_helpers,
+    cli_machinery,
+    cli_messages,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator, Sequence
@@ -96,7 +100,6 @@ CONFIGURATION_OPTIONS: list[tuple[str, ...]] = [
     ('--clear',),
 ]
 CONFIGURATION_COMMANDS: list[tuple[str, ...]] = [
-    ('--notes',),
     ('--delete',),
     ('--delete-globals',),
     ('--clear',),
@@ -136,15 +139,7 @@ INCOMPATIBLE: dict[tuple[str, ...], IncompatibleConfiguration] = {
         CONFIGURATION_COMMANDS + STORAGE_OPTIONS, True, DUMMY_PASSPHRASE
     ),
     ('--notes',): IncompatibleConfiguration(
-        [
-            ('--config',),
-            ('--delete',),
-            ('--delete-globals',),
-            ('--clear',),
-            *STORAGE_OPTIONS,
-        ],
-        True,
-        None,
+        CONFIGURATION_COMMANDS + STORAGE_OPTIONS, True, None
     ),
     ('--config', '-p'): IncompatibleConfiguration(
         [('--delete',), ('--delete-globals',), ('--clear',), *STORAGE_OPTIONS],
@@ -684,6 +679,10 @@ class Parametrize(types.SimpleNamespace):
                     '--merge-existing',
                     '--unset',
                     '--export-as',
+                    '--modern-editor-interface',
+                    '--vault-legacy-editor-interface',
+                    '--print-notes-before',
+                    '--print-notes-after',
                 }),
                 id='derivepassphrase-vault',
             ),
@@ -1912,6 +1911,63 @@ class TestCLI:
             map(is_harmless_config_import_warning, caplog.record_tuples)
         ), 'unexpected error output'
 
+    @hypothesis.given(
+        notes=strategies.text(
+            strategies.characters(
+                min_codepoint=32,
+                max_codepoint=126,
+                include_characters='\n',
+            ),
+            max_size=256,
+        ),
+    )
+    def test_207_service_with_notes_actually_prints_notes(
+        self,
+        notes: str,
+    ) -> None:
+        """Service notes are printed, if they exist."""
+        hypothesis.assume('Error:' not in notes)
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={
+                        'global': {
+                            'phrase': DUMMY_PASSPHRASE,
+                        },
+                        'services': {
+                            DUMMY_SERVICE: {
+                                'notes': notes,
+                                **DUMMY_CONFIG_SETTINGS,
+                            },
+                        },
+                    },
+                )
+            )
+            result_ = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--', DUMMY_SERVICE],
+            )
+        result = tests.ReadableResult.parse(result_)
+        assert result.clean_exit(), 'expected clean exit'
+        assert result.output, 'expected program output'
+        assert result.output.strip() == DUMMY_RESULT_PASSPHRASE.decode(
+            'ascii'
+        ), 'expected known program output'
+        assert result.stderr or not notes.strip(), 'expected stderr'
+        assert 'Error:' not in result.stderr, (
+            'expected no error messages on stderr'
+        )
+        assert result.stderr.strip() == notes.strip(), (
+            'expected known stderr contents'
+        )
+
     @Parametrize.VAULT_CHARSET_OPTION
     def test_210_invalid_argument_range(
         self,
@@ -2500,15 +2556,94 @@ class TestCLI:
             'expected error exit and known error message'
         )
 
+    @pytest.mark.parametrize(
+        ['notes_placement', 'placement_args'],
+        [
+            pytest.param('after', ['--print-notes-after'], id='after'),
+            pytest.param('before', ['--print-notes-before'], id='before'),
+        ],
+    )
+    @hypothesis.given(
+        notes=strategies.text(
+            strategies.characters(
+                min_codepoint=32, max_codepoint=126, include_characters='\n'
+            ),
+            min_size=1,
+            max_size=512,
+        ).filter(str.strip),
+    )
+    def test_215_notes_placement(
+        self,
+        notes_placement: Literal['before', 'after'],
+        placement_args: list[str],
+        notes: str,
+    ) -> None:
+        maybe_notes = {'notes': notes.strip()} if notes.strip() else {}
+        vault_config = {
+            'global': {'phrase': DUMMY_PASSPHRASE},
+            'services': {
+                DUMMY_SERVICE: {**maybe_notes, **DUMMY_CONFIG_SETTINGS}
+            },
+        }
+        result_phrase = DUMMY_RESULT_PASSPHRASE.decode('ascii')
+        expected = (
+            f'{notes}\n\n{result_phrase}\n'
+            if notes_placement == 'before'
+            else f'{result_phrase}\n\n{notes}\n\n'
+        )
+        runner = click.testing.CliRunner(mix_stderr=True)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config=vault_config,
+                )
+            )
+            result_ = runner.invoke(
+                cli.derivepassphrase_vault,
+                [*placement_args, '--', DUMMY_SERVICE],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(result_)
+            assert result.clean_exit(output=expected), 'expected clean exit'
+
+    @pytest.mark.parametrize(
+        'modern_editor_interface', [False, True], ids=['legacy', 'modern']
+    )
+    @hypothesis.settings(
+        suppress_health_check=[
+            *hypothesis.settings().suppress_health_check,
+            hypothesis.HealthCheck.function_scoped_fixture,
+        ],
+    )
+    @hypothesis.given(
+        notes=strategies.text(
+            strategies.characters(
+                min_codepoint=32, max_codepoint=126, include_characters='\n'
+            ),
+            min_size=1,
+            max_size=512,
+        ).filter(str.strip),
+    )
     def test_220_edit_notes_successfully(
         self,
+        caplog: pytest.LogCaptureFixture,
+        modern_editor_interface: bool,
+        notes: str,
     ) -> None:
         """Editing notes works."""
-        edit_result = """
+        edit_result = f"""
 
 # - - - - - >8 - - - - - >8 - - - - - >8 - - - - - >8 - - - - -
-contents go here
+{notes}
 """
+        # Reset caplog between hypothesis runs.
+        caplog.clear()
         runner = click.testing.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -2519,30 +2654,94 @@ contents go here
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={
+                        'global': {'phrase': 'abc'},
+                        'services': {'sv': {'notes': 'Contents go here'}},
+                    },
                 )
             )
-            monkeypatch.setattr(click, 'edit', lambda *a, **kw: edit_result)  # noqa: ARG005
+            notes_backup_file = cli_helpers.config_filename(
+                subsystem='notes backup'
+            )
+            notes_backup_file.write_text(
+                'These backup notes are left over from the previous session.',
+                encoding='UTF-8',
+            )
+            monkeypatch.setattr(click, 'edit', lambda *_a, **_kw: edit_result)
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--notes', '--', 'sv'],
+                [
+                    '--config',
+                    '--notes',
+                    '--modern-editor-interface'
+                    if modern_editor_interface
+                    else '--vault-legacy-editor-interface',
+                    '--',
+                    'sv',
+                ],
                 catch_exceptions=False,
             )
             result = tests.ReadableResult.parse(result_)
-            assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+            assert result.clean_exit(), 'expected clean exit'
+            assert all(map(is_warning_line, result.stderr.splitlines(True)))
+            assert modern_editor_interface or tests.warning_emitted(
+                'A backup copy of the old notes was saved',
+                caplog.record_tuples,
+            ), 'expected known warning message in stderr'
+            assert (
+                modern_editor_interface
+                or notes_backup_file.read_text(encoding='UTF-8')
+                == 'Contents go here'
+            )
             with cli_helpers.config_filename(subsystem='vault').open(
                 encoding='UTF-8'
             ) as infile:
                 config = json.load(infile)
             assert config == {
                 'global': {'phrase': 'abc'},
-                'services': {'sv': {'notes': 'contents go here'}},
+                'services': {
+                    'sv': {
+                        'notes': notes.strip()
+                        if modern_editor_interface
+                        else edit_result.strip()
+                    }
+                },
             }
 
+    @pytest.mark.parametrize(
+        ['edit_func_name', 'modern_editor_interface'],
+        [
+            pytest.param('empty', True, id='empty'),
+            pytest.param('space', False, id='space-legacy'),
+            pytest.param('space', True, id='space-modern'),
+        ],
+    )
+    @hypothesis.given(
+        notes=strategies.text(
+            strategies.characters(
+                min_codepoint=32, max_codepoint=126, include_characters='\n'
+            ),
+            min_size=1,
+            max_size=512,
+        ).filter(str.strip),
+    )
     def test_221_edit_notes_noop(
         self,
+        edit_func_name: Literal['empty', 'space'],
+        modern_editor_interface: bool,
+        notes: str,
     ) -> None:
         """Abandoning edited notes works."""
+
+        def empty(text: str, *_args: Any, **_kwargs: Any) -> str:
+            del text
+            return ''
+
+        def space(text: str, *_args: Any, **_kwargs: Any) -> str:
+            del text
+            return '       ' + notes.strip() + '\n\n\n\n\n\n'
+
+        edit_funcs = {'empty': empty, 'space': space}
         runner = click.testing.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -2553,31 +2752,164 @@ contents go here
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={
+                        'global': {'phrase': 'abc'},
+                        'services': {'sv': {'notes': notes.strip()}},
+                    },
                 )
             )
-            monkeypatch.setattr(click, 'edit', lambda *a, **kw: None)  # noqa: ARG005
+            notes_backup_file = cli_helpers.config_filename(
+                subsystem='notes backup'
+            )
+            notes_backup_file.write_text(
+                'These backup notes are left over from the previous session.',
+                encoding='UTF-8',
+            )
+            monkeypatch.setattr(click, 'edit', edit_funcs[edit_func_name])
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--notes', '--', 'sv'],
+                [
+                    '--config',
+                    '--notes',
+                    '--modern-editor-interface'
+                    if modern_editor_interface
+                    else '--vault-legacy-editor-interface',
+                    '--',
+                    'sv',
+                ],
                 catch_exceptions=False,
             )
             result = tests.ReadableResult.parse(result_)
-            assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+            assert result.clean_exit(empty_stderr=True) or result.error_exit(
+                error='the user aborted the request'
+            ), 'expected clean exit'
+            assert (
+                modern_editor_interface
+                or notes_backup_file.read_text(encoding='UTF-8')
+                == 'These backup notes are left over from the previous session.'
+            )
             with cli_helpers.config_filename(subsystem='vault').open(
                 encoding='UTF-8'
             ) as infile:
                 config = json.load(infile)
-            assert config == {'global': {'phrase': 'abc'}, 'services': {}}
+            assert config == {
+                'global': {'phrase': 'abc'},
+                'services': {'sv': {'notes': notes.strip()}},
+            }
 
     # TODO(the-13th-letter): Keep this behavior or not, with or without
     # warning?
+    @pytest.mark.parametrize(
+        'modern_editor_interface', [False, True], ids=['legacy', 'modern']
+    )
+    @hypothesis.settings(
+        suppress_health_check=[
+            *hypothesis.settings().suppress_health_check,
+            hypothesis.HealthCheck.function_scoped_fixture,
+        ],
+    )
+    @hypothesis.given(
+        notes=strategies.text(
+            strategies.characters(
+                min_codepoint=32, max_codepoint=126, include_characters='\n'
+            ),
+            min_size=1,
+            max_size=512,
+        ).filter(str.strip),
+    )
     def test_222_edit_notes_marker_removed(
         self,
+        caplog: pytest.LogCaptureFixture,
+        modern_editor_interface: bool,
+        notes: str,
     ) -> None:
         """Removing the notes marker still saves the notes.
 
         TODO: Keep this behavior or not, with or without warning?
+
+        """
+        notes_marker = cli_messages.TranslatedString(
+            cli_messages.Label.DERIVEPASSPHRASE_VAULT_NOTES_MARKER
+        )
+        hypothesis.assume(str(notes_marker) not in notes.strip())
+        # Reset caplog between hypothesis runs.
+        caplog.clear()
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={
+                        'global': {'phrase': 'abc'},
+                        'services': {'sv': {'notes': 'Contents go here'}},
+                    },
+                )
+            )
+            notes_backup_file = cli_helpers.config_filename(
+                subsystem='notes backup'
+            )
+            notes_backup_file.write_text(
+                'These backup notes are left over from the previous session.',
+                encoding='UTF-8',
+            )
+            monkeypatch.setattr(click, 'edit', lambda *_a, **_kw: notes)
+            result_ = runner.invoke(
+                cli.derivepassphrase_vault,
+                [
+                    '--config',
+                    '--notes',
+                    '--modern-editor-interface'
+                    if modern_editor_interface
+                    else '--vault-legacy-editor-interface',
+                    '--',
+                    'sv',
+                ],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(result_)
+            assert result.clean_exit(), 'expected clean exit'
+            assert not result.stderr or all(
+                map(is_warning_line, result.stderr.splitlines(True))
+            )
+            assert not caplog.record_tuples or tests.warning_emitted(
+                'A backup copy of the old notes was saved',
+                caplog.record_tuples,
+            ), 'expected known warning message in stderr'
+            assert (
+                modern_editor_interface
+                or notes_backup_file.read_text(encoding='UTF-8')
+                == 'Contents go here'
+            )
+            with cli_helpers.config_filename(subsystem='vault').open(
+                encoding='UTF-8'
+            ) as infile:
+                config = json.load(infile)
+            assert config == {
+                'global': {'phrase': 'abc'},
+                'services': {'sv': {'notes': notes.strip()}},
+            }
+
+    @hypothesis.given(
+        notes=strategies.text(
+            strategies.characters(
+                min_codepoint=32, max_codepoint=126, include_characters='\n'
+            ),
+            min_size=1,
+            max_size=512,
+        ).filter(str.strip),
+    )
+    def test_223_edit_notes_abort(
+        self,
+        notes: str,
+    ) -> None:
+        """Aborting editing notes works.
+
+        Aborting is only supported with the modern editor interface.
 
         """
         runner = click.testing.CliRunner(mix_stderr=False)
@@ -2590,47 +2922,22 @@ contents go here
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={
+                        'global': {'phrase': 'abc'},
+                        'services': {'sv': {'notes': notes.strip()}},
+                    },
                 )
             )
-            monkeypatch.setattr(click, 'edit', lambda *a, **kw: 'long\ntext')  # noqa: ARG005
+            monkeypatch.setattr(click, 'edit', lambda *_a, **_kw: '')
             result_ = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--notes', '--', 'sv'],
-                catch_exceptions=False,
-            )
-            result = tests.ReadableResult.parse(result_)
-            assert result.clean_exit(empty_stderr=True), 'expected clean exit'
-            with cli_helpers.config_filename(subsystem='vault').open(
-                encoding='UTF-8'
-            ) as infile:
-                config = json.load(infile)
-            assert config == {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'notes': 'long\ntext'}},
-            }
-
-    def test_223_edit_notes_abort(
-        self,
-    ) -> None:
-        """Aborting editing notes works."""
-        runner = click.testing.CliRunner(mix_stderr=False)
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            stack.enter_context(
-                tests.isolated_vault_config(
-                    monkeypatch=monkeypatch,
-                    runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
-                )
-            )
-            monkeypatch.setattr(click, 'edit', lambda *a, **kw: '\n\n')  # noqa: ARG005
-            result_ = runner.invoke(
-                cli.derivepassphrase_vault,
-                ['--notes', '--', 'sv'],
+                [
+                    '--config',
+                    '--notes',
+                    '--modern-editor-interface',
+                    '--',
+                    'sv',
+                ],
                 catch_exceptions=False,
             )
             result = tests.ReadableResult.parse(result_)
@@ -2641,7 +2948,157 @@ contents go here
                 encoding='UTF-8'
             ) as infile:
                 config = json.load(infile)
-            assert config == {'global': {'phrase': 'abc'}, 'services': {}}
+            assert config == {
+                'global': {'phrase': 'abc'},
+                'services': {'sv': {'notes': notes.strip()}},
+            }
+
+    def test_223a_edit_empty_notes_abort(
+        self,
+    ) -> None:
+        """Aborting editing notes works even if no notes are stored yet.
+
+        Aborting is only supported with the modern editor interface.
+
+        """
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={
+                        'global': {'phrase': 'abc'},
+                        'services': {},
+                    },
+                )
+            )
+            monkeypatch.setattr(click, 'edit', lambda *_a, **_kw: '')
+            result_ = runner.invoke(
+                cli.derivepassphrase_vault,
+                [
+                    '--config',
+                    '--notes',
+                    '--modern-editor-interface',
+                    '--',
+                    'sv',
+                ],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(result_)
+            assert result.error_exit(error='the user aborted the request'), (
+                'expected known error message'
+            )
+            with cli_helpers.config_filename(subsystem='vault').open(
+                encoding='UTF-8'
+            ) as infile:
+                config = json.load(infile)
+            assert config == {
+                'global': {'phrase': 'abc'},
+                'services': {},
+            }
+
+    @pytest.mark.parametrize(
+        'modern_editor_interface', [False, True], ids=['legacy', 'modern']
+    )
+    @hypothesis.settings(
+        suppress_health_check=[
+            *hypothesis.settings().suppress_health_check,
+            hypothesis.HealthCheck.function_scoped_fixture,
+        ],
+    )
+    @hypothesis.given(
+        notes=strategies.text(
+            strategies.characters(
+                min_codepoint=32, max_codepoint=126, include_characters='\n'
+            ),
+            max_size=512,
+        ),
+    )
+    def test_223b_edit_notes_fail_config_option_missing(
+        self,
+        caplog: pytest.LogCaptureFixture,
+        modern_editor_interface: bool,
+        notes: str,
+    ) -> None:
+        """Editing notes fails (and warns) if `--config` is missing."""
+        maybe_notes = {'notes': notes.strip()} if notes.strip() else {}
+        vault_config = {
+            'global': {'phrase': DUMMY_PASSPHRASE},
+            'services': {
+                DUMMY_SERVICE: {**maybe_notes, **DUMMY_CONFIG_SETTINGS}
+            },
+        }
+        # Reset caplog between hypothesis runs.
+        caplog.clear()
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config=vault_config,
+                )
+            )
+            EDIT_ATTEMPTED = 'edit attempted!'  # noqa: N806
+
+            def raiser(*_args: Any, **_kwargs: Any) -> NoReturn:
+                pytest.fail(EDIT_ATTEMPTED)
+
+            notes_backup_file = cli_helpers.config_filename(
+                subsystem='notes backup'
+            )
+            notes_backup_file.write_text(
+                'These backup notes are left over from the previous session.',
+                encoding='UTF-8',
+            )
+            monkeypatch.setattr(click, 'edit', raiser)
+            result_ = runner.invoke(
+                cli.derivepassphrase_vault,
+                [
+                    '--notes',
+                    '--modern-editor-interface'
+                    if modern_editor_interface
+                    else '--vault-legacy-editor-interface',
+                    '--',
+                    DUMMY_SERVICE,
+                ],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(result_)
+            assert result.clean_exit(
+                output=DUMMY_RESULT_PASSPHRASE.decode('ascii')
+            ), 'expected clean exit'
+            assert result.stderr
+            assert notes.strip() in result.stderr
+            assert all(
+                is_warning_line(line)
+                for line in result.stderr.splitlines(True)
+                if line.startswith(f'{cli.PROG_NAME}: ')
+            )
+            assert tests.warning_emitted(
+                'Specifying --notes without --config is ineffective.  '
+                'No notes will be edited.',
+                caplog.record_tuples,
+            ), 'expected known warning message in stderr'
+            assert (
+                modern_editor_interface
+                or notes_backup_file.read_text(encoding='UTF-8')
+                == 'These backup notes are left over from the previous session.'
+            )
+            with cli_helpers.config_filename(subsystem='vault').open(
+                encoding='UTF-8'
+            ) as infile:
+                config = json.load(infile)
+            assert config == vault_config
 
     @Parametrize.CONFIG_EDITING_VIA_CONFIG_FLAG
     def test_224_store_config_good(
