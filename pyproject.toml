@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "derivepassphrase"
 description = "An almost faithful Python reimplementation of James Coglan's vault."
 readme = "README.md"
-version = "0.5a1.dev1"
+version = '0.5a1.dev1'
 requires-python = ">= 3.9"
 license = { text = "zlib/libpng" }
 keywords = []
@@ -77,6 +77,121 @@ derivepassphrase = "derivepassphrase.cli:derivepassphrase"
 Documentation = "https://the13thletter.info/derivepassphrase/"
 Issues = "https://github.com/the-13th-letter/derivepassphrase/issues"
 Source = "https://github.com/the-13th-letter/derivepassphrase"
+
+[tool.bumpversion]
+current_version = '0.5a1.dev1'
+# As of bump-my-version 0.32.0, version components are strictly
+# hierarchical in the order of occurrence, and there is no support for
+# pre-release markers.  The documentation suggests a fake "dev/rc/final"
+# marker, with "final" being suppressed on output; effectively, it's
+# major.minor.patch-n.m, where -n.m is suppressed if n is some maximum
+# value and m is zero.  This sort of scales to multiple levels of pre-
+# oder development releases (e.g. distinguished alpha versions and
+# development versions in between alpha versions) if you manually
+# increment the lower markers manually, in descending order, while no
+# committing the result... but at that point you're not really gaining
+# that much over calculating the new version number yourself and forcing
+# that.
+#
+# The primary reason to still fill out these templates is to ensure that
+# the version number correctly round-trips within bump-my-version.
+parse = '''(?x)
+    (?P<major>\d+)
+    \.(?P<minor>\d+)
+    (?:\.(?P<patch>\d+))?
+    (?:
+        (?P<pre_l>-dev|a|b|rc|)
+        (?P<pre_n>[1-9][0-9]*)
+    )?
+    (?:
+        [-.]
+        (?P<dev_t>dev|final)
+        (?P<dev_n>[1-9][0-9]*)
+    )?
+'''
+serialize = [
+    '{major}.{minor}.{patch}{pre_l}{pre_n}-{dev_t}{dev_n}',
+    '{major}.{minor}.{patch}{pre_l}{pre_n}',
+    '{major}.{minor}.{patch}',
+    '{major}.{minor}{pre_l}{pre_n}-{dev_t}{dev_n}',
+    '{major}.{minor}{pre_l}{pre_n}',
+    '{major}.{minor}',
+]
+search = '{current_version}'
+replace = '{new_version}'
+regex = false
+ignore_missing_version = false
+ignore_missing_files = false
+tag = true
+sign_tags = false
+tag_name = '{new_version}'
+tag_message = 'Release derivepassphrase v{new_version}'
+allow_dirty = true
+commit = true
+message = 'Release {new_version}'
+moveable_tags = []
+commit_args = ""
+setup_hooks = []
+pre_commit_hooks = []
+post_commit_hooks = []
+
+[tool.bumpversion.parts.dev_t]
+values = ['dev', '']
+optional_value = ''
+
+[tool.bumpversion.parts.dev_n]
+values = []
+first_value = '1'
+
+[tool.bumpversion.parts.pre_l]
+values = ['-dev', 'a', 'b', 'rc', '']
+optional_value = ''
+
+[tool.bumpversion.parts.pre_n]
+values = []
+first_value = '1'
+
+[[tool.bumpversion.files]]
+glob = 'src/derivepassphrase/*.py'
+search = '# SPDX-FileCopyrightText: \d\d\d\d'
+replace = '# SPDX-FileCopyrightText: {now:%Y}'
+regex = true
+
+[[tool.bumpversion.files]]
+glob = 'src/derivepassphrase/*/*.py'
+search = '# SPDX-FileCopyrightText: \d\d\d\d'
+replace = '# SPDX-FileCopyrightText: {now:%Y}'
+regex = true
+
+[[tool.bumpversion.files]]
+glob = 'tests/*.py'
+search = '# SPDX-FileCopyrightText: \d\d\d\d'
+replace = '# SPDX-FileCopyrightText: {now:%Y}'
+regex = true
+
+[[tool.bumpversion.files]]
+filename = 'pyproject.toml'
+search = "version = '{current_version}'"
+replace = "version = '{new_version}'"
+regex = true
+
+[[tool.bumpversion.files]]
+filename = 'pyproject.toml'
+search = "current_version = '{current_version}'"
+replace = "current_version = '{new_version}'"
+regex = true
+
+[[tool.bumpversion.files]]
+glob = 'man/derivepassphrase*.1'
+regex = true
+search = '^\.Dd \d\d\d\d-\d\d-\d\d'
+replace = '.Dd {now:%Y-%m-%d}'
+
+[[tool.bumpversion.files]]
+glob = 'man/derivepassphrase*.1'
+regex = true
+search = '^\.Os derivepassphrase {current_version}'
+replace = '\.Os derivepassphrase {new_version}'
 
 [tool.coverage.html]
 directory = "html/coverage"
