@@ -31,7 +31,6 @@ import click
 import click.shell_completion
 from typing_extensions import Any
 
-import derivepassphrase as dpp
 from derivepassphrase import _types, ssh_agent, vault
 from derivepassphrase._internals import cli_messages as _msg
 
@@ -48,9 +47,6 @@ if TYPE_CHECKING:
     )
 
     from typing_extensions import Buffer
-
-__author__ = dpp.__author__
-__version__ = dpp.__version__
 
 PROG_NAME = _msg.PROG_NAME
 KEY_DISPLAY_LENGTH = 50

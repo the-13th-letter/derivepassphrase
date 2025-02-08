@@ -11,16 +11,11 @@ import os
 import pathlib
 from typing import TYPE_CHECKING, Protocol
 
-import derivepassphrase as dpp
-
 if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any
 
     from typing_extensions import Buffer
-
-__author__ = dpp.__author__
-__version__ = dpp.__version__
 
 __all__ = ()
 

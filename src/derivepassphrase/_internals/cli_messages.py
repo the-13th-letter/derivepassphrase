@@ -33,19 +33,18 @@ from typing import TYPE_CHECKING, NamedTuple, Protocol, TextIO, Union, cast
 
 from typing_extensions import TypeAlias, override
 
-import derivepassphrase as dpp
+from derivepassphrase import _internals
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Mapping, Sequence
 
     from typing_extensions import Any, Self
 
-__author__ = dpp.__author__
-__version__ = dpp.__version__
-
 __all__ = ('PROG_NAME',)
 
-PROG_NAME = 'derivepassphrase'
+PROG_NAME = _internals.PROG_NAME
+VERSION = _internals.VERSION
+AUTHOR = _internals.AUTHOR
 
 
 def load_translations(
@@ -1250,7 +1249,7 @@ class Label(enum.Enum):
         '',
     )(
         'Label :: Info Message',
-        '{PROG_NAME!s} {__version__}',  # noqa: RUF027
+        '{PROG_NAME!s} {VERSION}',  # noqa: RUF027
         flags='python-brace-format',
     )
     """"""
@@ -2226,7 +2225,7 @@ def _write_po_file(  # noqa: C901,PLR0912
     /,
     *,
     is_template: bool = True,
-    version: str = __version__,
+    version: str = VERSION,
 ) -> None:  # pragma: no cover
     r"""Write a .po file to the given file object.
 
@@ -2284,7 +2283,7 @@ def _write_po_file(  # noqa: C901,PLR0912
         header = (
             inspect.cleandoc(rf"""
             # English debug translation for {PROG_NAME!s}.
-            # Copyright (C) {build_time.strftime('%Y')} {__author__}
+            # Copyright (C) {build_time.strftime('%Y')} {AUTHOR!s}
             # This file is distributed under the same license as {PROG_NAME!s}.
             #
             msgid ""
@@ -2311,7 +2310,7 @@ def _write_po_file(  # noqa: C901,PLR0912
         })
     else:
         po_info.update({
-            'Last-Translator': __author__,
+            'Last-Translator': AUTHOR,
             'Language': 'en_DEBUG',
             'Language-Team': 'English',
         })
@@ -2453,7 +2452,7 @@ if __name__ == '__main__':
         '--set-version',
         action='store',
         dest='version',
-        default=__version__,
+        default=VERSION,
         help='Override declared software version',
     )
     args = ap.parse_args()

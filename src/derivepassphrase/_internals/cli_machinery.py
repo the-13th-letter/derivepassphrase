@@ -26,7 +26,7 @@ import click
 import click.shell_completion
 from typing_extensions import Any, ParamSpec, override
 
-import derivepassphrase as dpp
+from derivepassphrase import _internals
 from derivepassphrase._internals import cli_messages as _msg
 
 if TYPE_CHECKING:
@@ -37,10 +37,8 @@ if TYPE_CHECKING:
 
     from typing_extensions import Self
 
-__author__ = dpp.__author__
-__version__ = dpp.__version__
-
-PROG_NAME = _msg.PROG_NAME
+PROG_NAME = _internals.PROG_NAME
+VERSION = _internals.VERSION
 
 # Error messages
 NOT_AN_INTEGER = 'not an integer'
@@ -964,7 +962,7 @@ def version_option_callback(
                 _msg.TranslatedString(
                     _msg.Label.VERSION_INFO_TEXT,
                     PROG_NAME=PROG_NAME,
-                    __version__=__version__,
+                    VERSION=VERSION,
                 )
             ),
         )

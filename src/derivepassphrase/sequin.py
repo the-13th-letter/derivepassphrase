@@ -31,7 +31,6 @@ if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
 
 __all__ = ('Sequin', 'SequinExhaustedError')
-__author__ = 'Marco Ricci <software@the13thletter.info>'
 
 
 class Sequin:

@@ -24,7 +24,6 @@ if TYPE_CHECKING:
     from typing_extensions import Buffer
 
 __all__ = ('SSHAgentClient',)
-__author__ = 'Marco Ricci <software@the13thletter.info>'
 
 # In SSH bytestrings, the "length" of the byte string is stored as
 # a 4-byte/32-bit unsigned integer at the beginning.

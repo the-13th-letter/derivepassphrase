@@ -1616,7 +1616,7 @@ class TestCLI:
         assert result.clean_exit(empty_stderr=True, output=cli.PROG_NAME), (
             'expected clean exit, and program name in version text'
         )
-        assert result.clean_exit(empty_stderr=True, output=cli.__version__), (
+        assert result.clean_exit(empty_stderr=True, output=cli.VERSION), (
             'expected clean exit, and version in help text'
         )
 

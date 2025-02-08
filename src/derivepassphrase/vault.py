@@ -24,8 +24,6 @@ if TYPE_CHECKING:
 
     from typing_extensions import Buffer
 
-__author__ = 'Marco Ricci <software@the13thletter.info>'
-
 
 class Vault:
     """A work-alike of James Coglan's vault.
