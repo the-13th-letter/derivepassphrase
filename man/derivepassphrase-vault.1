@@ -129,15 +129,22 @@ for how this interacts with a stored passphrase or
 key.
 .
 .It Fl k , \-key
-Select an SSH key.
+Select an
+.Tn SSH
+key.
 .Pp
 .
-An SSH agent such as OpenSSH's
+An
+.Tn SSH
+agent such as
+.Tn OpenSSH Ns No 's
 .Xr ssh-agent 1
-or PuTTY's
+.Tn PuTTY Ns No 's
 .Xr pageant 1
 must be running and accessible, and have the desired key loaded.
-The SSH key must also be
+The
+.Tn SSH
+key must also be
 .Em suitable
 for this purpose; see
 .Sx SSH key suitability
@@ -567,7 +574,10 @@ and sometimes the agent used:
 .
 .It
 .Tn RSA ,
-Ed25519 and Ed448 keys are always suitable.
+.Tn Ed25519
+and
+.Tn Ed448
+keys are always suitable.
 .Tn OpenSSH Ns No 's
 .Xr ssh-agent 1
 supports only these keys as suitable keys.
@@ -636,9 +646,10 @@ legacy editor interface.
 .It
 There is
 .Sy no way
-to retrieve the generated passphrases if the master passphrase, the SSH key,
-or the exact passphrase settings are lost, short of trying out all possible
-combinations.
+to retrieve the generated passphrases if the master passphrase, the
+.Tn SSH
+key, or the exact passphrase settings are lost, short of trying out all
+possible combinations.
 You are
 .Sy strongly
 advised to keep independent backups of the settings and the
@@ -799,35 +810,48 @@ Further details are contained in the variable part of the message.
 .
 .\" Message-ID: ErrMsgTemplate.SSH_KEY_NOT_LOADED
 .It The requested SSH key is not loaded into the agent.
-The running SSH agent does not contain the necessary SSH key.
+The running
+.Tn SSH
+agent does not contain the necessary
+.Tn SSH
+key.
 .
 .\" Message-ID: ErrMsgTemplate.NO_SSH_AGENT_FOUND
 .It Cannot find any running SSH agent because SSH_AUTH_SOCK is not set.
-We require a running SSH agent, but cannot locate its communication channel,
-which is normally indicated by the
+We require a running
+.Tn SSH
+agent, but cannot locate its communication channel, which is normally
+indicated by the
 .Ev SSH_AUTH_SOCK
 environment variable.
 .
 .\" Message-ID: ErrMsgTemplate.NO_AF_UNIX
 .It Cannot connect to an SSH agent because this Python version does not support UNIX domain sockets.
 This Python installation does not support the communication mechanism
-necessary to talk to SSH agents.
+necessary to talk to
+.Tn SSH
+agents.
 .
 .\" Message-ID: ErrMsgTemplate.CANNOT_CONNECT_TO_AGENT
 .It Cannot connect to the SSH agent: %s.
-We cannot connect to the SSH agent indicated by the
+We cannot connect to the
+.Tn SSH
+agent indicated by the
 .Ev SSH_AUTH_SOCK
 environment variable.
 Further details are contained in the variable part of the message.
 .
 .\" Message-ID: ErrMsgTemplate.AGENT_REFUSED_LIST_KEYS
 .It The SSH agent failed to or refused to supply a list of loaded keys.
-The SSH agent \(em while responsive in principle \(em did not fulfill the
-request.
+The
+.Tn SSH
+agent \(em while responsive in principle \(em did not fulfill the request.
 .
 .\" Message-ID: ErrMsgTemplate.AGENT_REFUSED_SIGNATURE
 .It "The SSH agent failed to or refused to" "issue a signature with the selected key," "necessary for deriving a service passphrase."
-The SSH agent \(em while responsive in principle \(em failed to cooperate with
+The
+.Tn SSH
+agent \(em while responsive in principle \(em failed to cooperate with
 deriving a service passphrase from the selected master
 .Tn SSH
 key.
@@ -878,7 +902,9 @@ the same configuration setting was passed as an option and as an argument to
 .\" Message-ID: ErrMsgTemplate.NO_KEY_OR_PHRASE
 .It No passphrase or key was given in the configuration.
 .Nm derivepassphrase vault
-does not know whether to use a master SSH key or a master passphrase.
+does not know whether to use a master
+.Tn SSH
+key or a master passphrase.
 .
 .\" Message-ID: ErrMsgTemplate.USER_ABORTED_PASSPHRASE
 .It No passphrase was given; the user aborted the request.
@@ -953,7 +979,9 @@ affects tab completion, not other functionality.
 .\" Message-ID: WarnMsgTemplate.SERVICE_PASSPHRASE_INEFFECTIVE
 .It Setting a %s passphrase is ineffective because a key is also set
 The configuration (global or key-specific) contains both a stored master
-passphrase and an SSH key.
+passphrase and an
+.Tn SSH
+key.
 The master passphrase will not take effect.
 .
 .\" Message-ID: WarnMsgTemplate.V10_SUBCOMMAND_REQUIRED
