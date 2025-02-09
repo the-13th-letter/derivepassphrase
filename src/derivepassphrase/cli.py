@@ -28,8 +28,7 @@ from typing_extensions import (
     Any,
 )
 
-import derivepassphrase as dpp
-from derivepassphrase import _types, exporter, ssh_agent, vault
+from derivepassphrase import _internals, _types, exporter, ssh_agent, vault
 from derivepassphrase._internals import cli_helpers, cli_machinery
 from derivepassphrase._internals import cli_messages as _msg
 
@@ -38,12 +37,10 @@ if TYPE_CHECKING:
         Sequence,
     )
 
-__author__ = dpp.__author__
-__version__ = dpp.__version__
-
 __all__ = ('derivepassphrase',)
 
-PROG_NAME = _msg.PROG_NAME
+PROG_NAME = _internals.PROG_NAME
+VERSION = _internals.VERSION
 
 
 @click.group(

@@ -13,7 +13,8 @@ Warning:
 
 import derivepassphrase
 
-__author__ = derivepassphrase.__author__
-__version__ = derivepassphrase.__version__
-
 __all__ = ()
+
+PROG_NAME = derivepassphrase.__distribution_name__
+VERSION = derivepassphrase.__version__
+AUTHOR = derivepassphrase.__author__

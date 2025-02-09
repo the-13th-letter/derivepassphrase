@@ -31,7 +31,6 @@ import click
 import click.shell_completion
 from typing_extensions import Any
 
-import derivepassphrase as dpp
 from derivepassphrase import _types, ssh_agent, vault
 from derivepassphrase._internals import cli_messages as _msg
 
@@ -48,9 +47,6 @@ if TYPE_CHECKING:
     )
 
     from typing_extensions import Buffer
-
-__author__ = dpp.__author__
-__version__ = dpp.__version__
 
 PROG_NAME = _msg.PROG_NAME
 KEY_DISPLAY_LENGTH = 50
@@ -640,15 +636,11 @@ def check_for_misleading_passphrase(
         phrase = value['phrase']
         if not unicodedata.is_normalized(form, phrase):
             logger.warning(
-                (
-                    'The %s passphrase is not %s-normalized.  Its '
-                    'serialization as a byte string may not be what you '
-                    'expect it to be, even if it *displays* correctly.  '
-                    'Please make sure to double-check any derived '
-                    'passphrases for unexpected results.'
+                _msg.TranslatedString(
+                    _msg.WarnMsgTemplate.PASSPHRASE_NOT_NORMALIZED,
+                    key=formatted_key,
+                    form=form,
                 ),
-                formatted_key,
-                form,
                 stacklevel=2,
                 extra={'color': ctx.color if ctx is not None else None},
             )

@@ -70,6 +70,31 @@ If <i>PATH</i> is explicitly given as `VAULT_PATH`, then use the `VAULT_PATH` en
 `LOGNAME`, `USER`, `USERNAME`
 :   Fallback values for `VAULT_KEY`.
 
+## DIAGNOSTICS
+
+The <b>derivepassphrase export vault</b> utility exits 0 on success, and >0 if an error occurs.
+
+### Fatal error messsages on standard error
+
+(`%s` indicates a variable part of the message.)
+
+<!-- Message-ID: ErrMsgTemplate.CANNOT_PARSE_AS_VAULT_CONFIG -->
+<!-- Message-ID: ErrMsgTemplate.CANNOT_PARSE_AS_VAULT_CONFIG_OSERROR -->
+??? failure "`Cannot parse %s as a valid vault-native configuration file/directory`"
+
+    The file or directory is not a valid vault-native configuration.
+    Alternatively, the wrong format was assumed and/or the wrong master key was provided.
+
+<!-- Message-ID: ErrMsgTemplate.INVALID_VAULT_CONFIG -->
+??? failure "`Invalid vault config: %s`"
+
+    The file or directory was successfully decrypted and decoded, but the resulting contents are not valid as a vault configuration.
+
+<!-- Message-ID: ErrMsgTemplate.MISSING_MODULE -->
+??? failure "`Cannot load the required Python module %s`"
+
+    (Exactly what it says.)
+
 ## COMPATIBILITY
 
 ### With other software

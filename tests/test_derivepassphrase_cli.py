@@ -1616,7 +1616,7 @@ class TestCLI:
         assert result.clean_exit(empty_stderr=True, output=cli.PROG_NAME), (
             'expected clean exit, and program name in version text'
         )
-        assert result.clean_exit(empty_stderr=True, output=cli.__version__), (
+        assert result.clean_exit(empty_stderr=True, output=cli.VERSION), (
             'expected clean exit, and version in help text'
         )
 
@@ -3441,7 +3441,7 @@ class TestCLI:
             )
         result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
-            error='violates the communications protocol.'
+            error='violates the communication protocol.'
         ), 'expected error exit and known error message'
 
     def test_225i_store_config_fail_manual_ssh_agent_refuses(
@@ -4583,7 +4583,7 @@ Boo.
             with monkeypatch.context() as mp:
                 mp.setattr(ssh_agent.SSHAgentClient, 'sign', fail_runtime)
                 with pytest.raises(
-                    ErrCallback, match='violates the communications protocol'
+                    ErrCallback, match='violates the communication protocol'
                 ):
                     cli_helpers.key_to_phrase(loaded_key, error_callback=err)
 
