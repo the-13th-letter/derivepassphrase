@@ -53,8 +53,16 @@ is_stgit_patch = bool(
 )
 
 try:
-    subprocess.run(['hatch', 'fmt', '-l'], check=True)
+    # In a first run, ignore E501 (line-too-long) and RUF100
+    # (unused-noqa), so that E501 errors don't stop the formatter from
+    # running, but also so that E501 noqas don't get fixed as RUF100
+    # violations.  Afterwards, run with normal settings to handle true
+    # E501s.
+    subprocess.run(
+        ['hatch', 'fmt', '-l', '--', '--ignore=E501,RUF100'], check=True
+    )
     subprocess.run(['hatch', 'fmt', '-f'], check=True)
+    subprocess.run(['hatch', 'fmt', '-l'], check=True)
     if current_branch == 'master':
         subprocess.run(
             ['hatch', 'env', 'run', '-e', 'types', '--', 'check'], check=True

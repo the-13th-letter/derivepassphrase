@@ -349,7 +349,11 @@ quote-style = 'single'
 ignore = [
     # Suggested ignore by ruff when also using ruff to format.  We *do*
     # check for E501, because this usually only happens when there is
-    # a text string that should be manually broken.
+    # a text string that should be manually broken.  However, for
+    # automated quality control, that specific check is turned off so
+    # that the linting and formatting can proceed, and then *afterwards*
+    # the files are re-linted.  We hope that any *true* E501 errors left
+    # over from this *are* text strings that should be manually broken.
     'W191', 'E111', 'E114', 'E117', 'D206', 'D300', 'Q000', 'Q001',
     'Q002', 'Q003', 'COM812', 'COM819', 'ISC001', 'ISC002',
     # We use `assert` regularly to appease the type checker, and because
