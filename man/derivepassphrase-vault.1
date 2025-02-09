@@ -41,14 +41,7 @@
 .Ar SERVICE
 .
 .Nm derivepassphrase vault
-.Bro
-.Fl \-delete
-.Ar SERVICE
-|
-.Fl \-delete\-globals
-|
-.Fl \-clear
-.Brc
+.Brq Fl \-delete Ar SERVICE | Fl \-delete\-globals | Fl \-clear
 .
 .Nm derivepassphrase vault
 .Op Fl \-export\-as Brq Li json | sh
@@ -321,6 +314,12 @@ Delete all stored settings.
 The storage management options deal with importing and exporting the stored
 settings.
 They are mutually exclusive; you may only specify one of them.
+The
+.Ar SERVICE
+argument is forbidden.
+.
+.Pp
+.
 Using
 .Li \-
 as

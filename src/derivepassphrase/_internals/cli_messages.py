@@ -1791,8 +1791,9 @@ class WarnMsgTemplate(enum.Enum):
     )(
         'Warning message',
         'An empty {service_metavar!s} is not supported by vault(1).  '
-        'For compatibility, this will be treated as if SERVICE was not '
-        'supplied, i.e., it will error out, or operate on global settings.',
+        'For compatibility, this will be treated as if '
+        '{service_metavar!s} was not supplied, i.e., it will error out, '
+        'or operate on global settings.',
         flags='python-brace-format',
     )
     """"""
@@ -2031,7 +2032,7 @@ class ErrMsgTemplate(enum.Enum):
     )(
         'Error message',
         "Cannot understand the SSH agent's response because it "
-        'violates the communications protocol.',
+        'violates the communication protocol.',
     )
     """"""
     CANNOT_UPDATE_SETTINGS_NO_SETTINGS = commented(

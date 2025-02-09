@@ -122,6 +122,8 @@ The <var>SERVICE</var> is mandatory for `--notes` and `--delete`, optional for `
 
 The storage management options deal with importing and exporting the stored settings.
 They are mutually exclusive; you may only specify one of them.
+The <var>SERVICE</var> argument is forbidden.
+
 Using `-` as <var>PATH</var> for standard input/standard output is supported.
 
 <b>-e</b> <var>PATH</var>, <b>-</b><b>-export</b> <var>PATH</var>
