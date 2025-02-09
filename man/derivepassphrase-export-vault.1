@@ -155,6 +155,35 @@ Fallback values for
 .
 .El
 .
+.Sh DIAGNOSTICS
+.
+.Ex -std "derivepassphrase export vault"
+.Pp
+.
+.Ss Fatal error messages on standard error
+.
+.Pq Li %s Ns No " indicates a variable part of the message."
+.
+.Bl -diag
+.
+.\" Message-ID: ErrMsgTemplate.CANNOT_PARSE_AS_VAULT_CONFIG
+.\" Message-ID: ErrMsgTemplate.CANNOT_PARSE_AS_VAULT_CONFIG_OSERROR
+.It Cannot parse %s as a valid vault-native configuration file/directory
+The file or directory is not a valid vault-native configuration.
+Alternatively, the wrong format was assumed and/or the wrong master key was
+provided.
+.
+.\" Message-ID: ErrMsgTemplate.INVALID_VAULT_CONFIG
+.It Invalid vault config: %s
+The file or directory was successfully decrypted and decoded, but the
+resulting contents are not valid as a vault configuration.
+.
+.\" Message-ID: ErrMsgTemplate.MISSING_MODULE
+.It Cannot load the required Python module %s
+(Exactly what it says.)
+.
+.El
+.
 .Sh COMPATIBILITY
 .
 .Ss With other software

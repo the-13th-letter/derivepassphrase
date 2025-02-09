@@ -288,121 +288,135 @@ The <b>derivepassphrase vault</b> utility exits 0 on success, and >0 if an error
 
 (`%s` indicates a variable part of the message.)
 
+<!-- Message-ID: ErrMsgTemplate.PARAMS_MUTUALLY_EXCLUSIVE -->
 ??? failure "`%s is mutually exclusive with %s.`"
 
     The two indicated options must not be used at the same time.
 
+<!-- Message-ID: ErrMsgTemplate.PARAMS_NEEDS_SERVICE_OR_CONFIG -->
 ??? failure "`%s requires a SERVICE or --config.`"
 
     Using the indicated passphrase generation option requires the <var>SERVICE</var> argument or the `--config` option.
 
+<!-- Message-ID: ErrMsgTemplate.PARAMS_NEEDS_SERVICE -->
 ??? failure "`%s requires a SERVICE.`"
 
     Using the indicated option requires the <var>SERVICE</var> argument.
 
+<!-- Message-ID: ErrMsgTemplate.PARAMS_NO_SERVICE -->
 ??? failure "`%s does not take a SERVICE argument.`"
 
     The indicated option must not be specified together with the <var>SERVICE</var> argument.
 
+<!-- Message-ID: ErrMsgTemplate.CANNOT_LOAD_VAULT_SETTINGS -->
 ??? failure "`Cannot load vault settings: %s.`"
 
     There was a fatal problem loading the stored vault configuration data.
     Further details are contained in the variable part of the message.
 
+<!-- Message-ID: ErrMsgTemplate.CANNOT_STORE_VAULT_SETTINGS -->
 ??? failure "`Cannot store vault settings: %s.`"
 
     There was a fatal problem saving the vault configuration data.
     Further details are contained in the variable part of the message.
 
+<!-- Message-ID: ErrMsgTemplate.CANNOT_DECODEIMPORT_VAULT_SETTINGS -->
+<!-- Message-ID: ErrMsgTemplate.CANNOT_IMPORT_VAULT_SETTINGS -->
 ??? failure "`Cannot import vault settings: %s.`"
 
     There was a fatal problem loading the imported vault configuration data.
     Further details are contained in the variable part of the message.
 
+<!-- Message-ID: ErrMsgTemplate.CANNOT_EXPORT_VAULT_SETTINGS -->
 ??? failure "`Cannot export vault settings: %s.`"
 
     There was a fatal problem saving the exported vault configuration data.
     Further details are contained in the variable part of the message.
 
+<!-- Message-ID: ErrMsgTemplate.CANNOT_LOAD_USER_CONFIG -->
 ??? failure "`Cannot load user config: %s.`"
 
     There was a fatal problem loading the central user configuration file.
     Further details are contained in the variable part of the message.
 
+<!-- Message-ID: ErrMsgTemplate.INVALID_USER_CONFIG -->
 ??? failure "`The user configuration file is invalid.`"
 
     (Exactly what it says.)
 
-??? failure "`No usable SSH keys were found`"
-
-    The running SSH agent does not contain any suitable SSH keys.
-
-??? failure "`No valid SSH key selected`"
-
-    We requested that an SSH key be selected, but we got an invalid selection.
-
+<!-- Message-ID: ErrMsgTemplate.SSH_KEY_NOT_LOADED -->
 ??? failure "`The requested SSH key is not loaded into the agent.`"
 
     The running SSH agent does not contain the necessary SSH key.
 
+<!-- Message-ID: ErrMsgTemplate.NO_SSH_AGENT_FOUND -->
 ??? failure "`Cannot find any running SSH agent because SSH_AUTH_SOCK is not set.`"
 
     We require a running SSH agent, but cannot locate its communication channel, which is normally indicated by the `SSH_AUTH_SOCK` environment variable.
 
+<!-- Message-ID: ErrMsgTemplate.NO_AF_UNIX -->
 ??? failure "`Cannot connect to an SSH agent because this Python version does not support UNIX domain sockets.`"
 
     This Python installation does not support the communication mechanism necessary to talk to SSH agents.
 
+<!-- Message-ID: ErrMsgTemplate.CANNOT_CONNECT_TO_AGENT -->
 ??? failure "`Cannot connect to the SSH agent: %s.`"
 
     We cannot connect to the SSH agent indicated by the `SSH_AUTH_SOCK` environment variable.
     Further details are contained in the variable part of the message.
 
+<!-- Message-ID: ErrMsgTemplate.AGENT_REFUSED_LIST_KEYS -->
 ??? failure "`The SSH agent failed to or refused to supply a list of loaded keys.`"
 
     The SSH agent---while responsive in principle---did not fulfill the request.
 
+<!-- Message-ID: ErrMsgTemplate.AGENT_REFUSED_SIGNATURE -->
 ??? failure "`The SSH agent failed to or refused to issue a signature with the selected key, necessary for deriving a service passphrase.`"
 
     The SSH agent---while responsive in principle---failed to cooperate with deriving a service passphrase from the selected master SSH key.
 
+<!-- Message-ID: ErrMsgTemplate.NO_SUITABLE_SSH_KEYS -->
 ??? failure "`The SSH agent contains no keys suitable for derivepassphrase.`"
 
     None of the keys loaded into the SSH agent (if any) are suitable for use with <b>derivepassphrase vault</b>.  See the ["SSH KEY SUITABILITY"](#ssh-key-suitability) section for the requirements the SSH key and the SSH agent must fulfill to be suitable.
 
-??? failure "`Error communicating with the SSH agent`"
-
-    There was a system error communicating with the SSH agent.
-
+<!-- Message-ID: ErrMsgTemplate.CANNOT_UNDERSTAND_AGENT -->
 ??? failure "`Cannot understand the SSH agent's response because it violates the communication protocol.`"
 
     (Exactly what it says.)
 
+<!-- Message-ID: ErrMsgTemplate.USER_ABORTED_EDIT -->
 ??? failure "`Not saving any new notes: the user aborted the request.`"
 
     (Exactly what it says.)
 
-??? failure "`Cannot update the %s settings without actual settings.`"
+<!-- Message-ID: ErrMsgTemplate.CANNOT_UPDATE_SETTINGS_NO_SETTINGS -->
+??? failure "`Cannot update the %s settings without any given settings.`"
 
     Using `--config` requires at least one of the `--phrase`, `--key`, `--length`, etc. options.
 
+<!-- Message-ID: ErrMsgTemplate.SET_AND_UNSET_SAME_SETTING -->
 ??? failure "`Attempted to unset and set %s at the same time.`"
 
     While handling `--config`, the same configuration setting was passed as an option and as an argument to `--unset`.
 
-??? failure "`Generating a passphrase requires a SERVICE.`"
+<!-- Message-ID: ErrMsgTemplate.SERVICE_REQUIRED -->
+??? failure "`Deriving a passphrase requires a SERVICE.`"
 
     (Exactly what it says.)
 
+<!-- Message-ID: ErrMsgTemplate.NO_KEY_OR_PHRASE -->
 ??? failure "`No passphrase or key was given in the configuration.`"
 
     <b>derivepassphrase vault</b> does not know whether to use a master SSH key or a master passphrase.
 
-??? failure "`No passphrase was given: the user aborted the request.`"
+<!-- Message-ID: ErrMsgTemplate.USER_ABORTED_PASSPHRASE -->
+??? failure "`No passphrase was given; the user aborted the request.`"
 
     (Exactly what it says.)
 
-??? failure "`No SSH key was selected: the user aborted the request.`"
+<!-- Message-ID: ErrMsgTemplate.USER_ABORTED_SSH_KEY_SELECTION -->
+??? failure "`No SSH key was selected; the user aborted the request.`"
 
     (Exactly what it says.)
 
@@ -410,55 +424,68 @@ The <b>derivepassphrase vault</b> utility exits 0 on success, and >0 if an error
 
 (`%s` indicates a variable part of the message.)
 
+<!-- Message-ID: WarnMsgTemplate.PASSPHRASE_NOT_NORMALIZED -->
 ??? warning "`The %s passphrase is not %s-normalized.`"
 
     The indicated passphrase---as a Unicode string---is not properly normalized according to the preferred Unicode normalization form (as specified in the central configuration file).
     It is therefore possible that the passphrase---as a byte string---is not the same byte string as you expect it to be (even though it *looks* correct), and that the derived passphrases thus do not match their expected values either.
     Please double-check.
 
+<!-- Message-ID: WarnMsgTemplate.EMPTY_SERVICE_NOT_SUPPORTED -->
+<!-- Message-ID: WarnMsgTemplate.EMPTY_SERVICE_SETTINGS_INACCESSIBLE -->
 ??? warning "`An empty SERVICE is not supported by vault(1).`"
 
     <i>vault</i>(1) does not support the empty string as a value for <var>SERVICE</var>; it will treat the <var>SERVICE</var> as missing.
     For compatibility, <b>derivepassphrase vault</b> will do the same.
     In particular, if the empty service is imported in a configuration via `--import`, then this service cannot be accessed via the <b>derivepassphrase vault</b> command-line.
 
+<!-- Message-ID: WarnMsgTemplate.STEP_REPLACE_INVALID_VALUE -->
 ??? warning "`Replacing invalid value %s for key %s with %s.`"
 
     When importing a configuration, the indicated invalid value has been replaced with the indicated replacement value.
     (The "interpretation" of the configuration doesn’t change).
 
+<!-- Message-ID: WarnMsgTemplate.STEP_REMOVE_INEFFECTIVE_VALUE -->
 ??? warning "`Removing ineffective setting %s = %s.`"
 
     When importing a configuration, the indicated ineffective setting has been removed.
     (The "interpretation" of the configuration doesn’t change).
 
+<!-- Message-ID: WarnMsgTemplate.SERVICE_NAME_INCOMPLETABLE -->
 ??? warning "`The service name %s contains an ASCII control character, which is not supported by our shell completion code.`"
 
     Because of limitations in the shell completion code, this specific service name will not be available as a suggestion in tab completion.
     (This *only* affects tab completion, not other functionality.)
 
-??? warning "`Setting a %s passphrase is ineffective because a key is also set.`"
+<!-- Message-ID: WarnMsgTemplate.GLOBAL_PASSPHRASE_INEFFECTIVE -->
+<!-- Message-ID: WarnMsgTemplate.SERVICE_PASSPHRASE_INEFFECTIVE -->
+??? warning "`Setting a %s passphrase is ineffective because a key is also set`"
 
     The configuration (global or key-specific) contains both a stored master passphrase and an SSH key.
     The master passphrase will not take effect.
 
-??? warning "`A subcommand will be required in v1.0.`"
+<!-- Message-ID: WarnMsgTemplate.V10_SUBCOMMAND_REQUIRED -->
+??? warning "`A subcommand will be required here in v1.0.`"
 
     [Since v0.2.0, until v1.0.]
     This command now requires a subcommand.
     For compatibility, it currently defaults to "vault".
 
+<!-- Message-ID: WarnMsgTemplate.V01_STYLE_CONFIG -->
+<!-- Message-ID (mark only): WarnMsgTemplate.FAILED_TO_MIGRATE_CONFIG -->
 ??? warning "`Using deprecated v0.1-style config file %s, instead of v0.2-style %s.`"
 
     [Since v0.2.0, until v1.0.]
     A configuration file has been renamed.
     <b>derivepassphrase vault</b> will attempt to rename the file itself (`Successfully migrated to %s.`), or complain if it cannot rename it (`Failed to migrate to %s: %s`).
 
+<!-- Message-ID: WarnMsgTemplate.EDITING_NOTES_BUT_NOT_STORING_CONFIG -->
 ??? warning "`Specifying --notes without --config is ineffective.`"
 
     (Exactly what it says.)
 
-??? warning "`A backup copy of the notes was saved to %s.`"
+<!-- Message-ID: WarnMsgTemplate.LEGACY_EDITOR_INTERFACE_NOTES_BACKUP -->
+??? warning "`A backup copy of the old notes was saved to %s.`"
 
     The <i>vault</i>(1) legacy editor interface is in use, which carries a high risk of accidentally losing or corrupting the old notes because a notes editing session cannot be aborted mid-editing.
     To guard against such accidental data loss, a backup copy of the old notes was saved to the <b>derivepassphrase</b> configuration directory.
