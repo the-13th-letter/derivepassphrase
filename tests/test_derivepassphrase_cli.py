@@ -2233,6 +2233,8 @@ class TestCLI:
         config = conf.config
         config2 = copy.deepcopy(config)
         _types.clean_up_falsy_vault_config_values(config2)
+        # Reset caplog between hypothesis runs.
+        caplog.clear()
         runner = click.testing.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -2637,9 +2639,12 @@ class TestCLI:
         notes: str,
     ) -> None:
         """Editing notes works."""
+        marker = cli_messages.TranslatedString(
+            cli_messages.Label.DERIVEPASSPHRASE_VAULT_NOTES_MARKER
+        )
         edit_result = f"""
 
-# - - - - - >8 - - - - - >8 - - - - - >8 - - - - - >8 - - - - -
+{marker}
 {notes}
 """
         # Reset caplog between hypothesis runs.
