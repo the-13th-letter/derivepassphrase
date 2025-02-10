@@ -235,7 +235,11 @@ exclude = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ['src/derivepassphrase']
+include = [
+    'src/derivepassphrase',
+    'share/man/',
+]
+sources = ['src']
 
 [tool.hatch.env]
 requires = [
