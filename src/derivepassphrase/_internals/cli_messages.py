@@ -79,6 +79,15 @@ def load_translations(
 
     """
     if localedirs is None:
+        # TODO(the-13th-letter): Define a public (and opaque) enum for these
+        # special directories so that they are available to callers as well,
+        # without computation.  Shift the computation into a separate
+        # top-level function, so that it can be stubbed during tests.
+        # Support the `.../site-packages/share/locale` special directory via
+        # a new enum value, because that is where the derivepassphrase wheel
+        # stores its packaged translations.  Then reimplement `gettext.find`
+        # and `gettext.translation` with support for `importlib.resources`.
+        # The heavy lifting is already being done by `locale.normalize`.
         if sys.platform.startswith('win'):
             xdg_data_home = (
                 pathlib.Path(os.environ['APPDATA'])
@@ -359,9 +368,9 @@ class TranslatableString(NamedTuple):
             A new [`TranslatableString`][] with the specified comments.
 
         """
-        if not comments.lstrip().startswith(  # pragma: no cover
+        if comments.strip() and not comments.lstrip().startswith(
             'TRANSLATORS:'
-        ):
+        ):  # pragma: no cover
             comments = 'TRANSLATORS: ' + comments.lstrip()
         comments = self._maybe_rewrap(comments, fix_sentence_endings=False)
         return self._replace(translator_comments=comments)
@@ -815,6 +824,7 @@ class Label(enum.Enum):
     )(
         'Label :: Help text :: Explanation',
         """\
+\b
 # Enter notes below the line with the cut mark (ASCII scissors and
 # dashes).  Lines above the cut mark (such as this one) will be ignored.
 #
@@ -2050,7 +2060,7 @@ class ErrMsgTemplate(enum.Enum):
     )(
         'Error message',
         'Cannot update the {settings_type!s} without any given settings.  '
-        'You must specify at least one of --lower, ..., --symbol, '
+        'You must specify at least one of --lower, ..., --symbol, --notes, '
         'or --phrase or --key.',
         flags='python-brace-format',
     )
@@ -2227,6 +2237,7 @@ def _write_po_file(  # noqa: C901,PLR0912
     *,
     is_template: bool = True,
     version: str = VERSION,
+    build_time: datetime.datetime | None = None,
 ) -> None:  # pragma: no cover
     r"""Write a .po file to the given file object.
 
@@ -2255,8 +2266,7 @@ def _write_po_file(  # noqa: C901,PLR0912
                     f'{entries[ctx][msg]!r} and {member!r}'
                 )
             entries[ctx][msg] = member
-    build_time = datetime.datetime.now().astimezone()
-    if os.environ.get('SOURCE_DATE_EPOCH'):
+    if build_time is None and os.environ.get('SOURCE_DATE_EPOCH'):
         try:
             source_date_epoch = int(os.environ['SOURCE_DATE_EPOCH'])
         except ValueError as exc:
@@ -2267,6 +2277,8 @@ def _write_po_file(  # noqa: C901,PLR0912
                 source_date_epoch,
                 tz=datetime.timezone.utc,
             )
+    elif build_time is None:
+        build_time = datetime.datetime.now().astimezone()
     if is_template:
         header = (
             inspect.cleandoc(rf"""
@@ -2312,7 +2324,7 @@ def _write_po_file(  # noqa: C901,PLR0912
     else:
         po_info.update({
             'Last-Translator': AUTHOR,
-            'Language': 'en_DEBUG',
+            'Language': 'en_US@DEBUG',
             'Language-Team': 'English',
         })
     print(*_format_po_info(po_info), sep='\n', end='\n', file=fileobj)
@@ -2433,6 +2445,14 @@ def _cstr(s: str) -> str:  # pragma: no cover
 if __name__ == '__main__':
     import argparse
 
+    def validate_build_time(value: str | None) -> datetime.datetime | None:
+        if value is None:
+            return None
+        ret = datetime.datetime.fromisoformat(value)
+        if ret.isoformat(sep=' ', timespec='seconds') != value:
+            raise ValueError(f'invalid time specification: {value}')  # noqa: EM102,TRY003
+        return ret
+
     ap = argparse.ArgumentParser()
     ex = ap.add_mutually_exclusive_group()
     ex.add_argument(
@@ -2456,9 +2476,19 @@ if __name__ == '__main__':
         default=VERSION,
         help='Override declared software version',
     )
+    ap.add_argument(
+        '--set-build-time',
+        action='store',
+        dest='build_time',
+        default=None,
+        type=validate_build_time,
+        help='Override the time of build (YYYY-MM-DD HH:MM:SS+HH:MM format, '
+        'default: $SOURCE_DATE_EPOCH, or the current time)',
+    )
     args = ap.parse_args()
     _write_po_file(
         sys.stdout,
         version=args.version,
         is_template=args.is_template,
+        build_time=args.build_time,
     )
