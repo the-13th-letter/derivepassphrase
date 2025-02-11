@@ -359,9 +359,9 @@ class TranslatableString(NamedTuple):
             A new [`TranslatableString`][] with the specified comments.
 
         """
-        if not comments.lstrip().startswith(  # pragma: no cover
+        if comments.strip() and not comments.lstrip().startswith(
             'TRANSLATORS:'
-        ):
+        ):  # pragma: no cover
             comments = 'TRANSLATORS: ' + comments.lstrip()
         comments = self._maybe_rewrap(comments, fix_sentence_endings=False)
         return self._replace(translator_comments=comments)
@@ -815,6 +815,7 @@ class Label(enum.Enum):
     )(
         'Label :: Help text :: Explanation',
         """\
+\b
 # Enter notes below the line with the cut mark (ASCII scissors and
 # dashes).  Lines above the cut mark (such as this one) will be ignored.
 #
@@ -2050,7 +2051,7 @@ class ErrMsgTemplate(enum.Enum):
     )(
         'Error message',
         'Cannot update the {settings_type!s} without any given settings.  '
-        'You must specify at least one of --lower, ..., --symbol, '
+        'You must specify at least one of --lower, ..., --symbol, --notes, '
         'or --phrase or --key.',
         flags='python-brace-format',
     )
@@ -2312,7 +2313,7 @@ def _write_po_file(  # noqa: C901,PLR0912
     else:
         po_info.update({
             'Last-Translator': AUTHOR,
-            'Language': 'en_DEBUG',
+            'Language': 'en_US@DEBUG',
             'Language-Team': 'English',
         })
     print(*_format_po_info(po_info), sep='\n', end='\n', file=fileobj)
