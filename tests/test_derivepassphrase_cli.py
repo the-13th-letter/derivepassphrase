@@ -2578,7 +2578,8 @@ class TestCLI:
         placement_args: list[str],
         notes: str,
     ) -> None:
-        maybe_notes = {'notes': notes.strip()} if notes.strip() else {}
+        notes = notes.strip()
+        maybe_notes = {'notes': notes} if notes else {}
         vault_config = {
             'global': {'phrase': DUMMY_PASSPHRASE},
             'services': {
