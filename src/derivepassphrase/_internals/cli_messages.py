@@ -686,7 +686,7 @@ class Label(enum.Enum):
         'The translation should thus be as meaningful as possible '
         'even if truncated.',
     )(
-        'Label :: Help text :: Explanation',
+        'Label :: Help text :: One-line description',
         'Derive a strong passphrase, deterministically, from a master secret.',
     )
     """"""
@@ -726,7 +726,7 @@ class Label(enum.Enum):
         'The translation should thus be as meaningful as possible '
         'even if truncated.',
     )(
-        'Label :: Help text :: Explanation',
+        'Label :: Help text :: One-line description',
         'Export a foreign configuration to standard output.',
     )
     """"""
@@ -748,7 +748,7 @@ class Label(enum.Enum):
         'The translation should thus be as meaningful as possible '
         'even if truncated.',
     )(
-        'Label :: Help text :: Explanation',
+        'Label :: Help text :: One-line description',
         'Export a vault-native configuration to standard output.',
     )
     """"""
@@ -781,7 +781,7 @@ class Label(enum.Enum):
         'The translation should thus be as meaningful as possible '
         'even if truncated.',
     )(
-        'Label :: Help text :: Explanation',
+        'Label :: Help text :: One-line description',
         'Derive a passphrase using the vault derivation scheme.',
     )
     """"""
