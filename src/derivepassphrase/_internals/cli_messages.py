@@ -2348,10 +2348,30 @@ def _write_po_file(  # noqa: C901,PLR0912
             'Language-Team': 'English',
         })
     print(*_format_po_info(po_info), sep='\n', end='\n', file=fileobj)
-    for _ctx, subdict in sorted(entries.items()):
+
+    context_class = {
+        'Label': Label,
+        'Debug message': DebugMsgTemplate,
+        'Info message': InfoMsgTemplate,
+        'Warning message': WarnMsgTemplate,
+        'Error message': ErrMsgTemplate,
+    }
+
+    def _sort_position_msg_template_class(
+        item: tuple[str, Any],
+        /,
+    ) -> tuple[int, str]:
+        context_type = item[0].split(' :: ')[0]
+        return (
+            MSG_TEMPLATE_CLASSES.index(context_class[context_type]),
+            item[0],
+        )
+
+    for _ctx, subdict in sorted(
+        entries.items(), key=_sort_position_msg_template_class
+    ):
         for _msg, enum_value in sorted(
-            subdict.items(),
-            key=lambda kv: str(kv[1]),
+            subdict.items(), key=lambda kv: str(kv[1])
         ):
             value = cast('TranslatableString', enum_value.value)
             value2 = value.maybe_without_filename()
