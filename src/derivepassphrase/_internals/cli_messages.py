@@ -753,7 +753,7 @@ class Label(enum.Enum):
     )
     """"""
     DERIVEPASSPHRASE_EXPORT_VAULT_02 = commented(
-        '',
+        'The metavar is Label.EXPORT_VAULT_METAVAR_PATH.',
     )(
         'Label :: Help text :: Explanation',
         'Depending on the configuration format, '
@@ -763,7 +763,7 @@ class Label(enum.Enum):
     )
     """"""
     DERIVEPASSPHRASE_EXPORT_VAULT_03 = commented(
-        '',
+        'The metavar is Label.EXPORT_VAULT_METAVAR_PATH.',
     )(
         'Label :: Help text :: Explanation',
         'If {path_metavar} is explicitly given as `VAULT_PATH`, '
@@ -786,7 +786,7 @@ class Label(enum.Enum):
     )
     """"""
     DERIVEPASSPHRASE_VAULT_02 = commented(
-        '',
+        'The metavar is Label.VAULT_METAVAR_SERVICE.',
     )(
         'Label :: Help text :: Explanation',
         'If operating on global settings, or importing/exporting settings, '
@@ -1022,7 +1022,7 @@ class Label(enum.Enum):
     """"""
 
     DERIVEPASSPHRASE_VAULT_NOTES_HELP_TEXT = commented(
-        '',
+        'The metavar is Label.VAULT_METAVAR_SERVICE.',
     )(
         'Label :: Help text :: One-line description',
         'spawn an editor to edit notes for {service_metavar}',
@@ -1030,7 +1030,7 @@ class Label(enum.Enum):
     )
     """"""
     DERIVEPASSPHRASE_VAULT_CONFIG_HELP_TEXT = commented(
-        '',
+        'The metavar is Label.VAULT_METAVAR_SERVICE.',
     )(
         'Label :: Help text :: One-line description',
         'save the given settings for {service_metavar}, or global',
@@ -1038,7 +1038,7 @@ class Label(enum.Enum):
     )
     """"""
     DERIVEPASSPHRASE_VAULT_DELETE_HELP_TEXT = commented(
-        '',
+        'The metavar is Label.VAULT_METAVAR_SERVICE.',
     )(
         'Label :: Help text :: One-line description',
         'delete the settings for {service_metavar}',
@@ -1060,7 +1060,7 @@ class Label(enum.Enum):
     )
     """"""
     DERIVEPASSPHRASE_VAULT_EXPORT_HELP_TEXT = commented(
-        'The metavar is Label.STORAGE_MANAGEMENT_METAVAR_SERVICE.',
+        'The metavar is Label.STORAGE_MANAGEMENT_METAVAR_PATH.',
     )(
         'Label :: Help text :: One-line description',
         'export all saved settings to {metavar}',
@@ -1068,7 +1068,7 @@ class Label(enum.Enum):
     )
     """"""
     DERIVEPASSPHRASE_VAULT_IMPORT_HELP_TEXT = commented(
-        'The metavar is Label.STORAGE_MANAGEMENT_METAVAR_SERVICE.',
+        'The metavar is Label.STORAGE_MANAGEMENT_METAVAR_PATH.',
     )(
         'Label :: Help text :: One-line description',
         'import saved settings from {metavar}',
@@ -1133,14 +1133,18 @@ class Label(enum.Enum):
     """"""
 
     EXPORT_VAULT_FORMAT_METAVAR_FMT = commented(
-        '',
+        'This text is used as {metavar} in '
+        'Label.EXPORT_VAULT_FORMAT_HELP_TEXT, yielding e.g. '
+        '"Try the following storage format FMT."',
     )(
         'Label :: Help text :: Metavar :: export vault',
         'FMT',
     )
     """"""
     EXPORT_VAULT_KEY_METAVAR_K = commented(
-        'See Label.EXPORT_VAULT_KEY_HELP_TEXT.',
+        'This text is used as {metavar} in '
+        'Label.EXPORT_VAULT_KEY_HELP_TEXT, yielding e.g. '
+        '"Use K as the storage master key."',
     )(
         'Label :: Help text :: Metavar :: export vault',
         'K',
@@ -1148,28 +1152,40 @@ class Label(enum.Enum):
     """"""
     EXPORT_VAULT_METAVAR_PATH = commented(
         'Used as "path_metavar" in '
-        'Label.DERIVEPASSPHRASE_EXPORT_VAULT_02 and others.',
+        'Label.DERIVEPASSPHRASE_EXPORT_VAULT_02 and others, '
+        'yielding e.g. "Depending on the configuration format, '
+        'PATH may either be a file or a directory."',
     )(
         'Label :: Help text :: Metavar :: export vault',
         'PATH',
     )
     """"""
     PASSPHRASE_GENERATION_METAVAR_NUMBER = commented(
-        'This metavar is also used in a matching epilog.',
+        'This metavar is used in Label.PASSPHRASE_GENERATION_EPILOG, '
+        'Label.DERIVEPASSPHRASE_VAULT_LENGTH_HELP_TEXT and others, '
+        'yielding e.g. "Ensure a passphrase length of NUMBER characters.".  ',
     )(
         'Label :: Help text :: Metavar :: vault',
         'NUMBER',
     )
     """"""
     STORAGE_MANAGEMENT_METAVAR_PATH = commented(
-        'This metavar is also used in multiple one-line help texts.',
+        'This metavar is used in Label.STORAGE_MANAGEMENT_EPILOG, '
+        'Label.DERIVEPASSPHRASE_VAULT_IMPORT_HELP_TEXT and others, '
+        'yielding e.g. "Ensure a passphrase length of NUMBER characters.".  ',
     )(
         'Label :: Help text :: Metavar :: vault',
         'PATH',
     )
     """"""
     VAULT_METAVAR_SERVICE = commented(
-        'This metavar is also used in multiple one-line help texts.',
+        'This metavar is used as "service_metavar" in multiple help texts, '
+        'such as Label.DERIVEPASSPHRASE_VAULT_CONFIG_HELP_TEXT, '
+        'Label.DERIVEPASSPHRASE_VAULT_02, ErrMsgTemplate.SERVICE_REQUIRED, '
+        'etc.  Sample texts are "Deriving a passphrase requires a SERVICE.", '
+        '"save the given settings for SERVICE, or global" and '
+        '"If operating on global settings, or importing/exporting settings, '
+        'then SERVICE must be omitted."',
     )(
         'Label :: Help text :: Metavar :: vault',
         'SERVICE',
