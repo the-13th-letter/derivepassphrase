@@ -28,12 +28,15 @@ import sys
 envs = ['3.9', '3.11', '3.13', 'pypy3.10']
 opts = ['-py', ','.join(envs)]
 
-current_branch = subprocess.run(
-    ['git', 'branch', '--show-current'],
-    capture_output=True,
-    text=True,
-    check=False,
-).stdout.strip()
+current_branch = (
+    os.getenv('GIT_CURRENT_BRANCH')
+    or subprocess.run(
+        ['git', 'branch', '--show-current'],
+        capture_output=True,
+        text=True,
+        check=False,
+    ).stdout.strip()
+)
 # We use rev-parse to check for Stacked Git's metadata tracking branch,
 # instead of checking `stg top` or similar, because we also want the
 # first `stg new` or `stg import` to correctly detect that we are
