@@ -186,7 +186,7 @@ class DebugTranslations(gettext.NullTranslations):
             for f in ts.fields()
         ]
         return (
-            '{!s}({})'.format(enum_name, ', '.join(formatted_fields))
+            '{}({})'.format(enum_name, ', '.join(formatted_fields))
             if formatted_fields
             else str(enum_name)
         )
@@ -324,7 +324,7 @@ class TranslatableString(NamedTuple):
         Only acts upon translatable strings containing the exact
         contents `": {filename!r}"`.  The specified part will be
         removed.  This is correct usage in English for messages like
-        `"Cannot open file: {error!s}: {filename!r}."`, but not
+        `"Cannot open file: {error}: {filename!r}."`, but not
         necessarily in other languages.
 
         """
@@ -757,7 +757,7 @@ class Label(enum.Enum):
     )(
         'Label :: Help text :: Explanation',
         'Depending on the configuration format, '
-        '{path_metavar!s} may either be a file or a directory.  '
+        '{path_metavar} may either be a file or a directory.  '
         'We support the vault "v0.2", "v0.3" and "storeroom" formats.',
         flags='python-brace-format',
     )
@@ -766,7 +766,7 @@ class Label(enum.Enum):
         '',
     )(
         'Label :: Help text :: Explanation',
-        'If {path_metavar!s} is explicitly given as `VAULT_PATH`, '
+        'If {path_metavar} is explicitly given as `VAULT_PATH`, '
         'then use the `VAULT_PATH` environment variable to '
         'determine the correct path.  '
         '(Use `./VAULT_PATH` or similar to indicate a file/directory '
@@ -790,7 +790,7 @@ class Label(enum.Enum):
     )(
         'Label :: Help text :: Explanation',
         'If operating on global settings, or importing/exporting settings, '
-        'then {service_metavar!s} must be omitted.  '
+        'then {service_metavar} must be omitted.  '
         'Otherwise it is required.',
         flags='python-brace-format',
     )
@@ -881,9 +881,9 @@ class Label(enum.Enum):
         'the metavar is Label.EXPORT_VAULT_FORMAT_METAVAR_FMT.',
     )(
         'Label :: Help text :: One-line description',
-        'try the following storage format {metavar!s}; '
+        'try the following storage format {metavar}; '
         'may be specified multiple times, '
-        'formats will be tried in order {defaults_hint!s}',
+        'formats will be tried in order {defaults_hint}',
         flags='python-brace-format',
     )
     """"""
@@ -901,7 +901,7 @@ class Label(enum.Enum):
         'the metavar is Label.EXPORT_VAULT_KEY_METAVAR_K.',
     )(
         'Label :: Help text :: One-line description',
-        'use {metavar!s} as the storage master key {defaults_hint!s}',
+        'use {metavar} as the storage master key {defaults_hint}',
         flags='python-brace-format',
     )
     """"""
@@ -960,7 +960,7 @@ class Label(enum.Enum):
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
-        'ensure a passphrase length of {metavar!s} characters',
+        'ensure a passphrase length of {metavar} characters',
         flags='python-brace-format',
     )
     """"""
@@ -968,7 +968,7 @@ class Label(enum.Enum):
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
-        'forbid any run of {metavar!s} identical characters',
+        'forbid any run of {metavar} identical characters',
         flags='python-brace-format',
     )
     """"""
@@ -976,7 +976,7 @@ class Label(enum.Enum):
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
-        'ensure at least {metavar!s} lowercase characters',
+        'ensure at least {metavar} lowercase characters',
         flags='python-brace-format',
     )
     """"""
@@ -984,7 +984,7 @@ class Label(enum.Enum):
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
-        'ensure at least {metavar!s} uppercase characters',
+        'ensure at least {metavar} uppercase characters',
         flags='python-brace-format',
     )
     """"""
@@ -992,7 +992,7 @@ class Label(enum.Enum):
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
-        'ensure at least {metavar!s} digits',
+        'ensure at least {metavar} digits',
         flags='python-brace-format',
     )
     """"""
@@ -1000,7 +1000,7 @@ class Label(enum.Enum):
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
-        'ensure at least {metavar!s} spaces',
+        'ensure at least {metavar} spaces',
         flags='python-brace-format',
     )
     """"""
@@ -1008,7 +1008,7 @@ class Label(enum.Enum):
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
-        'ensure at least {metavar!s} "-" or "_" characters',
+        'ensure at least {metavar} "-" or "_" characters',
         flags='python-brace-format',
     )
     """"""
@@ -1016,7 +1016,7 @@ class Label(enum.Enum):
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
-        'ensure at least {metavar!s} symbol characters',
+        'ensure at least {metavar} symbol characters',
         flags='python-brace-format',
     )
     """"""
@@ -1025,7 +1025,7 @@ class Label(enum.Enum):
         '',
     )(
         'Label :: Help text :: One-line description',
-        'spawn an editor to edit notes for {service_metavar!s}',
+        'spawn an editor to edit notes for {service_metavar}',
         flags='python-brace-format',
     )
     """"""
@@ -1033,7 +1033,7 @@ class Label(enum.Enum):
         '',
     )(
         'Label :: Help text :: One-line description',
-        'save the given settings for {service_metavar!s}, or global',
+        'save the given settings for {service_metavar}, or global',
         flags='python-brace-format',
     )
     """"""
@@ -1041,7 +1041,7 @@ class Label(enum.Enum):
         '',
     )(
         'Label :: Help text :: One-line description',
-        'delete the settings for {service_metavar!s}',
+        'delete the settings for {service_metavar}',
         flags='python-brace-format',
     )
     """"""
@@ -1063,7 +1063,7 @@ class Label(enum.Enum):
         'The metavar is Label.STORAGE_MANAGEMENT_METAVAR_SERVICE.',
     )(
         'Label :: Help text :: One-line description',
-        'export all saved settings to {metavar!s}',
+        'export all saved settings to {metavar}',
         flags='python-brace-format',
     )
     """"""
@@ -1071,7 +1071,7 @@ class Label(enum.Enum):
         'The metavar is Label.STORAGE_MANAGEMENT_METAVAR_SERVICE.',
     )(
         'Label :: Help text :: One-line description',
-        'import saved settings from {metavar!s}',
+        'import saved settings from {metavar}',
         flags='python-brace-format',
     )
     """"""
@@ -1186,7 +1186,7 @@ class Label(enum.Enum):
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: Explanation',
-        'Use {metavar!s}=0 to exclude a character type from the output.',
+        'Use {metavar}=0 to exclude a character type from the output.',
         flags='python-brace-format',
     )
     """"""
@@ -1194,7 +1194,7 @@ class Label(enum.Enum):
         'The metavar is Label.STORAGE_MANAGEMENT_METAVAR_PATH.',
     )(
         'Label :: Help text :: Explanation',
-        'Using "-" as {metavar!s} for standard input/standard output '
+        'Using "-" as {metavar} for standard input/standard output '
         'is supported.',
         flags='python-brace-format',
     )
@@ -1259,7 +1259,7 @@ class Label(enum.Enum):
         '',
     )(
         'Label :: Info Message',
-        '{PROG_NAME!s} {VERSION}',  # noqa: RUF027
+        '{PROG_NAME} {VERSION}',  # noqa: RUF027
         flags='python-brace-format',
     )
     """"""
@@ -1685,7 +1685,7 @@ class InfoMsgTemplate(enum.Enum):
         'vault configuration as.',
     )(
         'Info message',
-        'Cannot load {path!r} as a {fmt!s} vault configuration.',
+        'Cannot load {path!r} as a {fmt} vault configuration.',
         flags='python-brace-format',
     )
     """"""
@@ -1800,9 +1800,9 @@ class WarnMsgTemplate(enum.Enum):
         '',
     )(
         'Warning message',
-        'An empty {service_metavar!s} is not supported by vault(1).  '
+        'An empty {service_metavar} is not supported by vault(1).  '
         'For compatibility, this will be treated as if '
-        '{service_metavar!s} was not supplied, i.e., it will error out, '
+        '{service_metavar} was not supplied, i.e., it will error out, '
         'or operate on global settings.',
         flags='python-brace-format',
     )
@@ -1811,10 +1811,10 @@ class WarnMsgTemplate(enum.Enum):
         '',
     )(
         'Warning message',
-        'An empty {service_metavar!s} is not supported by vault(1).  '
+        'An empty {service_metavar} is not supported by vault(1).  '
         'The empty-string service settings will be inaccessible '
         'and ineffective.  '
-        'To ensure that vault(1) and {PROG_NAME!s} see the settings, '  # noqa: RUF027
+        'To ensure that vault(1) and {PROG_NAME} see the settings, '  # noqa: RUF027
         'move them into the "global" section.',
         flags='python-brace-format',
     )
@@ -1823,7 +1823,7 @@ class WarnMsgTemplate(enum.Enum):
         '"error" is supplied by the operating system (errno/strerror).',
     )(
         'Warning message',
-        'Failed to migrate to {path!r}: {error!s}: {filename!r}.',
+        'Failed to migrate to {path!r}: {error}: {filename!r}.',
         flags='python-brace-format',
     )
     """"""
@@ -1858,7 +1858,7 @@ class WarnMsgTemplate(enum.Enum):
         'mark up emphasis of the word "displays".',
     )(
         'Warning message',
-        'The {key!s} passphrase is not {form!s}-normalized.  '
+        'The {key} passphrase is not {form}-normalized.  '
         'Its serialization as a byte string may not be what you '
         'expect it to be, even if it *displays* correctly.  '
         'Please make sure to double-check any derived passphrases '
@@ -1886,7 +1886,7 @@ class WarnMsgTemplate(enum.Enum):
     )(
         'Warning message',
         'Setting a service passphrase is ineffective '
-        'because a key is also set: {service!s}.',
+        'because a key is also set: {service}.',
         flags='python-brace-format',
     )
     """"""
@@ -1894,7 +1894,7 @@ class WarnMsgTemplate(enum.Enum):
         '',
     )(
         'Warning message',
-        'Removing ineffective setting {path!s} = {old!s}.',
+        'Removing ineffective setting {path} = {old}.',
         flags='python-brace-format',
     )
     """"""
@@ -1902,7 +1902,7 @@ class WarnMsgTemplate(enum.Enum):
         '',
     )(
         'Warning message',
-        'Replacing invalid value {old!s} for key {path!s} with {new!s}.',
+        'Replacing invalid value {old} for key {path} with {new}.',
         flags='python-brace-format',
     )
     """"""
@@ -1954,7 +1954,7 @@ class ErrMsgTemplate(enum.Enum):
         '"error" is supplied by the operating system (errno/strerror).',
     )(
         'Error message',
-        'Cannot connect to the SSH agent: {error!s}: {filename!r}.',
+        'Cannot connect to the SSH agent: {error}: {filename!r}.',
         flags='python-brace-format',
     )
     """"""
@@ -1962,7 +1962,7 @@ class ErrMsgTemplate(enum.Enum):
         '"error" is supplied by the operating system (errno/strerror).',
     )(
         'Error message',
-        'Cannot import vault settings: cannot decode JSON: {error!s}.',
+        'Cannot import vault settings: cannot decode JSON: {error}.',
         flags='python-brace-format',
     )
     """"""
@@ -1970,7 +1970,7 @@ class ErrMsgTemplate(enum.Enum):
         '"error" is supplied by the operating system (errno/strerror).',
     )(
         'Error message',
-        'Cannot export vault settings: {error!s}: {filename!r}.',
+        'Cannot export vault settings: {error}: {filename!r}.',
         flags='python-brace-format',
     )
     """"""
@@ -1978,7 +1978,7 @@ class ErrMsgTemplate(enum.Enum):
         '"error" is supplied by the operating system (errno/strerror).',
     )(
         'Error message',
-        'Cannot import vault settings: {error!s}: {filename!r}.',
+        'Cannot import vault settings: {error}: {filename!r}.',
         flags='python-brace-format',
     )
     """"""
@@ -1986,7 +1986,7 @@ class ErrMsgTemplate(enum.Enum):
         '"error" is supplied by the operating system (errno/strerror).',
     )(
         'Error message',
-        'Cannot load user config: {error!s}: {filename!r}.',
+        'Cannot load user config: {error}: {filename!r}.',
         flags='python-brace-format',
     )
     """"""
@@ -1994,12 +1994,12 @@ class ErrMsgTemplate(enum.Enum):
         '"error" is supplied by the operating system (errno/strerror).',
     )(
         'Error message',
-        'Cannot load vault settings: {error!s}: {filename!r}.',
+        'Cannot load vault settings: {error}: {filename!r}.',
         flags='python-brace-format',
     )
     """"""
     CANNOT_PARSE_AS_VAULT_CONFIG = commented(
-        'Unlike the "Cannot load {path!r} as a {fmt!s} '
+        'Unlike the "Cannot load {path!r} as a {fmt} '
         'vault configuration." message, *this* error message is emitted '
         'when we have tried loading the path in each of our '
         'supported formats, and failed.  '
@@ -2018,7 +2018,7 @@ class ErrMsgTemplate(enum.Enum):
     )(
         'Error message',
         r'Cannot parse {path!r} as a valid vault-native '
-        'configuration file/directory: {error!s}: {filename!r}.',
+        'configuration file/directory: {error}: {filename!r}.',
         flags='python-brace-format',
     )
     """"""
@@ -2026,7 +2026,7 @@ class ErrMsgTemplate(enum.Enum):
         '"error" is supplied by the operating system (errno/strerror).',
     )(
         'Error message',
-        'Cannot store vault settings: {error!s}: {filename!r}.',
+        'Cannot store vault settings: {error}: {filename!r}.',
         flags='python-brace-format',
     )
     """"""
@@ -2059,7 +2059,7 @@ class ErrMsgTemplate(enum.Enum):
         'of the first sentence.',
     )(
         'Error message',
-        'Cannot update the {settings_type!s} without any given settings.  '
+        'Cannot update the {settings_type} without any given settings.  '
         'You must specify at least one of --lower, ..., --symbol, --notes, '
         'or --phrase or --key.',
         flags='python-brace-format',
@@ -2069,7 +2069,7 @@ class ErrMsgTemplate(enum.Enum):
         '"error" is supplied by the operating system (errno/strerror).',
     )(
         'Error message',
-        'The user configuration file is invalid.  {error!s}: {filename!r}.',
+        'The user configuration file is invalid.  {error}: {filename!r}.',
         flags='python-brace-format',
     )
     """"""
@@ -2119,7 +2119,7 @@ class ErrMsgTemplate(enum.Enum):
         '',
     )(
         'Error message',
-        'The SSH agent contains no keys suitable for {PROG_NAME!s}.',  # noqa: RUF027
+        'The SSH agent contains no keys suitable for {PROG_NAME}.',  # noqa: RUF027
         flags='python-brace-format',
     )
     """"""
@@ -2128,7 +2128,7 @@ class ErrMsgTemplate(enum.Enum):
         'Typical example: "--key is mutually exclusive with --phrase."',
     )(
         'Error message',
-        '{param1!s} is mutually exclusive with {param2!s}.',
+        '{param1} is mutually exclusive with {param2}.',
         flags='python-brace-format',
     )
     """"""
@@ -2137,7 +2137,7 @@ class ErrMsgTemplate(enum.Enum):
         'the metavar is Label.VAULT_METAVAR_SERVICE.',
     )(
         'Error message',
-        '{param!s} requires a {service_metavar!s} or --config.',
+        '{param} requires a {service_metavar} or --config.',
         flags='python-brace-format',
     )
     """"""
@@ -2146,7 +2146,7 @@ class ErrMsgTemplate(enum.Enum):
         'the metavar is Label.VAULT_METAVAR_SERVICE.',
     )(
         'Error message',
-        '{param!s} requires a {service_metavar!s}.',
+        '{param} requires a {service_metavar}.',
         flags='python-brace-format',
     )
     """"""
@@ -2155,7 +2155,7 @@ class ErrMsgTemplate(enum.Enum):
         'the metavar is Label.VAULT_METAVAR_SERVICE.',
     )(
         'Error message',
-        '{param!s} does not take a {service_metavar!s} argument.',
+        '{param} does not take a {service_metavar} argument.',
         flags='python-brace-format',
     )
     """"""
@@ -2163,18 +2163,18 @@ class ErrMsgTemplate(enum.Enum):
         'The metavar is Label.VAULT_METAVAR_SERVICE.',
     )(
         'Error message',
-        'Deriving a passphrase requires a {service_metavar!s}.',
+        'Deriving a passphrase requires a {service_metavar}.',
         flags='python-brace-format',
     )
     """"""
     SET_AND_UNSET_SAME_SETTING = commented(
         'The rephrasing '
         '"Attempted to unset and set the same setting '
-        '(--unset={setting!s} --{setting!s}=...) at the same time."'
+        '(--unset={setting} --{setting}=...) at the same time."'
         'may or may not be more suitable as a basis for translation instead.',
     )(
         'Error message',
-        'Attempted to unset and set --{setting!s} at the same time.',
+        'Attempted to unset and set --{setting} at the same time.',
         flags='python-brace-format',
     )
     """"""
@@ -2282,9 +2282,9 @@ def _write_po_file(  # noqa: C901,PLR0912
     if is_template:
         header = (
             inspect.cleandoc(rf"""
-            # English translation for {PROG_NAME!s}.
+            # English translation for {PROG_NAME}.
             # Copyright (C) {build_time.strftime('%Y')} AUTHOR
-            # This file is distributed under the same license as {PROG_NAME!s}.
+            # This file is distributed under the same license as {PROG_NAME}.
             # AUTHOR <someone@example.com>, {build_time.strftime('%Y')}.
             #
             msgid ""
@@ -2295,9 +2295,9 @@ def _write_po_file(  # noqa: C901,PLR0912
     else:
         header = (
             inspect.cleandoc(rf"""
-            # English debug translation for {PROG_NAME!s}.
-            # Copyright (C) {build_time.strftime('%Y')} {AUTHOR!s}
-            # This file is distributed under the same license as {PROG_NAME!s}.
+            # English debug translation for {PROG_NAME}.
+            # Copyright (C) {build_time.strftime('%Y')} {AUTHOR}
+            # This file is distributed under the same license as {PROG_NAME}.
             #
             msgid ""
             msgstr ""
