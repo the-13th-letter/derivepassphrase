@@ -679,15 +679,11 @@ class Label(enum.Enum):
         'service-specific settings',
     )
     """"""
-    DERIVEPASSPHRASE_01 = commented(
-        'This is the first paragraph of the command help text, '
-        'but it also appears (in truncated form, if necessary) '
-        'as one-line help text for this command.  '
-        'The translation should thus be as meaningful as possible '
-        'even if truncated.',
+    CONFIGURATION_EPILOG = commented(
+        '',
     )(
-        'Label :: Help text :: One-line description',
-        'Derive a strong passphrase, deterministically, from a master secret.',
+        'Label :: Help text :: Explanation',
+        'Use $VISUAL or $EDITOR to configure the spawned editor.',
     )
     """"""
     DERIVEPASSPHRASE_02 = commented(
@@ -719,17 +715,6 @@ class Label(enum.Enum):
         r'`C:\Users\<user>\AppData\Roaming\Derivepassphrase` on Windows.',
     )
     """"""
-    DERIVEPASSPHRASE_EXPORT_01 = commented(
-        'This is the first paragraph of the command help text, '
-        'but it also appears (in truncated form, if necessary) '
-        'as one-line help text for this command.  '
-        'The translation should thus be as meaningful as possible '
-        'even if truncated.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Export a foreign configuration to standard output.',
-    )
-    """"""
     DERIVEPASSPHRASE_EXPORT_02 = commented(
         '',
     )(
@@ -740,17 +725,6 @@ class Label(enum.Enum):
     )
     """"""
     DERIVEPASSPHRASE_EXPORT_03 = DERIVEPASSPHRASE_03
-    """"""
-    DERIVEPASSPHRASE_EXPORT_VAULT_01 = commented(
-        'This is the first paragraph of the command help text, '
-        'but it also appears (in truncated form, if necessary) '
-        'as one-line help text for this command.  '
-        'The translation should thus be as meaningful as possible '
-        'even if truncated.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Export a vault-native configuration to standard output.',
-    )
     """"""
     DERIVEPASSPHRASE_EXPORT_VAULT_02 = commented(
         'The metavar is Label.EXPORT_VAULT_METAVAR_PATH.',
@@ -772,17 +746,6 @@ class Label(enum.Enum):
         '(Use `./VAULT_PATH` or similar to indicate a file/directory '
         'actually named `VAULT_PATH`.)',
         flags='python-brace-format',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_01 = commented(
-        'This is the first paragraph of the command help text, '
-        'but it also appears (in truncated form, if necessary) '
-        'as one-line help text for this command.  '
-        'The translation should thus be as meaningful as possible '
-        'even if truncated.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Derive a passphrase using the vault derivation scheme.',
     )
     """"""
     DERIVEPASSPHRASE_VAULT_02 = commented(
@@ -850,6 +813,23 @@ class Label(enum.Enum):
         'et dolore magna aliqua.',
     )
     """"""
+    PASSPHRASE_GENERATION_EPILOG = commented(
+        'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
+    )(
+        'Label :: Help text :: Explanation',
+        'Use {metavar}=0 to exclude a character type from the output.',
+        flags='python-brace-format',
+    )
+    """"""
+    STORAGE_MANAGEMENT_EPILOG = commented(
+        'The metavar is Label.STORAGE_MANAGEMENT_METAVAR_PATH.',
+    )(
+        'Label :: Help text :: Explanation',
+        'Using "-" as {metavar} for standard input/standard output '
+        'is supported.',
+        flags='python-brace-format',
+    )
+    """"""
     DEPRECATED_COMMAND_LABEL = commented(
         'We use this format string to indicate, at the beginning '
         "of a command's help text, that this command is deprecated.",
@@ -869,273 +849,6 @@ class Label(enum.Enum):
         '# - - - - - >8 - - - - - >8 - - - - - >8 - - - - - >8 - - - - -',
     )
     """"""
-    DEBUG_OPTION_HELP_TEXT = commented(
-        '',
-    )(
-        'Label :: Help text :: One-line description',
-        'Also emit debug information.  Implies --verbose.',
-    )
-    """"""
-    EXPORT_VAULT_FORMAT_HELP_TEXT = commented(
-        'The defaults_hint is Label.EXPORT_VAULT_FORMAT_DEFAULTS_HELP_TEXT, '
-        'the metavar is Label.EXPORT_VAULT_FORMAT_METAVAR_FMT.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Try the following storage format {metavar}.  '
-        'If specified multiple times, the '
-        'formats will be tried in order.  '
-        '{defaults_hint}',
-        flags='python-brace-format',
-    )
-    """"""
-    EXPORT_VAULT_FORMAT_DEFAULTS_HELP_TEXT = commented(
-        'See EXPORT_VAULT_FORMAT_HELP_TEXT.  '
-        'The format names/labels "v0.3", "v0.2" and "storeroom" '
-        'should not be translated.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Default: v0.3, v0.2, storeroom.',
-    )
-    """"""
-    EXPORT_VAULT_KEY_HELP_TEXT = commented(
-        'The defaults_hint is Label.EXPORT_VAULT_KEY_DEFAULTS_HELP_TEXT, '
-        'the metavar is Label.EXPORT_VAULT_KEY_METAVAR_K.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Use {metavar} as the storage master key.  {defaults_hint}',
-        flags='python-brace-format',
-    )
-    """"""
-    EXPORT_VAULT_KEY_DEFAULTS_HELP_TEXT = commented(
-        'See EXPORT_VAULT_KEY_HELP_TEXT.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Default: check the VAULT_KEY, LOGNAME, USER, or USERNAME '
-        'environment variables.',
-    )
-    """"""
-    HELP_OPTION_HELP_TEXT = commented(
-        '',
-    )(
-        'Label :: Help text :: One-line description',
-        'Show this help text, then exit.',
-    )
-    """"""
-    QUIET_OPTION_HELP_TEXT = commented(
-        '',
-    )(
-        'Label :: Help text :: One-line description',
-        'Suppress even warnings; emit only errors.',
-    )
-    """"""
-    VERBOSE_OPTION_HELP_TEXT = commented(
-        '',
-    )(
-        'Label :: Help text :: One-line description',
-        'Emit extra/progress information to standard error.',
-    )
-    """"""
-    VERSION_OPTION_HELP_TEXT = commented(
-        '',
-    )(
-        'Label :: Help text :: One-line description',
-        'Show applicable version information, then exit.',
-    )
-    """"""
-
-    DERIVEPASSPHRASE_VAULT_PHRASE_HELP_TEXT = commented(
-        '',
-    )(
-        'Label :: Help text :: One-line description',
-        'Prompt for a master passphrase.',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_KEY_HELP_TEXT = commented(
-        '',
-    )(
-        'Label :: Help text :: One-line description',
-        'Select a suitable SSH key from the SSH agent.',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_LENGTH_HELP_TEXT = commented(
-        'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Ensure a passphrase length of {metavar} characters.',
-        flags='python-brace-format',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_REPEAT_HELP_TEXT = commented(
-        'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Forbid any run of {metavar} identical characters.',
-        flags='python-brace-format',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_LOWER_HELP_TEXT = commented(
-        'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Ensure at least {metavar} lowercase characters.',
-        flags='python-brace-format',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_UPPER_HELP_TEXT = commented(
-        'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Ensure at least {metavar} uppercase characters.',
-        flags='python-brace-format',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_NUMBER_HELP_TEXT = commented(
-        'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Ensure at least {metavar} digits.',
-        flags='python-brace-format',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_SPACE_HELP_TEXT = commented(
-        'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Ensure at least {metavar} spaces.',
-        flags='python-brace-format',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_DASH_HELP_TEXT = commented(
-        'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Ensure at least {metavar} "-" or "_" characters.',
-        flags='python-brace-format',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_SYMBOL_HELP_TEXT = commented(
-        'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Ensure at least {metavar} symbol characters.',
-        flags='python-brace-format',
-    )
-    """"""
-
-    DERIVEPASSPHRASE_VAULT_NOTES_HELP_TEXT = commented(
-        'The metavar is Label.VAULT_METAVAR_SERVICE.',
-    )(
-        'Label :: Help text :: One-line description',
-        'With --config and {service_metavar}, spawn an editor to edit notes.',
-        flags='python-brace-format',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_CONFIG_HELP_TEXT = commented(
-        'The metavar is Label.VAULT_METAVAR_SERVICE.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Save the given settings for {service_metavar}, or global.',
-        flags='python-brace-format',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_DELETE_HELP_TEXT = commented(
-        'The metavar is Label.VAULT_METAVAR_SERVICE.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Delete the settings for {service_metavar}.',
-        flags='python-brace-format',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_DELETE_GLOBALS_HELP_TEXT = commented(
-        '',
-    )(
-        'Label :: Help text :: One-line description',
-        'Delete the global settings.',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_DELETE_ALL_HELP_TEXT = commented(
-        '',
-    )(
-        'Label :: Help text :: One-line description',
-        'Delete all settings.',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_EXPORT_HELP_TEXT = commented(
-        'The metavar is Label.STORAGE_MANAGEMENT_METAVAR_PATH.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Export all saved settings to {metavar}.',
-        flags='python-brace-format',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_IMPORT_HELP_TEXT = commented(
-        'The metavar is Label.STORAGE_MANAGEMENT_METAVAR_PATH.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Import saved settings from {metavar}.',
-        flags='python-brace-format',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_OVERWRITE_HELP_TEXT = commented(
-        'The corresponding option is displayed as '
-        '"--overwrite-existing / --merge-existing", so you may want to '
-        'hint that the default (merge) is the second of those options.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Overwrite or merge (default) the existing configuration.',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_UNSET_HELP_TEXT = commented(
-        'The corresponding option is displayed as '
-        '"--unset=phrase|key|...|symbol", so the "given setting" is '
-        'referring to "phrase", "key", "lower", ..., or "symbol", '
-        'respectively.  '
-        '"with --config" here means that the user must also specify '
-        '"--config" for this option to have any effect.',
-    )(
-        'Label :: Help text :: One-line description',
-        'With --config, also unsets the given setting.  '
-        'May be specified multiple times.',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_EXPORT_AS_HELP_TEXT = commented(
-        'The corresponding option is displayed as '
-        '"--export-as=json|sh", so json refers to the JSON format (default) '
-        'and sh refers to the POSIX sh format.  '
-        'Please ensure that it is clear what the "json" and "sh" refer to '
-        'in your translation... even if you cannot use texutal correspondence '
-        'like the English text does.',
-    )(
-        'Label :: Help text :: One-line description',
-        'When exporting, export as JSON (default) or as POSIX sh.',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_EDITOR_INTERFACE_HELP_TEXT = commented(
-        'The corresponding option is displayed as '
-        '"--modern-editor-interface / --vault-legacy-editor-interface", '
-        'so you may want to hint that the default (legacy) '
-        'is the second of those options.  '
-        'Though the vault(1) legacy editor interface clearly has deficiencies '
-        'and (in my opinion) should only be used for compatibility purposes, '
-        'the one-line help text should try not to sound too judgmental, '
-        'if possible.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Edit notes using the modern editor interface '
-        'or the vault-like legacy one (default).',
-    )
-    """"""
-    DERIVEPASSPHRASE_VAULT_PRINT_NOTES_BEFORE_HELP_TEXT = commented(
-        'The corresponding option is displayed as '
-        '"--print-notes-before / --print-notes-after", so you may want to '
-        'hint that the default (after) is the second of those options.',
-    )(
-        'Label :: Help text :: One-line description',
-        'Print the service notes (if any) before or after (default) '
-        'the existing configuration.',
-    )
-    """"""
-
     EXPORT_VAULT_FORMAT_METAVAR_FMT = commented(
         'This text is used as {metavar} in '
         'Label.EXPORT_VAULT_FORMAT_HELP_TEXT, yielding e.g. '
@@ -1195,28 +908,313 @@ class Label(enum.Enum):
         'SERVICE',
     )
     """"""
-    CONFIGURATION_EPILOG = commented(
+    DEBUG_OPTION_HELP_TEXT = commented(
         '',
     )(
-        'Label :: Help text :: Explanation',
-        'Use $VISUAL or $EDITOR to configure the spawned editor.',
+        'Label :: Help text :: One-line description',
+        'Also emit debug information.  Implies --verbose.',
     )
     """"""
-    PASSPHRASE_GENERATION_EPILOG = commented(
+    DERIVEPASSPHRASE_01 = commented(
+        'This is the first paragraph of the command help text, '
+        'but it also appears (in truncated form, if necessary) '
+        'as one-line help text for this command.  '
+        'The translation should thus be as meaningful as possible '
+        'even if truncated.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Derive a strong passphrase, deterministically, from a master secret.',
+    )
+    """"""
+    DERIVEPASSPHRASE_EXPORT_01 = commented(
+        'This is the first paragraph of the command help text, '
+        'but it also appears (in truncated form, if necessary) '
+        'as one-line help text for this command.  '
+        'The translation should thus be as meaningful as possible '
+        'even if truncated.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Export a foreign configuration to standard output.',
+    )
+    """"""
+    DERIVEPASSPHRASE_EXPORT_VAULT_01 = commented(
+        'This is the first paragraph of the command help text, '
+        'but it also appears (in truncated form, if necessary) '
+        'as one-line help text for this command.  '
+        'The translation should thus be as meaningful as possible '
+        'even if truncated.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Export a vault-native configuration to standard output.',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_01 = commented(
+        'This is the first paragraph of the command help text, '
+        'but it also appears (in truncated form, if necessary) '
+        'as one-line help text for this command.  '
+        'The translation should thus be as meaningful as possible '
+        'even if truncated.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Derive a passphrase using the vault derivation scheme.',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_CONFIG_HELP_TEXT = commented(
+        'The metavar is Label.VAULT_METAVAR_SERVICE.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Save the given settings for {service_metavar}, or global.',
+        flags='python-brace-format',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_DASH_HELP_TEXT = commented(
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
-        'Label :: Help text :: Explanation',
-        'Use {metavar}=0 to exclude a character type from the output.',
+        'Label :: Help text :: One-line description',
+        'Ensure at least {metavar} "-" or "_" characters.',
         flags='python-brace-format',
     )
     """"""
-    STORAGE_MANAGEMENT_EPILOG = commented(
+    DERIVEPASSPHRASE_VAULT_DELETE_ALL_HELP_TEXT = commented(
+        '',
+    )(
+        'Label :: Help text :: One-line description',
+        'Delete all settings.',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_DELETE_GLOBALS_HELP_TEXT = commented(
+        '',
+    )(
+        'Label :: Help text :: One-line description',
+        'Delete the global settings.',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_DELETE_HELP_TEXT = commented(
+        'The metavar is Label.VAULT_METAVAR_SERVICE.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Delete the settings for {service_metavar}.',
+        flags='python-brace-format',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_EDITOR_INTERFACE_HELP_TEXT = commented(
+        'The corresponding option is displayed as '
+        '"--modern-editor-interface / --vault-legacy-editor-interface", '
+        'so you may want to hint that the default (legacy) '
+        'is the second of those options.  '
+        'Though the vault(1) legacy editor interface clearly has deficiencies '
+        'and (in my opinion) should only be used for compatibility purposes, '
+        'the one-line help text should try not to sound too judgmental, '
+        'if possible.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Edit notes using the modern editor interface '
+        'or the vault-like legacy one (default).',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_EXPORT_AS_HELP_TEXT = commented(
+        'The corresponding option is displayed as '
+        '"--export-as=json|sh", so json refers to the JSON format (default) '
+        'and sh refers to the POSIX sh format.  '
+        'Please ensure that it is clear what the "json" and "sh" refer to '
+        'in your translation... even if you cannot use texutal correspondence '
+        'like the English text does.',
+    )(
+        'Label :: Help text :: One-line description',
+        'When exporting, export as JSON (default) or as POSIX sh.',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_EXPORT_HELP_TEXT = commented(
         'The metavar is Label.STORAGE_MANAGEMENT_METAVAR_PATH.',
     )(
-        'Label :: Help text :: Explanation',
-        'Using "-" as {metavar} for standard input/standard output '
-        'is supported.',
+        'Label :: Help text :: One-line description',
+        'Export all saved settings to {metavar}.',
         flags='python-brace-format',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_IMPORT_HELP_TEXT = commented(
+        'The metavar is Label.STORAGE_MANAGEMENT_METAVAR_PATH.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Import saved settings from {metavar}.',
+        flags='python-brace-format',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_KEY_HELP_TEXT = commented(
+        '',
+    )(
+        'Label :: Help text :: One-line description',
+        'Select a suitable SSH key from the SSH agent.',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_LENGTH_HELP_TEXT = commented(
+        'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Ensure a passphrase length of {metavar} characters.',
+        flags='python-brace-format',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_LOWER_HELP_TEXT = commented(
+        'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Ensure at least {metavar} lowercase characters.',
+        flags='python-brace-format',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_NOTES_HELP_TEXT = commented(
+        'The metavar is Label.VAULT_METAVAR_SERVICE.',
+    )(
+        'Label :: Help text :: One-line description',
+        'With --config and {service_metavar}, spawn an editor to edit notes.',
+        flags='python-brace-format',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_NUMBER_HELP_TEXT = commented(
+        'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Ensure at least {metavar} digits.',
+        flags='python-brace-format',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_OVERWRITE_HELP_TEXT = commented(
+        'The corresponding option is displayed as '
+        '"--overwrite-existing / --merge-existing", so you may want to '
+        'hint that the default (merge) is the second of those options.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Overwrite or merge (default) the existing configuration.',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_PHRASE_HELP_TEXT = commented(
+        '',
+    )(
+        'Label :: Help text :: One-line description',
+        'Prompt for a master passphrase.',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_PRINT_NOTES_BEFORE_HELP_TEXT = commented(
+        'The corresponding option is displayed as '
+        '"--print-notes-before / --print-notes-after", so you may want to '
+        'hint that the default (after) is the second of those options.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Print the service notes (if any) before or after (default) '
+        'the existing configuration.',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_REPEAT_HELP_TEXT = commented(
+        'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Forbid any run of {metavar} identical characters.',
+        flags='python-brace-format',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_SPACE_HELP_TEXT = commented(
+        'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Ensure at least {metavar} spaces.',
+        flags='python-brace-format',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_SYMBOL_HELP_TEXT = commented(
+        'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Ensure at least {metavar} symbol characters.',
+        flags='python-brace-format',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_UNSET_HELP_TEXT = commented(
+        'The corresponding option is displayed as '
+        '"--unset=phrase|key|...|symbol", so the "given setting" is '
+        'referring to "phrase", "key", "lower", ..., or "symbol", '
+        'respectively.  '
+        '"with --config" here means that the user must also specify '
+        '"--config" for this option to have any effect.',
+    )(
+        'Label :: Help text :: One-line description',
+        'With --config, also unsets the given setting.  '
+        'May be specified multiple times.',
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_UPPER_HELP_TEXT = commented(
+        'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Ensure at least {metavar} uppercase characters.',
+        flags='python-brace-format',
+    )
+    """"""
+
+    EXPORT_VAULT_FORMAT_DEFAULTS_HELP_TEXT = commented(
+        'See EXPORT_VAULT_FORMAT_HELP_TEXT.  '
+        'The format names/labels "v0.3", "v0.2" and "storeroom" '
+        'should not be translated.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Default: v0.3, v0.2, storeroom.',
+    )
+    """"""
+    EXPORT_VAULT_FORMAT_HELP_TEXT = commented(
+        'The defaults_hint is Label.EXPORT_VAULT_FORMAT_DEFAULTS_HELP_TEXT, '
+        'the metavar is Label.EXPORT_VAULT_FORMAT_METAVAR_FMT.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Try the following storage format {metavar}.  '
+        'If specified multiple times, the '
+        'formats will be tried in order.  '
+        '{defaults_hint}',
+        flags='python-brace-format',
+    )
+    """"""
+    EXPORT_VAULT_KEY_DEFAULTS_HELP_TEXT = commented(
+        'See EXPORT_VAULT_KEY_HELP_TEXT.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Default: check the VAULT_KEY, LOGNAME, USER, or USERNAME '
+        'environment variables.',
+    )
+    """"""
+    EXPORT_VAULT_KEY_HELP_TEXT = commented(
+        'The defaults_hint is Label.EXPORT_VAULT_KEY_DEFAULTS_HELP_TEXT, '
+        'the metavar is Label.EXPORT_VAULT_KEY_METAVAR_K.',
+    )(
+        'Label :: Help text :: One-line description',
+        'Use {metavar} as the storage master key.  {defaults_hint}',
+        flags='python-brace-format',
+    )
+    """"""
+    HELP_OPTION_HELP_TEXT = commented(
+        '',
+    )(
+        'Label :: Help text :: One-line description',
+        'Show this help text, then exit.',
+    )
+    """"""
+    QUIET_OPTION_HELP_TEXT = commented(
+        '',
+    )(
+        'Label :: Help text :: One-line description',
+        'Suppress even warnings; emit only errors.',
+    )
+    """"""
+    VERBOSE_OPTION_HELP_TEXT = commented(
+        '',
+    )(
+        'Label :: Help text :: One-line description',
+        'Emit extra/progress information to standard error.',
+    )
+    """"""
+    VERSION_OPTION_HELP_TEXT = commented(
+        '',
+    )(
+        'Label :: Help text :: One-line description',
+        'Show applicable version information, then exit.',
     )
     """"""
     COMMANDS_LABEL = commented(
@@ -1525,6 +1523,24 @@ Master keys data:
         flags='python-brace-format',
     )
     """"""
+    VAULT_NATIVE_CHECKING_MAC_DETAILS = commented(
+        'This message is emitted by the vault configuration exporter '
+        'for "native"-type configuration directories.  '
+        'It is preceded by the info message '
+        'VAULT_NATIVE_PARSING_IV_PAYLOAD_MAC; see the commentary there '
+        'concerning the terms and thoughts on translating them.',
+    )(
+        'Debug message',
+        """\
+MAC details:
+
+  \b
+  MAC input: {mac_input}
+  Expected MAC: {mac}
+""",
+        flags='python-brace-format',
+    )
+    """"""
     VAULT_NATIVE_EVP_BYTESTOKEY_INIT = commented(
         'This message is emitted by the vault configuration exporter '
         'for "native"-type configuration directories: '
@@ -1589,24 +1605,6 @@ evp_bytestokey_md5 (round update):
         flags='python-brace-format',
     )
     """"""
-    VAULT_NATIVE_CHECKING_MAC_DETAILS = commented(
-        'This message is emitted by the vault configuration exporter '
-        'for "native"-type configuration directories.  '
-        'It is preceded by the info message '
-        'VAULT_NATIVE_PARSING_IV_PAYLOAD_MAC; see the commentary there '
-        'concerning the terms and thoughts on translating them.',
-    )(
-        'Debug message',
-        """\
-MAC details:
-
-  \b
-  MAC input: {mac_input}
-  Expected MAC: {mac}
-""",
-        flags='python-brace-format',
-    )
-    """"""
     VAULT_NATIVE_PADDED_PLAINTEXT = commented(
         'This message is emitted by the vault configuration exporter '
         'for "native"-type configuration directories.  '
@@ -1636,16 +1634,6 @@ Buffer: {contents}
         flags='python-brace-format',
     )
     """"""
-    VAULT_NATIVE_PLAINTEXT = commented(
-        'This message is emitted by the vault configuration exporter '
-        'for "native"-type configuration directories.  '
-        '"plaintext" is a cryptographic term.',
-    )(
-        'Debug message',
-        'Plaintext: {contents}',
-        flags='python-brace-format',
-    )
-    """"""
     VAULT_NATIVE_PBKDF2_CALL = commented(
         '',
     )(
@@ -1658,6 +1646,16 @@ Master key derivation:
   Result (binary): {raw_result}
   Result (hex key): {result_key!r}
 """,  # noqa: E501
+        flags='python-brace-format',
+    )
+    """"""
+    VAULT_NATIVE_PLAINTEXT = commented(
+        'This message is emitted by the vault configuration exporter '
+        'for "native"-type configuration directories.  '
+        '"plaintext" is a cryptographic term.',
+    )(
+        'Debug message',
+        'Plaintext: {contents}',
         flags='python-brace-format',
     )
     """"""
@@ -2152,21 +2150,21 @@ class ErrMsgTemplate(enum.Enum):
         flags='python-brace-format',
     )
     """"""
-    PARAMS_NEEDS_SERVICE_OR_CONFIG = commented(
-        'The param is a long-form command-line option name, '
-        'the metavar is Label.VAULT_METAVAR_SERVICE.',
-    )(
-        'Error message',
-        '{param} requires a {service_metavar} or --config.',
-        flags='python-brace-format',
-    )
-    """"""
     PARAMS_NEEDS_SERVICE = commented(
         'The param is a long-form command-line option name, '
         'the metavar is Label.VAULT_METAVAR_SERVICE.',
     )(
         'Error message',
         '{param} requires a {service_metavar}.',
+        flags='python-brace-format',
+    )
+    """"""
+    PARAMS_NEEDS_SERVICE_OR_CONFIG = commented(
+        'The param is a long-form command-line option name, '
+        'the metavar is Label.VAULT_METAVAR_SERVICE.',
+    )(
+        'Error message',
+        '{param} requires a {service_metavar} or --config.',
         flags='python-brace-format',
     )
     """"""
