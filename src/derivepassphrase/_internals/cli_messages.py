@@ -1026,7 +1026,7 @@ class Label(enum.Enum):
         'The metavar is Label.VAULT_METAVAR_SERVICE.',
     )(
         'Label :: Help text :: One-line description',
-        'Spawn an editor to edit notes for {service_metavar}.',
+        'With --config and {service_metavar}, spawn an editor to edit notes.',
         flags='python-brace-format',
     )
     """"""
@@ -1101,10 +1101,13 @@ class Label(enum.Enum):
     DERIVEPASSPHRASE_VAULT_EXPORT_AS_HELP_TEXT = commented(
         'The corresponding option is displayed as '
         '"--export-as=json|sh", so json refers to the JSON format (default) '
-        'and sh refers to the POSIX sh format.',
+        'and sh refers to the POSIX sh format.  '
+        'Please ensure that it is clear what the "json" and "sh" refer to '
+        'in your translation... even if you cannot use texutal correspondence '
+        'like the English text does.',
     )(
         'Label :: Help text :: One-line description',
-        'When exporting, export as JSON (default) or POSIX sh.',
+        'When exporting, export as JSON (default) or as POSIX sh.',
     )
     """"""
     DERIVEPASSPHRASE_VAULT_EDITOR_INTERFACE_HELP_TEXT = commented(
