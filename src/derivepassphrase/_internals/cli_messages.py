@@ -873,7 +873,7 @@ class Label(enum.Enum):
         '',
     )(
         'Label :: Help text :: One-line description',
-        'also emit debug information (implies --verbose)',
+        'Also emit debug information.  Implies --verbose.',
     )
     """"""
     EXPORT_VAULT_FORMAT_HELP_TEXT = commented(
@@ -881,9 +881,10 @@ class Label(enum.Enum):
         'the metavar is Label.EXPORT_VAULT_FORMAT_METAVAR_FMT.',
     )(
         'Label :: Help text :: One-line description',
-        'try the following storage format {metavar}; '
-        'may be specified multiple times, '
-        'formats will be tried in order {defaults_hint}',
+        'Try the following storage format {metavar}.  '
+        'If specified multiple times, the '
+        'formats will be tried in order.  '
+        '{defaults_hint}',
         flags='python-brace-format',
     )
     """"""
@@ -893,7 +894,7 @@ class Label(enum.Enum):
         'should not be translated.',
     )(
         'Label :: Help text :: One-line description',
-        '(default: v0.3, v0.2, storeroom)',
+        'Default: v0.3, v0.2, storeroom.',
     )
     """"""
     EXPORT_VAULT_KEY_HELP_TEXT = commented(
@@ -901,7 +902,7 @@ class Label(enum.Enum):
         'the metavar is Label.EXPORT_VAULT_KEY_METAVAR_K.',
     )(
         'Label :: Help text :: One-line description',
-        'use {metavar} as the storage master key {defaults_hint}',
+        'Use {metavar} as the storage master key.  {defaults_hint}',
         flags='python-brace-format',
     )
     """"""
@@ -909,36 +910,36 @@ class Label(enum.Enum):
         'See EXPORT_VAULT_KEY_HELP_TEXT.',
     )(
         'Label :: Help text :: One-line description',
-        '(default: check the `VAULT_KEY`, `LOGNAME`, `USER`, or '
-        '`USERNAME` environment variables)',
+        'Default: check the VAULT_KEY, LOGNAME, USER, or USERNAME '
+        'environment variables.',
     )
     """"""
     HELP_OPTION_HELP_TEXT = commented(
         '',
     )(
         'Label :: Help text :: One-line description',
-        'show this help text, then exit',
+        'Show this help text, then exit.',
     )
     """"""
     QUIET_OPTION_HELP_TEXT = commented(
         '',
     )(
         'Label :: Help text :: One-line description',
-        'suppress even warnings, emit only errors',
+        'Suppress even warnings; emit only errors.',
     )
     """"""
     VERBOSE_OPTION_HELP_TEXT = commented(
         '',
     )(
         'Label :: Help text :: One-line description',
-        'emit extra/progress information to standard error',
+        'Emit extra/progress information to standard error.',
     )
     """"""
     VERSION_OPTION_HELP_TEXT = commented(
         '',
     )(
         'Label :: Help text :: One-line description',
-        'show applicable version information, then exit',
+        'Show applicable version information, then exit.',
     )
     """"""
 
@@ -946,21 +947,21 @@ class Label(enum.Enum):
         '',
     )(
         'Label :: Help text :: One-line description',
-        'prompt for a master passphrase',
+        'Prompt for a master passphrase.',
     )
     """"""
     DERIVEPASSPHRASE_VAULT_KEY_HELP_TEXT = commented(
         '',
     )(
         'Label :: Help text :: One-line description',
-        'select a suitable SSH key from the SSH agent',
+        'Select a suitable SSH key from the SSH agent.',
     )
     """"""
     DERIVEPASSPHRASE_VAULT_LENGTH_HELP_TEXT = commented(
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
-        'ensure a passphrase length of {metavar} characters',
+        'Ensure a passphrase length of {metavar} characters.',
         flags='python-brace-format',
     )
     """"""
@@ -968,7 +969,7 @@ class Label(enum.Enum):
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
-        'forbid any run of {metavar} identical characters',
+        'Forbid any run of {metavar} identical characters.',
         flags='python-brace-format',
     )
     """"""
@@ -976,7 +977,7 @@ class Label(enum.Enum):
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
-        'ensure at least {metavar} lowercase characters',
+        'Ensure at least {metavar} lowercase characters.',
         flags='python-brace-format',
     )
     """"""
@@ -984,7 +985,7 @@ class Label(enum.Enum):
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
-        'ensure at least {metavar} uppercase characters',
+        'Ensure at least {metavar} uppercase characters.',
         flags='python-brace-format',
     )
     """"""
@@ -992,7 +993,7 @@ class Label(enum.Enum):
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
-        'ensure at least {metavar} digits',
+        'Ensure at least {metavar} digits.',
         flags='python-brace-format',
     )
     """"""
@@ -1000,7 +1001,7 @@ class Label(enum.Enum):
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
-        'ensure at least {metavar} spaces',
+        'Ensure at least {metavar} spaces.',
         flags='python-brace-format',
     )
     """"""
@@ -1008,7 +1009,7 @@ class Label(enum.Enum):
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
-        'ensure at least {metavar} "-" or "_" characters',
+        'Ensure at least {metavar} "-" or "_" characters.',
         flags='python-brace-format',
     )
     """"""
@@ -1016,7 +1017,7 @@ class Label(enum.Enum):
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
-        'ensure at least {metavar} symbol characters',
+        'Ensure at least {metavar} symbol characters.',
         flags='python-brace-format',
     )
     """"""
@@ -1025,7 +1026,7 @@ class Label(enum.Enum):
         'The metavar is Label.VAULT_METAVAR_SERVICE.',
     )(
         'Label :: Help text :: One-line description',
-        'spawn an editor to edit notes for {service_metavar}',
+        'Spawn an editor to edit notes for {service_metavar}.',
         flags='python-brace-format',
     )
     """"""
@@ -1033,7 +1034,7 @@ class Label(enum.Enum):
         'The metavar is Label.VAULT_METAVAR_SERVICE.',
     )(
         'Label :: Help text :: One-line description',
-        'save the given settings for {service_metavar}, or global',
+        'Save the given settings for {service_metavar}, or global.',
         flags='python-brace-format',
     )
     """"""
@@ -1041,7 +1042,7 @@ class Label(enum.Enum):
         'The metavar is Label.VAULT_METAVAR_SERVICE.',
     )(
         'Label :: Help text :: One-line description',
-        'delete the settings for {service_metavar}',
+        'Delete the settings for {service_metavar}.',
         flags='python-brace-format',
     )
     """"""
@@ -1049,21 +1050,21 @@ class Label(enum.Enum):
         '',
     )(
         'Label :: Help text :: One-line description',
-        'delete the global settings',
+        'Delete the global settings.',
     )
     """"""
     DERIVEPASSPHRASE_VAULT_DELETE_ALL_HELP_TEXT = commented(
         '',
     )(
         'Label :: Help text :: One-line description',
-        'delete all settings',
+        'Delete all settings.',
     )
     """"""
     DERIVEPASSPHRASE_VAULT_EXPORT_HELP_TEXT = commented(
         'The metavar is Label.STORAGE_MANAGEMENT_METAVAR_PATH.',
     )(
         'Label :: Help text :: One-line description',
-        'export all saved settings to {metavar}',
+        'Export all saved settings to {metavar}.',
         flags='python-brace-format',
     )
     """"""
@@ -1071,7 +1072,7 @@ class Label(enum.Enum):
         'The metavar is Label.STORAGE_MANAGEMENT_METAVAR_PATH.',
     )(
         'Label :: Help text :: One-line description',
-        'import saved settings from {metavar}',
+        'Import saved settings from {metavar}.',
         flags='python-brace-format',
     )
     """"""
@@ -1081,7 +1082,7 @@ class Label(enum.Enum):
         'hint that the default (merge) is the second of those options.',
     )(
         'Label :: Help text :: One-line description',
-        'overwrite or merge (default) the existing configuration',
+        'Overwrite or merge (default) the existing configuration.',
     )
     """"""
     DERIVEPASSPHRASE_VAULT_UNSET_HELP_TEXT = commented(
@@ -1093,8 +1094,8 @@ class Label(enum.Enum):
         '"--config" for this option to have any effect.',
     )(
         'Label :: Help text :: One-line description',
-        'with --config, also unsets the given setting; '
-        'may be specified multiple times',
+        'With --config, also unsets the given setting.  '
+        'May be specified multiple times.',
     )
     """"""
     DERIVEPASSPHRASE_VAULT_EXPORT_AS_HELP_TEXT = commented(
@@ -1103,7 +1104,7 @@ class Label(enum.Enum):
         'and sh refers to the POSIX sh format.',
     )(
         'Label :: Help text :: One-line description',
-        'when exporting, export as JSON (default) or POSIX sh',
+        'When exporting, export as JSON (default) or POSIX sh.',
     )
     """"""
     DERIVEPASSPHRASE_VAULT_EDITOR_INTERFACE_HELP_TEXT = commented(
@@ -1117,8 +1118,8 @@ class Label(enum.Enum):
         'if possible.',
     )(
         'Label :: Help text :: One-line description',
-        'edit notes using the modern editor interface '
-        'or the vault-like legacy one (default)',
+        'Edit notes using the modern editor interface '
+        'or the vault-like legacy one (default).',
     )
     """"""
     DERIVEPASSPHRASE_VAULT_PRINT_NOTES_BEFORE_HELP_TEXT = commented(
@@ -1127,8 +1128,8 @@ class Label(enum.Enum):
         'hint that the default (after) is the second of those options.',
     )(
         'Label :: Help text :: One-line description',
-        'print the service notes (if any) before or after (default) '
-        'the existing configuration',
+        'Print the service notes (if any) before or after (default) '
+        'the existing configuration.',
     )
     """"""
 
