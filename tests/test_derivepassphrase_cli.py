@@ -1111,6 +1111,14 @@ class Parametrize(types.SimpleNamespace):
     CONNECTION_HINTS = pytest.mark.parametrize(
         'conn_hint', ['none', 'socket', 'client']
     )
+    NOOP_EDIT_FUNCS = pytest.mark.parametrize(
+        ['edit_func_name', 'modern_editor_interface'],
+        [
+            pytest.param('empty', True, id='empty'),
+            pytest.param('space', False, id='space-legacy'),
+            pytest.param('space', True, id='space-modern'),
+        ],
+    )
     SERVICE_NAME_EXCEPTIONS = pytest.mark.parametrize(
         'exc_type', [RuntimeError, KeyError, ValueError]
     )
@@ -1276,10 +1284,20 @@ class Parametrize(types.SimpleNamespace):
         ],
     )
     CONFIG_SETTING_MODE = pytest.mark.parametrize('mode', ['config', 'import'])
+    MODERN_EDITOR_INTERFACE = pytest.mark.parametrize(
+        'modern_editor_interface', [False, True], ids=['legacy', 'modern']
+    )
     NO_COLOR = pytest.mark.parametrize(
         'no_color',
         [False, True],
         ids=['yescolor', 'nocolor'],
+    )
+    NOTES_PLACEMENT = pytest.mark.parametrize(
+        ['notes_placement', 'placement_args'],
+        [
+            pytest.param('after', ['--print-notes-after'], id='after'),
+            pytest.param('before', ['--print-notes-before'], id='before'),
+        ],
     )
     VAULT_CHARSET_OPTION = pytest.mark.parametrize(
         'option',
@@ -2558,13 +2576,7 @@ class TestCLI:
             'expected error exit and known error message'
         )
 
-    @pytest.mark.parametrize(
-        ['notes_placement', 'placement_args'],
-        [
-            pytest.param('after', ['--print-notes-after'], id='after'),
-            pytest.param('before', ['--print-notes-before'], id='before'),
-        ],
-    )
+    @Parametrize.NOTES_PLACEMENT
     @hypothesis.given(
         notes=strategies.text(
             strategies.characters(
@@ -2614,9 +2626,7 @@ class TestCLI:
             result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(output=expected), 'expected clean exit'
 
-    @pytest.mark.parametrize(
-        'modern_editor_interface', [False, True], ids=['legacy', 'modern']
-    )
+    @Parametrize.MODERN_EDITOR_INTERFACE
     @hypothesis.settings(
         suppress_health_check=[
             *hypothesis.settings().suppress_health_check,
@@ -2713,14 +2723,7 @@ class TestCLI:
                 },
             }
 
-    @pytest.mark.parametrize(
-        ['edit_func_name', 'modern_editor_interface'],
-        [
-            pytest.param('empty', True, id='empty'),
-            pytest.param('space', False, id='space-legacy'),
-            pytest.param('space', True, id='space-modern'),
-        ],
-    )
+    @Parametrize.NOOP_EDIT_FUNCS
     @hypothesis.given(
         notes=strategies.text(
             strategies.characters(
@@ -2804,9 +2807,7 @@ class TestCLI:
 
     # TODO(the-13th-letter): Keep this behavior or not, with or without
     # warning?
-    @pytest.mark.parametrize(
-        'modern_editor_interface', [False, True], ids=['legacy', 'modern']
-    )
+    @Parametrize.MODERN_EDITOR_INTERFACE
     @hypothesis.settings(
         suppress_health_check=[
             *hypothesis.settings().suppress_health_check,
@@ -3007,9 +3008,7 @@ class TestCLI:
                 'services': {},
             }
 
-    @pytest.mark.parametrize(
-        'modern_editor_interface', [False, True], ids=['legacy', 'modern']
-    )
+    @Parametrize.MODERN_EDITOR_INTERFACE
     @hypothesis.settings(
         suppress_health_check=[
             *hypothesis.settings().suppress_health_check,
