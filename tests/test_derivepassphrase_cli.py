@@ -1778,11 +1778,6 @@ class TestAllCLI:
             'Expected no color, but found an ANSI control sequence'
         )
 
-    @pytest.mark.xfail(
-        reason='extras output not implemented yet',
-        raises=AssertionError,
-        strict=True,
-    )
     @Parametrize.COMMAND_NON_EAGER_ARGUMENTS
     def test_202_version_option_output(
         self,

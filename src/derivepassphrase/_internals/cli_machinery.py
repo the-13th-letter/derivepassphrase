@@ -16,6 +16,7 @@ Warning:
 from __future__ import annotations
 
 import collections
+import importlib.metadata
 import inspect
 import logging
 import os
@@ -39,6 +40,7 @@ if TYPE_CHECKING:
 
 PROG_NAME = _internals.PROG_NAME
 VERSION = _internals.VERSION
+VERSION_OUTPUT_WRAPPING_WIDTH = 72
 
 # Error messages
 NOT_AN_INTEGER = 'not an integer'
@@ -957,15 +959,112 @@ def version_option_callback(
 ) -> None:
     del param
     if value and not ctx.resilient_parsing:
+        major_dependencies: list[str] = []
+        derivation_schemes = {'vault': True}
+        foreign_configuration_formats = {
+            'vault storeroom': False,
+            'vault v0.2': False,
+            'vault v0.3': False,
+        }
+        known_extras = {
+            'export': False,
+        }
+        try:
+            from derivepassphrase.exporter import storeroom, vault_native  # noqa: I001,PLC0415
+
+            foreign_configuration_formats[
+                'vault storeroom'
+            ] = not storeroom.STUBBED
+            foreign_configuration_formats[
+                'vault v0.2'
+            ] = not vault_native.STUBBED
+            foreign_configuration_formats[
+                'vault v0.3'
+            ] = not vault_native.STUBBED
+            known_extras['export'] = (
+                not storeroom.STUBBED and not vault_native.STUBBED
+            )
+        except ModuleNotFoundError:  # pragma: no cover
+            pass
+        try:
+            cryptography_version = importlib.metadata.version('cryptography')
+        except ModuleNotFoundError:
+            pass
+        else:
+            major_dependencies.append(f'cryptography {cryptography_version}')
+        major_dependencies.append(f'click {click.__version__}')
+
         click.echo(
-            str(
-                _msg.TranslatedString(
-                    _msg.Label.VERSION_INFO_TEXT,
-                    PROG_NAME=PROG_NAME,
-                    VERSION=VERSION,
-                )
-            ),
+            ' '.join([
+                click.style(PROG_NAME, bold=True),
+                VERSION,
+            ]),
+            color=ctx.color,
         )
+        for dependency in major_dependencies:
+            click.echo(
+                str(
+                    _msg.TranslatedString(
+                        _msg.Label.VERSION_INFO_MAJOR_LIBRARY_TEXT,
+                        dependency_name_and_version=dependency,
+                    )
+                ),
+                color=ctx.color,
+            )
+        click.echo()
+        version_info_types = {
+            _msg.Label.SUPPORTED_DERIVATION_SCHEMES: [
+                k for k, v in derivation_schemes.items() if v
+            ],
+            _msg.Label.KNOWN_DERIVATION_SCHEMES: [
+                k for k, v in derivation_schemes.items() if not v
+            ],
+            _msg.Label.SUPPORTED_FOREIGN_CONFIGURATION_FORMATS: [
+                k for k, v in foreign_configuration_formats.items() if v
+            ],
+            _msg.Label.KNOWN_FOREIGN_CONFIGURATION_FORMATS: [
+                k for k, v in foreign_configuration_formats.items() if not v
+            ],
+            _msg.Label.ENABLED_PEP508_EXTRAS: [
+                k for k, v in known_extras.items() if v
+            ],
+        }
+        for message_label, item_list in version_info_types.items():
+            if item_list:
+                current_length = len(str(_msg.TranslatedString(message_label)))
+                formatted_item_list_pieces: list[str] = []
+                n = len(item_list)
+                for i, item in enumerate(item_list, start=1):
+                    space = ' '
+                    punctuation = '.' if i == n else ','
+                    if (
+                        current_length
+                        + len(space)
+                        + len(item)
+                        + len(punctuation)
+                        <= VERSION_OUTPUT_WRAPPING_WIDTH
+                    ):
+                        current_length += (
+                            len(space) + len(item) + len(punctuation)
+                        )
+                        piece = f'{space}{item}{punctuation}'
+                    else:
+                        space = '    '
+                        current_length = (
+                            len(space) + len(item) + len(punctuation)
+                        )
+                        piece = f'\n{space}{item}{punctuation}'
+                    formatted_item_list_pieces.append(piece)
+                click.echo(
+                    ''.join([
+                        click.style(
+                            str(_msg.TranslatedString(message_label)),
+                            bold=True,
+                        ),
+                        ''.join(formatted_item_list_pieces),
+                    ]),
+                    color=ctx.color,
+                )
         ctx.exit()
 
 

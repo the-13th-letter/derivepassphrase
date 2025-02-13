@@ -1214,7 +1214,7 @@ class Label(enum.Enum):
         '',
     )(
         'Label :: Help text :: One-line description',
-        'Show applicable version information, then exit.',
+        'Show version and feature information, then exit.',
     )
     """"""
     COMMANDS_LABEL = commented(
@@ -1273,12 +1273,58 @@ class Label(enum.Enum):
         'Storage management',
     )
     """"""
-    VERSION_INFO_TEXT = commented(
-        '',
+    VERSION_INFO_MAJOR_LIBRARY_TEXT = commented(
+        'This message reports on the version of a major library '
+        'currently in use, such as "cryptography".',
     )(
         'Label :: Info Message',
-        '{PROG_NAME} {VERSION}',  # noqa: RUF027
+        'Using {dependency_name_and_version}',
         flags='python-brace-format',
+    )
+    """"""
+    ENABLED_PEP508_EXTRAS = commented(
+        'This is part of the version output, emitting lists of enabled '
+        'PEP 508 extras.  A comma-separated English list of items follows, '
+        'with standard English punctuation.',
+    )(
+        'Label :: Info Message:: Table row header',
+        'PEP 508 extras:',
+    )
+    """"""
+    KNOWN_DERIVATION_SCHEMES = commented(
+        'This is part of the version output, emitting lists of known '
+        'derivation schemes.  A comma-separated English list of items '
+        'follows, with standard English punctuation.',
+    )(
+        'Label :: Info Message:: Table row header',
+        'Known derivation schemes:',
+    )
+    """"""
+    KNOWN_FOREIGN_CONFIGURATION_FORMATS = commented(
+        'This is part of the version output, emitting lists of known '
+        'foreign configuration formats.  A comma-separated English list '
+        'of items follows, with standard English punctuation.',
+    )(
+        'Label :: Info Message:: Table row header',
+        'Known foreign configuration formats:',
+    )
+    """"""
+    SUPPORTED_DERIVATION_SCHEMES = commented(
+        'This is part of the version output, emitting lists of supported '
+        'derivation schemes.  A comma-separated English list of items '
+        'follows, with standard English punctuation.',
+    )(
+        'Label :: Info Message:: Table row header',
+        'Supported derivation schemes:',
+    )
+    """"""
+    SUPPORTED_FOREIGN_CONFIGURATION_FORMATS = commented(
+        'This is part of the version output, emitting lists of supported '
+        'foreign configuration formats.  A comma-separated English list '
+        'of items follows, with standard English punctuation.',
+    )(
+        'Label :: Info Message:: Table row header',
+        'Supported foreign configuration formats:',
     )
     """"""
     CONFIRM_THIS_CHOICE_PROMPT_TEXT = commented(
