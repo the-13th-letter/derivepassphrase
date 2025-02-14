@@ -1300,6 +1300,16 @@ class Label(enum.Enum):
         'Known derivation schemes:',
     )
     """"""
+    KNOWN_FEATURES = commented(
+        'This is part of the version output, emitting lists of known, '
+        'unavailable features for this subcommand.  '
+        'A comma-separated English list of items follows, '
+        'with standard English punctuation.',
+    )(
+        'Label :: Info Message:: Table row header',
+        'Known features:',
+    )
+    """"""
     KNOWN_FOREIGN_CONFIGURATION_FORMATS = commented(
         'This is part of the version output, emitting lists of known '
         'foreign configuration formats.  A comma-separated English list '
@@ -1316,6 +1326,15 @@ class Label(enum.Enum):
     )(
         'Label :: Info Message:: Table row header',
         'Supported derivation schemes:',
+    )
+    """"""
+    SUPPORTED_FEATURES = commented(
+        'This is part of the version output, emitting lists of supported '
+        'features for this subcommand.  A comma-separated '
+        'English list of items follows, with standard English punctuation.',
+    )(
+        'Label :: Info Message:: Table row header',
+        'Supported features:',
     )
     """"""
     SUPPORTED_FOREIGN_CONFIGURATION_FORMATS = commented(

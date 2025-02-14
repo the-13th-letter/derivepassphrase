@@ -86,6 +86,7 @@ class VersionOutputData(NamedTuple):
     foreign_configuration_formats: dict[str, bool]
     extras: frozenset[str]
     subcommands: frozenset[str]
+    features: dict[str, bool]
 
 
 PASSPHRASE_GENERATION_OPTIONS: list[tuple[str, ...]] = [
@@ -405,12 +406,14 @@ def parse_version_output(  # noqa: C901
     formats: dict[str, bool] = {}
     subcommands: set[str] = set()
     extras: set[str] = set()
-    if len(paragraphs) < 2:
+    features: dict[str, bool] = {}
+    if len(paragraphs) < 2:  # pragma: no cover
         return VersionOutputData(
             derivation_schemes=schemes,
             foreign_configuration_formats=formats,
             subcommands=frozenset(subcommands),
             extras=frozenset(extras),
+            features=features,
         )
     for line in paragraphs[1]:
         line_type, _, value = line.partition(':')
@@ -432,6 +435,10 @@ def parse_version_output(  # noqa: C901
                 subcommands.add(item)
             elif line_type == 'PEP 508 extras':
                 extras.add(item)
+            elif line_type == 'Supported features':
+                features[item] = True
+            elif line_type == 'Known features':
+                features[item] = False
             else:
                 raise AssertionError(  # noqa: TRY003
                     f'Unknown version info line type: {line_type!r}'  # noqa: EM102
@@ -441,6 +448,7 @@ def parse_version_output(  # noqa: C901
         foreign_configuration_formats=formats,
         subcommands=frozenset(subcommands),
         extras=frozenset(extras),
+        features=features,
     )
 
 
@@ -1481,6 +1489,7 @@ PEP 508 extras: export.
                         'vault v0.3': True,
                     },
                     subcommands=frozenset(),
+                    features={},
                     extras=frozenset({'export'}),
                 ),
                 id='derivepassphrase-0.4.0-export',
@@ -1504,6 +1513,7 @@ No PEP 508 extras are active.
                         'vault v0.3': False,
                     },
                     subcommands=frozenset({'export', 'vault'}),
+                    features={},
                     extras=frozenset({}),
                 ),
                 id='derivepassphrase-0.5-plain',
@@ -1525,6 +1535,8 @@ Supported foreign configuration formats: derivepassphrase, nonsense.
 Known foreign configuration formats: divination v3.141592,
     /dev/random.
 Supported subcommands: delete-all-files, dump-core.
+Supported features: delete-while-open.
+Known features: backups-are-nice-to-have.
 PEP 508 extras: annoying-popups, delete-all-files,
     dump-core-depending-on-the-phase-of-the-moon.
 
@@ -1548,6 +1560,10 @@ PEP 508 extras: annoying-popups, delete-all-files,
                         '/dev/random': False,
                     },
                     subcommands=frozenset({'delete-all-files', 'dump-core'}),
+                    features={
+                        'delete-while-open': True,
+                        'backups-are-nice-to-have': False,
+                    },
                     extras=frozenset({
                         'annoying-popups',
                         'delete-all-files',
@@ -1837,6 +1853,7 @@ class TestAllCLI:
         assert version_data.derivation_schemes == actually_known_schemes
         assert not version_data.foreign_configuration_formats
         assert version_data.subcommands == subcommands
+        assert not version_data.features
         assert not version_data.extras
 
     def test_202b_export_version_option_output(
@@ -1885,6 +1902,7 @@ class TestAllCLI:
             == actually_known_formats
         )
         assert version_data.subcommands == subcommands
+        assert not version_data.features
         assert not version_data.extras
 
     def test_202c_export_vault_version_option_output(
@@ -1939,6 +1957,7 @@ class TestAllCLI:
             == actually_known_formats
         )
         assert not version_data.subcommands
+        assert not version_data.features
         assert version_data.extras == actually_enabled_extras
 
     def test_202d_vault_version_option_output(
@@ -1974,9 +1993,13 @@ class TestAllCLI:
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
         assert result.output.strip(), 'expected version output'
         version_data = parse_version_output(result.output)
+        features: dict[str, bool] = {
+            'master SSH key': hasattr(socket, 'AF_UNIX'),
+        }
         assert not version_data.derivation_schemes
         assert not version_data.foreign_configuration_formats
         assert not version_data.subcommands
+        assert version_data.features == features
         assert not version_data.extras
 
 

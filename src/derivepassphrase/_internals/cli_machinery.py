@@ -20,6 +20,7 @@ import importlib.metadata
 import inspect
 import logging
 import os
+import socket
 import warnings
 from typing import TYPE_CHECKING, Callable, Literal, TextIO, TypeVar
 
@@ -1126,6 +1127,19 @@ def vault_version_option_callback(
 ) -> None:
     if value and not ctx.resilient_parsing:
         common_version_output(ctx, param, value)
+        features = {
+            'master SSH key': hasattr(socket, 'AF_UNIX'),
+        }
+        click.echo()
+        version_info_types = {
+            _msg.Label.SUPPORTED_FEATURES: [
+                k for k, v in features.items() if v
+            ],
+            _msg.Label.KNOWN_FEATURES: [
+                k for k, v in features.items() if not v
+            ],
+        }
+        print_version_info_types(version_info_types, ctx=ctx)
         ctx.exit()
 
 
