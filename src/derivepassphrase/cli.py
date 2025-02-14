@@ -58,7 +58,9 @@ VERSION = _internals.VERSION
         _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_03),
     ),
 )
-@cli_machinery.version_option
+@cli_machinery.version_option(
+    cli_machinery.derivepassphrase_version_option_callback
+)
 @cli_machinery.color_forcing_pseudo_option
 @cli_machinery.standard_logging_options
 @click.pass_context
@@ -113,7 +115,7 @@ def derivepassphrase(ctx: click.Context, /) -> None:
         _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_EXPORT_03),
     ),
 )
-@cli_machinery.version_option
+@cli_machinery.version_option(cli_machinery.export_version_option_callback)
 @cli_machinery.color_forcing_pseudo_option
 @cli_machinery.standard_logging_options
 @click.pass_context
@@ -204,7 +206,9 @@ def derivepassphrase_export(ctx: click.Context, /) -> None:
     ),
     cls=cli_machinery.StandardOption,
 )
-@cli_machinery.version_option
+@cli_machinery.version_option(
+    cli_machinery.export_vault_version_option_callback
+)
 @cli_machinery.color_forcing_pseudo_option
 @cli_machinery.standard_logging_options
 @click.argument(
@@ -610,7 +614,7 @@ def derivepassphrase_export_vault(
     ),
     cls=cli_machinery.CompatibilityOption,
 )
-@cli_machinery.version_option
+@cli_machinery.version_option(cli_machinery.vault_version_option_callback)
 @cli_machinery.color_forcing_pseudo_option
 @cli_machinery.standard_logging_options
 @click.argument(

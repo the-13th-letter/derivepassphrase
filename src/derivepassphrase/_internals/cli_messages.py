@@ -1327,6 +1327,15 @@ class Label(enum.Enum):
         'Supported foreign configuration formats:',
     )
     """"""
+    SUPPORTED_SUBCOMMANDS = commented(
+        'This is part of the version output, emitting lists of supported '
+        'subcommands.  A comma-separated English list '
+        'of items follows, with standard English punctuation.',
+    )(
+        'Label :: Info Message:: Table row header',
+        'Supported subcommands:',
+    )
+    """"""
     CONFIRM_THIS_CHOICE_PROMPT_TEXT = commented(
         'There is no support for "yes" or "no" in other languages '
         'than English, so it is advised that your translation makes it '

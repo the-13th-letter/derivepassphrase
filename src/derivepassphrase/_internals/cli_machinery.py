@@ -952,7 +952,7 @@ def validate_length(
     return int_value
 
 
-def version_option_callback(
+def common_version_output(
     ctx: click.Context,
     param: click.Parameter,
     value: bool,  # noqa: FBT001
@@ -960,32 +960,6 @@ def version_option_callback(
     del param
     if value and not ctx.resilient_parsing:
         major_dependencies: list[str] = []
-        derivation_schemes = {'vault': True}
-        foreign_configuration_formats = {
-            'vault storeroom': False,
-            'vault v0.2': False,
-            'vault v0.3': False,
-        }
-        known_extras = {
-            'export': False,
-        }
-        try:
-            from derivepassphrase.exporter import storeroom, vault_native  # noqa: I001,PLC0415
-
-            foreign_configuration_formats[
-                'vault storeroom'
-            ] = not storeroom.STUBBED
-            foreign_configuration_formats[
-                'vault v0.2'
-            ] = not vault_native.STUBBED
-            foreign_configuration_formats[
-                'vault v0.3'
-            ] = not vault_native.STUBBED
-            known_extras['export'] = (
-                not storeroom.STUBBED and not vault_native.STUBBED
-            )
-        except ModuleNotFoundError:  # pragma: no cover
-            pass
         try:
             cryptography_version = importlib.metadata.version('cryptography')
         except ModuleNotFoundError:
@@ -1011,6 +985,54 @@ def version_option_callback(
                 ),
                 color=ctx.color,
             )
+
+
+def print_version_info_types(
+    version_info_types: dict[_msg.Label, list[str]],
+    /,
+    *,
+    ctx: click.Context,
+) -> None:
+    for message_label, item_list in version_info_types.items():
+        if item_list:
+            current_length = len(str(_msg.TranslatedString(message_label)))
+            formatted_item_list_pieces: list[str] = []
+            n = len(item_list)
+            for i, item in enumerate(item_list, start=1):
+                space = ' '
+                punctuation = '.' if i == n else ','
+                if (
+                    current_length + len(space) + len(item) + len(punctuation)
+                    <= VERSION_OUTPUT_WRAPPING_WIDTH
+                ):
+                    current_length += len(space) + len(item) + len(punctuation)
+                    piece = f'{space}{item}{punctuation}'
+                else:
+                    space = '    '
+                    current_length = len(space) + len(item) + len(punctuation)
+                    piece = f'\n{space}{item}{punctuation}'
+                formatted_item_list_pieces.append(piece)
+            click.echo(
+                ''.join([
+                    click.style(
+                        str(_msg.TranslatedString(message_label)),
+                        bold=True,
+                    ),
+                    ''.join(formatted_item_list_pieces),
+                ]),
+                color=ctx.color,
+            )
+
+
+def derivepassphrase_version_option_callback(
+    ctx: click.Context,
+    param: click.Parameter,
+    value: bool,  # noqa: FBT001
+) -> None:
+    if value and not ctx.resilient_parsing:
+        common_version_output(ctx, param, value)
+        derivation_schemes = {'vault': True}
+        supported_subcommands = {'export', 'vault'}
         click.echo()
         version_info_types = {
             _msg.Label.SUPPORTED_DERIVATION_SCHEMES: [
@@ -1019,6 +1041,70 @@ def version_option_callback(
             _msg.Label.KNOWN_DERIVATION_SCHEMES: [
                 k for k, v in derivation_schemes.items() if not v
             ],
+            _msg.Label.SUPPORTED_SUBCOMMANDS: sorted(supported_subcommands),
+        }
+        print_version_info_types(version_info_types, ctx=ctx)
+        ctx.exit()
+
+
+def export_version_option_callback(
+    ctx: click.Context,
+    param: click.Parameter,
+    value: bool,  # noqa: FBT001
+) -> None:
+    if value and not ctx.resilient_parsing:
+        common_version_output(ctx, param, value)
+        supported_subcommands = {'vault'}
+        foreign_configuration_formats = {
+            'vault storeroom': False,
+            'vault v0.2': False,
+            'vault v0.3': False,
+        }
+        click.echo()
+        version_info_types = {
+            _msg.Label.KNOWN_FOREIGN_CONFIGURATION_FORMATS: [
+                k for k, v in foreign_configuration_formats.items() if not v
+            ],
+            _msg.Label.SUPPORTED_SUBCOMMANDS: sorted(supported_subcommands),
+        }
+        print_version_info_types(version_info_types, ctx=ctx)
+        ctx.exit()
+
+
+def export_vault_version_option_callback(
+    ctx: click.Context,
+    param: click.Parameter,
+    value: bool,  # noqa: FBT001
+) -> None:
+    if value and not ctx.resilient_parsing:
+        common_version_output(ctx, param, value)
+        foreign_configuration_formats = {
+            'vault storeroom': False,
+            'vault v0.2': False,
+            'vault v0.3': False,
+        }
+        known_extras = {
+            'export': False,
+        }
+        try:
+            from derivepassphrase.exporter import storeroom, vault_native  # noqa: I001,PLC0415
+
+            foreign_configuration_formats[
+                'vault storeroom'
+            ] = not storeroom.STUBBED
+            foreign_configuration_formats[
+                'vault v0.2'
+            ] = not vault_native.STUBBED
+            foreign_configuration_formats[
+                'vault v0.3'
+            ] = not vault_native.STUBBED
+            known_extras['export'] = (
+                not storeroom.STUBBED and not vault_native.STUBBED
+            )
+        except ModuleNotFoundError:  # pragma: no cover
+            pass
+        click.echo()
+        version_info_types = {
             _msg.Label.SUPPORTED_FOREIGN_CONFIGURATION_FORMATS: [
                 k for k, v in foreign_configuration_formats.items() if v
             ],
@@ -1029,46 +1115,25 @@ def version_option_callback(
                 k for k, v in known_extras.items() if v
             ],
         }
-        for message_label, item_list in version_info_types.items():
-            if item_list:
-                current_length = len(str(_msg.TranslatedString(message_label)))
-                formatted_item_list_pieces: list[str] = []
-                n = len(item_list)
-                for i, item in enumerate(item_list, start=1):
-                    space = ' '
-                    punctuation = '.' if i == n else ','
-                    if (
-                        current_length
-                        + len(space)
-                        + len(item)
-                        + len(punctuation)
-                        <= VERSION_OUTPUT_WRAPPING_WIDTH
-                    ):
-                        current_length += (
-                            len(space) + len(item) + len(punctuation)
-                        )
-                        piece = f'{space}{item}{punctuation}'
-                    else:
-                        space = '    '
-                        current_length = (
-                            len(space) + len(item) + len(punctuation)
-                        )
-                        piece = f'\n{space}{item}{punctuation}'
-                    formatted_item_list_pieces.append(piece)
-                click.echo(
-                    ''.join([
-                        click.style(
-                            str(_msg.TranslatedString(message_label)),
-                            bold=True,
-                        ),
-                        ''.join(formatted_item_list_pieces),
-                    ]),
-                    color=ctx.color,
-                )
+        print_version_info_types(version_info_types, ctx=ctx)
         ctx.exit()
 
 
-def version_option(f: Callable[P, R]) -> Callable[P, R]:
+def vault_version_option_callback(
+    ctx: click.Context,
+    param: click.Parameter,
+    value: bool,  # noqa: FBT001
+) -> None:
+    if value and not ctx.resilient_parsing:
+        common_version_output(ctx, param, value)
+        ctx.exit()
+
+
+def version_option(
+    version_option_callback: Callable[
+        [click.Context, click.Parameter, Any], Any
+    ],
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
     return click.option(
         '--version',
         is_flag=True,
@@ -1077,7 +1142,7 @@ def version_option(f: Callable[P, R]) -> Callable[P, R]:
         callback=version_option_callback,
         cls=StandardOption,
         help=_msg.TranslatedString(_msg.Label.VERSION_OPTION_HELP_TEXT),
-    )(f)
+    )
 
 
 color_forcing_pseudo_option = click.option(

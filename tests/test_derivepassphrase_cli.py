@@ -85,6 +85,7 @@ class VersionOutputData(NamedTuple):
     derivation_schemes: dict[str, bool]
     foreign_configuration_formats: dict[str, bool]
     extras: frozenset[str]
+    subcommands: frozenset[str]
 
 
 PASSPHRASE_GENERATION_OPTIONS: list[tuple[str, ...]] = [
@@ -349,15 +350,15 @@ def parse_version_output(  # noqa: C901
     The version output contains two paragraphs.  The first paragraph
     details the version number, and the version number of any major
     libraries in use.  The second paragraph details known and supported
-    passphrase derivation schemes, foreign configuration formats, and
-    PEP 508 package extras.  For the schemes and formats, there is
-    a "supported" line for supported items, and a "known" line for known
-    but currently unsupported items (usually because of missing
-    dependencies), either of which may be empty and thus omitted.  For
-    extras, only active items are shown, and there is a separate message
-    for the "no extras active" case.  Item lists may be spilled across
-    multiple lines, but only at item boundaries, and the continuation
-    lines are then indented.
+    passphrase derivation schemes, foreign configuration formats,
+    subcommands and PEP 508 package extras.  For the schemes and
+    formats, there is a "supported" line for supported items, and
+    a "known" line for known but currently unsupported items (usually
+    because of missing dependencies), either of which may be empty and
+    thus omitted.  For extras, only active items are shown, and there is
+    a separate message for the "no extras active" case.  Item lists may
+    be spilled across multiple lines, but only at item boundaries, and
+    the continuation lines are then indented.
 
     Args:
         text:
@@ -389,8 +390,8 @@ def parse_version_output(  # noqa: C901
     if paragraph:  # pragma: no branch
         paragraphs.append(paragraph.copy())
         paragraph.clear()
-    assert len(paragraphs) == 2, (
-        f'expected exactly two lines of version output: {paragraphs!r}'
+    assert paragraphs, (
+        f'expected at least one paragraph of version output: {paragraphs!r}'
     )
     assert prog_name is None or prog_name in paragraphs[0][0], (
         f'first version output line should mention '
@@ -400,9 +401,17 @@ def parse_version_output(  # noqa: C901
         f'first version output line should mention the version number '
         f'{version}: {paragraphs[0][0]!r}'
     )
-    schemas: dict[str, bool] = {}
+    schemes: dict[str, bool] = {}
     formats: dict[str, bool] = {}
+    subcommands: set[str] = set()
     extras: set[str] = set()
+    if len(paragraphs) < 2:
+        return VersionOutputData(
+            derivation_schemes=schemes,
+            foreign_configuration_formats=formats,
+            subcommands=frozenset(subcommands),
+            extras=frozenset(extras),
+        )
     for line in paragraphs[1]:
         line_type, _, value = line.partition(':')
         if line_type == line:
@@ -416,16 +425,23 @@ def parse_version_output(  # noqa: C901
             elif line_type == 'Known foreign configuration formats':
                 formats[item] = False
             elif line_type == 'Supported derivation schemes':
-                schemas[item] = True
+                schemes[item] = True
             elif line_type == 'Known derivation schemes':
-                schemas[item] = False
+                schemes[item] = False
+            elif line_type == 'Supported subcommands':
+                subcommands.add(item)
             elif line_type == 'PEP 508 extras':
                 extras.add(item)
             else:
                 raise AssertionError(  # noqa: TRY003
                     f'Unknown version info line type: {line_type!r}'  # noqa: EM102
                 )
-    return VersionOutputData(schemas, formats, frozenset(extras))
+    return VersionOutputData(
+        derivation_schemes=schemes,
+        foreign_configuration_formats=formats,
+        subcommands=frozenset(subcommands),
+        extras=frozenset(extras),
+    )
 
 
 def bash_format(item: click.shell_completion.CompletionItem) -> str:
@@ -1451,7 +1467,6 @@ class Parametrize(types.SimpleNamespace):
 derivepassphrase 0.4.0
 Using cryptography 44.0.0
 
-Supported derivation schemes: vault.
 Supported foreign configuration formats: vault storeroom, vault v0.2,
     vault v0.3.
 PEP 508 extras: export.
@@ -1459,12 +1474,13 @@ PEP 508 extras: export.
                 'derivepassphrase',
                 '0.4.0',
                 VersionOutputData(
-                    derivation_schemes={'vault': True},
+                    derivation_schemes={},
                     foreign_configuration_formats={
                         'vault storeroom': True,
                         'vault v0.2': True,
                         'vault v0.3': True,
                     },
+                    subcommands=frozenset(),
                     extras=frozenset({'export'}),
                 ),
                 id='derivepassphrase-0.4.0-export',
@@ -1475,6 +1491,7 @@ derivepassphrase 0.5
 
 Supported derivation schemes: vault.
 Known foreign configuration formats: vault storeroom, vault v0.2, vault v0.3.
+Supported subcommands: export, vault.
 No PEP 508 extras are active.
 """,
                 'derivepassphrase',
@@ -1486,6 +1503,7 @@ No PEP 508 extras are active.
                         'vault v0.2': False,
                         'vault v0.3': False,
                     },
+                    subcommands=frozenset({'export', 'vault'}),
                     extras=frozenset({}),
                 ),
                 id='derivepassphrase-0.5-plain',
@@ -1506,6 +1524,7 @@ Known derivation schemes: divination, /dev/random,
 Supported foreign configuration formats: derivepassphrase, nonsense.
 Known foreign configuration formats: divination v3.141592,
     /dev/random.
+Supported subcommands: delete-all-files, dump-core.
 PEP 508 extras: annoying-popups, delete-all-files,
     dump-core-depending-on-the-phase-of-the-moon.
 
@@ -1528,6 +1547,7 @@ PEP 508 extras: annoying-popups, delete-all-files,
                         'divination v3.141592': False,
                         '/dev/random': False,
                     },
+                    subcommands=frozenset({'delete-all-files', 'dump-core'}),
                     extras=frozenset({
                         'annoying-popups',
                         'delete-all-files',
@@ -1778,20 +1798,19 @@ class TestAllCLI:
             'Expected no color, but found an ANSI control sequence'
         )
 
-    @Parametrize.COMMAND_NON_EAGER_ARGUMENTS
-    def test_202_version_option_output(
+    def test_202a_derivepassphrase_version_option_output(
         self,
-        command: list[str],
-        non_eager_arguments: list[str],
     ) -> None:
         """The version output states supported features.
 
         The version output is parsed using [`parse_version_output`][].
         Format examples can be found in
-        [`Parametrize.VERSION_OUTPUT_DATA`][].
+        [`Parametrize.VERSION_OUTPUT_DATA`][].  Specifically, for the
+        top-level `derivepassphrase` command, the output should contain
+        the known and supported derivation schemes, and a list of
+        subcommands.
 
         """
-        del non_eager_arguments
         runner = click.testing.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -1806,7 +1825,96 @@ class TestAllCLI:
             )
             result_ = runner.invoke(
                 cli.derivepassphrase,
-                [*command, '--version'],
+                ['--version'],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(result_)
+        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+        assert result.output.strip(), 'expected version output'
+        version_data = parse_version_output(result.output)
+        actually_known_schemes = {'vault': True}
+        subcommands = {'export', 'vault'}
+        assert version_data.derivation_schemes == actually_known_schemes
+        assert not version_data.foreign_configuration_formats
+        assert version_data.subcommands == subcommands
+        assert not version_data.extras
+
+    def test_202b_export_version_option_output(
+        self,
+    ) -> None:
+        """The version output states supported features.
+
+        The version output is parsed using [`parse_version_output`][].
+        Format examples can be found in
+        [`Parametrize.VERSION_OUTPUT_DATA`][].  Specifically, for the
+        `export` command, the output should contain the known foreign
+        configuration formats (but not marked as supported), and a list
+        of subcommands.
+
+        """
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
+            result_ = runner.invoke(
+                cli.derivepassphrase,
+                ['export', '--version'],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(result_)
+        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+        assert result.output.strip(), 'expected version output'
+        version_data = parse_version_output(result.output)
+        actually_known_formats: dict[str, bool] = {
+            'vault storeroom': False,
+            'vault v0.2': False,
+            'vault v0.3': False,
+        }
+        subcommands = {'vault'}
+        assert not version_data.derivation_schemes
+        assert (
+            version_data.foreign_configuration_formats
+            == actually_known_formats
+        )
+        assert version_data.subcommands == subcommands
+        assert not version_data.extras
+
+    def test_202c_export_vault_version_option_output(
+        self,
+    ) -> None:
+        """The version output states supported features.
+
+        The version output is parsed using [`parse_version_output`][].
+        Format examples can be found in
+        [`Parametrize.VERSION_OUTPUT_DATA`][].  Specifically, for the
+        `export vault` subcommand, the output should contain the
+        vault-specific subset of the known or supported foreign
+        configuration formats, and a list of available PEP 508 extras.
+
+        """
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
+            result_ = runner.invoke(
+                cli.derivepassphrase,
+                ['export', 'vault', '--version'],
                 catch_exceptions=False,
             )
             result = tests.ReadableResult.parse(result_)
@@ -1814,7 +1922,6 @@ class TestAllCLI:
         assert result.output.strip(), 'expected version output'
         version_data = parse_version_output(result.output)
         actually_known_formats: dict[str, bool] = {}
-        actually_known_schemes = {'vault': True}
         actually_enabled_extras: set[str] = set()
         with contextlib.suppress(ModuleNotFoundError):
             from derivepassphrase.exporter import storeroom, vault_native  # noqa: I001,PLC0415
@@ -1826,12 +1933,51 @@ class TestAllCLI:
             })
             if not storeroom.STUBBED and not vault_native.STUBBED:
                 actually_enabled_extras.add('export')
+        assert not version_data.derivation_schemes
         assert (
             version_data.foreign_configuration_formats
             == actually_known_formats
         )
-        assert version_data.derivation_schemes == actually_known_schemes
+        assert not version_data.subcommands
         assert version_data.extras == actually_enabled_extras
+
+    def test_202d_vault_version_option_output(
+        self,
+    ) -> None:
+        """The version output states supported features.
+
+        The version output is parsed using [`parse_version_output`][].
+        Format examples can be found in
+        [`Parametrize.VERSION_OUTPUT_DATA`][].  Specifically, for the
+        vault command, the output should not contain anything beyond the
+        first paragraph.
+
+        """
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
+            result_ = runner.invoke(
+                cli.derivepassphrase,
+                ['vault', '--version'],
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(result_)
+        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+        assert result.output.strip(), 'expected version output'
+        version_data = parse_version_output(result.output)
+        assert not version_data.derivation_schemes
+        assert not version_data.foreign_configuration_formats
+        assert not version_data.subcommands
+        assert not version_data.extras
 
 
 class TestCLI:
