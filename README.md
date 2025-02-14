@@ -18,35 +18,37 @@ The service name and constraints themselves also need not be kept secret; the la
 
 ## Installation
 
-### With `pip`
+`derivepassphrase` is a pure Python package, and may be easily installed with any `pip`-compatible Python package manager such as `pip`, `pipx`, or `uv`.
+(`pip` is distributed with Python 3 by default.)
 
-(If not inside a [virtual environment][VENV], use `pip install --user` instead of plain `pip install`.)
-
-```` shell-session
-$ pip install derivepassphrase
-````
-
-To use the `export` subcommand, install the `export` extra:
-
-```` shell-session
-$ pip install "derivepassphrase[export]"
-````
-
-[VENV]: https://docs.python.org/3/library/venv.html
-
-### Manually
-
-`derivepassphrase` is a pure Python package, and may be easily installed manually by placing the respective files and the package's dependencies into Python's import path.
 `derivepassphrase` requires Python 3.9 or higher as well as the [typing-extensions package][TYPING_EXTENSIONS] for its core functionality and programmatic interface, and [`click`][CLICK] 8.1 or higher for its command-line interface.
 On Python 3.9 and 3.10 only, `derivepassphrase` additionally requires the [tomli package][TOMLI].
+The installer should take care of installing these dependencies automatically for you.
 Using the `export vault` subcommand additionally requires the [cryptography package][CRYPTOGRAPHY], version 38.0 or newer.
+This must be separately requested at installation, via the `export` extra.
 
-`derivepassphrase` works just fine on PyPy.
+<div class="grid cards" markdown>
+
+  * **pipx**
+
+    Use `pipx install derivepassphrase` in general, or `pipx install "derivepassphrase[export]"` with the `export` extra.
+
+  * **uv**
+
+    Use `uv tool install derivepassphrase` in general, or `uv tool install "derivepassphrase[export]"` with the `export` extra.
+
+  * **pip**
+
+    First, manually create a [virtual environment][VENV] and activate it.
+    Then use `pip install derivepassphrase` in general, or `pip install "derivepassphrase[export]"` with the `export` extra.
+
+</div>
 
 [TYPING_EXTENSIONS]: https://pypi.org/project/typing-extensions/
 [CLICK]: https://pypi.org/project/click/
 [TOMLI]: https://pypi.org/project/tomli/
 [CRYPTOGRAPHY]: https://pypi.org/project/cryptography/
+[VENV]: https://docs.python.org/3/library/venv.html
 
 ## Quick Usage
 

@@ -40,7 +40,7 @@ We will assume the following three services with the following passphrase polici
 
 ## Installing `derivepassphrase`
 
-You will need Python 3, and a package installer such as `pip` (bundled with Python), `pipx` or similar.
+You will need Python 3, and a package installer such as `pip` (bundled with Python), `pipx`, `uv`, etc.
 
 ---
 
@@ -58,6 +58,12 @@ You will need Python 3, and a package installer such as `pip` (bundled with Pyth
 
     ~~~~ shell-session
     $ pipx install derivepassphrase
+    ~~~~
+
+=== "uv"
+
+    ~~~~ shell-session
+    $ uv tool install derivepassphrase
     ~~~~
 
 ---
