@@ -7,6 +7,7 @@ from __future__ import annotations
 import base64
 import contextlib
 import copy
+import enum
 import errno
 import io
 import json
@@ -87,6 +88,35 @@ class VersionOutputData(NamedTuple):
     extras: frozenset[str]
     subcommands: frozenset[str]
     features: dict[str, bool]
+
+
+class KnownLineType(str, enum.Enum):
+    SUPPORTED_FOREIGN_CONFS = cli_messages.Label.SUPPORTED_FOREIGN_CONFIGURATION_FORMATS.value.singular.rstrip(
+        ':'
+    )
+    UNAVAILABLE_FOREIGN_CONFS = cli_messages.Label.UNAVAILABLE_FOREIGN_CONFIGURATION_FORMATS.value.singular.rstrip(
+        ':'
+    )
+    SUPPORTED_SCHEMES = (
+        cli_messages.Label.SUPPORTED_DERIVATION_SCHEMES.value.singular.rstrip(
+            ':'
+        )
+    )
+    UNAVAILABLE_SCHEMES = cli_messages.Label.UNAVAILABLE_DERIVATION_SCHEMES.value.singular.rstrip(
+        ':'
+    )
+    SUPPORTED_SUBCOMMANDS = (
+        cli_messages.Label.SUPPORTED_SUBCOMMANDS.value.singular.rstrip(':')
+    )
+    SUPPORTED_FEATURES = (
+        cli_messages.Label.SUPPORTED_FEATURES.value.singular.rstrip(':')
+    )
+    UNAVAILABLE_FEATURES = (
+        cli_messages.Label.UNAVAILABLE_FEATURES.value.singular.rstrip(':')
+    )
+    ENABLED_EXTRAS = (
+        cli_messages.Label.ENABLED_PEP508_EXTRAS.value.singular.rstrip(':')
+    )
 
 
 PASSPHRASE_GENERATION_OPTIONS: list[tuple[str, ...]] = [
@@ -423,21 +453,21 @@ def parse_version_output(  # noqa: C901
             item = item_.strip()
             if not item:
                 continue
-            if line_type == 'Supported foreign configuration formats':
+            if line_type == KnownLineType.SUPPORTED_FOREIGN_CONFS:
                 formats[item] = True
-            elif line_type == 'Known foreign configuration formats':
+            elif line_type == KnownLineType.UNAVAILABLE_FOREIGN_CONFS:
                 formats[item] = False
-            elif line_type == 'Supported derivation schemes':
+            elif line_type == KnownLineType.SUPPORTED_SCHEMES:
                 schemes[item] = True
-            elif line_type == 'Known derivation schemes':
+            elif line_type == KnownLineType.UNAVAILABLE_SCHEMES:
                 schemes[item] = False
-            elif line_type == 'Supported subcommands':
+            elif line_type == KnownLineType.SUPPORTED_SUBCOMMANDS:
                 subcommands.add(item)
-            elif line_type == 'PEP 508 extras':
+            elif line_type == KnownLineType.ENABLED_EXTRAS:
                 extras.add(item)
-            elif line_type == 'Supported features':
+            elif line_type == KnownLineType.SUPPORTED_FEATURES:
                 features[item] = True
-            elif line_type == 'Known features':
+            elif line_type == KnownLineType.UNAVAILABLE_FEATURES:
                 features[item] = False
             else:
                 raise AssertionError(  # noqa: TRY003
@@ -1848,8 +1878,8 @@ class TestAllCLI:
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
         assert result.output.strip(), 'expected version output'
         version_data = parse_version_output(result.output)
-        actually_known_schemes = {'vault': True}
-        subcommands = {'export', 'vault'}
+        actually_known_schemes = dict.fromkeys(_types.DerivationScheme, True)
+        subcommands = set(_types.Subcommand)
         assert version_data.derivation_schemes == actually_known_schemes
         assert not version_data.foreign_configuration_formats
         assert version_data.subcommands == subcommands
@@ -1891,11 +1921,11 @@ class TestAllCLI:
         assert result.output.strip(), 'expected version output'
         version_data = parse_version_output(result.output)
         actually_known_formats: dict[str, bool] = {
-            'vault storeroom': False,
-            'vault v0.2': False,
-            'vault v0.3': False,
+            _types.ForeignConfigurationFormat.VAULT_STOREROOM: False,
+            _types.ForeignConfigurationFormat.VAULT_V02: False,
+            _types.ForeignConfigurationFormat.VAULT_V03: False,
         }
-        subcommands = {'vault'}
+        subcommands = set(_types.ExportSubcommand)
         assert not version_data.derivation_schemes
         assert (
             version_data.foreign_configuration_formats
@@ -1945,12 +1975,12 @@ class TestAllCLI:
             from derivepassphrase.exporter import storeroom, vault_native  # noqa: I001,PLC0415
 
             actually_known_formats.update({
-                'vault storeroom': not storeroom.STUBBED,
-                'vault v0.2': not vault_native.STUBBED,
-                'vault v0.3': not vault_native.STUBBED,
+                _types.ForeignConfigurationFormat.VAULT_STOREROOM: not storeroom.STUBBED,
+                _types.ForeignConfigurationFormat.VAULT_V02: not vault_native.STUBBED,
+                _types.ForeignConfigurationFormat.VAULT_V03: not vault_native.STUBBED,
             })
             if not storeroom.STUBBED and not vault_native.STUBBED:
-                actually_enabled_extras.add('export')
+                actually_enabled_extras.add(_types.PEP508Extra.EXPORT)
         assert not version_data.derivation_schemes
         assert (
             version_data.foreign_configuration_formats
@@ -1994,7 +2024,7 @@ class TestAllCLI:
         assert result.output.strip(), 'expected version output'
         version_data = parse_version_output(result.output)
         features: dict[str, bool] = {
-            'master SSH key': hasattr(socket, 'AF_UNIX'),
+            _types.Feature.SSH_KEY: hasattr(socket, 'AF_UNIX'),
         }
         assert not version_data.derivation_schemes
         assert not version_data.foreign_configuration_formats

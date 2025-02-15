@@ -28,7 +28,7 @@ import click
 import click.shell_completion
 from typing_extensions import Any, ParamSpec, override
 
-from derivepassphrase import _internals
+from derivepassphrase import _internals, _types
 from derivepassphrase._internals import cli_messages as _msg
 
 if TYPE_CHECKING:
@@ -1032,14 +1032,14 @@ def derivepassphrase_version_option_callback(
 ) -> None:
     if value and not ctx.resilient_parsing:
         common_version_output(ctx, param, value)
-        derivation_schemes = {'vault': True}
-        supported_subcommands = {'export', 'vault'}
+        derivation_schemes = dict.fromkeys(_types.DerivationScheme, True)
+        supported_subcommands = set(_types.Subcommand)
         click.echo()
-        version_info_types = {
+        version_info_types: dict[_msg.Label, list[str]] = {
             _msg.Label.SUPPORTED_DERIVATION_SCHEMES: [
                 k for k, v in derivation_schemes.items() if v
             ],
-            _msg.Label.KNOWN_DERIVATION_SCHEMES: [
+            _msg.Label.UNAVAILABLE_DERIVATION_SCHEMES: [
                 k for k, v in derivation_schemes.items() if not v
             ],
             _msg.Label.SUPPORTED_SUBCOMMANDS: sorted(supported_subcommands),
@@ -1055,15 +1055,15 @@ def export_version_option_callback(
 ) -> None:
     if value and not ctx.resilient_parsing:
         common_version_output(ctx, param, value)
-        supported_subcommands = {'vault'}
+        supported_subcommands = set(_types.ExportSubcommand)
         foreign_configuration_formats = {
-            'vault storeroom': False,
-            'vault v0.2': False,
-            'vault v0.3': False,
+            _types.ForeignConfigurationFormat.VAULT_STOREROOM: False,
+            _types.ForeignConfigurationFormat.VAULT_V02: False,
+            _types.ForeignConfigurationFormat.VAULT_V03: False,
         }
         click.echo()
-        version_info_types = {
-            _msg.Label.KNOWN_FOREIGN_CONFIGURATION_FORMATS: [
+        version_info_types: dict[_msg.Label, list[str]] = {
+            _msg.Label.UNAVAILABLE_FOREIGN_CONFIGURATION_FORMATS: [
                 k for k, v in foreign_configuration_formats.items() if not v
             ],
             _msg.Label.SUPPORTED_SUBCOMMANDS: sorted(supported_subcommands),
@@ -1080,36 +1080,36 @@ def export_vault_version_option_callback(
     if value and not ctx.resilient_parsing:
         common_version_output(ctx, param, value)
         foreign_configuration_formats = {
-            'vault storeroom': False,
-            'vault v0.2': False,
-            'vault v0.3': False,
+            _types.ForeignConfigurationFormat.VAULT_STOREROOM: False,
+            _types.ForeignConfigurationFormat.VAULT_V02: False,
+            _types.ForeignConfigurationFormat.VAULT_V03: False,
         }
         known_extras = {
-            'export': False,
+            _types.PEP508Extra.EXPORT: False,
         }
         try:
             from derivepassphrase.exporter import storeroom, vault_native  # noqa: I001,PLC0415
 
             foreign_configuration_formats[
-                'vault storeroom'
+                _types.ForeignConfigurationFormat.VAULT_STOREROOM
             ] = not storeroom.STUBBED
             foreign_configuration_formats[
-                'vault v0.2'
+                _types.ForeignConfigurationFormat.VAULT_V02
             ] = not vault_native.STUBBED
             foreign_configuration_formats[
-                'vault v0.3'
+                _types.ForeignConfigurationFormat.VAULT_V03
             ] = not vault_native.STUBBED
-            known_extras['export'] = (
+            known_extras[_types.PEP508Extra.EXPORT] = (
                 not storeroom.STUBBED and not vault_native.STUBBED
             )
         except ModuleNotFoundError:  # pragma: no cover
             pass
         click.echo()
-        version_info_types = {
+        version_info_types: dict[_msg.Label, list[str]] = {
             _msg.Label.SUPPORTED_FOREIGN_CONFIGURATION_FORMATS: [
                 k for k, v in foreign_configuration_formats.items() if v
             ],
-            _msg.Label.KNOWN_FOREIGN_CONFIGURATION_FORMATS: [
+            _msg.Label.UNAVAILABLE_FOREIGN_CONFIGURATION_FORMATS: [
                 k for k, v in foreign_configuration_formats.items() if not v
             ],
             _msg.Label.ENABLED_PEP508_EXTRAS: [
@@ -1128,14 +1128,14 @@ def vault_version_option_callback(
     if value and not ctx.resilient_parsing:
         common_version_output(ctx, param, value)
         features = {
-            'master SSH key': hasattr(socket, 'AF_UNIX'),
+            _types.Feature.SSH_KEY: hasattr(socket, 'AF_UNIX'),
         }
         click.echo()
-        version_info_types = {
+        version_info_types: dict[_msg.Label, list[str]] = {
             _msg.Label.SUPPORTED_FEATURES: [
                 k for k, v in features.items() if v
             ],
-            _msg.Label.KNOWN_FEATURES: [
+            _msg.Label.UNAVAILABLE_FEATURES: [
                 k for k, v in features.items() if not v
             ],
         }

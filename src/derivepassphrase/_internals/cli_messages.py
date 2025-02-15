@@ -1284,23 +1284,65 @@ class Label(enum.Enum):
     """"""
     ENABLED_PEP508_EXTRAS = commented(
         'This is part of the version output, emitting lists of enabled '
-        'PEP 508 extras.  A comma-separated English list of items follows, '
+        'PEP 508 extras.  '
+        'A comma-separated English list of items follows, '
         'with standard English punctuation.',
     )(
         'Label :: Info Message:: Table row header',
         'PEP 508 extras:',
     )
     """"""
-    KNOWN_DERIVATION_SCHEMES = commented(
-        'This is part of the version output, emitting lists of known '
-        'derivation schemes.  A comma-separated English list of items '
-        'follows, with standard English punctuation.',
+    SUPPORTED_DERIVATION_SCHEMES = commented(
+        'This is part of the version output, emitting lists of supported '
+        'derivation schemes.  '
+        'A comma-separated English list of items follows, '
+        'with standard English punctuation.',
+    )(
+        'Label :: Info Message:: Table row header',
+        'Supported derivation schemes:',
+    )
+    """"""
+    SUPPORTED_FEATURES = commented(
+        'This is part of the version output, emitting lists of supported '
+        'features for this subcommand.  '
+        'A comma-separated English list of items follows, '
+        'with standard English punctuation.',
+    )(
+        'Label :: Info Message:: Table row header',
+        'Supported features:',
+    )
+    """"""
+    SUPPORTED_FOREIGN_CONFIGURATION_FORMATS = commented(
+        'This is part of the version output, emitting lists of supported '
+        'foreign configuration formats.  '
+        'A comma-separated English list of items follows, '
+        'with standard English punctuation.',
+    )(
+        'Label :: Info Message:: Table row header',
+        'Supported foreign configuration formats:',
+    )
+    """"""
+    SUPPORTED_SUBCOMMANDS = commented(
+        'This is part of the version output, emitting lists of supported '
+        'subcommands.  '
+        'A comma-separated English list of items follows, '
+        'with standard English punctuation.',
+    )(
+        'Label :: Info Message:: Table row header',
+        'Supported subcommands:',
+    )
+    """"""
+    UNAVAILABLE_DERIVATION_SCHEMES = commented(
+        'This is part of the version output, emitting lists of known, '
+        'unavailable derivation schemes.  '
+        'A comma-separated English list of items follows, '
+        'with standard English punctuation.',
     )(
         'Label :: Info Message:: Table row header',
         'Known derivation schemes:',
     )
     """"""
-    KNOWN_FEATURES = commented(
+    UNAVAILABLE_FEATURES = commented(
         'This is part of the version output, emitting lists of known, '
         'unavailable features for this subcommand.  '
         'A comma-separated English list of items follows, '
@@ -1310,49 +1352,14 @@ class Label(enum.Enum):
         'Known features:',
     )
     """"""
-    KNOWN_FOREIGN_CONFIGURATION_FORMATS = commented(
-        'This is part of the version output, emitting lists of known '
-        'foreign configuration formats.  A comma-separated English list '
-        'of items follows, with standard English punctuation.',
+    UNAVAILABLE_FOREIGN_CONFIGURATION_FORMATS = commented(
+        'This is part of the version output, emitting lists of known, '
+        'unavailable foreign configuration formats.  '
+        'A comma-separated English list of items follows, '
+        'with standard English punctuation.',
     )(
         'Label :: Info Message:: Table row header',
         'Known foreign configuration formats:',
-    )
-    """"""
-    SUPPORTED_DERIVATION_SCHEMES = commented(
-        'This is part of the version output, emitting lists of supported '
-        'derivation schemes.  A comma-separated English list of items '
-        'follows, with standard English punctuation.',
-    )(
-        'Label :: Info Message:: Table row header',
-        'Supported derivation schemes:',
-    )
-    """"""
-    SUPPORTED_FEATURES = commented(
-        'This is part of the version output, emitting lists of supported '
-        'features for this subcommand.  A comma-separated '
-        'English list of items follows, with standard English punctuation.',
-    )(
-        'Label :: Info Message:: Table row header',
-        'Supported features:',
-    )
-    """"""
-    SUPPORTED_FOREIGN_CONFIGURATION_FORMATS = commented(
-        'This is part of the version output, emitting lists of supported '
-        'foreign configuration formats.  A comma-separated English list '
-        'of items follows, with standard English punctuation.',
-    )(
-        'Label :: Info Message:: Table row header',
-        'Supported foreign configuration formats:',
-    )
-    """"""
-    SUPPORTED_SUBCOMMANDS = commented(
-        'This is part of the version output, emitting lists of supported '
-        'subcommands.  A comma-separated English list '
-        'of items follows, with standard English punctuation.',
-    )(
-        'Label :: Info Message:: Table row header',
-        'Supported subcommands:',
     )
     """"""
     CONFIRM_THIS_CHOICE_PROMPT_TEXT = commented(
