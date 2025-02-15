@@ -958,34 +958,33 @@ def common_version_output(
     param: click.Parameter,
     value: bool,  # noqa: FBT001
 ) -> None:
-    del param
-    if value and not ctx.resilient_parsing:
-        major_dependencies: list[str] = []
-        try:
-            cryptography_version = importlib.metadata.version('cryptography')
-        except ModuleNotFoundError:
-            pass
-        else:
-            major_dependencies.append(f'cryptography {cryptography_version}')
-        major_dependencies.append(f'click {click.__version__}')
+    del param, value
+    major_dependencies: list[str] = []
+    try:
+        cryptography_version = importlib.metadata.version('cryptography')
+    except ModuleNotFoundError:
+        pass
+    else:
+        major_dependencies.append(f'cryptography {cryptography_version}')
+    major_dependencies.append(f'click {click.__version__}')
 
+    click.echo(
+        ' '.join([
+            click.style(PROG_NAME, bold=True),
+            VERSION,
+        ]),
+        color=ctx.color,
+    )
+    for dependency in major_dependencies:
         click.echo(
-            ' '.join([
-                click.style(PROG_NAME, bold=True),
-                VERSION,
-            ]),
+            str(
+                _msg.TranslatedString(
+                    _msg.Label.VERSION_INFO_MAJOR_LIBRARY_TEXT,
+                    dependency_name_and_version=dependency,
+                )
+            ),
             color=ctx.color,
         )
-        for dependency in major_dependencies:
-            click.echo(
-                str(
-                    _msg.TranslatedString(
-                        _msg.Label.VERSION_INFO_MAJOR_LIBRARY_TEXT,
-                        dependency_name_and_version=dependency,
-                    )
-                ),
-                color=ctx.color,
-            )
 
 
 def print_version_info_types(
