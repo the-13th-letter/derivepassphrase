@@ -71,8 +71,12 @@ You will need Python 3, and a package installer such as `pip` (bundled with Pyth
 Check that the installation was successful.
 
 ~~~~ shell-session
-$ devirepassphrase --version
-derivepassphrase, version 0.3.0
+$ devirepassphrase vault --version
+derivepassphrase 0.5
+Using cryptography 44.0.0
+Using click 8.1.8
+
+Supported features: master SSH key.
 ~~~~
 
 (…or similar output.)
