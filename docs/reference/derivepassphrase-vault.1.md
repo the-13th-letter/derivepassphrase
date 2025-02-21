@@ -200,10 +200,10 @@ The compatibility and extension options modify the behavior to enable additional
     Cancels the effect of any previous <b>-</b><b>-debug</b> or <b>-</b><b>-verbose</b> options.
 
 <b>-</b><b>-version</b>
-:   Show the version and exit.
+:   Show version and feature information, then exit.
 
 <b>-h</b>, <b>-</b><b>-help</b>
-:   Show a help message and exit.
+:   Show a help message, then exit.
 
 ## SHELL SCRIPT EXPORT FORMAT
 

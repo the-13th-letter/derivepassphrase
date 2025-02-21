@@ -49,10 +49,10 @@ If <i>PATH</i> is explicitly given as `VAULT_PATH`, then use the `VAULT_PATH` en
     Cancels the effect of any previous <b>-</b><b>-debug</b> or <b>-</b><b>-verbose</b> options.
 
 <b>-</b><b>-version</b>
-:   Show the version and exit.
+:   Show version and feature information, then exit.
 
 <b>-h</b>, <b>-</b><b>-help</b>
-:   Show a help message and exit.
+:   Show a help message, then exit.
 
 ## ENVIRONMENT
 
