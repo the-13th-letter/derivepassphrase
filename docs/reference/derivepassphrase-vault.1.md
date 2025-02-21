@@ -152,7 +152,7 @@ The compatibility and extension options modify the behavior to enable additional
     May be specified multiple times.
     Must not overlap with any of the settings being set afterwards.
 
-    (vault(1) does not support this option.)
+    (<i>vault</i>(1) does not support this option.)
 
 <b>-</b><b>-export-as</b> \{ <b>json</b> | <b>sh</b> \}
 :   When exporting the configuration via `--export`, export as JSON (default) or as a shell script in <i>sh</i>(1) format.
@@ -160,7 +160,7 @@ The compatibility and extension options modify the behavior to enable additional
     The JSON format is compatible with <i>vault</i>(1).
     For the shell script format, see the ["SHELL SCRIPT EXPORT FORMAT"](#shell-script-export-format) section for details.
 
-    (vault(1) behaves as if `--export-as json` were always given.)
+    (<i>vault</i>(1) behaves as if `--export-as json` were always given.)
 
 <b>-</b><b>-modern-editor-interface</b> | <b>-</b><b>-vault-legacy-editor-interface</b>
 :   When editing notes, use a modern editor interface similar to <i>git</i>(1), or use the <i>vault</i>(1) legacy editing interface.
@@ -174,7 +174,7 @@ The compatibility and extension options modify the behavior to enable additional
     <b>derivepassphrase vault</b> will use different editing instructions texts to reflect the editing interface in use.
     Additionally, for the legacy editing interface, a backup of the old notes contents will be stored in the configuration directory if the new notes differ from the old notes, to mitigate the risk of data loss because the edit cannot be aborted.
 
-    (vault(1) behaves as if `--vault-legacy-editor-interface` were always given.)
+    (<i>vault</i>(1) behaves as if `--vault-legacy-editor-interface` were always given.)
 
 <b>-</b><b>-print-notes-before</b> / <b>-</b><b>-print-notes-after</b>
 :   When deriving a passphrase, if the service has any service notes, print these notes before or after (<em>default</em>) the passphrase.
@@ -200,10 +200,12 @@ The compatibility and extension options modify the behavior to enable additional
     Cancels the effect of any previous <b>-</b><b>-debug</b> or <b>-</b><b>-verbose</b> options.
 
 <b>-</b><b>-version</b>
-:   Show the version and exit.
+:   Show version and feature information, then exit.
+
+This includes a list of known optional features, marked explicitly as either supported or unavailable.
 
 <b>-h</b>, <b>-</b><b>-help</b>
-:   Show a help message and exit.
+:   Show a help message, then exit.
 
 ## SHELL SCRIPT EXPORT FORMAT
 

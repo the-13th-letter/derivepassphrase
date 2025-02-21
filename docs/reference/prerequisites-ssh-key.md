@@ -85,6 +85,31 @@ its communication socket via the `SSH_AUTH_SOCK` environment variable,
 which is common procedure.  Therefore, [your Python installation must
 support UNIX domain sockets][socket.AF_UNIX].
 
+`derivepassphrase vault --version` will report on supported and on
+unavailable features, including "master SSH key":
+
+=== "supported"
+
+    ~~~~ console
+    $ derivepassphrase vault --version
+    derivepassphrase 0.5
+    Using cryptography 44.0.0
+    Using click 8.1.8
+
+    Supported features: master SSH key.
+    ~~~~
+
+=== "unavailable"
+
+    ~~~~ console
+    $ derivepassphrase vault --version
+    derivepassphrase 0.5
+    Using cryptography 44.0.0
+    Using click 8.1.8
+
+    Unavailable features: master SSH key.
+    ~~~~
+
 ### A supported SSH key { #ssh-key }
 
 For an SSH key to be usable by `derivepassphrase`, the SSH agent must
