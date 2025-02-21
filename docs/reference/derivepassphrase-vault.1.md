@@ -202,6 +202,8 @@ The compatibility and extension options modify the behavior to enable additional
 <b>-</b><b>-version</b>
 :   Show version and feature information, then exit.
 
+This includes a list of known optional features, marked explicitly as either supported or unavailable.
+
 <b>-h</b>, <b>-</b><b>-help</b>
 :   Show a help message, then exit.
 

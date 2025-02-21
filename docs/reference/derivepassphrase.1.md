@@ -52,6 +52,8 @@ If no subcommand is given, we default to <b>vault</b>.
 <b>-</b><b>-version</b>
 :   Show version and feature information, then exit.
 
+This includes a list of known passphrase derivation schemes and known subcommands, marked explicitly as either supported or unavailable.
+
 <b>-h</b>, <b>-</b><b>-help</b>
 :   Show a help message, then exit.
 
