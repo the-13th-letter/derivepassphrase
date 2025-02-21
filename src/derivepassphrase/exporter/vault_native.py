@@ -49,6 +49,8 @@ if TYPE_CHECKING:
     from cryptography.hazmat.primitives import ciphers, hashes, hmac, padding
     from cryptography.hazmat.primitives.ciphers import algorithms, modes
     from cryptography.hazmat.primitives.kdf import pbkdf2
+
+    STUBBED = False
 else:
     try:
         importlib.import_module('cryptography')

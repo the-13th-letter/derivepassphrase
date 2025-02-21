@@ -755,3 +755,120 @@ class StoreroomMasterKeys(NamedTuple, Generic[T_Buffer]):
             encryption_key=bytes(self.encryption_key),
             signing_key=bytes(self.signing_key),
         )
+
+
+class PEP508Extra(str, enum.Enum):
+    """PEP 508 extras supported by `derivepassphrase`.
+
+    Attributes:
+        EXPORT:
+            The necessary dependencies to allow the `export` subcommand
+            to handle as many foreign configuration formats as possible.
+
+    """
+
+    EXPORT = 'export'
+    """"""
+
+    __str__ = str.__str__
+    __format__ = str.__format__  # type: ignore[assignment]
+
+
+class Feature(str, enum.Enum):
+    """Optional features supported by `derivepassphrase`.
+
+    Attributes:
+        SSH_KEY:
+            The `vault` subcommand supports using a master SSH key,
+            instead of a master passphrase, if an SSH agent is running
+            and the master SSH key is loaded into it.
+
+            This feature requires Python support for the SSH agent's
+            chosen communication channel technology.
+
+    """
+
+    SSH_KEY = 'master SSH key'
+    """"""
+
+    __str__ = str.__str__
+    __format__ = str.__format__  # type: ignore[assignment]
+
+
+class DerivationScheme(str, enum.Enum):
+    """Derivation schemes provided by `derivepassphrase`.
+
+    Attributes:
+        VAULT:
+            The derivation scheme used by James Coglan's `vault`.
+
+    """
+
+    VAULT = 'vault'
+    """"""
+
+    __str__ = str.__str__
+    __format__ = str.__format__  # type: ignore[assignment]
+
+
+class ForeignConfigurationFormat(str, enum.Enum):
+    """Configuration formats supported by `derivepassphrase export`.
+
+    Attributes:
+        VAULT_STOREROOM:
+            The vault "storeroom" format for the `export vault`
+            subcommand.
+        VAULT_V02:
+            The vault-native "v0.2" format for the `export vault`
+            subcommand.
+        VAULT_V03:
+            The vault-native "v0.3" format for the `export vault`
+            subcommand.
+
+    """
+
+    VAULT_STOREROOM = 'vault storeroom'
+    """"""
+    VAULT_V02 = 'vault v0.2'
+    """"""
+    VAULT_V03 = 'vault v0.3'
+    """"""
+
+    __str__ = str.__str__
+    __format__ = str.__format__  # type: ignore[assignment]
+
+
+class ExportSubcommand(str, enum.Enum):
+    """Subcommands provided by `derivepassphrase export`.
+
+    Attributes:
+        VAULT:
+            The `export vault` subcommand.
+
+    """
+
+    VAULT = 'vault'
+    """"""
+
+    __str__ = str.__str__
+    __format__ = str.__format__  # type: ignore[assignment]
+
+
+class Subcommand(str, enum.Enum):
+    """Subcommands provided by `derivepassphrase`.
+
+    Attributes:
+        EXPORT:
+            The `export` subcommand.
+        VAULT:
+            The `vault` subcommand.
+
+    """
+
+    EXPORT = 'export'
+    """"""
+    VAULT = 'vault'
+    """"""
+
+    __str__ = str.__str__
+    __format__ = str.__format__  # type: ignore[assignment]

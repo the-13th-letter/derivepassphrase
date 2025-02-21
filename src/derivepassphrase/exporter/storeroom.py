@@ -38,12 +38,16 @@ from derivepassphrase import _types, exporter
 from derivepassphrase._internals import cli_messages as _msg
 
 if TYPE_CHECKING:
+    from typing_extensions import Buffer
+
+if TYPE_CHECKING:
     from collections.abc import Iterator
 
     from cryptography.hazmat.primitives import ciphers, hashes, hmac, padding
     from cryptography.hazmat.primitives.ciphers import algorithms, modes
     from cryptography.hazmat.primitives.kdf import pbkdf2
-    from typing_extensions import Buffer
+
+    STUBBED = False
 else:
     try:
         importlib.import_module('cryptography')

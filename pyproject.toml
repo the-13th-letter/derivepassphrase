@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-gettext"]
 build-backend = "hatchling.build"
 
 [project]
@@ -229,13 +229,29 @@ omit = [
 ]
 dynamic_context = 'test_function'
 
+[tool.hatch.build.hooks.gettext]
+# Leave out 'i18n-name', which already defaults to the project.name key,
+# and 'po-directory', which defaults to 'po'.
+locale-directory = 'share/locale'
+# The following would need extra tooling, which we cannot necessarily
+# assume.  'regenerate-template' in particular doesn't work here because
+# we don't use xgettext to build the template files.
+identify-left-out = false
+regenerate-template = false
+show-report = false
+
 [tool.hatch.build.targets.sdist]
 exclude = [
     'docs/changelog.d/*.md',
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ['src/derivepassphrase']
+include = [
+    'src/derivepassphrase',
+    'share/locale/',
+    'share/man/',
+]
+sources = ['src']
 
 [tool.hatch.env]
 requires = [
