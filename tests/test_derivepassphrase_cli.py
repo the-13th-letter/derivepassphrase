@@ -392,7 +392,7 @@ def parse_version_output(  # noqa: C901
     the continuation lines are then indented.
 
     Args:
-        text:
+        version_output:
             The version output text to parse.
         prog_name:
             The program name to assert, defaulting to the true program
