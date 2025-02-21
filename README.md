@@ -44,6 +44,10 @@ This must be separately requested at installation, via the `export` extra.
 
 </div>
 
+`derivepassphrase` runs just fine on PyPy.
+`derivepassphrase` *probably* also runs just fine on GraalPy, but this is untested.
+(Feedback wanted!)
+
 [TYPING_EXTENSIONS]: https://pypi.org/project/typing-extensions/
 [CLICK]: https://pypi.org/project/click/
 [TOMLI]: https://pypi.org/project/tomli/
