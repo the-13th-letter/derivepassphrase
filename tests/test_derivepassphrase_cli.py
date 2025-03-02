@@ -18,6 +18,7 @@ import re
 import shlex
 import shutil
 import socket
+import tempfile
 import textwrap
 import types
 import warnings
@@ -4885,6 +4886,111 @@ Boo.
         assert _types.clean_up_falsy_vault_config_values(config) is not None
         assert _types.is_vault_config(config)
         return self.export_as_sh_helper(config)
+
+    @hypothesis.given(
+        env_var=strategies.sampled_from(['TMPDIR', 'TEMP', 'TMP']),
+        suffix=strategies.text(
+            tuple(' 0123456789abcdefghijklmnopqrstuvwxyz'),
+            min_size=12,
+            max_size=12,
+        ),
+    )
+    @hypothesis.example(env_var='', suffix='.')
+    def test_140a_get_tempdir(
+        self,
+        env_var: str,
+        suffix: str,
+    ) -> None:
+        """[`cli_helpers.get_tempdir`][] returns a temporary directory.
+
+        If it is not the same as the temporary directory determined by
+        [`tempfile.gettempdir`][], then assert that
+        `tempfile.gettempdir` returned the current directory and
+        `cli_helpers.get_tempdir` returned the configuration directory.
+
+        """
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'services': {}},
+                )
+            )
+            monkeypatch.delenv('TMPDIR', raising=False)
+            monkeypatch.delenv('TEMP', raising=False)
+            monkeypatch.delenv('TMP', raising=False)
+            if env_var:
+                monkeypatch.setenv(env_var, str(pathlib.Path.cwd() / suffix))
+            system_tempdir = os.fsdecode(tempfile.gettempdir())
+            our_tempdir = cli_helpers.get_tempdir()
+            assert system_tempdir == os.fsdecode(our_tempdir) or (
+                # TODO(the-13th-letter): `tests.isolated_config`
+                # guarantees that `Path.cwd() == config_filename(None)`.
+                # So this sub-branch ought to never trigger in our
+                # tests.
+                system_tempdir == os.getcwd()  # noqa: PTH109
+                and our_tempdir == cli_helpers.config_filename(subsystem=None)
+            )
+
+    def test_140b_get_tempdir_force_default(self) -> None:
+        """[`cli_helpers.get_tempdir`][] returns a temporary directory.
+
+        If all candidates are mocked to fail for the standard temporary
+        directory choices, then we return the `derivepassphrase`
+        configuration directory.
+
+        """
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'services': {}},
+                )
+            )
+            monkeypatch.delenv('TMPDIR', raising=False)
+            monkeypatch.delenv('TEMP', raising=False)
+            monkeypatch.delenv('TMP', raising=False)
+            config_dir = cli_helpers.config_filename(subsystem=None)
+
+            def is_dir_false(
+                self: pathlib.Path,
+                /,
+                *,
+                follow_symlinks: bool = False,
+            ) -> bool:
+                del self, follow_symlinks
+                return False
+
+            def is_dir_error(
+                self: pathlib.Path,
+                /,
+                *,
+                follow_symlinks: bool = False,
+            ) -> bool:
+                del follow_symlinks
+                raise OSError(
+                    errno.EACCES,
+                    os.strerror(errno.EACCES),
+                    str(self),
+                )
+
+            monkeypatch.setattr(pathlib.Path, 'is_dir', is_dir_false)
+            assert cli_helpers.get_tempdir() == config_dir
+
+            monkeypatch.setattr(pathlib.Path, 'is_dir', is_dir_error)
+            assert cli_helpers.get_tempdir() == config_dir
 
     @Parametrize.DELETE_CONFIG_INPUT
     def test_203_repeated_config_deletion(

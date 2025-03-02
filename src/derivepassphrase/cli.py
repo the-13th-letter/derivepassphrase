@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import base64
 import collections
+import contextlib
 import functools
 import json
 import logging
@@ -34,6 +35,7 @@ from derivepassphrase._internals import cli_messages as _msg
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Sequence,
     )
 
@@ -1029,517 +1031,543 @@ def derivepassphrase_vault(  # noqa: C901,PLR0912,PLR0913,PLR0914,PLR0915
             extra={'color': ctx.color},
         )
 
-    if delete_service_settings:  # noqa: PLR1702
-        assert service is not None
-        configuration = get_config()
-        if service in configuration['services']:
-            del configuration['services'][service]
-            put_config(configuration)
-    elif delete_globals:
-        configuration = get_config()
-        if 'global' in configuration:
-            del configuration['global']
-            put_config(configuration)
-    elif clear_all_settings:
-        put_config({'services': {}})
-    elif import_settings:
-        try:
-            # TODO(the-13th-letter): keep track of auto-close; try
-            # os.dup if feasible
-            infile = cast(
-                'TextIO',
-                (
-                    import_settings
-                    if hasattr(import_settings, 'close')
-                    else click.open_file(os.fspath(import_settings), 'rt')
-                ),
-            )
-            # Don't specifically catch TypeError or ValueError here if
-            # the passed-in fileobj is not a readable text stream.  This
-            # will never happen on the command-line (thanks to `click`),
-            # and for programmatic use, our caller may want accurate
-            # error information.
-            with infile:
-                maybe_config = json.load(infile)
-        except json.JSONDecodeError as exc:
-            err(
-                _msg.TranslatedString(
-                    _msg.ErrMsgTemplate.CANNOT_DECODEIMPORT_VAULT_SETTINGS,
-                    error=exc,
-                )
-            )
-        except OSError as exc:
-            err(
-                _msg.TranslatedString(
-                    _msg.ErrMsgTemplate.CANNOT_IMPORT_VAULT_SETTINGS,
-                    error=exc.strerror,
-                    filename=exc.filename,
-                ).maybe_without_filename()
-            )
-        cleaned = _types.clean_up_falsy_vault_config_values(maybe_config)
-        if not _types.is_vault_config(maybe_config):
-            err(
-                _msg.TranslatedString(
-                    _msg.ErrMsgTemplate.CANNOT_IMPORT_VAULT_SETTINGS,
-                    error=_msg.TranslatedString(
-                        _msg.ErrMsgTemplate.INVALID_VAULT_CONFIG,
-                        config=maybe_config,
-                    ),
-                    filename=None,
-                ).maybe_without_filename()
-            )
-        assert cleaned is not None
-        for step in cleaned:
-            # These are never fatal errors, because the semantics of
-            # vault upon encountering these settings are ill-specified,
-            # but not ill-defined.
-            if step.action == 'replace':
-                logger.warning(
-                    _msg.TranslatedString(
-                        _msg.WarnMsgTemplate.STEP_REPLACE_INVALID_VALUE,
-                        old=json.dumps(step.old_value),
-                        path=_types.json_path(step.path),
-                        new=json.dumps(step.new_value),
-                    ),
-                    extra={'color': ctx.color},
-                )
-            else:
-                logger.warning(
-                    _msg.TranslatedString(
-                        _msg.WarnMsgTemplate.STEP_REMOVE_INEFFECTIVE_VALUE,
-                        path=_types.json_path(step.path),
-                        old=json.dumps(step.old_value),
-                    ),
-                    extra={'color': ctx.color},
-                )
-        if '' in maybe_config['services']:
-            logger.warning(
-                _msg.TranslatedString(
-                    _msg.WarnMsgTemplate.EMPTY_SERVICE_SETTINGS_INACCESSIBLE,
-                    service_metavar=service_metavar,
-                    PROG_NAME=PROG_NAME,
-                ),
-                extra={'color': ctx.color},
-            )
-        for service_name in sorted(maybe_config['services'].keys()):
-            if not cli_helpers.is_completable_item(service_name):
-                logger.warning(
-                    _msg.TranslatedString(
-                        _msg.WarnMsgTemplate.SERVICE_NAME_INCOMPLETABLE,
-                        service=service_name,
-                    ),
-                    extra={'color': ctx.color},
-                )
-        try:
-            cli_helpers.check_for_misleading_passphrase(
-                ('global',),
-                cast('dict[str, Any]', maybe_config.get('global', {})),
-                main_config=user_config,
-                ctx=ctx,
-            )
-            for key, value in maybe_config['services'].items():
-                cli_helpers.check_for_misleading_passphrase(
-                    ('services', key),
-                    cast('dict[str, Any]', value),
-                    main_config=user_config,
-                    ctx=ctx,
-                )
-        except AssertionError as exc:
-            err(
-                _msg.TranslatedString(
-                    _msg.ErrMsgTemplate.INVALID_USER_CONFIG,
-                    error=exc,
-                    filename=None,
-                ).maybe_without_filename(),
-            )
-        global_obj = maybe_config.get('global', {})
-        has_key = _types.js_truthiness(global_obj.get('key'))
-        has_phrase = _types.js_truthiness(global_obj.get('phrase'))
-        if has_key and has_phrase:
-            logger.warning(
-                _msg.TranslatedString(
-                    _msg.WarnMsgTemplate.GLOBAL_PASSPHRASE_INEFFECTIVE,
-                ),
-                extra={'color': ctx.color},
-            )
-        for service_name, service_obj in maybe_config['services'].items():
-            has_key = _types.js_truthiness(
-                service_obj.get('key')
-            ) or _types.js_truthiness(global_obj.get('key'))
-            has_phrase = _types.js_truthiness(
-                service_obj.get('phrase')
-            ) or _types.js_truthiness(global_obj.get('phrase'))
-            if has_key and has_phrase:
-                logger.warning(
-                    _msg.TranslatedString(
-                        _msg.WarnMsgTemplate.SERVICE_PASSPHRASE_INEFFECTIVE,
-                        service=json.dumps(service_name),
-                    ),
-                    extra={'color': ctx.color},
-                )
-        if overwrite_config:
-            put_config(maybe_config)
-        else:
+    readwrite_ops = [
+        delete_service_settings,
+        delete_globals,
+        clear_all_settings,
+        import_settings,
+        store_config_only,
+    ]
+    mutex: Callable[[], contextlib.AbstractContextManager[None]] = (
+        cli_helpers.configuration_mutex
+        if any(readwrite_ops)
+        else contextlib.nullcontext
+    )
+
+    with mutex():  # noqa: PLR1702
+        if delete_service_settings:
+            assert service is not None
             configuration = get_config()
-            merged_config: collections.ChainMap[str, Any] = (
-                collections.ChainMap(
-                    {
-                        'services': collections.ChainMap(
-                            maybe_config['services'],
-                            configuration['services'],
-                        ),
-                    },
-                    {'global': maybe_config['global']}
-                    if 'global' in maybe_config
-                    else {},
-                    {'global': configuration['global']}
-                    if 'global' in configuration
-                    else {},
-                )
-            )
-            new_config: Any = {
-                k: dict(v) if isinstance(v, collections.ChainMap) else v
-                for k, v in sorted(merged_config.items())
-            }
-            assert _types.is_vault_config(new_config)
-            put_config(new_config)
-    elif export_settings:
-        configuration = get_config()
-        try:
-            # TODO(the-13th-letter): keep track of auto-close; try
-            # os.dup if feasible
-            outfile = cast(
-                'TextIO',
-                (
-                    export_settings
-                    if hasattr(export_settings, 'close')
-                    else click.open_file(os.fspath(export_settings), 'wt')
-                ),
-            )
-            # Don't specifically catch TypeError or ValueError here if
-            # the passed-in fileobj is not a writable text stream.  This
-            # will never happen on the command-line (thanks to `click`),
-            # and for programmatic use, our caller may want accurate
-            # error information.
-            with outfile:
-                if export_as == 'sh':
-                    this_ctx = ctx
-                    prog_name_pieces = collections.deque([
-                        this_ctx.info_name or 'vault',
-                    ])
-                    while (
-                        this_ctx.parent is not None
-                        and this_ctx.parent.info_name is not None
-                    ):
-                        prog_name_pieces.appendleft(this_ctx.parent.info_name)
-                        this_ctx = this_ctx.parent
-                    cli_helpers.print_config_as_sh_script(
-                        configuration,
-                        outfile=outfile,
-                        prog_name_list=prog_name_pieces,
-                    )
-                else:
-                    json.dump(
-                        configuration,
-                        outfile,
-                        ensure_ascii=False,
-                        indent=2,
-                        sort_keys=True,
-                    )
-        except OSError as exc:
-            err(
-                _msg.TranslatedString(
-                    _msg.ErrMsgTemplate.CANNOT_EXPORT_VAULT_SETTINGS,
-                    error=exc.strerror,
-                    filename=exc.filename,
-                ).maybe_without_filename(),
-            )
-    else:
-        configuration = get_config()
-        # This block could be type checked more stringently, but this
-        # would probably involve a lot of code repetition.  Since we
-        # have a type guarding function anyway, assert that we didn't
-        # make any mistakes at the end instead.
-        global_keys = {'key', 'phrase'}
-        service_keys = {
-            'key',
-            'phrase',
-            'length',
-            'repeat',
-            'lower',
-            'upper',
-            'number',
-            'space',
-            'dash',
-            'symbol',
-        }
-        settings: collections.ChainMap[str, Any] = collections.ChainMap(
-            {
-                k: v
-                for k, v in locals().items()
-                if k in service_keys and v is not None
-            },
-            cast(
-                'dict[str, Any]',
-                configuration['services'].get(service, {}) if service else {},
-            ),
-            cast('dict[str, Any]', configuration.get('global', {})),
-        )
-        if not store_config_only and not service:
-            err_msg = _msg.TranslatedString(
-                _msg.ErrMsgTemplate.SERVICE_REQUIRED,
-                service_metavar=_msg.TranslatedString(
-                    _msg.Label.VAULT_METAVAR_SERVICE
-                ),
-            )
-            raise click.UsageError(str(err_msg))
-        if use_key:
+            if service in configuration['services']:
+                del configuration['services'][service]
+                put_config(configuration)
+        elif delete_globals:
+            configuration = get_config()
+            if 'global' in configuration:
+                del configuration['global']
+                put_config(configuration)
+        elif clear_all_settings:
+            put_config({'services': {}})
+        elif import_settings:
             try:
-                key = base64.standard_b64encode(
-                    cli_helpers.select_ssh_key(ctx=ctx)
-                ).decode('ASCII')
-            except IndexError:
-                err(
-                    _msg.TranslatedString(
-                        _msg.ErrMsgTemplate.USER_ABORTED_SSH_KEY_SELECTION
+                # TODO(the-13th-letter): keep track of auto-close; try
+                # os.dup if feasible
+                infile = cast(
+                    'TextIO',
+                    (
+                        import_settings
+                        if hasattr(import_settings, 'close')
+                        else click.open_file(os.fspath(import_settings), 'rt')
                     ),
                 )
-            except KeyError:
+                # Don't specifically catch TypeError or ValueError here if
+                # the passed-in fileobj is not a readable text stream.  This
+                # will never happen on the command-line (thanks to `click`),
+                # and for programmatic use, our caller may want accurate
+                # error information.
+                with infile:
+                    maybe_config = json.load(infile)
+            except json.JSONDecodeError as exc:
                 err(
                     _msg.TranslatedString(
-                        _msg.ErrMsgTemplate.NO_SSH_AGENT_FOUND
-                    ),
-                )
-            except LookupError:
-                err(
-                    _msg.TranslatedString(
-                        _msg.ErrMsgTemplate.NO_SUITABLE_SSH_KEYS,
-                        PROG_NAME=PROG_NAME,
+                        _msg.ErrMsgTemplate.CANNOT_DECODEIMPORT_VAULT_SETTINGS,
+                        error=exc,
                     )
                 )
-            except NotImplementedError:
-                err(_msg.TranslatedString(_msg.ErrMsgTemplate.NO_AF_UNIX))
             except OSError as exc:
                 err(
                     _msg.TranslatedString(
-                        _msg.ErrMsgTemplate.CANNOT_CONNECT_TO_AGENT,
+                        _msg.ErrMsgTemplate.CANNOT_IMPORT_VAULT_SETTINGS,
+                        error=exc.strerror,
+                        filename=exc.filename,
+                    ).maybe_without_filename()
+                )
+            cleaned = _types.clean_up_falsy_vault_config_values(maybe_config)
+            if not _types.is_vault_config(maybe_config):
+                err(
+                    _msg.TranslatedString(
+                        _msg.ErrMsgTemplate.CANNOT_IMPORT_VAULT_SETTINGS,
+                        error=_msg.TranslatedString(
+                            _msg.ErrMsgTemplate.INVALID_VAULT_CONFIG,
+                            config=maybe_config,
+                        ),
+                        filename=None,
+                    ).maybe_without_filename()
+                )
+            assert cleaned is not None
+            for step in cleaned:
+                # These are never fatal errors, because the semantics of
+                # vault upon encountering these settings are ill-specified,
+                # but not ill-defined.
+                if step.action == 'replace':
+                    logger.warning(
+                        _msg.TranslatedString(
+                            _msg.WarnMsgTemplate.STEP_REPLACE_INVALID_VALUE,
+                            old=json.dumps(step.old_value),
+                            path=_types.json_path(step.path),
+                            new=json.dumps(step.new_value),
+                        ),
+                        extra={'color': ctx.color},
+                    )
+                else:
+                    logger.warning(
+                        _msg.TranslatedString(
+                            _msg.WarnMsgTemplate.STEP_REMOVE_INEFFECTIVE_VALUE,
+                            path=_types.json_path(step.path),
+                            old=json.dumps(step.old_value),
+                        ),
+                        extra={'color': ctx.color},
+                    )
+            if '' in maybe_config['services']:
+                logger.warning(
+                    _msg.TranslatedString(
+                        _msg.WarnMsgTemplate.EMPTY_SERVICE_SETTINGS_INACCESSIBLE,
+                        service_metavar=service_metavar,
+                        PROG_NAME=PROG_NAME,
+                    ),
+                    extra={'color': ctx.color},
+                )
+            for service_name in sorted(maybe_config['services'].keys()):
+                if not cli_helpers.is_completable_item(service_name):
+                    logger.warning(
+                        _msg.TranslatedString(
+                            _msg.WarnMsgTemplate.SERVICE_NAME_INCOMPLETABLE,
+                            service=service_name,
+                        ),
+                        extra={'color': ctx.color},
+                    )
+            try:
+                cli_helpers.check_for_misleading_passphrase(
+                    ('global',),
+                    cast('dict[str, Any]', maybe_config.get('global', {})),
+                    main_config=user_config,
+                    ctx=ctx,
+                )
+                for key, value in maybe_config['services'].items():
+                    cli_helpers.check_for_misleading_passphrase(
+                        ('services', key),
+                        cast('dict[str, Any]', value),
+                        main_config=user_config,
+                        ctx=ctx,
+                    )
+            except AssertionError as exc:
+                err(
+                    _msg.TranslatedString(
+                        _msg.ErrMsgTemplate.INVALID_USER_CONFIG,
+                        error=exc,
+                        filename=None,
+                    ).maybe_without_filename(),
+                )
+            global_obj = maybe_config.get('global', {})
+            has_key = _types.js_truthiness(global_obj.get('key'))
+            has_phrase = _types.js_truthiness(global_obj.get('phrase'))
+            if has_key and has_phrase:
+                logger.warning(
+                    _msg.TranslatedString(
+                        _msg.WarnMsgTemplate.GLOBAL_PASSPHRASE_INEFFECTIVE,
+                    ),
+                    extra={'color': ctx.color},
+                )
+            for service_name, service_obj in maybe_config['services'].items():
+                has_key = _types.js_truthiness(
+                    service_obj.get('key')
+                ) or _types.js_truthiness(global_obj.get('key'))
+                has_phrase = _types.js_truthiness(
+                    service_obj.get('phrase')
+                ) or _types.js_truthiness(global_obj.get('phrase'))
+                if has_key and has_phrase:
+                    logger.warning(
+                        _msg.TranslatedString(
+                            _msg.WarnMsgTemplate.SERVICE_PASSPHRASE_INEFFECTIVE,
+                            service=json.dumps(service_name),
+                        ),
+                        extra={'color': ctx.color},
+                    )
+            if overwrite_config:
+                put_config(maybe_config)
+            else:
+                configuration = get_config()
+                merged_config: collections.ChainMap[str, Any] = (
+                    collections.ChainMap(
+                        {
+                            'services': collections.ChainMap(
+                                maybe_config['services'],
+                                configuration['services'],
+                            ),
+                        },
+                        {'global': maybe_config['global']}
+                        if 'global' in maybe_config
+                        else {},
+                        {'global': configuration['global']}
+                        if 'global' in configuration
+                        else {},
+                    )
+                )
+                new_config: Any = {
+                    k: dict(v) if isinstance(v, collections.ChainMap) else v
+                    for k, v in sorted(merged_config.items())
+                }
+                assert _types.is_vault_config(new_config)
+                put_config(new_config)
+        elif export_settings:
+            configuration = get_config()
+            try:
+                # TODO(the-13th-letter): keep track of auto-close; try
+                # os.dup if feasible
+                outfile = cast(
+                    'TextIO',
+                    (
+                        export_settings
+                        if hasattr(export_settings, 'close')
+                        else click.open_file(os.fspath(export_settings), 'wt')
+                    ),
+                )
+                # Don't specifically catch TypeError or ValueError here if
+                # the passed-in fileobj is not a writable text stream.  This
+                # will never happen on the command-line (thanks to `click`),
+                # and for programmatic use, our caller may want accurate
+                # error information.
+                with outfile:
+                    if export_as == 'sh':
+                        this_ctx = ctx
+                        prog_name_pieces = collections.deque([
+                            this_ctx.info_name or 'vault',
+                        ])
+                        while (
+                            this_ctx.parent is not None
+                            and this_ctx.parent.info_name is not None
+                        ):
+                            prog_name_pieces.appendleft(
+                                this_ctx.parent.info_name
+                            )
+                            this_ctx = this_ctx.parent
+                        cli_helpers.print_config_as_sh_script(
+                            configuration,
+                            outfile=outfile,
+                            prog_name_list=prog_name_pieces,
+                        )
+                    else:
+                        json.dump(
+                            configuration,
+                            outfile,
+                            ensure_ascii=False,
+                            indent=2,
+                            sort_keys=True,
+                        )
+            except OSError as exc:
+                err(
+                    _msg.TranslatedString(
+                        _msg.ErrMsgTemplate.CANNOT_EXPORT_VAULT_SETTINGS,
                         error=exc.strerror,
                         filename=exc.filename,
                     ).maybe_without_filename(),
                 )
-            except ssh_agent.SSHAgentFailedError as exc:
-                err(
-                    _msg.TranslatedString(
-                        _msg.ErrMsgTemplate.AGENT_REFUSED_LIST_KEYS
-                    ),
-                    exc_info=exc,
-                )
-            except RuntimeError as exc:
-                err(
-                    _msg.TranslatedString(
-                        _msg.ErrMsgTemplate.CANNOT_UNDERSTAND_AGENT
-                    ),
-                    exc_info=exc,
-                )
-        elif use_phrase:
-            maybe_phrase = cli_helpers.prompt_for_passphrase()
-            if not maybe_phrase:
-                err(
-                    _msg.TranslatedString(
-                        _msg.ErrMsgTemplate.USER_ABORTED_PASSPHRASE
-                    )
-                )
-            else:
-                phrase = maybe_phrase
-        if store_config_only:
-            view: collections.ChainMap[str, Any]
-            view = (
-                collections.ChainMap(*settings.maps[:2])
-                if service
-                else collections.ChainMap(settings.maps[0], settings.maps[2])
+        else:
+            configuration = get_config()
+            # This block could be type checked more stringently, but this
+            # would probably involve a lot of code repetition.  Since we
+            # have a type guarding function anyway, assert that we didn't
+            # make any mistakes at the end instead.
+            global_keys = {'key', 'phrase'}
+            service_keys = {
+                'key',
+                'phrase',
+                'length',
+                'repeat',
+                'lower',
+                'upper',
+                'number',
+                'space',
+                'dash',
+                'symbol',
+            }
+            settings: collections.ChainMap[str, Any] = collections.ChainMap(
+                {
+                    k: v
+                    for k, v in locals().items()
+                    if k in service_keys and v is not None
+                },
+                cast(
+                    'dict[str, Any]',
+                    configuration['services'].get(service, {})
+                    if service
+                    else {},
+                ),
+                cast('dict[str, Any]', configuration.get('global', {})),
             )
-            if use_key:
-                view['key'] = key
-            elif use_phrase:
-                view['phrase'] = phrase
-                try:
-                    cli_helpers.check_for_misleading_passphrase(
-                        ('services', service) if service else ('global',),
-                        {'phrase': phrase},
-                        main_config=user_config,
-                        ctx=ctx,
-                    )
-                except AssertionError as exc:
-                    err(
-                        _msg.TranslatedString(
-                            _msg.ErrMsgTemplate.INVALID_USER_CONFIG,
-                            error=exc,
-                            filename=None,
-                        ).maybe_without_filename(),
-                    )
-                if 'key' in settings:
-                    if service:
-                        w_msg = _msg.TranslatedString(
-                            _msg.WarnMsgTemplate.SERVICE_PASSPHRASE_INEFFECTIVE,
-                            service=json.dumps(service),
-                        )
-                    else:
-                        w_msg = _msg.TranslatedString(
-                            _msg.WarnMsgTemplate.GLOBAL_PASSPHRASE_INEFFECTIVE
-                        )
-                    logger.warning(w_msg, extra={'color': ctx.color})
-            if not view.maps[0] and not unset_settings and not edit_notes:
+            if not store_config_only and not service:
                 err_msg = _msg.TranslatedString(
-                    _msg.ErrMsgTemplate.CANNOT_UPDATE_SETTINGS_NO_SETTINGS,
-                    settings_type=_msg.TranslatedString(
-                        _msg.Label.CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_SERVICE
-                        if service
-                        else _msg.Label.CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_GLOBAL  # noqa: E501
+                    _msg.ErrMsgTemplate.SERVICE_REQUIRED,
+                    service_metavar=_msg.TranslatedString(
+                        _msg.Label.VAULT_METAVAR_SERVICE
                     ),
                 )
                 raise click.UsageError(str(err_msg))
-            for setting in unset_settings:
-                if setting in view.maps[0]:
+            if use_key:
+                try:
+                    key = base64.standard_b64encode(
+                        cli_helpers.select_ssh_key(ctx=ctx)
+                    ).decode('ASCII')
+                except IndexError:
+                    err(
+                        _msg.TranslatedString(
+                            _msg.ErrMsgTemplate.USER_ABORTED_SSH_KEY_SELECTION
+                        ),
+                    )
+                except KeyError:
+                    err(
+                        _msg.TranslatedString(
+                            _msg.ErrMsgTemplate.NO_SSH_AGENT_FOUND
+                        ),
+                    )
+                except LookupError:
+                    err(
+                        _msg.TranslatedString(
+                            _msg.ErrMsgTemplate.NO_SUITABLE_SSH_KEYS,
+                            PROG_NAME=PROG_NAME,
+                        )
+                    )
+                except NotImplementedError:
+                    err(_msg.TranslatedString(_msg.ErrMsgTemplate.NO_AF_UNIX))
+                except OSError as exc:
+                    err(
+                        _msg.TranslatedString(
+                            _msg.ErrMsgTemplate.CANNOT_CONNECT_TO_AGENT,
+                            error=exc.strerror,
+                            filename=exc.filename,
+                        ).maybe_without_filename(),
+                    )
+                except ssh_agent.SSHAgentFailedError as exc:
+                    err(
+                        _msg.TranslatedString(
+                            _msg.ErrMsgTemplate.AGENT_REFUSED_LIST_KEYS
+                        ),
+                        exc_info=exc,
+                    )
+                except RuntimeError as exc:
+                    err(
+                        _msg.TranslatedString(
+                            _msg.ErrMsgTemplate.CANNOT_UNDERSTAND_AGENT
+                        ),
+                        exc_info=exc,
+                    )
+            elif use_phrase:
+                maybe_phrase = cli_helpers.prompt_for_passphrase()
+                if not maybe_phrase:
+                    err(
+                        _msg.TranslatedString(
+                            _msg.ErrMsgTemplate.USER_ABORTED_PASSPHRASE
+                        )
+                    )
+                else:
+                    phrase = maybe_phrase
+            if store_config_only:
+                view: collections.ChainMap[str, Any]
+                view = (
+                    collections.ChainMap(*settings.maps[:2])
+                    if service
+                    else collections.ChainMap(
+                        settings.maps[0], settings.maps[2]
+                    )
+                )
+                if use_key:
+                    view['key'] = key
+                elif use_phrase:
+                    view['phrase'] = phrase
+                    try:
+                        cli_helpers.check_for_misleading_passphrase(
+                            ('services', service) if service else ('global',),
+                            {'phrase': phrase},
+                            main_config=user_config,
+                            ctx=ctx,
+                        )
+                    except AssertionError as exc:
+                        err(
+                            _msg.TranslatedString(
+                                _msg.ErrMsgTemplate.INVALID_USER_CONFIG,
+                                error=exc,
+                                filename=None,
+                            ).maybe_without_filename(),
+                        )
+                    if 'key' in settings:
+                        if service:
+                            w_msg = _msg.TranslatedString(
+                                _msg.WarnMsgTemplate.SERVICE_PASSPHRASE_INEFFECTIVE,
+                                service=json.dumps(service),
+                            )
+                        else:
+                            w_msg = _msg.TranslatedString(
+                                _msg.WarnMsgTemplate.GLOBAL_PASSPHRASE_INEFFECTIVE
+                            )
+                        logger.warning(w_msg, extra={'color': ctx.color})
+                if not view.maps[0] and not unset_settings and not edit_notes:
                     err_msg = _msg.TranslatedString(
-                        _msg.ErrMsgTemplate.SET_AND_UNSET_SAME_SETTING,
-                        setting=setting,
+                        _msg.ErrMsgTemplate.CANNOT_UPDATE_SETTINGS_NO_SETTINGS,
+                        settings_type=_msg.TranslatedString(
+                            _msg.Label.CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_SERVICE
+                            if service
+                            else _msg.Label.CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_GLOBAL  # noqa: E501
+                        ),
                     )
                     raise click.UsageError(str(err_msg))
-            if not cli_helpers.is_completable_item(service):
-                logger.warning(
-                    _msg.TranslatedString(
-                        _msg.WarnMsgTemplate.SERVICE_NAME_INCOMPLETABLE,
-                        service=service,
-                    ),
-                    extra={'color': ctx.color},
-                )
-            subtree: dict[str, Any] = (
-                configuration['services'].setdefault(service, {})  # type: ignore[assignment]
-                if service
-                else configuration.setdefault('global', {})
-            )
-            if overwrite_config:
-                subtree.clear()
-            else:
                 for setting in unset_settings:
-                    subtree.pop(setting, None)
-            subtree.update(view)
-            assert _types.is_vault_config(configuration), (
-                f'Invalid vault configuration: {configuration!r}'
-            )
-            if edit_notes:
-                assert service is not None
-                notes_instructions = _msg.TranslatedString(
-                    _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_INSTRUCTION_TEXT
-                )
-                notes_marker = _msg.TranslatedString(
-                    _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_MARKER
-                )
-                notes_legacy_instructions = _msg.TranslatedString(
-                    _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_LEGACY_INSTRUCTION_TEXT
-                )
-                old_notes_value = subtree.get('notes', '')
-                if modern_editor_interface:
-                    text = '\n'.join([
-                        str(notes_instructions),
-                        str(notes_marker),
-                        old_notes_value,
-                    ])
-                else:
-                    text = old_notes_value or str(notes_legacy_instructions)
-                notes_value = click.edit(text=text, require_save=False)
-                assert notes_value is not None
-                if (
-                    not modern_editor_interface
-                    and notes_value.strip() != old_notes_value.strip()
-                ):
-                    backup_file = cli_helpers.config_filename(
-                        subsystem='notes backup'
-                    )
-                    backup_file.write_text(old_notes_value, encoding='UTF-8')
+                    if setting in view.maps[0]:
+                        err_msg = _msg.TranslatedString(
+                            _msg.ErrMsgTemplate.SET_AND_UNSET_SAME_SETTING,
+                            setting=setting,
+                        )
+                        raise click.UsageError(str(err_msg))
+                if not cli_helpers.is_completable_item(service):
                     logger.warning(
                         _msg.TranslatedString(
-                            _msg.WarnMsgTemplate.LEGACY_EDITOR_INTERFACE_NOTES_BACKUP,
-                            filename=str(backup_file),
+                            _msg.WarnMsgTemplate.SERVICE_NAME_INCOMPLETABLE,
+                            service=service,
                         ),
                         extra={'color': ctx.color},
                     )
-                    subtree['notes'] = notes_value.strip()
-                elif (
-                    modern_editor_interface
-                    and notes_value.strip() != text.strip()
-                ):
-                    notes_lines = collections.deque(
-                        notes_value.splitlines(True)  # noqa: FBT003
+                subtree: dict[str, Any] = (
+                    configuration['services'].setdefault(service, {})  # type: ignore[assignment]
+                    if service
+                    else configuration.setdefault('global', {})
+                )
+                if overwrite_config:
+                    subtree.clear()
+                else:
+                    for setting in unset_settings:
+                        subtree.pop(setting, None)
+                subtree.update(view)
+                assert _types.is_vault_config(configuration), (
+                    f'Invalid vault configuration: {configuration!r}'
+                )
+                if edit_notes:
+                    assert service is not None
+                    notes_instructions = _msg.TranslatedString(
+                        _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_INSTRUCTION_TEXT
                     )
-                    while notes_lines:
-                        line = notes_lines.popleft()
-                        if line.startswith(str(notes_marker)):
-                            notes_value = ''.join(notes_lines)
-                            break
+                    notes_marker = _msg.TranslatedString(
+                        _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_MARKER
+                    )
+                    notes_legacy_instructions = _msg.TranslatedString(
+                        _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_LEGACY_INSTRUCTION_TEXT
+                    )
+                    old_notes_value = subtree.get('notes', '')
+                    if modern_editor_interface:
+                        text = '\n'.join([
+                            str(notes_instructions),
+                            str(notes_marker),
+                            old_notes_value,
+                        ])
                     else:
-                        if not notes_value.strip():
-                            err(
-                                _msg.TranslatedString(
-                                    _msg.ErrMsgTemplate.USER_ABORTED_EDIT
+                        text = old_notes_value or str(
+                            notes_legacy_instructions
+                        )
+                    notes_value = click.edit(text=text, require_save=False)
+                    assert notes_value is not None
+                    if (
+                        not modern_editor_interface
+                        and notes_value.strip() != old_notes_value.strip()
+                    ):
+                        backup_file = cli_helpers.config_filename(
+                            subsystem='notes backup'
+                        )
+                        backup_file.write_text(
+                            old_notes_value, encoding='UTF-8'
+                        )
+                        logger.warning(
+                            _msg.TranslatedString(
+                                _msg.WarnMsgTemplate.LEGACY_EDITOR_INTERFACE_NOTES_BACKUP,
+                                filename=str(backup_file),
+                            ),
+                            extra={'color': ctx.color},
+                        )
+                        subtree['notes'] = notes_value.strip()
+                    elif (
+                        modern_editor_interface
+                        and notes_value.strip() != text.strip()
+                    ):
+                        notes_lines = collections.deque(
+                            notes_value.splitlines(True)  # noqa: FBT003
+                        )
+                        while notes_lines:
+                            line = notes_lines.popleft()
+                            if line.startswith(str(notes_marker)):
+                                notes_value = ''.join(notes_lines)
+                                break
+                        else:
+                            if not notes_value.strip():
+                                err(
+                                    _msg.TranslatedString(
+                                        _msg.ErrMsgTemplate.USER_ABORTED_EDIT
+                                    )
                                 )
-                            )
-                    subtree['notes'] = notes_value.strip()
-            put_config(configuration)
-        else:
-            assert service is not None
-            kwargs: dict[str, Any] = {
-                k: v
-                for k, v in settings.items()
-                if k in service_keys and v is not None
-            }
-            if use_phrase:
-                try:
-                    cli_helpers.check_for_misleading_passphrase(
-                        cli_helpers.ORIGIN.INTERACTIVE,
-                        {'phrase': phrase},
-                        main_config=user_config,
-                        ctx=ctx,
-                    )
-                except AssertionError as exc:
-                    err(
-                        _msg.TranslatedString(
-                            _msg.ErrMsgTemplate.INVALID_USER_CONFIG,
-                            error=exc,
-                            filename=None,
-                        ).maybe_without_filename(),
-                    )
-            # If either --key or --phrase are given, use that setting.
-            # Otherwise, if both key and phrase are set in the config,
-            # use the key.  Otherwise, if only one of key and phrase is
-            # set in the config, use that one.  In all these above
-            # cases, set the phrase via vault.Vault.phrase_from_key if
-            # a key is given.  Finally, if nothing is set, error out.
-            if use_key or use_phrase:
-                kwargs['phrase'] = (
-                    cli_helpers.key_to_phrase(key, error_callback=err)
-                    if use_key
-                    else phrase
-                )
-            elif kwargs.get('key'):
-                kwargs['phrase'] = cli_helpers.key_to_phrase(
-                    kwargs['key'], error_callback=err
-                )
-            elif kwargs.get('phrase'):
-                pass
+                        subtree['notes'] = notes_value.strip()
+                put_config(configuration)
             else:
-                err_msg = _msg.TranslatedString(
-                    _msg.ErrMsgTemplate.NO_KEY_OR_PHRASE
-                )
-                raise click.UsageError(str(err_msg))
-            kwargs.pop('key', '')
-            service_notes = settings.get('notes', '').strip()
-            result = vault.Vault(**kwargs).generate(service)
-            if print_notes_before and service_notes.strip():
-                click.echo(f'{service_notes}\n', err=True, color=ctx.color)
-            click.echo(result.decode('ASCII'), color=ctx.color)
-            if not print_notes_before and service_notes.strip():
-                click.echo(f'\n{service_notes}\n', err=True, color=ctx.color)
+                assert service is not None
+                kwargs: dict[str, Any] = {
+                    k: v
+                    for k, v in settings.items()
+                    if k in service_keys and v is not None
+                }
+                if use_phrase:
+                    try:
+                        cli_helpers.check_for_misleading_passphrase(
+                            cli_helpers.ORIGIN.INTERACTIVE,
+                            {'phrase': phrase},
+                            main_config=user_config,
+                            ctx=ctx,
+                        )
+                    except AssertionError as exc:
+                        err(
+                            _msg.TranslatedString(
+                                _msg.ErrMsgTemplate.INVALID_USER_CONFIG,
+                                error=exc,
+                                filename=None,
+                            ).maybe_without_filename(),
+                        )
+                # If either --key or --phrase are given, use that setting.
+                # Otherwise, if both key and phrase are set in the config,
+                # use the key.  Otherwise, if only one of key and phrase is
+                # set in the config, use that one.  In all these above
+                # cases, set the phrase via vault.Vault.phrase_from_key if
+                # a key is given.  Finally, if nothing is set, error out.
+                if use_key or use_phrase:
+                    kwargs['phrase'] = (
+                        cli_helpers.key_to_phrase(key, error_callback=err)
+                        if use_key
+                        else phrase
+                    )
+                elif kwargs.get('key'):
+                    kwargs['phrase'] = cli_helpers.key_to_phrase(
+                        kwargs['key'], error_callback=err
+                    )
+                elif kwargs.get('phrase'):
+                    pass
+                else:
+                    err_msg = _msg.TranslatedString(
+                        _msg.ErrMsgTemplate.NO_KEY_OR_PHRASE
+                    )
+                    raise click.UsageError(str(err_msg))
+                kwargs.pop('key', '')
+                service_notes = settings.get('notes', '').strip()
+                result = vault.Vault(**kwargs).generate(service)
+                if print_notes_before and service_notes.strip():
+                    click.echo(f'{service_notes}\n', err=True, color=ctx.color)
+                click.echo(result.decode('ASCII'), color=ctx.color)
+                if not print_notes_before and service_notes.strip():
+                    click.echo(
+                        f'\n{service_notes}\n', err=True, color=ctx.color
+                    )
 
 
 if __name__ == '__main__':
