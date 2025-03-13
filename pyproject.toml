@@ -302,7 +302,7 @@ dependencies = [
 matrix-name-format = '{variable}_{value}'
 
 [[tool.hatch.envs.hatch-test.matrix]]
-python = ["3.13", "3.12", "3.11", "3.10", "3.9", "pypy3.10", "pypy3.9"]
+python = ["3.13", "3.12", "3.11", "3.10", "3.9", "pypy3.11", "pypy3.10", "pypy3.9"]
 cryptography = ["no", "yes"]
 parser-version = ["PEG"]
 
