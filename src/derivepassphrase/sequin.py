@@ -23,6 +23,7 @@ The main API is the [`Sequin`][] class, which is thoroughly documented.
 from __future__ import annotations
 
 import collections
+import threading
 from typing import TYPE_CHECKING
 
 from typing_extensions import assert_type
@@ -99,18 +100,19 @@ class Sequin:
         else:
             sequence = tuple(sequence)
         assert_type(sequence, tuple[int, ...])
-        self.bases: dict[int, collections.deque[int]] = {}
+        consistency_lock = threading.RLock()
+        bitstream: collections.deque[int] = collections.deque()
+        for num in sequence:
+            if num not in range(2 if is_bitstring else 256):
+                raise ValueError(msg)
+            if is_bitstring:
+                bitstream.append(num)
+            else:
+                bitstream.extend(uint8_to_bits(num))
 
-        def gen() -> Iterator[int]:
-            for num in sequence:
-                if num not in range(2 if is_bitstring else 256):
-                    raise ValueError(msg)
-                if is_bitstring:
-                    yield num
-                else:
-                    yield from uint8_to_bits(num)
-
-        self.bases[2] = collections.deque(gen())
+        with consistency_lock:
+            self.consistency_lock = consistency_lock
+            self.bases = {2: bitstream}
 
     def _all_or_nothing_shift(
         self, count: int, /, *, base: int = 2
@@ -125,6 +127,9 @@ class Sequin:
             If there are sufficient items in the sequence left, then
             consume them from the sequence and return them.  Otherwise,
             consume nothing, and return nothing.
+
+        Info: Thread-safety
+            This call is thread-safe.
 
         Notes:
             We currently remove now-empty sequences from the registry of
@@ -150,21 +155,22 @@ class Sequin:
             False
 
         """
-        try:
-            seq = self.bases[base]
-        except KeyError:
-            return ()
-        stash: collections.deque[int] = collections.deque()
-        try:
-            for _ in range(count):
-                stash.append(seq.popleft())
-        except IndexError:
-            seq.extendleft(reversed(stash))
-            return ()
-        # Clean up queues.
-        if not seq:
-            del self.bases[base]
-        return tuple(stash)
+        with self.consistency_lock:
+            try:
+                seq = self.bases[base]
+            except KeyError:
+                return ()
+            stash: collections.deque[int] = collections.deque()
+            try:
+                for _ in range(count):
+                    stash.append(seq.popleft())
+            except IndexError:
+                seq.extendleft(reversed(stash))
+                return ()
+            # Clean up queues.
+            if not seq:
+                del self.bases[base]
+            return tuple(stash)
 
     @staticmethod
     def _big_endian_number(digits: Sequence[int], /, *, base: int = 2) -> int:
@@ -180,6 +186,9 @@ class Sequin:
         Raises:
             ValueError: `base` is an invalid base.
             ValueError: Not all integers are valid base `base` digits.
+
+        Info: Thread-safety
+            This call is thread-safe.
 
         Examples:
             >>> Sequin._big_endian_number([1, 2, 3, 4, 5, 6, 7, 8], base=10)
@@ -235,6 +244,9 @@ class Sequin:
             SequinExhaustedError:
                 The sequin is exhausted.
 
+        Info: Thread-safety
+            This call is thread-safe.
+
         Examples:
             >>> seq = Sequin(
             ...     [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1],
@@ -268,9 +280,10 @@ class Sequin:
             SequinExhaustedError: Sequin is exhausted
 
         """
-        if 2 not in self.bases:  # noqa: PLR2004
-            raise SequinExhaustedError
-        value = self._generate_inner(n, base=2)
+        with self.consistency_lock:
+            if 2 not in self.bases:  # noqa: PLR2004
+                raise SequinExhaustedError
+            value = self._generate_inner(n, base=2)
         if value == n:
             raise SequinExhaustedError
         return value
@@ -303,6 +316,9 @@ class Sequin:
         Raises:
             ValueError:
                 The range is empty.
+
+        Warning: Thread-safety
+            This call is **not thread-safe**.
 
         Examples:
             >>> seq = Sequin(
@@ -379,10 +395,14 @@ class Sequin:
 
         Sets up the base `base` sequence if it does not yet exist.
 
+        Info: Thread-safety
+            This call is thread-safe.
+
         """
-        if base not in self.bases:
-            self.bases[base] = collections.deque()
-        self.bases[base].append(value)
+        with self.consistency_lock:
+            if base not in self.bases:
+                self.bases[base] = collections.deque()
+            self.bases[base].append(value)
 
 
 class SequinExhaustedError(Exception):

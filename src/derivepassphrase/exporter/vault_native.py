@@ -32,6 +32,7 @@ import json
 import logging
 import os
 import pathlib
+import threading
 import warnings
 from typing import TYPE_CHECKING
 
@@ -176,6 +177,7 @@ class VaultNativeConfigParser(abc.ABC):
         if not password:
             msg = 'Password must not be empty'
             raise ValueError(msg)
+        self._consistency_lock = threading.RLock()
         self._contents = bytes(contents)
         self._iv_size = 0
         self._mac_size = 0
@@ -204,12 +206,13 @@ class VaultNativeConfigParser(abc.ABC):
                 unexpected extra contents, or invalid padding.)
 
         """
-        if self._data is self._sentinel:
-            self._parse_contents()
-            self._derive_keys()
-            self._check_signature()
-            self._data = self._decrypt_payload()
-        return self._data
+        with self._consistency_lock:
+            if self._data is self._sentinel:
+                self._parse_contents()
+                self._derive_keys()
+                self._check_signature()
+                self._data = self._decrypt_payload()
+            return self._data
 
     @staticmethod
     def _pbkdf2(
@@ -283,26 +286,35 @@ class VaultNativeConfigParser(abc.ABC):
             ),
         )
 
-        if len(self._contents) < self._iv_size + 16 + self._mac_size:
-            msg = 'Invalid vault configuration file: file is truncated'
-            raise ValueError(msg)
-
         def cut(buffer: bytes, cutpoint: int) -> tuple[bytes, bytes]:
             return buffer[:cutpoint], buffer[cutpoint:]
 
-        cutpos1 = len(self._contents) - self._mac_size
-        cutpos2 = self._iv_size
+        with self._consistency_lock:
+            contents = self._contents
+            iv_size = self._iv_size
+            mac_size = self._mac_size
 
-        self._message, self._message_tag = cut(self._contents, cutpos1)
-        self._iv, self._payload = cut(self._message, cutpos2)
+            if len(contents) < iv_size + 16 + mac_size:
+                msg = 'Invalid vault configuration file: file is truncated'
+                raise ValueError(msg)
+
+            cutpos1 = len(contents) - mac_size
+            cutpos2 = iv_size
+            message, message_tag = cut(contents, cutpos1)
+            iv, payload = cut(message, cutpos2)
+
+            self._message = message
+            self._message_tag = message_tag
+            self._iv = iv
+            self._payload = payload
 
         logger.debug(
             _msg.TranslatedString(
                 _msg.DebugMsgTemplate.VAULT_NATIVE_PARSE_BUFFER,
-                contents=_h(self._contents),
-                iv=_h(self._iv),
-                payload=_h(self._payload),
-                mac=_h(self._message_tag),
+                contents=_h(contents),
+                iv=_h(iv),
+                payload=_h(payload),
+                mac=_h(message_tag),
             ),
         )
 
@@ -318,13 +330,14 @@ class VaultNativeConfigParser(abc.ABC):
                 _msg.InfoMsgTemplate.VAULT_NATIVE_DERIVING_KEYS,
             ),
         )
-        self._generate_keys()
-        assert len(self._encryption_key) == self._encryption_key_size, (
-            'Derived encryption key is invalid'
-        )
-        assert len(self._signing_key) == self._signing_key_size, (
-            'Derived signing key is invalid'
-        )
+        with self._consistency_lock:
+            self._generate_keys()
+            assert len(self._encryption_key) == self._encryption_key_size, (
+                'Derived encryption key is invalid'
+            )
+            assert len(self._signing_key) == self._signing_key_size, (
+                'Derived signing key is invalid'
+            )
 
     @abc.abstractmethod
     def _generate_keys(self) -> None:
@@ -356,18 +369,20 @@ class VaultNativeConfigParser(abc.ABC):
                 _msg.InfoMsgTemplate.VAULT_NATIVE_CHECKING_MAC,
             ),
         )
-        mac = hmac.HMAC(self._signing_key, hashes.SHA256())
-        mac_input = self._hmac_input()
+        with self._consistency_lock:
+            mac = hmac.HMAC(self._signing_key, hashes.SHA256())
+            mac_input = self._hmac_input()
+            mac_expected = self._message_tag
         logger.debug(
             _msg.TranslatedString(
                 _msg.DebugMsgTemplate.VAULT_NATIVE_CHECKING_MAC_DETAILS,
                 mac_input=_h(mac_input),
-                mac=_h(self._message_tag),
+                mac=_h(mac_expected),
             ),
         )
         mac.update(mac_input)
         try:
-            mac.verify(self._message_tag)
+            mac.verify(mac_expected)
         except crypt_exceptions.InvalidSignature:
             msg = 'File does not contain a valid signature'
             raise ValueError(msg) from None
@@ -399,9 +414,12 @@ class VaultNativeConfigParser(abc.ABC):
                 _msg.InfoMsgTemplate.VAULT_NATIVE_DECRYPTING_CONTENTS,
             ),
         )
+        with self._consistency_lock:
+            payload = self._payload
+            iv_size = self._iv_size
         decryptor = self._make_decryptor()
         padded_plaintext = bytearray()
-        padded_plaintext.extend(decryptor.update(self._payload))
+        padded_plaintext.extend(decryptor.update(payload))
         padded_plaintext.extend(decryptor.finalize())
         logger.debug(
             _msg.TranslatedString(
@@ -409,7 +427,7 @@ class VaultNativeConfigParser(abc.ABC):
                 contents=_h(padded_plaintext),
             ),
         )
-        unpadder = padding.PKCS7(self._iv_size * 8).unpadder()
+        unpadder = padding.PKCS7(iv_size * 8).unpadder()
         plaintext = bytearray()
         plaintext.extend(unpadder.update(padded_plaintext))
         plaintext.extend(unpadder.finalize())
@@ -480,9 +498,14 @@ class VaultNativeV03ConfigParser(VaultNativeConfigParser):
             moderately determined attackers!
 
         """
-        self._encryption_key = self._pbkdf2(self._password, self.KEY_SIZE, 100)
-        self._signing_key = self._pbkdf2(self._password, self.KEY_SIZE, 200)
-        self._encryption_key_size = self._signing_key_size = self.KEY_SIZE
+        with self._consistency_lock:
+            self._encryption_key = self._pbkdf2(
+                self._password, self.KEY_SIZE, 100
+            )
+            self._signing_key = self._pbkdf2(
+                self._password, self.KEY_SIZE, 200
+            )
+            self._encryption_key_size = self._signing_key_size = self.KEY_SIZE
 
     def _hmac_input(self) -> bytes:
         """Return the input the MAC is supposed to verify.
@@ -500,8 +523,11 @@ class VaultNativeV03ConfigParser(VaultNativeConfigParser):
         (MAC-verified) message payload.
 
         """
+        with self._consistency_lock:
+            encryption_key = self._encryption_key
+            iv = self._iv
         return ciphers.Cipher(
-            algorithms.AES256(self._encryption_key), modes.CBC(self._iv)
+            algorithms.AES256(encryption_key), modes.CBC(iv)
         ).decryptor()
 
 
@@ -545,14 +571,17 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
                 properly.
 
         """
-        super()._parse_contents()
-        self._payload = base64.standard_b64decode(self._payload)
-        self._message_tag = bytes.fromhex(self._message_tag.decode('ASCII'))
+        with self._consistency_lock:
+            super()._parse_contents()
+            payload = self._payload = base64.standard_b64decode(self._payload)
+            message_tag = self._message_tag = bytes.fromhex(
+                self._message_tag.decode('ASCII')
+            )
         logger.debug(
             _msg.TranslatedString(
                 _msg.DebugMsgTemplate.VAULT_NATIVE_V02_PAYLOAD_MAC_POSTPROCESSING,
-                payload=_h(self._payload),
-                mac=_h(self._message_tag),
+                payload=_h(payload),
+                mac=_h(message_tag),
             ),
         )
 
@@ -580,10 +609,11 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
             access by even moderately determined attackers!
 
         """
-        self._encryption_key = self._pbkdf2(self._password, 8, 16)
-        self._signing_key = self._pbkdf2(self._password, 16, 16)
-        self._encryption_key_size = 8
-        self._signing_key_size = 16
+        with self._consistency_lock:
+            self._encryption_key = self._pbkdf2(self._password, 8, 16)
+            self._signing_key = self._pbkdf2(self._password, 16, 16)
+            self._encryption_key_size = 8
+            self._signing_key_size = 16
 
     def _hmac_input(self) -> bytes:
         """Return the input the MAC is supposed to verify.
@@ -713,7 +743,8 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
             determined attackers!
 
         """
-        data = base64.standard_b64encode(self._iv + self._encryption_key)
+        with self._consistency_lock:
+            data = base64.standard_b64encode(self._iv + self._encryption_key)
         encryption_key, iv = self._evp_bytestokey_md5_one_iteration_no_salt(
             data, key_size=32, iv_size=16
         )

@@ -16,8 +16,10 @@ Warning:
 from __future__ import annotations
 
 import base64
+import contextlib
 import copy
 import enum
+import hashlib
 import json
 import logging
 import os
@@ -159,6 +161,7 @@ def shell_complete_service(
 
 config_filename_table = {
     None: '.',
+    'write lock': '',
     'vault': 'vault.json',
     'user configuration': 'config.toml',
     # TODO(the-13th-letter): Remove the old settings.json file.
@@ -166,6 +169,129 @@ config_filename_table = {
     'old settings.json': 'settings.json',
     'notes backup': 'old-notes.txt',
 }
+
+LOCK_SIZE = 4096
+"""
+The size of the record to lock at the beginning of the file, for locking
+implementations that lock byte ranges instead of whole files.
+
+While POSIX specifies that [`fcntl`][] locks shall support a size of zero to
+denote "any conceivable file size", the locking system available in
+[`msvcrt`][] does not support this, and requires an explicit size.
+"""
+
+
+@contextlib.contextmanager
+def configuration_mutex() -> Iterator[None]:
+    """Enter a mutually exclusive context for configuration writes.
+
+    Within this context, no other cooperating instance of
+    `derivepassphrase` will attempt to write to its configuration
+    directory.  We achieve this by locking a specific temporary file
+    (whose name depends on the location of the configuration directory)
+    for the duration of the context.
+
+    Note: Locking specifics
+        The directory for the lock file is determined via
+        [`get_tempdir`][].  The lock filename is
+        `derivepassphrase-lock-<hash>.txt`, where `<hash>` is computed
+        as follows.  First, canonicalize the path to the configuration
+        directory with [`pathlib.Path.resolve`][].  Then encode the
+        result as per the filesystem encoding ([`os.fsencode`][]), and
+        hash it with SHA256.  Finally, convert the result to standard
+        base32 and use the first twelve characters, in lowercase, as
+        `<hash>`.
+
+        We use [`msvcrt.locking`][] on Windows platforms (`sys.platform
+        == "win32"`) and [`fcntl.flock`][] on all others.  All locks are
+        exclusive locks.  If the locking system requires a byte range,
+        we lock the first [`LOCK_SIZE`][] bytes.  For maximum
+        portability between locking implementations, we first open the
+        lock file for writing, which is sometimes necessary to lock
+        a file exclusively.  Thus locking will fail if we lack
+        permission to write to an already-existing lockfile.
+
+    """
+    lock_func: Callable[[int], None]
+    unlock_func: Callable[[int], None]
+    if sys.platform == 'win32':  # pragma: no cover
+        import msvcrt  # noqa: PLC0415
+
+        locking = msvcrt.locking
+        LK_LOCK = msvcrt.LK_LOCK  # noqa: N806
+        LK_UNLCK = msvcrt.LK_UNLCK  # noqa: N806
+
+        def lock_func(fileobj: int) -> None:
+            locking(fileobj, LK_LOCK, LOCK_SIZE)
+
+        def unlock_func(fileobj: int) -> None:
+            locking(fileobj, LK_UNLCK, LOCK_SIZE)
+
+    else:
+        import fcntl  # noqa: PLC0415
+
+        flock = fcntl.flock
+        LOCK_EX = fcntl.LOCK_EX  # noqa: N806
+        LOCK_UN = fcntl.LOCK_UN  # noqa: N806
+
+        def lock_func(fileobj: int) -> None:
+            flock(fileobj, LOCK_EX)
+
+        def unlock_func(fileobj: int) -> None:
+            flock(fileobj, LOCK_UN)
+
+    write_lock_file = config_filename('write lock')
+    write_lock_file.touch()
+    with write_lock_file.open('wb') as lock_fileobj:
+        lock_func(lock_fileobj.fileno())
+        try:
+            yield
+        finally:
+            unlock_func(lock_fileobj.fileno())
+
+
+def get_tempdir() -> pathlib.Path:
+    """Return a suitable temporary directory.
+
+    We implement the same algorithm as [`tempfile.gettempdir`][], except
+    that we default to the `derivepassphrase` configuration directory
+    instead of the current directory if no other choice is suitable, and
+    that we return [`pathlib.Path`][] objects directly.
+
+    """
+    paths_to_try: list[pathlib.PurePath] = []
+    env_paths_to_try = [
+        os.getenv('TMPDIR'),
+        os.getenv('TEMP'),
+        os.getenv('TMP'),
+    ]
+    paths_to_try.extend(
+        pathlib.PurePath(p) for p in env_paths_to_try if p is not None
+    )
+    posix_paths_to_try = [
+        pathlib.PurePosixPath('/tmp'),  # noqa: S108
+        pathlib.PurePosixPath('/var/tmp'),  # noqa: S108
+        pathlib.PurePosixPath('/usr/tmp'),
+    ]
+    windows_paths_to_try = [
+        pathlib.PureWindowsPath(r'C:\TEMP'),
+        pathlib.PureWindowsPath(r'C:\TMP'),
+        pathlib.PureWindowsPath(r'\TEMP'),
+        pathlib.PureWindowsPath(r'\TMP'),
+    ]
+    paths_to_try.extend(
+        windows_paths_to_try if sys.platform == 'win32' else posix_paths_to_try
+    )
+    for p in paths_to_try:
+        path = pathlib.Path(p)
+        try:
+            points_to_dir = path.is_dir()
+        except OSError:
+            continue
+        else:
+            if points_to_dir:
+                return path.resolve(strict=True)
+    return config_filename(subsystem=None)
 
 
 def config_filename(
@@ -201,6 +327,14 @@ def config_filename(
         os.getenv(PROG_NAME.upper() + '_PATH')
         or click.get_app_dir(PROG_NAME, force_posix=True)
     )
+    if subsystem == 'write lock':
+        path_hash = base64.b32encode(
+            hashlib.sha256(os.fsencode(path.resolve())).digest()
+        )
+        path_hash_text = path_hash[:12].lower().decode('ASCII')
+        temp_path = get_tempdir()
+        filename_ = f'derivepassphrase-lock-{path_hash_text}.txt'
+        return temp_path / filename_
     try:
         filename = config_filename_table[subsystem]
     except (KeyError, TypeError):  # pragma: no cover
