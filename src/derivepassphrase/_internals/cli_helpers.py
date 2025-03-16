@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     import socket
     from collections.abc import (
         Iterator,
+        Mapping,
         Sequence,
     )
 
@@ -714,7 +715,7 @@ class ORIGIN(enum.Enum):
 
 def check_for_misleading_passphrase(
     key: tuple[str, ...] | ORIGIN,
-    value: dict[str, Any],
+    value: Mapping[str, Any],
     *,
     main_config: dict[str, Any],
     ctx: click.Context | None = None,
