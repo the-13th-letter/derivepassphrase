@@ -1423,7 +1423,7 @@ class DebugMsgTemplate(enum.Enum):
         """\
 Decrypt bucket item contents:
 
-  \b
+\b
   Encryption key (master key): {enc_key}
   Encryption cipher: AES256-CBC with PKCS#7 padding
   Encryption IV: {iv}
@@ -1440,7 +1440,7 @@ Decrypt bucket item contents:
         """\
 Decrypt bucket item:
 
-  \b
+\b
   Plaintext: {plaintext}
   Encryption key (master key): {enc_key}
   Signing key (master key): {sign_key}
@@ -1462,7 +1462,7 @@ Decrypt bucket item:
         """\
 Decrypt bucket item contents:
 
-  \b
+\b
   MAC key: {sign_key}
   Authenticated content: {ciphertext}
   Claimed MAC value: {claimed_mac}
@@ -1481,7 +1481,7 @@ Decrypt bucket item contents:
         """\
 Decrypt bucket item session keys:
 
-  \b
+\b
   Encryption key (master key): {enc_key}
   Encryption cipher: AES256-CBC with PKCS#7 padding
   Encryption IV: {iv}
@@ -1506,7 +1506,7 @@ Decrypt bucket item session keys:
         """\
 Decrypt bucket item session keys:
 
-  \b
+\b
   MAC key (master key): {sign_key}
   Authenticated content: {ciphertext}
   Claimed MAC value: {claimed_mac}
@@ -1522,7 +1522,7 @@ Decrypt bucket item session keys:
         """\
 Derived master keys' keys:
 
-  \b
+\b
   Encryption key: {enc_key}
   Signing key: {sign_key}
   Password: {pw_bytes}
@@ -1561,7 +1561,7 @@ Derived master keys' keys:
         """\
 Master keys data:
 
-  \b
+\b
   MAC key: {sign_key}
   Authenticated content: {ciphertext}
   Claimed MAC value: {claimed_mac}
@@ -1623,7 +1623,7 @@ Master keys data:
         """\
 MAC details:
 
-  \b
+\b
   MAC input: {mac_input}
   Expected MAC: {mac}
 """,
@@ -1642,7 +1642,7 @@ MAC details:
         """\
 evp_bytestokey_md5 (initialization):
 
-  \b
+\b
   Input: {data}
   Salt: {salt}
   Key size: {key_size}
@@ -1666,7 +1666,7 @@ evp_bytestokey_md5 (initialization):
         """\
 evp_bytestokey_md5 (result):
 
-  \b
+\b
   Encryption key: {enc_key}
   IV: {iv}
 """,
@@ -1687,7 +1687,7 @@ evp_bytestokey_md5 (result):
         """\
 evp_bytestokey_md5 (round update):
 
-  \b
+\b
   Buffer length: {buffer_length}
   Buffer: {buffer}
 """,
@@ -1715,7 +1715,7 @@ evp_bytestokey_md5 (round update):
         """\
 Buffer: {contents}
 
-  \b
+\b
   IV: {iv}
   Payload (ciphertext): {payload}
   MAC: {mac}
@@ -1730,7 +1730,7 @@ Buffer: {contents}
         """\
 Master key derivation:
 
-  \b
+\b
   PBKDF2 call: PBKDF2-HMAC(password={password!r}, salt={salt!r}, iterations={iterations!r}, key_size={key_size!r}, algorithm={algorithm!r})
   Result (binary): {raw_result}
   Result (hex key): {result_key!r}
@@ -1760,7 +1760,7 @@ Master key derivation:
         """\
 Postprocessing buffer (v0.2):
 
-  \b
+\b
   Payload: {payload} (decoded from base64)
   MAC: {mac} (decoded from hex)
 """,
