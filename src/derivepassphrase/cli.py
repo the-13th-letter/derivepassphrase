@@ -1746,7 +1746,10 @@ class _VaultContext:  # noqa: PLR0904
     'print_notes_before',
     default=False,
     help=_msg.TranslatedString(
-        _msg.Label.DERIVEPASSPHRASE_VAULT_PRINT_NOTES_BEFORE_HELP_TEXT
+        _msg.Label.DERIVEPASSPHRASE_VAULT_PRINT_NOTES_BEFORE_HELP_TEXT,
+        service_metavar=_msg.TranslatedString(
+            _msg.Label.VAULT_METAVAR_SERVICE
+        ),
     ),
     cls=cli_machinery.CompatibilityOption,
 )

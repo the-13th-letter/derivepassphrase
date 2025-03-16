@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: derivepassphrase 0.5a1.dev1\n"
 "Report-Msgid-Bugs-To: software@the13thletter.info\n"
-"POT-Creation-Date: 2025-03-16 13:30+0100\n"
-"PO-Revision-Date: 2025-03-16 13:30+0100\n"
+"POT-Creation-Date: 2025-03-16 23:12+0100\n"
+"PO-Revision-Date: 2025-03-16 23:12+0100\n"
 "Last-Translator: AUTHOR <someone@example.com>\n"
 "Language: en\n"
 "Language-Team: English\n"
@@ -43,6 +43,13 @@ msgstr ""
 #. Message-ID: Label.CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_SERVICE
 msgctxt "Label :: Error message :: Metavar"
 msgid "service-specific settings"
+msgstr ""
+
+#. TRANSLATORS: This value is used as the {key} metavar for Label.PASSPHRASE_NOT_NORMALIZED if the passphrase was entered interactively.
+#. 
+#. Message-ID: Label.SETTINGS_ORIGIN_INTERACTIVE
+msgctxt "Label :: Error message :: Metavar"
+msgid "interactive input"
 msgstr ""
 
 #. TRANSLATORS: Message-ID: Label.CONFIGURATION_EPILOG
@@ -122,7 +129,7 @@ msgstr ""
 #. 
 #. Message-ID: Label.DERIVEPASSPHRASE_VAULT_NOTES_LEGACY_INSTRUCTION_TEXT
 msgctxt "Label :: Help text :: Explanation"
-msgid "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+msgid "INSERT NOTES HERE"
 msgstr ""
 
 #. TRANSLATORS: The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
@@ -347,8 +354,9 @@ msgstr ""
 #. TRANSLATORS: The corresponding option is displayed as "--print-notes-before / --print-notes-after", so you may want to hint that the default (after) is the second of those options.
 #. 
 #. Message-ID: Label.DERIVEPASSPHRASE_VAULT_PRINT_NOTES_BEFORE_HELP_TEXT
+#, python-brace-format
 msgctxt "Label :: Help text :: One-line description"
-msgid "Print the service notes (if any) before or after (default) the existing configuration."
+msgid "Print the notes for {service_metavar} (if any) before or after (default) the derived passphrase."
 msgstr ""
 
 #. TRANSLATORS: The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
@@ -356,7 +364,7 @@ msgstr ""
 #. Message-ID: Label.DERIVEPASSPHRASE_VAULT_REPEAT_HELP_TEXT
 #, python-brace-format
 msgctxt "Label :: Help text :: One-line description"
-msgid "Forbid any run of {metavar} identical characters."
+msgid "Restrict runs of identical characters to at most {metavar} characters."
 msgstr ""
 
 #. TRANSLATORS: The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
@@ -379,7 +387,7 @@ msgstr ""
 #. 
 #. Message-ID: Label.DERIVEPASSPHRASE_VAULT_UNSET_HELP_TEXT
 msgctxt "Label :: Help text :: One-line description"
-msgid "With --config, also unsets the given setting.  May be specified multiple times."
+msgid "With --config, also unset the given setting.  May be specified multiple times."
 msgstr ""
 
 #. TRANSLATORS: The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
@@ -757,7 +765,7 @@ msgctxt "Debug message"
 msgid "Buffer: {contents}\n"
 "\n"
 "IV: {iv}\n"
-"Payload: {payload}\n"
+"Payload (ciphertext): {payload}\n"
 "MAC: {mac}"
 msgstr ""
 
@@ -794,7 +802,7 @@ msgstr ""
 #. 
 #. Message-ID: InfoMsgTemplate.ASSEMBLING_CONFIG_STRUCTURE
 msgctxt "Info message"
-msgid "Assembling config structure"
+msgid "Assembling config structure."
 msgstr ""
 
 #. TRANSLATORS: "fmt" is a string such as "v0.2" or "storeroom", indicating the format which we tried to load the vault configuration as.
@@ -809,7 +817,7 @@ msgstr ""
 #. 
 #. Message-ID: InfoMsgTemplate.CHECKING_CONFIG_STRUCTURE_CONSISTENCY
 msgctxt "Info message"
-msgid "Checking config structure consistency"
+msgid "Checking config structure consistency."
 msgstr ""
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "storeroom"-type configuration directories.  The system stores entries in different "buckets" of a hash table.  We parse the directory bucket by bucket.  All buckets are numbered in hexadecimal, and typically there are 32 buckets, so 2-digit hex numbers.
@@ -817,14 +825,14 @@ msgstr ""
 #. Message-ID: InfoMsgTemplate.DECRYPTING_BUCKET
 #, python-brace-format
 msgctxt "Info message"
-msgid "Decrypting bucket {bucket_number}"
+msgid "Decrypting bucket {bucket_number}."
 msgstr ""
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "storeroom"-type configuration directories.  `.keys` is a filename, from which data about the master keys for this configuration are loaded.
 #. 
 #. Message-ID: InfoMsgTemplate.PARSING_MASTER_KEYS_DATA
 msgctxt "Info message"
-msgid "Parsing master keys data from .keys"
+msgid "Parsing master keys data from `.keys`."
 msgstr ""
 
 #. TRANSLATORS: This message immediately follows an error message about a missing library that needs to be installed.  The Python Package Index (PyPI) supports declaring sets of optional dependencies as "extras", so users installing from PyPI can request reinstallation with a named "extra" being enabled.  This would then let the installer take care of the missing libraries automatically, hence this suggestion to PyPI users.
@@ -845,24 +853,24 @@ msgstr ""
 
 #. TRANSLATORS: Message-ID: InfoMsgTemplate.VAULT_NATIVE_CHECKING_MAC
 msgctxt "Info message"
-msgid "Checking MAC"
+msgid "Checking MAC."
 msgstr ""
 
 #. TRANSLATORS: Message-ID: InfoMsgTemplate.VAULT_NATIVE_DECRYPTING_CONTENTS
 msgctxt "Info message"
-msgid "Decrypting contents"
+msgid "Decrypting contents."
 msgstr ""
 
 #. TRANSLATORS: Message-ID: InfoMsgTemplate.VAULT_NATIVE_DERIVING_KEYS
 msgctxt "Info message"
-msgid "Deriving an encryption and signing key"
+msgid "Deriving an encryption and signing key."
 msgstr ""
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "native"-type configuration directories.  "IV" means "initialization vector", and "MAC" means "message authentication code".  They are specifically cryptographic terms, as is "payload".  The acronyms "IV" and "MAC" are assumed to be well-known to the English target audience, or at least discoverable by them; they *are* asking for debug output, after all.  Please use your judgement as to whether to translate these terms or not, expanded or not.
 #. 
 #. Message-ID: InfoMsgTemplate.VAULT_NATIVE_PARSING_IV_PAYLOAD_MAC
 msgctxt "Info message"
-msgid "Parsing IV, payload and MAC from the file contents"
+msgid "Parsing IV, payload and MAC from the file contents."
 msgstr ""
 
 #. TRANSLATORS: Message-ID: WarnMsgTemplate.EDITING_NOTES_BUT_NOT_STORING_CONFIG
@@ -909,7 +917,7 @@ msgctxt "Warning message"
 msgid "A backup copy of the old notes was saved to {filename!r}.  This is a safeguard against editing mistakes, because the vault(1)-compatible legacy editor interface does not allow aborting mid-edit, and because the notes were actually changed."
 msgstr ""
 
-#. TRANSLATORS: The key is a (vault) configuration key, in JSONPath syntax, typically "$.global" for the global passphrase or "$.services.service_name" or "$.services["service with spaces"]" for the services "service_name" and "service with spaces", respectively.  The form is one of the four Unicode normalization forms: NFC, NFD, NFKC, NFKD.  The asterisks are not special.  Please feel free to substitute any other appropriate way to mark up emphasis of the word "displays".
+#. TRANSLATORS: The key is a (vault) configuration key, in JSONPath syntax, typically "$.global" for the global passphrase or "$.services.service_name" or "$.services["service with spaces"]" for the services "service_name" and "service with spaces", respectively.  Alternatively, it may be the value of Label.SETTINGS_ORIGIN_INTERACTIVE if the passphrase was entered interactively.  The form is one of the four Unicode normalization forms: NFC, NFD, NFKC, NFKD.  The asterisks are not special.  Please feel free to substitute any other appropriate way to mark up emphasis of the word "displays".
 #. 
 #. Message-ID: WarnMsgTemplate.PASSPHRASE_NOT_NORMALIZED
 #, python-brace-format
