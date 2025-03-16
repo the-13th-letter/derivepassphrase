@@ -4290,6 +4290,40 @@ class TestCLI:
                 'expected error exit and known error message'
             )
 
+    def test_311_bad_user_config_is_a_directory(
+        self,
+    ) -> None:
+        """Loading a user configuration file in an invalid format fails."""
+        runner = click.testing.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                tests.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={'services': {}},
+                    main_config_str='',
+                )
+            )
+            user_config = cli_helpers.config_filename(
+                subsystem='user configuration'
+            )
+            user_config.unlink()
+            user_config.mkdir(parents=True, exist_ok=True)
+            result_ = runner.invoke(
+                cli.derivepassphrase_vault,
+                ['--phrase', '--', DUMMY_SERVICE],
+                input=DUMMY_PASSPHRASE,
+                catch_exceptions=False,
+            )
+            result = tests.ReadableResult.parse(result_)
+            assert result.error_exit(error='Cannot load user config:'), (
+                'expected error exit and known error message'
+            )
+
     def test_400_missing_af_unix_support(
         self,
     ) -> None:
