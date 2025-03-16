@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: derivepassphrase 0.5a1.dev1\n"
 "Report-Msgid-Bugs-To: software@the13thletter.info\n"
-"POT-Creation-Date: 2025-02-11 22:20+0000\n"
-"PO-Revision-Date: 2025-02-11 22:20+0000\n"
+"POT-Creation-Date: 2025-03-16 13:30+0100\n"
+"PO-Revision-Date: 2025-03-16 13:30+0100\n"
 "Last-Translator: AUTHOR <someone@example.com>\n"
 "Language: en\n"
 "Language-Team: English\n"
@@ -437,7 +437,7 @@ msgstr ""
 
 #. TRANSLATORS: Message-ID: Label.VERSION_OPTION_HELP_TEXT
 msgctxt "Label :: Help text :: One-line description"
-msgid "Show applicable version information, then exit."
+msgid "Show version and feature information, then exit."
 msgstr ""
 
 #. TRANSLATORS: Message-ID: Label.COMMANDS_LABEL
@@ -480,10 +480,68 @@ msgctxt "Label :: Help text :: Option group name"
 msgid "Storage management"
 msgstr ""
 
-#. TRANSLATORS: Message-ID: Label.VERSION_INFO_TEXT
+#. TRANSLATORS: This message reports on the version of a major library currently in use, such as "cryptography".
+#. 
+#. Message-ID: Label.VERSION_INFO_MAJOR_LIBRARY_TEXT
 #, python-brace-format
 msgctxt "Label :: Info Message"
-msgid "{PROG_NAME} {VERSION}"
+msgid "Using {dependency_name_and_version}"
+msgstr ""
+
+#. TRANSLATORS: This is part of the version output, emitting lists of enabled PEP 508 extras.  A comma-separated English list of items follows, with standard English punctuation.
+#. 
+#. Message-ID: Label.ENABLED_PEP508_EXTRAS
+msgctxt "Label :: Info Message:: Table row header"
+msgid "PEP 508 extras:"
+msgstr ""
+
+#. TRANSLATORS: This is part of the version output, emitting lists of supported derivation schemes.  A comma-separated English list of items follows, with standard English punctuation.
+#. 
+#. Message-ID: Label.SUPPORTED_DERIVATION_SCHEMES
+msgctxt "Label :: Info Message:: Table row header"
+msgid "Supported derivation schemes:"
+msgstr ""
+
+#. TRANSLATORS: This is part of the version output, emitting lists of supported features for this subcommand.  A comma-separated English list of items follows, with standard English punctuation.
+#. 
+#. Message-ID: Label.SUPPORTED_FEATURES
+msgctxt "Label :: Info Message:: Table row header"
+msgid "Supported features:"
+msgstr ""
+
+#. TRANSLATORS: This is part of the version output, emitting lists of supported foreign configuration formats.  A comma-separated English list of items follows, with standard English punctuation.
+#. 
+#. Message-ID: Label.SUPPORTED_FOREIGN_CONFIGURATION_FORMATS
+msgctxt "Label :: Info Message:: Table row header"
+msgid "Supported foreign configuration formats:"
+msgstr ""
+
+#. TRANSLATORS: This is part of the version output, emitting lists of supported subcommands.  A comma-separated English list of items follows, with standard English punctuation.
+#. 
+#. Message-ID: Label.SUPPORTED_SUBCOMMANDS
+msgctxt "Label :: Info Message:: Table row header"
+msgid "Supported subcommands:"
+msgstr ""
+
+#. TRANSLATORS: This is part of the version output, emitting lists of known, unavailable derivation schemes.  A comma-separated English list of items follows, with standard English punctuation.
+#. 
+#. Message-ID: Label.UNAVAILABLE_DERIVATION_SCHEMES
+msgctxt "Label :: Info Message:: Table row header"
+msgid "Known derivation schemes:"
+msgstr ""
+
+#. TRANSLATORS: This is part of the version output, emitting lists of known, unavailable features for this subcommand.  A comma-separated English list of items follows, with standard English punctuation.
+#. 
+#. Message-ID: Label.UNAVAILABLE_FEATURES
+msgctxt "Label :: Info Message:: Table row header"
+msgid "Known features:"
+msgstr ""
+
+#. TRANSLATORS: This is part of the version output, emitting lists of known, unavailable foreign configuration formats.  A comma-separated English list of items follows, with standard English punctuation.
+#. 
+#. Message-ID: Label.UNAVAILABLE_FOREIGN_CONFIGURATION_FORMATS
+msgctxt "Label :: Info Message:: Table row header"
+msgid "Known foreign configuration formats:"
 msgstr ""
 
 #. TRANSLATORS: There is no support for "yes" or "no" in other languages than English, so it is advised that your translation makes it clear that only the strings "y", "yes", "n" or "no" are supported, even if the prompt becomes a bit longer.
