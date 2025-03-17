@@ -679,6 +679,14 @@ class Label(enum.Enum):
         'service-specific settings',
     )
     """"""
+    SETTINGS_ORIGIN_INTERACTIVE = commented(
+        'This value is used as the {key} metavar for '
+        'Label.PASSPHRASE_NOT_NORMALIZED if the passphrase was '
+        'entered interactively.',
+    )(
+        'Label :: Error message :: Metavar',
+        'interactive input',
+    )
     CONFIGURATION_EPILOG = commented(
         '',
     )(
@@ -808,9 +816,7 @@ class Label(enum.Enum):
         'obviously recognize as placeholder text.)'
     )(
         'Label :: Help text :: Explanation',
-        'Lorem ipsum dolor sit amet, consectetur adipiscing elit, '
-        'sed do eiusmod tempor incididunt ut labore '
-        'et dolore magna aliqua.',
+        'INSERT NOTES HERE',
     )
     """"""
     PASSPHRASE_GENERATION_EPILOG = commented(
@@ -1101,15 +1107,17 @@ class Label(enum.Enum):
         'hint that the default (after) is the second of those options.',
     )(
         'Label :: Help text :: One-line description',
-        'Print the service notes (if any) before or after (default) '
-        'the existing configuration.',
+        'Print the notes for {service_metavar} (if any) before or '
+        'after (default) the derived passphrase.',
+        flags='python-brace-format',
     )
     """"""
     DERIVEPASSPHRASE_VAULT_REPEAT_HELP_TEXT = commented(
         'The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.',
     )(
         'Label :: Help text :: One-line description',
-        'Forbid any run of {metavar} identical characters.',
+        'Restrict runs of identical characters to at most {metavar} '
+        'characters.',
         flags='python-brace-format',
     )
     """"""
@@ -1138,7 +1146,7 @@ class Label(enum.Enum):
         '"--config" for this option to have any effect.',
     )(
         'Label :: Help text :: One-line description',
-        'With --config, also unsets the given setting.  '
+        'With --config, also unset the given setting.  '
         'May be specified multiple times.',
     )
     """"""
@@ -1415,7 +1423,7 @@ class DebugMsgTemplate(enum.Enum):
         """\
 Decrypt bucket item contents:
 
-  \b
+\b
   Encryption key (master key): {enc_key}
   Encryption cipher: AES256-CBC with PKCS#7 padding
   Encryption IV: {iv}
@@ -1432,7 +1440,7 @@ Decrypt bucket item contents:
         """\
 Decrypt bucket item:
 
-  \b
+\b
   Plaintext: {plaintext}
   Encryption key (master key): {enc_key}
   Signing key (master key): {sign_key}
@@ -1454,7 +1462,7 @@ Decrypt bucket item:
         """\
 Decrypt bucket item contents:
 
-  \b
+\b
   MAC key: {sign_key}
   Authenticated content: {ciphertext}
   Claimed MAC value: {claimed_mac}
@@ -1473,7 +1481,7 @@ Decrypt bucket item contents:
         """\
 Decrypt bucket item session keys:
 
-  \b
+\b
   Encryption key (master key): {enc_key}
   Encryption cipher: AES256-CBC with PKCS#7 padding
   Encryption IV: {iv}
@@ -1498,7 +1506,7 @@ Decrypt bucket item session keys:
         """\
 Decrypt bucket item session keys:
 
-  \b
+\b
   MAC key (master key): {sign_key}
   Authenticated content: {ciphertext}
   Claimed MAC value: {claimed_mac}
@@ -1514,7 +1522,7 @@ Decrypt bucket item session keys:
         """\
 Derived master keys' keys:
 
-  \b
+\b
   Encryption key: {enc_key}
   Signing key: {sign_key}
   Password: {pw_bytes}
@@ -1553,7 +1561,7 @@ Derived master keys' keys:
         """\
 Master keys data:
 
-  \b
+\b
   MAC key: {sign_key}
   Authenticated content: {ciphertext}
   Claimed MAC value: {claimed_mac}
@@ -1615,7 +1623,7 @@ Master keys data:
         """\
 MAC details:
 
-  \b
+\b
   MAC input: {mac_input}
   Expected MAC: {mac}
 """,
@@ -1634,7 +1642,7 @@ MAC details:
         """\
 evp_bytestokey_md5 (initialization):
 
-  \b
+\b
   Input: {data}
   Salt: {salt}
   Key size: {key_size}
@@ -1658,7 +1666,7 @@ evp_bytestokey_md5 (initialization):
         """\
 evp_bytestokey_md5 (result):
 
-  \b
+\b
   Encryption key: {enc_key}
   IV: {iv}
 """,
@@ -1679,7 +1687,7 @@ evp_bytestokey_md5 (result):
         """\
 evp_bytestokey_md5 (round update):
 
-  \b
+\b
   Buffer length: {buffer_length}
   Buffer: {buffer}
 """,
@@ -1707,9 +1715,9 @@ evp_bytestokey_md5 (round update):
         """\
 Buffer: {contents}
 
-  \b
+\b
   IV: {iv}
-  Payload: {payload}
+  Payload (ciphertext): {payload}
   MAC: {mac}
 """,
         flags='python-brace-format',
@@ -1722,7 +1730,7 @@ Buffer: {contents}
         """\
 Master key derivation:
 
-  \b
+\b
   PBKDF2 call: PBKDF2-HMAC(password={password!r}, salt={salt!r}, iterations={iterations!r}, key_size={key_size!r}, algorithm={algorithm!r})
   Result (binary): {raw_result}
   Result (hex key): {result_key!r}
@@ -1752,7 +1760,7 @@ Master key derivation:
         """\
 Postprocessing buffer (v0.2):
 
-  \b
+\b
   Payload: {payload} (decoded from base64)
   MAC: {mac} (decoded from hex)
 """,
@@ -1775,7 +1783,7 @@ class InfoMsgTemplate(enum.Enum):
         'build it on-the-fly), hence the term "assembling".',
     )(
         'Info message',
-        'Assembling config structure',
+        'Assembling config structure.',
     )
     """"""
     CANNOT_LOAD_AS_VAULT_CONFIG = commented(
@@ -1796,7 +1804,7 @@ class InfoMsgTemplate(enum.Enum):
         'assembled structure is internally consistent.',
     )(
         'Info message',
-        'Checking config structure consistency',
+        'Checking config structure consistency.',
     )
     """"""
     DECRYPTING_BUCKET = commented(
@@ -1808,7 +1816,7 @@ class InfoMsgTemplate(enum.Enum):
         '32 buckets, so 2-digit hex numbers.',
     )(
         'Info message',
-        'Decrypting bucket {bucket_number}',
+        'Decrypting bucket {bucket_number}.',
         flags='python-brace-format',
     )
     """"""
@@ -1819,7 +1827,7 @@ class InfoMsgTemplate(enum.Enum):
         'for this configuration are loaded.',
     )(
         'Info message',
-        'Parsing master keys data from .keys',
+        'Parsing master keys data from `.keys`.',
     )
     """"""
     PIP_INSTALL_EXTRA = commented(
@@ -1850,21 +1858,21 @@ class InfoMsgTemplate(enum.Enum):
         '',
     )(
         'Info message',
-        'Checking MAC',
+        'Checking MAC.',
     )
     """"""
     VAULT_NATIVE_DECRYPTING_CONTENTS = commented(
         '',
     )(
         'Info message',
-        'Decrypting contents',
+        'Decrypting contents.',
     )
     """"""
     VAULT_NATIVE_DERIVING_KEYS = commented(
         '',
     )(
         'Info message',
-        'Deriving an encryption and signing key',
+        'Deriving an encryption and signing key.',
     )
     """"""
     VAULT_NATIVE_PARSING_IV_PAYLOAD_MAC = commented(
@@ -1880,7 +1888,7 @@ class InfoMsgTemplate(enum.Enum):
         'or not, expanded or not.',
     )(
         'Info message',
-        'Parsing IV, payload and MAC from the file contents',
+        'Parsing IV, payload and MAC from the file contents.',
     )
     """"""
 
@@ -1950,6 +1958,9 @@ class WarnMsgTemplate(enum.Enum):
         '"$.services.service_name" or "$.services["service with spaces"]" '
         'for the services "service_name" and "service with spaces", '
         'respectively.  '
+        'Alternatively, it may be the value of '
+        'Label.SETTINGS_ORIGIN_INTERACTIVE if the passphrase was '
+        'entered interactively.  '
         'The form is one of the four Unicode normalization forms: '
         'NFC, NFD, NFKC, NFKD.  '
         'The asterisks are not special.  '

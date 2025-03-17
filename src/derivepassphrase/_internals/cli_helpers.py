@@ -705,11 +705,11 @@ class ORIGIN(enum.Enum):
     """The origin of a setting, if not from the user configuration file.
 
     Attributes:
-        INTERACTIVE (str): interactive input
+        INTERACTIVE (_msg.Label): interactive input
 
     """
 
-    INTERACTIVE = 'interactive input'
+    INTERACTIVE = _msg.Label.SETTINGS_ORIGIN_INTERACTIVE
     """"""
 
 
@@ -765,7 +765,9 @@ def check_for_misleading_passphrase(
         raise AssertionError(msg)
     logger = logging.getLogger(PROG_NAME)
     formatted_key = (
-        key.value if isinstance(key, ORIGIN) else _types.json_path(key)
+        str(_msg.TranslatedString(key.value))
+        if isinstance(key, ORIGIN)
+        else _types.json_path(key)
     )
     if 'phrase' in value:
         phrase = value['phrase']
