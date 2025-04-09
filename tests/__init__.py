@@ -19,12 +19,13 @@ import stat
 import tempfile
 import types
 import zipfile
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
+import click.testing
 import hypothesis
 import pytest
 from hypothesis import strategies
-from typing_extensions import NamedTuple, Self, assert_never
+from typing_extensions import NamedTuple, assert_never
 
 from derivepassphrase import _types, cli, ssh_agent, vault
 from derivepassphrase._internals import cli_helpers, cli_machinery
@@ -35,8 +36,8 @@ if TYPE_CHECKING:
     import socket
     from collections.abc import Callable, Iterator, Mapping, Sequence
     from contextlib import AbstractContextManager
+    from typing import IO, NotRequired
 
-    import click.testing
     from typing_extensions import Any
 
 
@@ -1699,7 +1700,7 @@ def phrase_from_key(
 @contextlib.contextmanager
 def isolated_config(
     monkeypatch: pytest.MonkeyPatch,
-    runner: click.testing.CliRunner,
+    runner: CliRunner,
     main_config_str: str | None = None,
 ) -> Iterator[None]:
     """Provide an isolated configuration setup, as a context.
@@ -1752,7 +1753,7 @@ def isolated_config(
 @contextlib.contextmanager
 def isolated_vault_config(
     monkeypatch: pytest.MonkeyPatch,
-    runner: click.testing.CliRunner,
+    runner: CliRunner,
     vault_config: Any,
     main_config_str: str | None = None,
 ) -> Iterator[None]:
@@ -1790,7 +1791,7 @@ def isolated_vault_config(
 @contextlib.contextmanager
 def isolated_vault_exporter_config(
     monkeypatch: pytest.MonkeyPatch,
-    runner: click.testing.CliRunner,
+    runner: CliRunner,
     vault_config: str | bytes | None = None,
     vault_key: str | None = None,
 ) -> Iterator[None]:
@@ -1949,17 +1950,8 @@ class ReadableResult(NamedTuple):
 
     exception: BaseException | None
     exit_code: int
-    output: str
+    stdout: str
     stderr: str
-
-    @classmethod
-    def parse(cls, r: click.testing.Result, /) -> Self:
-        """Return a readable result object, given a result."""
-        try:
-            stderr = r.stderr
-        except ValueError:
-            stderr = r.output
-        return cls(r.exception, r.exit_code, r.output or '', stderr or '')
 
     def clean_exit(
         self, *, output: str = '', empty_stderr: bool = False
@@ -1979,7 +1971,7 @@ class ReadableResult(NamedTuple):
                     and self.exit_code == 0
                 )
             )
-            and (not output or output in self.output)
+            and (not output or output in self.stdout)
             and (not empty_stderr or not self.stderr)
         )
 
@@ -2023,6 +2015,92 @@ class ReadableResult(NamedTuple):
                     or error_emitted(error, record_tuples)
                 )
             )
+
+
+class CliRunner:
+    """An abstracted CLI runner class.
+
+    Intended to provide similar functionality and scope as the
+    [`click.testing.CliRunner`][] class, though not necessarily
+    `click`-specific.  Also allows for seamless migration away from
+    `click`, if/when we decide this.
+
+    """
+
+    _SUPPORTS_MIX_STDERR_ATTRIBUTE = not hasattr(click.testing, 'StreamMixer')
+    """
+    True if and only if [`click.testing.CliRunner`][] supports the
+    `mix_stderr` attribute.  It was removed in 8.2.0 in favor of the
+    [`click.testing.StreamMixer`][] class.
+
+    See also
+    [`pallets/click#2523`](https://github.com/pallets/click/pull/2523).
+    """
+
+    def __init__(
+        self,
+        *,
+        mix_stderr: bool = False,
+        color: bool | None = None,
+    ) -> None:
+        self.color = color
+        self.mix_stderr = mix_stderr
+
+        class MixStderrAttribute(TypedDict):
+            mix_stderr: NotRequired[bool]
+
+        mix_stderr_args: MixStderrAttribute = (
+            {'mix_stderr': mix_stderr}
+            if self._SUPPORTS_MIX_STDERR_ATTRIBUTE
+            else {}
+        )
+        self.click_testing_clirunner = click.testing.CliRunner(
+            **mix_stderr_args
+        )
+
+    def invoke(
+        self,
+        cli: click.BaseCommand,
+        args: Sequence[str] | str | None = None,
+        input: str | bytes | IO[Any] | None = None,
+        env: Mapping[str, str | None] | None = None,
+        catch_exceptions: bool = True,
+        color: bool | None = None,
+        **extra: Any,
+    ) -> ReadableResult:
+        if color is None:  # pragma: no cover
+            color = self.color if self.color is not None else False
+        raw_result = self.click_testing_clirunner.invoke(
+            cli,
+            args=args,
+            input=input,
+            env=env,
+            catch_exceptions=catch_exceptions,
+            color=color,
+            **extra,
+        )
+        # In 8.2.0, r.stdout is no longer a property aliasing the
+        # `output` attribute, but rather the raw stdout value.
+        try:
+            stderr = raw_result.stderr
+        except ValueError:
+            stderr = raw_result.stdout
+        return ReadableResult(
+            raw_result.exception,
+            raw_result.exit_code,
+            (raw_result.stdout if not self.mix_stderr else raw_result.output)
+            or '',
+            stderr or '',
+        )
+        return ReadableResult.parse(raw_result)
+
+    def isolated_filesystem(
+        self,
+        temp_dir: str | os.PathLike[str] | None = None,
+    ) -> AbstractContextManager[str]:
+        return self.click_testing_clirunner.isolated_filesystem(
+            temp_dir=temp_dir
+        )
 
 
 def parse_sh_export_line(line: str, *, env_name: str) -> str:
