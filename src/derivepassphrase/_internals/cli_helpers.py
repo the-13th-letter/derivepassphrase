@@ -546,11 +546,13 @@ def prompt_for_selection(
     n = len(items)
     color = ctx.color if ctx is not None else None
     if heading:
-        click.echo(click.style(heading, bold=True), color=color)
+        click.echo(click.style(heading, bold=True), err=True, color=color)
     for i, x in enumerate(items, start=1):
-        click.echo(click.style(f'[{i}]', bold=True), nl=False, color=color)
-        click.echo(' ', nl=False, color=color)
-        click.echo(x, color=color)
+        click.echo(
+            click.style(f'[{i}]', bold=True), nl=False, err=True, color=color
+        )
+        click.echo(' ', nl=False, err=True, color=color)
+        click.echo(x, err=True, color=color)
     if n > 1:
         choices = click.Choice([''] + [str(i) for i in range(1, n + 1)])
         choice = click.prompt(
