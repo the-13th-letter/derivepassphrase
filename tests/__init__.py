@@ -1725,7 +1725,7 @@ def isolated_config(
         A context manager, without a return value.
 
     """
-    prog_name = cli.PROG_NAME
+    prog_name = cli_helpers.PROG_NAME
     env_name = prog_name.replace(' ', '_').upper() + '_PATH'
     # TODO(the-13th-letter): Rewrite using parenthesized with-statements.
     # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -1747,7 +1747,10 @@ def isolated_config(
             cli_helpers.config_filename('user configuration').write_text(
                 main_config_str, encoding='UTF-8'
             )
-        yield
+        try:
+            yield
+        finally:
+            cli_helpers.config_filename('write lock').unlink(missing_ok=True)
 
 
 @contextlib.contextmanager
@@ -1846,6 +1849,10 @@ def isolated_vault_exporter_config(
         cwd = str(pathlib.Path.cwd().resolve())
         monkeypatch.setenv('HOME', cwd)
         monkeypatch.setenv('USERPROFILE', cwd)
+        monkeypatch.delenv(
+            cli_helpers.PROG_NAME.replace(' ', '_').upper() + '_PATH',
+            raising=False,
+        )
         monkeypatch.delenv('VAULT_PATH', raising=False)
         monkeypatch.delenv('VAULT_KEY', raising=False)
         monkeypatch.delenv('LOGNAME', raising=False)
@@ -1878,7 +1885,10 @@ def isolated_vault_exporter_config(
             pass
         else:  # pragma: no cover
             assert_never(vault_config)
-        yield
+        try:
+            yield
+        finally:
+            cli_helpers.config_filename('write lock').unlink(missing_ok=True)
 
 
 def auto_prompt(*args: Any, **kwargs: Any) -> str:
