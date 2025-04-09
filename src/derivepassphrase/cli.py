@@ -1784,90 +1784,90 @@ def derivepassphrase_vault(
             The `click` context.
 
     Other Parameters:
-        service:
+        service (str | None):
             A service name.  Required, unless operating on global
             settings or importing/exporting settings.
-        use_phrase:
+        use_phrase (bool):
             Command-line argument `-p`/`--phrase`.  If given, query the
             user for a passphrase instead of an SSH key.
-        use_key:
+        use_key (bool):
             Command-line argument `-k`/`--key`.  If given, query the
             user for an SSH key instead of a passphrase.
-        length:
+        length (int | None):
             Command-line argument `-l`/`--length`.  Override the default
             length of the generated passphrase.
-        repeat:
+        repeat (int | None):
             Command-line argument `-r`/`--repeat`.  Override the default
             repetition limit if positive, or disable the repetition
             limit if 0.
-        lower:
+        lower (int | None):
             Command-line argument `--lower`.  Require a given amount of
             ASCII lowercase characters if positive, else forbid ASCII
             lowercase characters if 0.
-        upper:
+        upper (int | None):
             Command-line argument `--upper`.  Same as `lower`, but for
             ASCII uppercase characters.
-        number:
+        number (int | None):
             Command-line argument `--number`.  Same as `lower`, but for
             ASCII digits.
-        space:
+        space (int | None):
             Command-line argument `--space`.  Same as `lower`, but for
             the space character.
-        dash:
+        dash (int | None):
             Command-line argument `--dash`.  Same as `lower`, but for
             the hyphen-minus and underscore characters.
-        symbol:
+        symbol (int | None):
             Command-line argument `--symbol`.  Same as `lower`, but for
             all other ASCII printable characters except lowercase
             characters, uppercase characters, digits, space and
             backquote.
-        edit_notes:
+        edit_notes (bool):
             Command-line argument `-n`/`--notes`.  If given, spawn an
             editor to edit notes for `service`.
-        store_config_only:
+        store_config_only (bool):
             Command-line argument `-c`/`--config`.  If given, saves the
             other given settings (`--key`, ..., `--symbol`) to the
             configuration file, either specifically for `service` or as
             global settings.
-        delete_service_settings:
+        delete_service_settings (bool):
             Command-line argument `-x`/`--delete`.  If given, removes
             the settings for `service` from the configuration file.
-        delete_globals:
+        delete_globals (bool):
             Command-line argument `--delete-globals`.  If given, removes
             the global settings from the configuration file.
-        clear_all_settings:
+        clear_all_settings (bool):
             Command-line argument `-X`/`--clear`.  If given, removes all
             settings from the configuration file.
-        export_settings:
+        export_settings (TextIO | os.PathLike[str] | None):
             Command-line argument `-e`/`--export`.  If a file object,
             then it must be open for writing and accept `str` inputs.
             Otherwise, a filename to open for writing.  Using `-` for
             standard output is supported.
-        import_settings:
+        import_settings (TextIO | os.PathLike[str] | None):
             Command-line argument `-i`/`--import`.  If a file object, it
             must be open for reading and yield `str` values.  Otherwise,
             a filename to open for reading.  Using `-` for standard
             input is supported.
-        overwrite_config:
+        overwrite_config (bool):
             Command-line arguments `--overwrite-existing` (True) and
             `--merge-existing` (False).  Controls whether config saving
             and config importing overwrite existing configurations, or
             merge them section-wise instead.
-        unset_settings:
+        unset_settings (Sequence[str]):
             Command-line argument `--unset`.  If given together with
             `--config`, unsets the specified settings (in addition to
             any other changes requested).
-        export_as:
+        export_as (Literal['json', 'sh']):
             Command-line argument `--export-as`.  If given together with
             `--export`, selects the format to export the current
             configuration as: JSON ("json", default) or POSIX sh ("sh").
-        modern_editor_interface:
+        modern_editor_interface (bool):
             Command-line arguments `--modern-editor-interface` (True)
             and `--vault-legacy-editor-interface` (False).  Controls
             whether editing notes uses a modern editor interface
             (supporting comments and aborting) or a vault(1)-compatible
             legacy editor interface (WYSIWYG notes contents).
-        print_notes_before:
+        print_notes_before (bool):
             Command-line arguments `--print-notes-before` (True) and
             `--print-notes-after` (False).  Controls whether the service
             notes (if any) are printed before the passphrase, or after.
