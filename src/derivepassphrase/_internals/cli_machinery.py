@@ -676,7 +676,7 @@ class CommandWithHelpGroups(click.Command):
         """Format the subcommands, if any.
 
         If called on a command object that isn't derived from
-        [`click.MultiCommand`][], then do nothing.
+        [`click.Group`][], then do nothing.
 
         Args:
             ctx:
@@ -685,7 +685,7 @@ class CommandWithHelpGroups(click.Command):
                 The formatter for the `--help` listing.
 
         """
-        if not isinstance(self, click.MultiCommand):
+        if not isinstance(self, click.Group):
             return
         commands: list[tuple[str, click.Command]] = []
         for subcommand in self.list_commands(ctx):
@@ -810,7 +810,20 @@ class DefaultToVaultGroup(CommandWithHelpGroups, click.Group):
         # resolve things like --help which now should go to the main
         # place.
         if cmd is None and not ctx.resilient_parsing:
-            if click.parser.split_opt(cmd_name)[0]:
+            ####
+            # BEGIN modifications for derivepassphrase
+            #
+            # Instead of using
+            #
+            #     if click.parsers.split_opt(cmd_name)[0]
+            #
+            # which splits the option prefix (typically `-` or `--`) from
+            # the option name, but triggers deprecation warnings in click
+            # 8.2.0 and later, we check directly for a `-` prefix.
+            #
+            # END modifications for derivepassphrase
+            ####
+            if cmd_name.startswith('-'):
                 self.parse_args(ctx, ctx.args)
             ####
             # BEGIN modifications for derivepassphrase
@@ -966,7 +979,7 @@ def common_version_output(
         pass
     else:
         major_dependencies.append(f'cryptography {cryptography_version}')
-    major_dependencies.append(f'click {click.__version__}')
+    major_dependencies.append(f'click {importlib.metadata.version("click")}')
 
     click.echo(
         ' '.join([
