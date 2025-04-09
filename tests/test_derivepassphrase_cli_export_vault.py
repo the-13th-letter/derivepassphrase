@@ -11,7 +11,6 @@ import pathlib
 import types
 from typing import TYPE_CHECKING
 
-import click.testing
 import hypothesis
 import pytest
 from hypothesis import strategies
@@ -186,7 +185,7 @@ class TestCLI:
         [`exporter.get_vault_path`][] for details.
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -201,17 +200,16 @@ class TestCLI:
                 )
             )
             monkeypatch.setenv('VAULT_KEY', tests.VAULT_MASTER_KEY)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ['VAULT_PATH'],
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
-        assert json.loads(result.output) == tests.VAULT_V03_CONFIG_DATA
+        assert json.loads(result.stdout) == tests.VAULT_V03_CONFIG_DATA
 
     def test_201_key_parameter(self) -> None:
         """The `--key` option is supported."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -224,13 +222,12 @@ class TestCLI:
                     vault_config=tests.VAULT_V03_CONFIG,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ['-k', tests.VAULT_MASTER_KEY, '.vault'],
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
-        assert json.loads(result.output) == tests.VAULT_V03_CONFIG_DATA
+        assert json.loads(result.stdout) == tests.VAULT_V03_CONFIG_DATA
 
     @tests.Parametrize.VAULT_CONFIG_FORMATS_DATA
     def test_210_load_vault_v02_v03_storeroom(
@@ -245,7 +242,7 @@ class TestCLI:
         vault` to only attempt decoding in that named format.
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -258,13 +255,12 @@ class TestCLI:
                     vault_config=config,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ['-f', format, '-k', tests.VAULT_MASTER_KEY, 'VAULT_PATH'],
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
-        assert json.loads(result.output) == config_data
+        assert json.loads(result.stdout) == config_data
 
     # test_300_invalid_format is found in
     # tests.test_derivepassphrase_export::Test002CLI
@@ -274,7 +270,7 @@ class TestCLI:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Fail when trying to decode non-existant files/directories."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -288,11 +284,10 @@ class TestCLI:
                     vault_key=tests.VAULT_MASTER_KEY,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ['does-not-exist.txt'],
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error=(
                 "Cannot parse 'does-not-exist.txt' "
@@ -307,7 +302,7 @@ class TestCLI:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Fail to parse invalid vault configurations (files)."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -321,11 +316,10 @@ class TestCLI:
                     vault_key=tests.VAULT_MASTER_KEY,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ['.vault'],
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error="Cannot parse '.vault' as a valid vault-native config",
             record_tuples=caplog.record_tuples,
@@ -337,7 +331,7 @@ class TestCLI:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Fail to parse invalid vault configurations (directories)."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -354,11 +348,10 @@ class TestCLI:
             p = pathlib.Path('.vault')
             p.unlink()
             p.mkdir()
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 [str(p)],
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error="Cannot parse '.vault' as a valid vault-native config",
             record_tuples=caplog.record_tuples,
@@ -370,7 +363,7 @@ class TestCLI:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Fail to parse vault configurations with invalid integrity checks."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -384,11 +377,10 @@ class TestCLI:
                     vault_key=tests.VAULT_MASTER_KEY,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ['-f', 'v0.3', '.vault'],
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error="Cannot parse '.vault' as a valid vault-native config",
             record_tuples=caplog.record_tuples,
@@ -400,7 +392,7 @@ class TestCLI:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """The decoded vault configuration data is valid."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -423,11 +415,10 @@ class TestCLI:
                 'export_vault_config_data',
                 export_vault_config_data,
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ['.vault'],
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error='Invalid vault config: ',
             record_tuples=caplog.record_tuples,
@@ -453,7 +444,7 @@ class TestStoreroom:
         them as well.
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -496,7 +487,7 @@ class TestStoreroom:
         wrong shape.
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         master_keys = _types.StoreroomMasterKeys(
             encryption_key=bytes(storeroom.KEY_SIZE),
             signing_key=bytes(storeroom.KEY_SIZE),
@@ -533,7 +524,7 @@ class TestStoreroom:
         These include unknown versions, and data of the wrong shape.
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -575,7 +566,7 @@ class TestStoreroom:
             subdirectories.
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -701,7 +692,7 @@ class TestVaultNativeConfig:
             no longer does.
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -737,7 +728,7 @@ class TestVaultNativeConfig:
         them as well.
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -772,7 +763,7 @@ class TestVaultNativeConfig:
 
             return func
 
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9

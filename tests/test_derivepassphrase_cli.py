@@ -317,8 +317,8 @@ def vault_config_exporter_shell_interpreter(  # noqa: C901
     *,
     prog_name_list: list[str] | None = None,
     command: click.BaseCommand | None = None,
-    runner: click.testing.CliRunner | None = None,
-) -> Iterator[click.testing.Result]:
+    runner: tests.CliRunner | None = None,
+) -> Iterator[tests.ReadableResult]:
     """A rudimentary sh(1) interpreter for `--export-as=sh` output.
 
     Assumes a script as emitted by `derivepassphrase vault
@@ -335,7 +335,7 @@ def vault_config_exporter_shell_interpreter(  # noqa: C901
     if command is None:  # pragma: no cover
         command = cli.derivepassphrase_vault
     if runner is None:  # pragma: no cover
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
     n = len(prog_name_list)
     it = iter(script)
     while True:
@@ -1666,7 +1666,7 @@ class TestAllCLI:
         TODO: Do we actually need this?  What should we check for?
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -1678,10 +1678,9 @@ class TestAllCLI:
                     runner=runner,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase, ['--help'], catch_exceptions=False
             )
-            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(
             empty_stderr=True, output='currently implemented subcommands'
         ), 'expected clean exit, and known help text'
@@ -1696,7 +1695,7 @@ class TestAllCLI:
         TODO: Do we actually need this?  What should we check for?
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -1708,12 +1707,11 @@ class TestAllCLI:
                     runner=runner,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase,
                 ['export', '--help'],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(
             empty_stderr=True, output='only available subcommand'
         ), 'expected clean exit, and known help text'
@@ -1728,7 +1726,7 @@ class TestAllCLI:
         TODO: Do we actually need this?  What should we check for?
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -1740,12 +1738,11 @@ class TestAllCLI:
                     runner=runner,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase,
                 ['export', 'vault', '--help'],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(
             empty_stderr=True, output='Export a vault-native configuration'
         ), 'expected clean exit, and known help text'
@@ -1760,7 +1757,7 @@ class TestAllCLI:
         TODO: Do we actually need this?  What should we check for?
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -1772,12 +1769,11 @@ class TestAllCLI:
                     runner=runner,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase,
                 ['vault', '--help'],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(
             empty_stderr=True, output='Passphrase generation:\n'
         ), 'expected clean exit, and option groups in help text'
@@ -1794,7 +1790,7 @@ class TestAllCLI:
         non_eager_arguments: list[str],
     ) -> None:
         """Eager options terminate option and argument processing."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -1806,12 +1802,11 @@ class TestAllCLI:
                     runner=runner,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase,
                 [*command, *arguments, *non_eager_arguments],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
     @Parametrize.NO_COLOR
@@ -1830,7 +1825,7 @@ class TestAllCLI:
         # Force color on if force_color.  Otherwise force color off if
         # no_color.  Otherwise set color if and only if we have a TTY.
         color = force_color or not no_color if isatty else force_color
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -1846,14 +1841,13 @@ class TestAllCLI:
                 monkeypatch.setenv('NO_COLOR', 'yes')
             if force_color:
                 monkeypatch.setenv('FORCE_COLOR', 'yes')
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase,
                 command_line,
                 input=input,
                 catch_exceptions=False,
                 color=isatty,
             )
-            result = tests.ReadableResult.parse(result_)
         assert (
             not color
             or '\x1b[0m' in result.stderr
@@ -1876,7 +1870,7 @@ class TestAllCLI:
         subcommands.
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -1888,15 +1882,14 @@ class TestAllCLI:
                     runner=runner,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase,
                 ['--version'],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
-        assert result.output.strip(), 'expected version output'
-        version_data = parse_version_output(result.output)
+        assert result.stdout.strip(), 'expected version output'
+        version_data = parse_version_output(result.stdout)
         actually_known_schemes = dict.fromkeys(_types.DerivationScheme, True)
         subcommands = set(_types.Subcommand)
         assert version_data.derivation_schemes == actually_known_schemes
@@ -1918,7 +1911,7 @@ class TestAllCLI:
         of subcommands.
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -1930,15 +1923,14 @@ class TestAllCLI:
                     runner=runner,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase,
                 ['export', '--version'],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
-        assert result.output.strip(), 'expected version output'
-        version_data = parse_version_output(result.output)
+        assert result.stdout.strip(), 'expected version output'
+        version_data = parse_version_output(result.stdout)
         actually_known_formats: dict[str, bool] = {
             _types.ForeignConfigurationFormat.VAULT_STOREROOM: False,
             _types.ForeignConfigurationFormat.VAULT_V02: False,
@@ -1967,7 +1959,7 @@ class TestAllCLI:
         configuration formats, and a list of available PEP 508 extras.
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -1979,15 +1971,14 @@ class TestAllCLI:
                     runner=runner,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase,
                 ['export', 'vault', '--version'],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
-        assert result.output.strip(), 'expected version output'
-        version_data = parse_version_output(result.output)
+        assert result.stdout.strip(), 'expected version output'
+        version_data = parse_version_output(result.stdout)
         actually_known_formats: dict[str, bool] = {}
         actually_enabled_extras: set[str] = set()
         with contextlib.suppress(ModuleNotFoundError):
@@ -2021,7 +2012,7 @@ class TestAllCLI:
         first paragraph.
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2033,15 +2024,14 @@ class TestAllCLI:
                     runner=runner,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase,
                 ['vault', '--version'],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
-        assert result.output.strip(), 'expected version output'
-        version_data = parse_version_output(result.output)
+        assert result.stdout.strip(), 'expected version output'
+        version_data = parse_version_output(result.stdout)
         features: dict[str, bool] = {
             _types.Feature.SSH_KEY: hasattr(socket, 'AF_UNIX'),
         }
@@ -2059,7 +2049,7 @@ class TestCLI:
         self,
     ) -> None:
         """The `--help` option emits help text."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2071,12 +2061,11 @@ class TestCLI:
                     runner=runner,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--help'],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(
             empty_stderr=True, output='Passphrase generation:\n'
         ), 'expected clean exit, and option groups in help text'
@@ -2090,7 +2079,7 @@ class TestCLI:
         self,
     ) -> None:
         """The `--version` option emits version information."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2102,12 +2091,11 @@ class TestCLI:
                     runner=runner,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--version'],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True, output=cli.PROG_NAME), (
             'expected clean exit, and program name in version text'
         )
@@ -2123,7 +2111,7 @@ class TestCLI:
         """Named character classes can be disabled on the command-line."""
         option = f'--{charset_name}'
         charset = vault.Vault.CHARSETS[charset_name].decode('ascii')
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2138,16 +2126,15 @@ class TestCLI:
             monkeypatch.setattr(
                 cli_helpers, 'prompt_for_passphrase', tests.auto_prompt
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 [option, '0', '-p', '--', DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit:'
         for c in charset:
-            assert c not in result.output, (
+            assert c not in result.stdout, (
                 f'derived password contains forbidden character {c!r}'
             )
 
@@ -2155,7 +2142,7 @@ class TestCLI:
         self,
     ) -> None:
         """Character repetition can be disabled on the command-line."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2170,21 +2157,20 @@ class TestCLI:
             monkeypatch.setattr(
                 cli_helpers, 'prompt_for_passphrase', tests.auto_prompt
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--repeat', '0', '-p', '--', DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), (
             'expected clean exit and empty stderr'
         )
-        passphrase = result.output.rstrip('\r\n')
+        passphrase = result.stdout.rstrip('\r\n')
         for i in range(len(passphrase) - 1):
             assert passphrase[i : i + 1] != passphrase[i + 1 : i + 2], (
                 f'derived password contains repeated character '
-                f'at position {i}: {result.output!r}'
+                f'at position {i}: {result.stdout!r}'
             )
 
     @Parametrize.CONFIG_WITH_KEY
@@ -2193,7 +2179,7 @@ class TestCLI:
         config: _types.VaultConfig,
     ) -> None:
         """A stored configured SSH key will be used."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2209,28 +2195,28 @@ class TestCLI:
             monkeypatch.setattr(
                 vault.Vault, 'phrase_from_key', tests.phrase_from_key
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--', DUMMY_SERVICE],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), (
             'expected clean exit and empty stderr'
         )
-        assert result_.stdout_bytes
-        assert result_.stdout_bytes.rstrip(b'\n') != DUMMY_RESULT_PASSPHRASE, (
-            'known false output: phrase-based instead of key-based'
-        )
-        assert result_.stdout_bytes.rstrip(b'\n') == DUMMY_RESULT_KEY1, (
-            'expected known output'
-        )
+        assert result.stdout
+        assert (
+            result.stdout.rstrip('\n').encode('UTF-8')
+            != DUMMY_RESULT_PASSPHRASE
+        ), 'known false output: phrase-based instead of key-based'
+        assert (
+            result.stdout.rstrip('\n').encode('UTF-8') == DUMMY_RESULT_KEY1
+        ), 'expected known output'
 
     def test_204b_key_from_command_line(
         self,
     ) -> None:
         """An SSH key requested on the command-line will be used."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2251,20 +2237,19 @@ class TestCLI:
             monkeypatch.setattr(
                 vault.Vault, 'phrase_from_key', tests.phrase_from_key
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['-k', '--', DUMMY_SERVICE],
                 input='1\n',
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(), 'expected clean exit'
-        assert result_.stdout_bytes, 'expected program output'
-        last_line = result_.stdout_bytes.splitlines(True)[-1]
-        assert last_line.rstrip(b'\n') != DUMMY_RESULT_PASSPHRASE, (
-            'known false output: phrase-based instead of key-based'
-        )
-        assert last_line.rstrip(b'\n') == DUMMY_RESULT_KEY1, (
+        assert result.stdout, 'expected program output'
+        last_line = result.stdout.splitlines(True)[-1]
+        assert (
+            last_line.rstrip('\n').encode('UTF-8') != DUMMY_RESULT_PASSPHRASE
+        ), 'known false output: phrase-based instead of key-based'
+        assert last_line.rstrip('\n').encode('UTF-8') == DUMMY_RESULT_KEY1, (
             'expected known output'
         )
 
@@ -2277,7 +2262,7 @@ class TestCLI:
         key_index: int,
     ) -> None:
         """A command-line SSH key will override the configured key."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2295,14 +2280,13 @@ class TestCLI:
                 ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
             monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', tests.sign)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['-k', '--', DUMMY_SERVICE],
                 input=f'{key_index}\n',
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(), 'expected clean exit'
-        assert result.output, 'expected program output'
+        assert result.stdout, 'expected program output'
         assert result.stderr, 'expected stderr'
         assert 'Error:' not in result.stderr, (
             'expected no error messages on stderr'
@@ -2313,7 +2297,7 @@ class TestCLI:
         running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
         """A command-line passphrase will override the configured key."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2339,19 +2323,18 @@ class TestCLI:
                 ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
             monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', tests.sign)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--', DUMMY_SERVICE],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(), 'expected clean exit'
-        assert result_.stdout_bytes, 'expected program output'
-        last_line = result_.stdout_bytes.splitlines(True)[-1]
-        assert last_line.rstrip(b'\n') != DUMMY_RESULT_PASSPHRASE, (
-            'known false output: phrase-based instead of key-based'
-        )
-        assert last_line.rstrip(b'\n') == DUMMY_RESULT_KEY1, (
+        assert result.stdout, 'expected program output'
+        last_line = result.stdout.splitlines(True)[-1]
+        assert (
+            last_line.rstrip('\n').encode('UTF-8') != DUMMY_RESULT_PASSPHRASE
+        ), 'known false output: phrase-based instead of key-based'
+        assert last_line.rstrip('\n').encode('UTF-8') == DUMMY_RESULT_KEY1, (
             'expected known output'
         )
 
@@ -2364,7 +2347,7 @@ class TestCLI:
         command_line: list[str],
     ) -> None:
         """Configuring a passphrase atop an SSH key works, but warns."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2382,15 +2365,14 @@ class TestCLI:
                 ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
             monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', tests.sign)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 command_line,
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(), 'expected clean exit'
-        assert not result.output.strip(), 'expected no program output'
+        assert not result.stdout.strip(), 'expected no program output'
         assert result.stderr, 'expected known error output'
         err_lines = result.stderr.splitlines(False)
         assert err_lines[0].startswith('Passphrase:')
@@ -2422,7 +2404,7 @@ class TestCLI:
     ) -> None:
         """Service notes are printed, if they exist."""
         hypothesis.assume('Error:' not in notes)
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2445,14 +2427,13 @@ class TestCLI:
                     },
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--', DUMMY_SERVICE],
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(), 'expected clean exit'
-        assert result.output, 'expected program output'
-        assert result.output.strip() == DUMMY_RESULT_PASSPHRASE.decode(
+        assert result.stdout, 'expected program output'
+        assert result.stdout.strip() == DUMMY_RESULT_PASSPHRASE.decode(
             'ascii'
         ), 'expected known program output'
         assert result.stderr or not notes.strip(), 'expected stderr'
@@ -2469,7 +2450,7 @@ class TestCLI:
         option: str,
     ) -> None:
         """Requesting invalidly many characters from a class fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2482,13 +2463,12 @@ class TestCLI:
                 )
             )
             for value in '-42', 'invalid':
-                result_ = runner.invoke(
+                result = runner.invoke(
                     cli.derivepassphrase_vault,
                     [option, value, '-p', '--', DUMMY_SERVICE],
                     input=DUMMY_PASSPHRASE,
                     catch_exceptions=False,
                 )
-                result = tests.ReadableResult.parse(result_)
                 assert result.error_exit(error='Invalid value'), (
                     'expected error exit and known error message'
                 )
@@ -2502,7 +2482,7 @@ class TestCLI:
         check_success: bool,
     ) -> None:
         """We require or forbid a service argument, depending on options."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2518,13 +2498,12 @@ class TestCLI:
             monkeypatch.setattr(
                 cli_helpers, 'prompt_for_passphrase', tests.auto_prompt
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 options if service else [*options, '--', DUMMY_SERVICE],
                 input=input,
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
             if service is not None:
                 err_msg = (
                     ' requires a SERVICE'
@@ -2557,13 +2536,12 @@ class TestCLI:
                 monkeypatch.setattr(
                     cli_helpers, 'prompt_for_passphrase', tests.auto_prompt
                 )
-                result_ = runner.invoke(
+                result = runner.invoke(
                     cli.derivepassphrase_vault,
                     [*options, '--', DUMMY_SERVICE] if service else options,
                     input=input,
                     catch_exceptions=False,
                 )
-                result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
     def test_211a_empty_service_name_causes_warning(
@@ -2583,7 +2561,7 @@ class TestCLI:
                 'An empty SERVICE is not supported by vault(1)', [record]
             )
 
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2599,12 +2577,11 @@ class TestCLI:
             monkeypatch.setattr(
                 cli_helpers, 'prompt_for_passphrase', tests.auto_prompt
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '--length=30', '--', ''],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(empty_stderr=False), 'expected clean exit'
             assert result.stderr is not None, 'expected known error output'
             assert all(map(is_expected_warning, caplog.record_tuples)), (
@@ -2615,13 +2592,12 @@ class TestCLI:
                 'services': {},
             }, 'requested configuration change was not applied'
             caplog.clear()
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', '-'],
                 input=json.dumps({'services': {'': {'length': 40}}}),
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(empty_stderr=False), 'expected clean exit'
             assert result.stderr is not None, 'expected known error output'
             assert all(map(is_expected_warning, caplog.record_tuples)), (
@@ -2639,7 +2615,7 @@ class TestCLI:
         service: bool | None,
     ) -> None:
         """Incompatible options are detected."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2651,13 +2627,12 @@ class TestCLI:
                     runner=runner,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 [*options, '--', DUMMY_SERVICE] if service else options,
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(error='mutually exclusive with '), (
             'expected error exit and known error message'
         )
@@ -2669,7 +2644,7 @@ class TestCLI:
         config: Any,
     ) -> None:
         """Importing a configuration works."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2682,7 +2657,7 @@ class TestCLI:
                     vault_config={'services': {}},
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', '-'],
                 input=json.dumps(config),
@@ -2692,7 +2667,6 @@ class TestCLI:
                 subsystem='vault'
             ).read_text(encoding='UTF-8')
             config2 = json.loads(config_txt)
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert config2 == config, 'config not imported correctly'
         assert not result.stderr or all(  # pragma: no branch
@@ -2730,7 +2704,7 @@ class TestCLI:
         _types.clean_up_falsy_vault_config_values(config2)
         # Reset caplog between hypothesis runs.
         caplog.clear()
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2743,7 +2717,7 @@ class TestCLI:
                     vault_config={'services': {}},
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', '-'],
                 input=json.dumps(config),
@@ -2753,7 +2727,6 @@ class TestCLI:
                 subsystem='vault'
             ).read_text(encoding='UTF-8')
             config3 = json.loads(config_txt)
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert config3 == config2, 'config not imported correctly'
         assert not result.stderr or all(
@@ -2765,7 +2738,7 @@ class TestCLI:
         self,
     ) -> None:
         """Importing an invalid config fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2777,13 +2750,12 @@ class TestCLI:
                     runner=runner,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', '-'],
                 input='null',
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(error='Invalid vault config'), (
             'expected error exit and known error message'
         )
@@ -2792,7 +2764,7 @@ class TestCLI:
         self,
     ) -> None:
         """Importing an invalid config fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2804,13 +2776,12 @@ class TestCLI:
                     runner=runner,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', '-'],
                 input='This string is not valid JSON.',
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(error='cannot decode JSON'), (
             'expected error exit and known error message'
         )
@@ -2819,7 +2790,7 @@ class TestCLI:
         self,
     ) -> None:
         """Importing an invalid config fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # `isolated_vault_config` ensures the configuration is valid
         # JSON.  So, to pass an actual broken configuration, we must
         # open the configuration file ourselves afterwards, inside the
@@ -2841,12 +2812,11 @@ class TestCLI:
                 'This string is not valid JSON.\n', encoding='UTF-8'
             )
             dname = cli_helpers.config_filename(subsystem=None)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--import', os.fsdecode(dname)],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(error=os.strerror(errno.EISDIR)), (
             'expected error exit and known error message'
         )
@@ -2858,7 +2828,7 @@ class TestCLI:
         config: Any,
     ) -> None:
         """Exporting a configuration works."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2876,7 +2846,7 @@ class TestCLI:
             ) as outfile:
                 # Ensure the config is written on one line.
                 json.dump(config, outfile, indent=None)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--export', '-'],
                 catch_exceptions=False,
@@ -2885,13 +2855,12 @@ class TestCLI:
                 encoding='UTF-8'
             ) as infile:
                 config2 = json.load(infile)
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert config2 == config, 'config not imported correctly'
         assert not result.stderr or all(  # pragma: no branch
             map(is_harmless_config_import_warning, caplog.record_tuples)
         ), 'unexpected error output'
-        assert_vault_config_is_indented_and_line_broken(result.output)
+        assert_vault_config_is_indented_and_line_broken(result.stdout)
 
     @Parametrize.EXPORT_FORMAT_OPTIONS
     def test_214a_export_settings_no_stored_settings(
@@ -2899,7 +2868,7 @@ class TestCLI:
         export_options: list[str],
     ) -> None:
         """Exporting the default, empty config works."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2914,7 +2883,7 @@ class TestCLI:
             cli_helpers.config_filename(subsystem='vault').unlink(
                 missing_ok=True
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 # Test parent context navigation by not calling
                 # `cli.derivepassphrase_vault` directly.  Used e.g. in
                 # the `--export-as=sh` section to autoconstruct the
@@ -2923,7 +2892,6 @@ class TestCLI:
                 ['vault', '--export', '-', *export_options],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
     @Parametrize.EXPORT_FORMAT_OPTIONS
@@ -2932,7 +2900,7 @@ class TestCLI:
         export_options: list[str],
     ) -> None:
         """Exporting an invalid config fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2945,13 +2913,12 @@ class TestCLI:
                     vault_config={},
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--export', '-', *export_options],
                 input='null',
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(error='Cannot load vault settings:'), (
             'expected error exit and known error message'
         )
@@ -2962,7 +2929,7 @@ class TestCLI:
         export_options: list[str],
     ) -> None:
         """Exporting an invalid config fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -2977,13 +2944,12 @@ class TestCLI:
             config_file = cli_helpers.config_filename(subsystem='vault')
             config_file.unlink(missing_ok=True)
             config_file.mkdir(parents=True, exist_ok=True)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--export', '-', *export_options],
                 input='null',
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(error='Cannot load vault settings:'), (
             'expected error exit and known error message'
         )
@@ -2994,7 +2960,7 @@ class TestCLI:
         export_options: list[str],
     ) -> None:
         """Exporting an invalid config fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3007,13 +2973,12 @@ class TestCLI:
                 )
             )
             dname = cli_helpers.config_filename(subsystem=None)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--export', os.fsdecode(dname), *export_options],
                 input='null',
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(error='Cannot export vault settings:'), (
             'expected error exit and known error message'
         )
@@ -3024,7 +2989,7 @@ class TestCLI:
         export_options: list[str],
     ) -> None:
         """Exporting an invalid config fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3040,13 +3005,12 @@ class TestCLI:
             with contextlib.suppress(FileNotFoundError):
                 shutil.rmtree(config_dir)
             config_dir.write_text('Obstruction!!\n')
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--export', '-', *export_options],
                 input='null',
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error='Cannot load vault settings:'
         ) or result.error_exit(error='Cannot load user config:'), (
@@ -3083,7 +3047,7 @@ class TestCLI:
             if notes_placement == 'before'
             else f'{result_phrase}\n\n{notes}\n\n'
         )
-        runner = click.testing.CliRunner(mix_stderr=True)
+        runner = tests.CliRunner(mix_stderr=True)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3096,12 +3060,11 @@ class TestCLI:
                     vault_config=vault_config,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 [*placement_args, '--', DUMMY_SERVICE],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(output=expected), 'expected clean exit'
 
     @Parametrize.MODERN_EDITOR_INTERFACE
@@ -3137,7 +3100,7 @@ class TestCLI:
 """
         # Reset caplog between hypothesis runs.
         caplog.clear()
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3161,7 +3124,7 @@ class TestCLI:
                 encoding='UTF-8',
             )
             monkeypatch.setattr(click, 'edit', lambda *_a, **_kw: edit_result)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 [
                     '--config',
@@ -3174,7 +3137,6 @@ class TestCLI:
                 ],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(), 'expected clean exit'
             assert all(map(is_warning_line, result.stderr.splitlines(True)))
             assert modern_editor_interface or tests.warning_emitted(
@@ -3228,7 +3190,7 @@ class TestCLI:
             return '       ' + notes.strip() + '\n\n\n\n\n\n'
 
         edit_funcs = {'empty': empty, 'space': space}
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3252,7 +3214,7 @@ class TestCLI:
                 encoding='UTF-8',
             )
             monkeypatch.setattr(click, 'edit', edit_funcs[edit_func_name])
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 [
                     '--config',
@@ -3265,7 +3227,6 @@ class TestCLI:
                 ],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(empty_stderr=True) or result.error_exit(
                 error='the user aborted the request'
             ), 'expected clean exit'
@@ -3318,7 +3279,7 @@ class TestCLI:
         hypothesis.assume(str(notes_marker) not in notes.strip())
         # Reset caplog between hypothesis runs.
         caplog.clear()
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3342,7 +3303,7 @@ class TestCLI:
                 encoding='UTF-8',
             )
             monkeypatch.setattr(click, 'edit', lambda *_a, **_kw: notes)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 [
                     '--config',
@@ -3355,7 +3316,6 @@ class TestCLI:
                 ],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(), 'expected clean exit'
             assert not result.stderr or all(
                 map(is_warning_line, result.stderr.splitlines(True))
@@ -3396,7 +3356,7 @@ class TestCLI:
         Aborting is only supported with the modern editor interface.
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3413,7 +3373,7 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(click, 'edit', lambda *_a, **_kw: '')
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 [
                     '--config',
@@ -3424,7 +3384,6 @@ class TestCLI:
                 ],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
             assert result.error_exit(error='the user aborted the request'), (
                 'expected known error message'
             )
@@ -3445,7 +3404,7 @@ class TestCLI:
         Aborting is only supported with the modern editor interface.
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3462,7 +3421,7 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(click, 'edit', lambda *_a, **_kw: '')
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 [
                     '--config',
@@ -3473,7 +3432,6 @@ class TestCLI:
                 ],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
             assert result.error_exit(error='the user aborted the request'), (
                 'expected known error message'
             )
@@ -3517,7 +3475,7 @@ class TestCLI:
         }
         # Reset caplog between hypothesis runs.
         caplog.clear()
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3543,7 +3501,7 @@ class TestCLI:
                 encoding='UTF-8',
             )
             monkeypatch.setattr(click, 'edit', raiser)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 [
                     '--notes',
@@ -3555,7 +3513,6 @@ class TestCLI:
                 ],
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(
                 output=DUMMY_RESULT_PASSPHRASE.decode('ascii')
             ), 'expected clean exit'
@@ -3595,7 +3552,7 @@ class TestCLI:
         the config more readable.
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3611,13 +3568,12 @@ class TestCLI:
             monkeypatch.setattr(
                 cli_helpers, 'get_suitable_ssh_keys', tests.suitable_ssh_keys
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', *command_line],
                 catch_exceptions=False,
                 input=input,
             )
-            result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(), 'expected clean exit'
             config_txt = cli_helpers.config_filename(
                 subsystem='vault'
@@ -3636,7 +3592,7 @@ class TestCLI:
         err_text: str,
     ) -> None:
         """Storing invalid settings via `--config` fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3652,13 +3608,12 @@ class TestCLI:
             monkeypatch.setattr(
                 cli_helpers, 'get_suitable_ssh_keys', tests.suitable_ssh_keys
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', *command_line],
                 catch_exceptions=False,
                 input=input,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(error=err_text), (
             'expected error exit and known error message'
         )
@@ -3667,7 +3622,7 @@ class TestCLI:
         self,
     ) -> None:
         """Not selecting an SSH key during `--config --key` fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3686,12 +3641,11 @@ class TestCLI:
                 raise RuntimeError(custom_error)
 
             monkeypatch.setattr(cli_helpers, 'select_ssh_key', raiser)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--key', '--config'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(error=custom_error), (
             'expected error exit and known error message'
         )
@@ -3702,7 +3656,7 @@ class TestCLI:
     ) -> None:
         """Not running an SSH agent during `--config --key` fails."""
         del skip_if_no_af_unix_support
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3716,12 +3670,11 @@ class TestCLI:
                 )
             )
             monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--key', '--config'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(error='Cannot find any running SSH agent'), (
             'expected error exit and known error message'
         )
@@ -3730,7 +3683,7 @@ class TestCLI:
         self,
     ) -> None:
         """Not running a reachable SSH agent during `--config --key` fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3745,12 +3698,11 @@ class TestCLI:
             )
             cwd = pathlib.Path.cwd().resolve()
             monkeypatch.setenv('SSH_AUTH_SOCK', str(cwd))
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--key', '--config'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(error='Cannot connect to the SSH agent'), (
             'expected error exit and known error message'
         )
@@ -3761,7 +3713,7 @@ class TestCLI:
         try_race_free_implementation: bool,
     ) -> None:
         """Using a read-only configuration file with `--config` fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3778,12 +3730,11 @@ class TestCLI:
                 cli_helpers.config_filename(subsystem='vault'),
                 try_race_free_implementation=try_race_free_implementation,
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '--length=15', '--', DUMMY_SERVICE],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(error='Cannot store vault settings:'), (
             'expected error exit and known error message'
         )
@@ -3792,7 +3743,7 @@ class TestCLI:
         self,
     ) -> None:
         """OS-erroring with `--config` fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3812,12 +3763,11 @@ class TestCLI:
                 raise RuntimeError(custom_error)
 
             monkeypatch.setattr(cli_helpers, 'save_config', raiser)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '--length=15', '--', DUMMY_SERVICE],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(error=custom_error), (
             'expected error exit and known error message'
         )
@@ -3826,7 +3776,7 @@ class TestCLI:
         self,
     ) -> None:
         """Issuing conflicting settings to `--config` fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3839,7 +3789,7 @@ class TestCLI:
                     vault_config={'global': {'phrase': 'abc'}, 'services': {}},
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 [
                     '--config',
@@ -3850,7 +3800,6 @@ class TestCLI:
                 ],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error='Attempted to unset and set --length at the same time.'
         ), 'expected error exit and known error message'
@@ -3861,7 +3810,7 @@ class TestCLI:
     ) -> None:
         """Not holding any SSH keys during `--config --key` fails."""
         del running_ssh_agent
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3882,12 +3831,11 @@ class TestCLI:
                 return []
 
             monkeypatch.setattr(ssh_agent.SSHAgentClient, 'list_keys', func)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--key', '--config'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(error='no keys suitable'), (
             'expected error exit and known error message'
         )
@@ -3898,7 +3846,7 @@ class TestCLI:
     ) -> None:
         """The SSH agent erroring during `--config --key` fails."""
         del running_ssh_agent
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3916,12 +3864,11 @@ class TestCLI:
                 raise ssh_agent.TrailingDataError()
 
             monkeypatch.setattr(ssh_agent.SSHAgentClient, 'list_keys', raiser)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--key', '--config'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error='violates the communication protocol.'
         ), 'expected error exit and known error message'
@@ -3932,7 +3879,7 @@ class TestCLI:
     ) -> None:
         """The SSH agent refusing during `--config --key` fails."""
         del running_ssh_agent
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3952,19 +3899,18 @@ class TestCLI:
                 )
 
             monkeypatch.setattr(ssh_agent.SSHAgentClient, 'list_keys', func)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--key', '--config'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(error='refused to'), (
             'expected error exit and known error message'
         )
 
     def test_226_no_arguments(self) -> None:
         """Calling `derivepassphrase vault` without any arguments fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -3976,10 +3922,9 @@ class TestCLI:
                     runner=runner,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault, [], catch_exceptions=False
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error='Deriving a passphrase requires a SERVICE'
         ), 'expected error exit and known error message'
@@ -3988,7 +3933,7 @@ class TestCLI:
         self,
     ) -> None:
         """Deriving a passphrase without a passphrase or key fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -4000,12 +3945,11 @@ class TestCLI:
                     runner=runner,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--', DUMMY_SERVICE],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(error='No passphrase or key was given'), (
             'expected error exit and known error message'
         )
@@ -4020,7 +3964,7 @@ class TestCLI:
         [issue #6]: https://github.com/the-13th-letter/derivepassphrase/issues/6
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -4034,13 +3978,12 @@ class TestCLI:
             )
             with contextlib.suppress(FileNotFoundError):
                 shutil.rmtree(cli_helpers.config_filename(subsystem=None))
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '-p'],
                 catch_exceptions=False,
                 input='abc\n',
             )
-            result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(), 'expected clean exit'
             assert result.stderr == 'Passphrase:', (
                 'program unexpectedly failed?!'
@@ -4067,7 +4010,7 @@ class TestCLI:
         [issue #6]: https://github.com/the-13th-letter/derivepassphrase/issues/6
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -4092,13 +4035,12 @@ class TestCLI:
             monkeypatch.setattr(
                 cli_helpers, 'save_config', obstruct_config_saving
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '-p'],
                 catch_exceptions=False,
                 input='abc\n',
             )
-            result = tests.ReadableResult.parse(result_)
             assert result.error_exit(error='Cannot store vault settings:'), (
                 'expected error exit and known error message'
             )
@@ -4107,7 +4049,7 @@ class TestCLI:
         self,
     ) -> None:
         """Storing the configuration reacts even to weird errors."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -4126,13 +4068,12 @@ class TestCLI:
                 raise RuntimeError(custom_error)
 
             monkeypatch.setattr(cli_helpers, 'save_config', raiser)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--config', '-p'],
                 catch_exceptions=False,
                 input='abc\n',
             )
-            result = tests.ReadableResult.parse(result_)
             assert result.error_exit(error=custom_error), (
                 'expected error exit and known error message'
             )
@@ -4147,7 +4088,7 @@ class TestCLI:
         warning_message: str,
     ) -> None:
         """Using unnormalized Unicode passphrases warns."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -4165,13 +4106,12 @@ class TestCLI:
                     main_config_str=main_config,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--debug', *command_line],
                 catch_exceptions=False,
                 input=input,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(), 'expected clean exit'
         assert tests.warning_emitted(warning_message, caplog.record_tuples), (
             'expected known warning message in stderr'
@@ -4186,7 +4126,7 @@ class TestCLI:
         error_message: str,
     ) -> None:
         """Using unknown Unicode normalization forms fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -4204,13 +4144,12 @@ class TestCLI:
                     main_config_str=main_config,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 command_line,
                 catch_exceptions=False,
                 input=input,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error='The user configuration file is invalid.'
         ), 'expected error exit and known error message'
@@ -4224,7 +4163,7 @@ class TestCLI:
         command_line: list[str],
     ) -> None:
         """Using unknown Unicode normalization forms in the config fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -4244,13 +4183,12 @@ class TestCLI:
                     ),
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 command_line,
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
             assert result.error_exit(
                 error='The user configuration file is invalid.'
             ), 'expected error exit and known error message'
@@ -4265,7 +4203,7 @@ class TestCLI:
         self,
     ) -> None:
         """Loading a user configuration file in an invalid format fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -4279,13 +4217,12 @@ class TestCLI:
                     main_config_str='This file is not valid TOML.\n',
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--phrase', '--', DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
             assert result.error_exit(error='Cannot load user config:'), (
                 'expected error exit and known error message'
             )
@@ -4294,7 +4231,7 @@ class TestCLI:
         self,
     ) -> None:
         """Loading a user configuration file in an invalid format fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -4313,13 +4250,12 @@ class TestCLI:
             )
             user_config.unlink()
             user_config.mkdir(parents=True, exist_ok=True)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--phrase', '--', DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
             assert result.error_exit(error='Cannot load user config:'), (
                 'expected error exit and known error message'
             )
@@ -4328,7 +4264,7 @@ class TestCLI:
         self,
     ) -> None:
         """Querying the SSH agent without `AF_UNIX` support fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -4345,12 +4281,11 @@ class TestCLI:
                 'SSH_AUTH_SOCK', "the value doesn't even matter"
             )
             monkeypatch.delattr(socket, 'AF_UNIX', raising=False)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--key', '--config'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error='does not support UNIX domain sockets'
         ), 'expected error exit and known error message'
@@ -4365,7 +4300,7 @@ class TestCLIUtils:
         config: Any,
     ) -> None:
         """[`cli_helpers.load_config`][] works for valid configurations."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -4387,7 +4322,7 @@ class TestCLIUtils:
         self,
     ) -> None:
         """[`cli_helpers.save_config`][] fails for bad configurations."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -4437,9 +4372,8 @@ class TestCLIUtils:
             click.echo(items[index])
             click.echo('(Note: Vikings strictly optional.)')
 
-        runner = click.testing.CliRunner(mix_stderr=True)
-        result_ = runner.invoke(driver, [], input='9')
-        result = tests.ReadableResult.parse(result_)
+        runner = tests.CliRunner(mix_stderr=True)
+        result = runner.invoke(driver, [], input='9')
         assert result.clean_exit(
             output="""\
 Our menu:
@@ -4458,15 +4392,14 @@ A fine choice: Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam
 (Note: Vikings strictly optional.)
 """
         ), 'expected clean exit'
-        result_ = runner.invoke(
+        result = runner.invoke(
             driver, ['--heading='], input='', catch_exceptions=True
         )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(error=IndexError), (
             'expected error exit and known error type'
         )
         assert (
-            result.output
+            result.stdout
             == """\
 [1] Egg and bacon
 [2] Egg, sausage and bacon
@@ -4499,11 +4432,10 @@ Your selection? (1-10, leave empty to abort):\x20
             else:
                 click.echo('Great!')
 
-        runner = click.testing.CliRunner(mix_stderr=True)
-        result_ = runner.invoke(
+        runner = tests.CliRunner(mix_stderr=True)
+        result = runner.invoke(
             driver, ['Will replace with spam. Confirm, y/n?'], input='y'
         )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(
             output="""\
 [1] baked beans
@@ -4511,17 +4443,16 @@ Will replace with spam. Confirm, y/n? y
 Great!
 """
         ), 'expected clean exit'
-        result_ = runner.invoke(
+        result = runner.invoke(
             driver,
             ['Will replace with spam, okay? (Please say "y" or "n".)'],
             input='',
         )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(error=IndexError), (
             'expected error exit and known error type'
         )
         assert (
-            result.output
+            result.stdout
             == """\
 [1] baked beans
 Will replace with spam, okay? (Please say "y" or "n".):\x20
@@ -4693,7 +4624,7 @@ Boo.
                 config, outfile=outfile, prog_name_list=prog_name_list
             )
             script = outfile.getvalue()
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -4706,8 +4637,7 @@ Boo.
                     vault_config={'services': {}},
                 )
             )
-            for result_ in vault_config_exporter_shell_interpreter(script):
-                result = tests.ReadableResult.parse(result_)
+            for result in vault_config_exporter_shell_interpreter(script):
                 assert result.clean_exit()
             assert cli_helpers.load_config() == config
 
@@ -4943,7 +4873,7 @@ Boo.
         `cli_helpers.get_tempdir` returned the configuration directory.
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -4980,7 +4910,7 @@ Boo.
         configuration directory.
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -5035,7 +4965,7 @@ Boo.
     ) -> None:
         """Repeatedly removing the same parts of a configuration works."""
         for start_config in [config, result_config]:
-            runner = click.testing.CliRunner(mix_stderr=False)
+            runner = tests.CliRunner(mix_stderr=False)
             # TODO(the-13th-letter): Rewrite using parenthesized
             # with-statements.
             # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -5048,12 +4978,11 @@ Boo.
                         vault_config=start_config,
                     )
                 )
-                result_ = runner.invoke(
+                result = runner.invoke(
                     cli.derivepassphrase_vault,
                     command_line,
                     catch_exceptions=False,
                 )
-                result = tests.ReadableResult.parse(result_)
                 assert result.clean_exit(empty_stderr=True), (
                     'expected clean exit'
                 )
@@ -5220,7 +5149,7 @@ class TestCLITransition:
         config: Any,
     ) -> None:
         """Loading the old settings file works."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -5243,7 +5172,7 @@ class TestCLITransition:
         config: Any,
     ) -> None:
         """Migrating the old settings file works."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -5266,7 +5195,7 @@ class TestCLITransition:
         config: Any,
     ) -> None:
         """Migrating the old settings file atop a directory fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -5295,7 +5224,7 @@ class TestCLITransition:
         config: Any,
     ) -> None:
         """Migrating an invalid old settings file fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -5321,7 +5250,7 @@ class TestCLITransition:
     ) -> None:
         """Forwarding arguments from "export" to "export vault" works."""
         pytest.importorskip('cryptography', minversion='38.0')
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -5336,11 +5265,10 @@ class TestCLITransition:
                 )
             )
             monkeypatch.setenv('VAULT_KEY', tests.VAULT_MASTER_KEY)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase,
                 ['export', 'VAULT_PATH'],
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert tests.deprecation_warning_emitted(
             'A subcommand will be required here in v1.0', caplog.record_tuples
@@ -5348,7 +5276,7 @@ class TestCLITransition:
         assert tests.deprecation_warning_emitted(
             'Defaulting to subcommand "vault"', caplog.record_tuples
         )
-        assert json.loads(result.output) == tests.VAULT_V03_CONFIG_DATA
+        assert json.loads(result.stdout) == tests.VAULT_V03_CONFIG_DATA
 
     def test_201_forward_export_vault_empty_commandline(
         self,
@@ -5356,7 +5284,7 @@ class TestCLITransition:
     ) -> None:
         """Deferring from "export" to "export vault" works."""
         pytest.importorskip('cryptography', minversion='38.0')
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -5368,11 +5296,10 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase,
                 ['export'],
             )
-        result = tests.ReadableResult.parse(result_)
         assert tests.deprecation_warning_emitted(
             'A subcommand will be required here in v1.0', caplog.record_tuples
         )
@@ -5392,7 +5319,7 @@ class TestCLITransition:
         """Forwarding arguments from top-level to "vault" works."""
         option = f'--{charset_name}'
         charset = vault.Vault.CHARSETS[charset_name].decode('ascii')
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -5407,13 +5334,12 @@ class TestCLITransition:
             monkeypatch.setattr(
                 cli_helpers, 'prompt_for_passphrase', tests.auto_prompt
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase,
                 [option, '0', '-p', '--', DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False), 'expected clean exit'
         assert tests.deprecation_warning_emitted(
             'A subcommand will be required here in v1.0', caplog.record_tuples
@@ -5422,7 +5348,7 @@ class TestCLITransition:
             'Defaulting to subcommand "vault"', caplog.record_tuples
         )
         for c in charset:
-            assert c not in result.output, (
+            assert c not in result.stdout, (
                 f'derived password contains forbidden character {c!r}'
             )
 
@@ -5431,7 +5357,7 @@ class TestCLITransition:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Deferring from top-level to "vault" works."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -5443,13 +5369,12 @@ class TestCLITransition:
                     runner=runner,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase,
                 [],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-            result = tests.ReadableResult.parse(result_)
         assert tests.deprecation_warning_emitted(
             'A subcommand will be required here in v1.0', caplog.record_tuples
         )
@@ -5466,7 +5391,7 @@ class TestCLITransition:
     ) -> None:
         """Exporting from (and migrating) the old settings file works."""
         caplog.set_level(logging.INFO)
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -5488,12 +5413,11 @@ class TestCLITransition:
                 + '\n',
                 encoding='UTF-8',
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--export', '-'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(), 'expected clean exit'
         assert tests.deprecation_warning_emitted(
             'v0.1-style config file', caplog.record_tuples
@@ -5507,7 +5431,7 @@ class TestCLITransition:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Exporting from (and not migrating) the old settings file fails."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -5539,12 +5463,11 @@ class TestCLITransition:
 
             monkeypatch.setattr(os, 'replace', raiser)
             monkeypatch.setattr(pathlib.Path, 'rename', raiser)
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--export', '-'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(), 'expected clean exit'
         assert tests.deprecation_warning_emitted(
             'v0.1-style config file', caplog.record_tuples
@@ -5558,7 +5481,7 @@ class TestCLITransition:
     ) -> None:
         """Completing service names from the old settings file works."""
         config = {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}}
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -5714,7 +5637,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     def __init__(self) -> None:
         """Initialize self, set up context managers and enter them."""
         super().__init__()
-        self.runner = click.testing.CliRunner(mix_stderr=False)
+        self.runner = tests.CliRunner(mix_stderr=False)
         self.exit_stack = contextlib.ExitStack().__enter__()
         self.monkeypatch = self.exit_stack.enter_context(
             pytest.MonkeyPatch().context()
@@ -5834,7 +5757,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         # NOTE: This relies on settings_obj containing only the keys
         # "length", "repeat", "upper", "lower", "number", "space",
         # "dash" and "symbol".
-        result_ = self.runner.invoke(
+        result = self.runner.invoke(
             cli.derivepassphrase_vault,
             [
                 '--config',
@@ -5848,7 +5771,6 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             ],
             catch_exceptions=False,
         )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False)
         assert cli_helpers.load_config() == config
         return config
@@ -5907,7 +5829,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         # NOTE: This relies on settings_obj containing only the keys
         # "length", "repeat", "upper", "lower", "number", "space",
         # "dash" and "symbol".
-        result_ = self.runner.invoke(
+        result = self.runner.invoke(
             cli.derivepassphrase_vault,
             [
                 '--config',
@@ -5922,7 +5844,6 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             + ['--', service],
             catch_exceptions=False,
         )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False)
         assert cli_helpers.load_config() == config
         return config
@@ -5947,13 +5868,12 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         """
         cli_helpers.save_config(config)
         config.pop('global', None)
-        result_ = self.runner.invoke(
+        result = self.runner.invoke(
             cli.derivepassphrase_vault,
             ['--delete-globals'],
             input='y',
             catch_exceptions=False,
         )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False)
         assert cli_helpers.load_config() == config
         return config
@@ -5987,13 +5907,12 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         config, service = config_and_service
         cli_helpers.save_config(config)
         config['services'].pop(service, None)
-        result_ = self.runner.invoke(
+        result = self.runner.invoke(
             cli.derivepassphrase_vault,
             ['--delete', '--', service],
             input='y',
             catch_exceptions=False,
         )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False)
         assert cli_helpers.load_config() == config
         return config
@@ -6018,13 +5937,12 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         """
         cli_helpers.save_config(config)
         config = {'services': {}}
-        result_ = self.runner.invoke(
+        result = self.runner.invoke(
             cli.derivepassphrase_vault,
             ['--clear'],
             input='y',
             catch_exceptions=False,
         )
-        result = tests.ReadableResult.parse(result_)
         assert result.clean_exit(empty_stderr=False)
         assert cli_helpers.load_config() == config
         return config
@@ -6064,16 +5982,14 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             else config_to_import
         )
         assert _types.is_vault_config(config)
-        result_ = self.runner.invoke(
+        result = self.runner.invoke(
             cli.derivepassphrase_vault,
             ['--import', '-']
             + (['--overwrite-existing'] if overwrite else []),
             input=json.dumps(config_to_import),
             catch_exceptions=False,
         )
-        assert tests.ReadableResult.parse(result_).clean_exit(
-            empty_stderr=False
-        )
+        assert result.clean_exit(empty_stderr=False)
         assert cli_helpers.load_config() == config
         return config
 
@@ -6202,7 +6118,7 @@ class TestShellCompletion:
         completions: AbstractSet[str],
     ) -> None:
         """Our completion machinery works for vault service names."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -6234,7 +6150,7 @@ class TestShellCompletion:
         results: list[str | click.shell_completion.CompletionItem],
     ) -> None:
         """Custom completion functions work for all shells."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -6296,7 +6212,7 @@ class TestShellCompletion:
     ) -> None:
         """Completion skips incompletable items."""
         vault_config = config if mode == 'config' else {'services': {}}
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -6310,19 +6226,18 @@ class TestShellCompletion:
                 )
             )
             if mode == 'config':
-                result_ = runner.invoke(
+                result = runner.invoke(
                     cli.derivepassphrase_vault,
                     ['--config', '--length=10', '--', key],
                     catch_exceptions=False,
                 )
             else:
-                result_ = runner.invoke(
+                result = runner.invoke(
                     cli.derivepassphrase_vault,
                     ['--import', '-'],
                     catch_exceptions=False,
                     input=json.dumps(config),
                 )
-            result = tests.ReadableResult.parse(result_)
             assert result.clean_exit(), 'expected clean exit'
             assert tests.warning_emitted(
                 'contains an ASCII control character', caplog.record_tuples
@@ -6338,7 +6253,7 @@ class TestShellCompletion:
         self,
     ) -> None:
         """Service name completion quietly fails on missing configuration."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -6368,7 +6283,7 @@ class TestShellCompletion:
         exc_type: type[Exception],
     ) -> None:
         """Service name completion quietly fails on configuration errors."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9

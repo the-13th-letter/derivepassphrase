@@ -694,14 +694,13 @@ class TestAgentInteraction:
 
         # TODO(the-13th-letter): (Continued from above.)  Update input
         # data to use `index`/`input` directly and unconditionally.
-        runner = click.testing.CliRunner(mix_stderr=True)
-        result_ = runner.invoke(
+        runner = tests.CliRunner(mix_stderr=True)
+        result = runner.invoke(
             driver,
             [],
             input=('yes\n' if single else f'{index}\n'),
             catch_exceptions=True,
         )
-        result = tests.ReadableResult.parse(result_)
         for snippet in ('Suitable SSH keys:\n', text, f'\n{b64_key}\n'):
             assert result.clean_exit(output=snippet), 'expected clean exit'
 

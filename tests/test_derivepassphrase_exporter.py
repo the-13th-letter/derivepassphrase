@@ -12,7 +12,6 @@ import string
 import types
 from typing import TYPE_CHECKING, Any, NamedTuple
 
-import click.testing
 import hypothesis
 import pytest
 from hypothesis import strategies
@@ -206,7 +205,7 @@ class Test001ExporterUtils:
             ('USER', user),
             ('USERNAME', username),
         ]
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -233,7 +232,7 @@ class Test001ExporterUtils:
         Handle relative paths, absolute paths, and missing paths.
 
         """
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -378,7 +377,7 @@ class Test002CLI:
 
     def test_300_invalid_format(self) -> None:
         """Reject invalid vault configuration format names."""
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -392,12 +391,11 @@ class Test002CLI:
                     vault_key=tests.VAULT_MASTER_KEY,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ['-f', 'INVALID', 'VAULT_PATH'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         for snippet in ('Invalid value for', '-f', '--format', 'INVALID'):
             assert result.error_exit(error=snippet), (
                 'expected error exit and known error message'
@@ -414,7 +412,7 @@ class Test002CLI:
     ) -> None:
         """Abort export call if no cryptography is available."""
         del config_data
-        runner = click.testing.CliRunner(mix_stderr=False)
+        runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -428,12 +426,11 @@ class Test002CLI:
                     vault_key=tests.VAULT_MASTER_KEY,
                 )
             )
-            result_ = runner.invoke(
+            result = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ['-f', format, 'VAULT_PATH'],
                 catch_exceptions=False,
             )
-        result = tests.ReadableResult.parse(result_)
         assert result.error_exit(
             error=tests.CANNOT_LOAD_CRYPTOGRAPHY,
             record_tuples=caplog.record_tuples,
