@@ -16,7 +16,6 @@ Warning:
 from __future__ import annotations
 
 import base64
-import contextlib
 import copy
 import enum
 import hashlib
@@ -26,8 +25,9 @@ import os
 import pathlib
 import shlex
 import sys
+import threading
 import unicodedata
-from typing import TYPE_CHECKING, Callable, NoReturn, TextIO, cast
+from typing import TYPE_CHECKING, cast
 
 import click
 import click.shell_completion
@@ -43,13 +43,22 @@ else:
 
 if TYPE_CHECKING:
     import socket
+    import types
     from collections.abc import (
         Iterator,
         Mapping,
         Sequence,
     )
+    from contextlib import AbstractContextManager
+    from typing import (
+        BinaryIO,
+        Callable,
+        Literal,
+        NoReturn,
+        TextIO,
+    )
 
-    from typing_extensions import Buffer
+    from typing_extensions import Buffer, Self
 
 PROG_NAME = _msg.PROG_NAME
 KEY_DISPLAY_LENGTH = 50
@@ -182,8 +191,115 @@ denote "any conceivable file size", the locking system available in
 """
 
 
-@contextlib.contextmanager
-def configuration_mutex() -> Iterator[None]:
+class ConfigurationMutex:
+    """A mutual exclusion context manager for configuration edits.
+
+    See [`configuration_mutex`][].
+
+    """
+
+    lock: Callable[[int], None]
+    """A function to lock a given file descriptor exclusively.
+
+    On Windows, this uses [`msvcrt.locking`][], on other systems, this
+    uses [`fcntl.flock`][].
+
+    Note:
+        This is a normal Python function, not a method.
+
+    Warning:
+        You really should not have to change this. *If you absolutely
+        must*, then it is *your responsibility* to ensure that
+        [`lock`][] and [`unlock`][] are still compatible.
+
+    """
+    unlock: Callable[[int], None]
+    """A function to unlock a given file descriptor.
+
+    On Windows, this uses [`msvcrt.locking`][], on other systems, this
+    uses [`fcntl.flock`][].
+
+    Note:
+        This is a normal Python function, not a method.
+
+    Warning:
+        You really should not have to change this. *If you absolutely
+        must*, then it is *your responsibility* to ensure that
+        [`lock`][] and [`unlock`][] are still compatible.
+
+    """
+    write_lock_file: pathlib.Path
+    """The filename to lock."""
+    write_lock_fileobj: BinaryIO | None
+    """The file object, if currently locked by this context manager."""
+    write_lock_condition: threading.Condition
+    """The lock protecting access to the file object."""
+
+    def __init__(self) -> None:
+        """Initialize self."""
+        if sys.platform == 'win32':  # pragma: no cover
+            import msvcrt  # noqa: PLC0415
+
+            locking = msvcrt.locking
+            LK_LOCK = msvcrt.LK_LOCK  # noqa: N806
+            LK_UNLCK = msvcrt.LK_UNLCK  # noqa: N806
+
+            def lock_func(fileobj: int) -> None:
+                locking(fileobj, LK_LOCK, LOCK_SIZE)
+
+            def unlock_func(fileobj: int) -> None:
+                locking(fileobj, LK_UNLCK, LOCK_SIZE)
+
+        else:
+            import fcntl  # noqa: PLC0415
+
+            flock = fcntl.flock
+            LOCK_EX = fcntl.LOCK_EX  # noqa: N806
+            LOCK_UN = fcntl.LOCK_UN  # noqa: N806
+
+            def lock_func(fileobj: int) -> None:
+                flock(fileobj, LOCK_EX)
+
+            def unlock_func(fileobj: int) -> None:
+                flock(fileobj, LOCK_UN)
+
+        self.lock = lock_func
+        self.unlock = unlock_func
+        self.write_lock_fileobj = None
+        self.write_lock_file = config_filename('write lock')
+        self.write_lock_condition = threading.Condition(threading.Lock())
+
+    def __enter__(self) -> Self:
+        """Enter the context, locking the configuration file."""  # noqa: DOC201
+        with self.write_lock_condition:
+            self.write_lock_condition.wait_for(
+                lambda: self.write_lock_fileobj is None
+            )
+            self.write_lock_file.touch()
+            self.write_lock_fileobj = self.write_lock_file.open('wb')
+            self.lock(self.write_lock_fileobj.fileno())
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_tb: types.TracebackType | None,
+        /,
+    ) -> Literal[False]:
+        """Exit the context, releasing the lock on the configuration file."""  # noqa: DOC201
+        with self.write_lock_condition:
+            assert self.write_lock_fileobj is not None, (
+                'We lost track of the configuration write lock file object, '
+                'so we cannot unlock it anymore!'
+            )
+            self.unlock(self.write_lock_fileobj.fileno())
+            self.write_lock_fileobj.close()
+            self.write_lock_fileobj = None
+        return False
+
+
+def configuration_mutex() -> AbstractContextManager[AbstractContextManager]:
     """Enter a mutually exclusive context for configuration writes.
 
     Within this context, no other cooperating instance of
@@ -191,6 +307,14 @@ def configuration_mutex() -> Iterator[None]:
     directory.  We achieve this by locking a specific temporary file
     (whose name depends on the location of the configuration directory)
     for the duration of the context.
+
+    Returns:
+        A reusable but not reentrant context manager, ensuring mutual
+        exclusion (while within its context) with all other
+        `derivepassphrase` instances using the same configuration
+        directory.
+
+        Upon entering the context, the context manager returns itself.
 
     Note: Locking specifics
         The directory for the lock file is determined via
@@ -213,42 +337,7 @@ def configuration_mutex() -> Iterator[None]:
         permission to write to an already-existing lockfile.
 
     """
-    lock_func: Callable[[int], None]
-    unlock_func: Callable[[int], None]
-    if sys.platform == 'win32':  # pragma: no cover
-        import msvcrt  # noqa: PLC0415
-
-        locking = msvcrt.locking
-        LK_LOCK = msvcrt.LK_LOCK  # noqa: N806
-        LK_UNLCK = msvcrt.LK_UNLCK  # noqa: N806
-
-        def lock_func(fileobj: int) -> None:
-            locking(fileobj, LK_LOCK, LOCK_SIZE)
-
-        def unlock_func(fileobj: int) -> None:
-            locking(fileobj, LK_UNLCK, LOCK_SIZE)
-
-    else:
-        import fcntl  # noqa: PLC0415
-
-        flock = fcntl.flock
-        LOCK_EX = fcntl.LOCK_EX  # noqa: N806
-        LOCK_UN = fcntl.LOCK_UN  # noqa: N806
-
-        def lock_func(fileobj: int) -> None:
-            flock(fileobj, LOCK_EX)
-
-        def unlock_func(fileobj: int) -> None:
-            flock(fileobj, LOCK_UN)
-
-    write_lock_file = config_filename('write lock')
-    write_lock_file.touch()
-    with write_lock_file.open('wb') as lock_fileobj:
-        lock_func(lock_fileobj.fileno())
-        try:
-            yield
-        finally:
-            unlock_func(lock_fileobj.fileno())
+    return ConfigurationMutex()
 
 
 def get_tempdir() -> pathlib.Path:
