@@ -198,11 +198,13 @@ class ConfigurationMutex:
 
     """
 
-    lock: Callable[[int], None]
-    """A function to lock a given file descriptor exclusively.
+    lock: Callable[[], None]
+    """A function to lock the mutex exclusively.
 
-    On Windows, this uses [`msvcrt.locking`][], on other systems, this
-    uses [`fcntl.flock`][].
+    This implementation uses a file descriptor of a well-known file,
+    which is opened before locking and closed after unlocking (and on
+    error when locking). On Windows, we use [`msvcrt.locking`][], on
+    other systems, we use [`fcntl.flock`][].
 
     Note:
         This is a normal Python function, not a method.
@@ -213,11 +215,14 @@ class ConfigurationMutex:
         [`lock`][] and [`unlock`][] are still compatible.
 
     """
-    unlock: Callable[[int], None]
-    """A function to unlock a given file descriptor.
+    unlock: Callable[[], None]
+    """A function to unlock the mutex.
 
-    On Windows, this uses [`msvcrt.locking`][], on other systems, this
-    uses [`fcntl.flock`][].
+    This implementation uses a file descriptor of a well-known file,
+    which is opened before locking and closed after unlocking (and on
+    error when locking). It will fail if the file descriptor is
+    unavailable. On Windows, we use [`msvcrt.locking`][], on other
+    systems, we use [`fcntl.flock`][].
 
     Note:
         This is a normal Python function, not a method.
@@ -244,11 +249,11 @@ class ConfigurationMutex:
             LK_LOCK = msvcrt.LK_LOCK  # noqa: N806
             LK_UNLCK = msvcrt.LK_UNLCK  # noqa: N806
 
-            def lock_func(fileobj: int) -> None:
-                locking(fileobj, LK_LOCK, LOCK_SIZE)
+            def lock_fd(fd: int, /) -> None:
+                locking(fd, LK_LOCK, LOCK_SIZE)
 
-            def unlock_func(fileobj: int) -> None:
-                locking(fileobj, LK_UNLCK, LOCK_SIZE)
+            def unlock_fd(fd: int, /) -> None:
+                locking(fd, LK_UNLCK, LOCK_SIZE)
 
         else:
             import fcntl  # noqa: PLC0415
@@ -257,11 +262,31 @@ class ConfigurationMutex:
             LOCK_EX = fcntl.LOCK_EX  # noqa: N806
             LOCK_UN = fcntl.LOCK_UN  # noqa: N806
 
-            def lock_func(fileobj: int) -> None:
-                flock(fileobj, LOCK_EX)
+            def lock_fd(fd: int, /) -> None:
+                flock(fd, LOCK_EX)
 
-            def unlock_func(fileobj: int) -> None:
-                flock(fileobj, LOCK_UN)
+            def unlock_fd(fd: int, /) -> None:
+                flock(fd, LOCK_UN)
+
+        def lock_func() -> None:
+            with self.write_lock_condition:
+                self.write_lock_condition.wait_for(
+                    lambda: self.write_lock_fileobj is None
+                )
+                self.write_lock_condition.notify()
+                self.write_lock_file.touch()
+                self.write_lock_fileobj = self.write_lock_file.open('wb')
+                lock_fd(self.write_lock_fileobj.fileno())
+
+        def unlock_func() -> None:
+            with self.write_lock_condition:
+                assert self.write_lock_fileobj is not None, (
+                    'We lost track of the configuration write lock '
+                    'file object, so we cannot unlock it anymore!'
+                )
+                unlock_fd(self.write_lock_fileobj.fileno())
+                self.write_lock_fileobj.close()
+                self.write_lock_fileobj = None
 
         self.lock = lock_func
         self.unlock = unlock_func
@@ -271,13 +296,7 @@ class ConfigurationMutex:
 
     def __enter__(self) -> Self:
         """Enter the context, locking the configuration file."""  # noqa: DOC201
-        with self.write_lock_condition:
-            self.write_lock_condition.wait_for(
-                lambda: self.write_lock_fileobj is None
-            )
-            self.write_lock_file.touch()
-            self.write_lock_fileobj = self.write_lock_file.open('wb')
-            self.lock(self.write_lock_fileobj.fileno())
+        self.lock()
         return self
 
     def __exit__(
@@ -288,14 +307,7 @@ class ConfigurationMutex:
         /,
     ) -> Literal[False]:
         """Exit the context, releasing the lock on the configuration file."""  # noqa: DOC201
-        with self.write_lock_condition:
-            assert self.write_lock_fileobj is not None, (
-                'We lost track of the configuration write lock file object, '
-                'so we cannot unlock it anymore!'
-            )
-            self.unlock(self.write_lock_fileobj.fileno())
-            self.write_lock_fileobj.close()
-            self.write_lock_fileobj = None
+        self.unlock()
         return False
 
 

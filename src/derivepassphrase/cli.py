@@ -36,6 +36,7 @@ from derivepassphrase._internals import cli_messages as _msg
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from collections.abc import Set as AbstractSet
+    from contextlib import AbstractContextManager
 
 __all__ = ('derivepassphrase',)
 
@@ -737,7 +738,10 @@ class _VaultContext:  # noqa: PLR0904
                 )
                 raise click.UsageError(str(err_msg))
 
-    def get_mutex(self, op: str) -> contextlib.AbstractContextManager[None]:
+    def get_mutex(
+        self,
+        op: str,
+    ) -> AbstractContextManager[AbstractContextManager | None]:
         """Return a mutex for accessing the configuration on disk.
 
         The mutex is a context manager, and will lock out other threads
