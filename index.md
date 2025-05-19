@@ -8,8 +8,7 @@
       - [yet to be scheduled](index.md){: .unscheduled }
 
 ???+ bug "things to fix"
-      - [concurrency-testing-in-test-suite][]{: .scheduled-next }
-      - [windows-ssh-agent-support][]{: .scheduled }
+      - [windows-ssh-agent-support][]{: .scheduled-next }
 
 ???+ question "things to add"
       - [other-derivation-schemes][]{: .unscheduled }
@@ -19,6 +18,7 @@
       - [amend-vault-config][]{: .fixed }
       - [better-error-messages][]{: .fixed }
       - [concurrency-audit][]{: .fixed }
+      - [concurrency-testing-in-test-suite][]{: .fixed }
       - [configuration-directory-must-exist][]{: .fixed }
       - [fail-gracefully-without-af-unix][]{: .fixed }
       - [falsy-vault-config-values][]{: .fixed }
