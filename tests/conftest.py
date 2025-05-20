@@ -111,7 +111,7 @@ _hypothesis_settings_setup()
 
 # https://docs.pytest.org/en/stable/explanation/fixtures.html#a-note-about-fixture-cleanup
 # https://github.com/pytest-dev/pytest/issues/5243#issuecomment-491522595
-@pytest.fixture(scope='session', autouse=True)
+@pytest.fixture(scope='session', autouse=False)
 def term_handler() -> Iterator[None]:  # pragma: no cover
     try:
         import signal  # noqa: PLC0415

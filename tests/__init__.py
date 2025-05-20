@@ -16,6 +16,7 @@ import pathlib
 import re
 import shlex
 import stat
+import sys
 import tempfile
 import types
 import zipfile
@@ -1603,6 +1604,65 @@ available.  Usually this means that the test targets the
 `derivepassphrase export vault` subcommand, whose functionality depends
 on cryptography support being available.
 """
+skip_if_no_multiprocessing_support = pytest.mark.skipif(
+    importlib.util.find_spec('multiprocessing') is None,
+    reason='no "multiprocessing" support',
+)
+"""
+A cached pytest mark to skip this test if multiprocessing support is not
+available.  Usually this means that the test targets the concurrency
+features of `derivepassphrase`, which is generally only possible to test
+in separate processes because the testing machinery operates on
+process-global state.
+"""
+
+MIN_CONCURRENCY = 4
+"""
+The minimum amount of concurrent threads used for testing.
+"""
+
+
+def get_concurrency_limit() -> int:
+    """Return the imposed limit on the number of concurrent threads.
+
+    We use [`os.process_cpu_count`][] as the limit on Python 3.13 and
+    higher, and [`os.cpu_count`][] on Python 3.12 and below.  On
+    Python 3.12 and below, we explicitly support the `PYTHON_CPU_COUNT`
+    environment variable.  We guarantee at least [`MIN_CONCURRENCY`][]
+    many threads in any case.
+
+    """  # noqa: RUF002
+    result: int | None = None
+    if sys.version_info >= (3, 13):
+        result = os.process_cpu_count()
+    else:
+        try:
+            cpus = os.sched_getaffinity(os.getpid())
+        except AttributeError:
+            pass
+        else:
+            result = len(cpus)
+    return max(result if result is not None else 0, MIN_CONCURRENCY)
+
+
+def get_concurrency_step_count(
+    settings: hypothesis.settings | None = None,
+) -> int:
+    """Return the desired step count for concurrency-related tests.
+
+    This is the smaller of the [general concurrency
+    limit][tests.get_concurrency_limit] and the step count from the
+    current hypothesis settings.
+
+    Args:
+        settings:
+            The hypothesis settings for a specific tests.  If not given,
+            then the current profile will be queried directly.
+
+    """
+    if settings is None:  # pragma: no cover
+        settings = hypothesis.settings()
+    return min(get_concurrency_limit(), settings.stateful_step_count)
 
 
 def list_keys(self: Any = None) -> list[_types.SSHKeyCommentPair]:
