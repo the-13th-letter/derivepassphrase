@@ -175,6 +175,8 @@ class TestL10nMachineryWithDebugTranslations:
         """TranslatableStrings are hashable even with interpolations."""
         assert len(errnos) == 2
         error1, error2 = [os.strerror(c) for c in errnos]
+        # The Annoying OS has error codes with identical strerror values.
+        hypothesis.assume(error1 != error2)
         ts1 = msg.TranslatedString(
             value, error=error1, filename=None
         ).maybe_without_filename()

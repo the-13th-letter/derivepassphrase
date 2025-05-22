@@ -711,7 +711,8 @@ class TestAgentInteraction:
         """Fail if the agent address is invalid."""
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket + '~')
-            sock = socket.socket(family=socket.AF_UNIX)
+            # socket.AF_UNIX is not defined everywhere.
+            sock = socket.socket(family=socket.AF_UNIX)  # type: ignore[attr-defined]
             with pytest.raises(OSError):  # noqa: PT011
                 ssh_agent.SSHAgentClient(socket=sock)
 
