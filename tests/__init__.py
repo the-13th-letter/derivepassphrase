@@ -1626,7 +1626,7 @@ def xfail_on_the_annoying_os(
     /,
     *,
     reason: str = '',
-) -> pytest.MarkDecorator | Any:
+) -> pytest.MarkDecorator | Any:  # pragma: no cover
     """Annotate a test which fails on The Annoying OS.
 
     Annotate a test to indicate that it fails on The Annoying Operating
