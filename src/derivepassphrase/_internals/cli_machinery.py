@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: Zlib
 
-# ruff: noqa: TRY400
 
 """Command-line machinery for derivepassphrase.
 

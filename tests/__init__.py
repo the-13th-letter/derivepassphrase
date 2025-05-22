@@ -1604,6 +1604,21 @@ available.  Usually this means that the test targets the
 `derivepassphrase export vault` subcommand, whose functionality depends
 on cryptography support being available.
 """
+skip_if_on_the_annoying_os = pytest.mark.skipif(
+    sys.platform == 'win32',
+    reason='The Annoying OS behaves differently.',
+)
+"""
+A cached pytest mark to skip this test if running on The Annoying
+Operating System, a.k.a. Microsoft Windows.  Usually this is due to
+unnecessary and stupid differences in the OS internals, and these
+differences are deemed irreconcilable in the context of the decorated
+test, so the test is to be skipped.
+
+See also:
+    [`xfail_on_the_annoying_os`][]
+
+"""
 skip_if_no_multiprocessing_support = pytest.mark.skipif(
     importlib.util.find_spec('multiprocessing') is None,
     reason='no "multiprocessing" support',
@@ -1663,6 +1678,46 @@ def get_concurrency_step_count(
     if settings is None:  # pragma: no cover
         settings = hypothesis.settings()
     return min(get_concurrency_limit(), settings.stateful_step_count)
+
+
+def xfail_on_the_annoying_os(
+    f: Callable | None = None,
+    /,
+    *,
+    reason: str = '',
+) -> pytest.MarkDecorator | Any:  # pragma: no cover
+    """Annotate a test which fails on The Annoying OS.
+
+    Annotate a test to indicate that it fails on The Annoying Operating
+    System, a.k.a. Microsoft Windows.  Usually this is due to
+    differences in the design of OS internals, and usually, these
+    differences are both unnecessary and stupid.
+
+    Args:
+        f:
+            A callable to decorate.  If not given, return the pytest
+            mark directly.
+        reason:
+            An optional, more detailed reason stating why this test
+            fails on The Annoying OS.
+
+    Returns:
+        The callable, marked as an expected failure on the Annoying OS,
+        or alternatively a suitable pytest mark if no callable was
+        passed.  The reason will begin with the phrase "The Annoying OS
+        behaves differently.", and the optional detailed reason, if not
+        empty, will follow.
+
+    """
+    base_reason = 'The Annoying OS behaves differently.'
+    full_reason = base_reason if not reason else f'{base_reason}  {reason}'
+    mark = pytest.mark.xfail(
+        sys.platform == 'win32',
+        reason=full_reason,
+        raises=(AssertionError, hypothesis.errors.FailedHealthCheck),
+        strict=True,
+    )
+    return mark if f is None else mark(f)
 
 
 def list_keys(self: Any = None) -> list[_types.SSHKeyCommentPair]:
@@ -1799,7 +1854,8 @@ def isolated_config(
         )
         cwd = str(pathlib.Path.cwd().resolve())
         monkeypatch.setenv('HOME', cwd)
-        monkeypatch.setenv('USERPROFILE', cwd)
+        monkeypatch.setenv('APPDATA', cwd)
+        monkeypatch.setenv('LOCALAPPDATA', cwd)
         monkeypatch.delenv(env_name, raising=False)
         config_dir = cli_helpers.config_filename(subsystem=None)
         config_dir.mkdir(parents=True, exist_ok=True)
@@ -1994,9 +2050,12 @@ def make_file_readonly(
     """
     fname: int | str | bytes | os.PathLike
     if try_race_free_implementation and {os.stat, os.chmod} <= os.supports_fd:
+        # The Annoying OS (v11 at least) supports fstat and fchmod, but
+        # does not support changing the file mode on file descriptors
+        # for read-only files.
         fname = os.open(
             pathname,
-            os.O_RDONLY
+            os.O_RDWR
             | getattr(os, 'O_CLOEXEC', 0)
             | getattr(os, 'O_NOCTTY', 0),
         )

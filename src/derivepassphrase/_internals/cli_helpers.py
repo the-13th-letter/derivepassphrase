@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: Zlib
 
-# ruff: noqa: TRY400
 
 """Helper functions for the derivepassphrase command-line.
 
@@ -376,6 +375,8 @@ def get_tempdir() -> pathlib.Path:
         pathlib.PurePosixPath('/usr/tmp'),
     ]
     windows_paths_to_try = [
+        pathlib.PureWindowsPath(r'~\AppData\Local\Temp'),
+        pathlib.PureWindowsPath(os.path.expandvars(r'%SYSTEMROOT%\Temp')),
         pathlib.PureWindowsPath(r'C:\TEMP'),
         pathlib.PureWindowsPath(r'C:\TMP'),
         pathlib.PureWindowsPath(r'\TEMP'),
@@ -385,7 +386,7 @@ def get_tempdir() -> pathlib.Path:
         windows_paths_to_try if sys.platform == 'win32' else posix_paths_to_try
     )
     for p in paths_to_try:
-        path = pathlib.Path(p)
+        path = pathlib.Path(p).expanduser()
         try:
             points_to_dir = path.is_dir()
         except OSError:

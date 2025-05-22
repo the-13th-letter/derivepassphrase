@@ -12,6 +12,7 @@ import errno
 import io
 import json
 import logging
+import operator
 import os
 import pathlib
 import queue
@@ -2178,9 +2179,11 @@ class TestCLI:
     @Parametrize.CONFIG_WITH_KEY
     def test_204a_key_from_config(
         self,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
         config: _types.VaultConfig,
     ) -> None:
         """A stored configured SSH key will be used."""
+        del running_ssh_agent
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -2216,8 +2219,10 @@ class TestCLI:
 
     def test_204b_key_from_command_line(
         self,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
         """An SSH key requested on the command-line will be used."""
+        del running_ssh_agent
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -2819,7 +2824,10 @@ class TestCLI:
                 ['--import', os.fsdecode(dname)],
                 catch_exceptions=False,
             )
-        assert result.error_exit(error=os.strerror(errno.EISDIR)), (
+        # The Annoying OS uses EACCES, other OSes use EISDIR.
+        assert result.error_exit(
+            error=os.strerror(errno.EISDIR)
+        ) or result.error_exit(error=os.strerror(errno.EACCES)), (
             'expected error exit and known error message'
         )
 
@@ -2985,6 +2993,7 @@ class TestCLI:
             'expected error exit and known error message'
         )
 
+    @tests.skip_if_on_the_annoying_os
     @Parametrize.EXPORT_FORMAT_OPTIONS
     def test_214e_export_settings_settings_directory_not_a_directory(
         self,
@@ -3683,8 +3692,10 @@ class TestCLI:
 
     def test_225c_store_config_fail_manual_bad_ssh_agent_connection(
         self,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
         """Not running a reachable SSH agent during `--config --key` fails."""
+        del running_ssh_agent
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -4853,12 +4864,22 @@ Boo.
         assert _types.is_vault_config(config)
         return self.export_as_sh_helper(config)
 
+    # The Annoying OS appears to silently truncate spaces at the end of
+    # filenames.
     @hypothesis.given(
         env_var=strategies.sampled_from(['TMPDIR', 'TEMP', 'TMP']),
-        suffix=strategies.text(
-            tuple(' 0123456789abcdefghijklmnopqrstuvwxyz'),
-            min_size=12,
-            max_size=12,
+        suffix=strategies.builds(
+            operator.add,
+            strategies.text(
+                tuple(' 0123456789abcdefghijklmnopqrstuvwxyz'),
+                min_size=11,
+                max_size=11,
+            ),
+            strategies.text(
+                tuple('0123456789abcdefghijklmnopqrstuvwxyz'),
+                min_size=1,
+                max_size=1,
+            ),
         ),
     )
     @hypothesis.example(env_var='', suffix='.')
@@ -4875,6 +4896,17 @@ Boo.
         `cli_helpers.get_tempdir` returned the configuration directory.
 
         """
+
+        @contextlib.contextmanager
+        def make_temporary_directory(
+            path: pathlib.Path,
+        ) -> Iterator[pathlib.Path]:
+            try:
+                path.mkdir()
+                yield path
+            finally:
+                shutil.rmtree(path)
+
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -4888,11 +4920,20 @@ Boo.
                     vault_config={'services': {}},
                 )
             )
+            old_tempdir = os.fsdecode(tempfile.gettempdir())
             monkeypatch.delenv('TMPDIR', raising=False)
             monkeypatch.delenv('TEMP', raising=False)
             monkeypatch.delenv('TMP', raising=False)
+            monkeypatch.setattr(tempfile, 'tempdir', None)
+            temp_path = pathlib.Path.cwd() / suffix
             if env_var:
-                monkeypatch.setenv(env_var, str(pathlib.Path.cwd() / suffix))
+                monkeypatch.setenv(env_var, os.fsdecode(temp_path))
+                stack.enter_context(make_temporary_directory(temp_path))
+            new_tempdir = os.fsdecode(tempfile.gettempdir())
+            hypothesis.assume(
+                temp_path.resolve() == pathlib.Path.cwd().resolve()
+                or old_tempdir != new_tempdir
+            )
             system_tempdir = os.fsdecode(tempfile.gettempdir())
             our_tempdir = cli_helpers.get_tempdir()
             assert system_tempdir == os.fsdecode(our_tempdir) or (
@@ -4903,6 +4944,7 @@ Boo.
                 system_tempdir == os.getcwd()  # noqa: PTH109
                 and our_tempdir == cli_helpers.config_filename(subsystem=None)
             )
+        assert not temp_path.exists(), f'temp path {temp_path} not cleaned up!'
 
     def test_140b_get_tempdir_force_default(self) -> None:
         """[`cli_helpers.get_tempdir`][] returns a temporary directory.
@@ -5033,7 +5075,8 @@ Boo.
             if conn_hint == 'client':
                 hint = ssh_agent.SSHAgentClient()
             elif conn_hint == 'socket':
-                hint = socket.socket(family=socket.AF_UNIX)
+                # socket.AF_UNIX is not defined everywhere.
+                hint = socket.socket(family=socket.AF_UNIX)  # type: ignore[attr-defined]
                 hint.connect(running_ssh_agent.socket)
             else:
                 assert conn_hint == 'none'
@@ -5218,7 +5261,8 @@ class TestCLITransition:
             config2, err = cli_helpers.migrate_and_load_old_config()
             assert config2 == config
             assert isinstance(err, OSError)
-            assert err.errno == errno.EISDIR
+            # The Annoying OS uses EEXIST, other OSes use EISDIR.
+            assert err.errno in {errno.EISDIR, errno.EEXIST}
 
     @Parametrize.BAD_CONFIGS
     def test_113_migrate_config_error_bad_config_value(
