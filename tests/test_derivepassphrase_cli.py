@@ -666,15 +666,27 @@ class Parametrize(types.SimpleNamespace):
             ),
             pytest.param(
                 ['--phrase', '--', 'sv'],
-                '',
+                '\n',
                 'No passphrase was given',
                 id='phrase-sv',
+            ),
+            pytest.param(
+                ['--phrase', '--', 'sv'],
+                '',
+                'No passphrase was given',
+                id='phrase-sv-eof',
+            ),
+            pytest.param(
+                ['--key'],
+                '\n',
+                'No SSH key was selected',
+                id='key-sv',
             ),
             pytest.param(
                 ['--key'],
                 '',
                 'No SSH key was selected',
-                id='key-sv',
+                id='key-sv-eof',
             ),
         ],
     )
@@ -4406,7 +4418,7 @@ A fine choice: Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam
 """
         ), 'expected clean exit'
         result = runner.invoke(
-            driver, ['--heading='], input='', catch_exceptions=True
+            driver, ['--heading='], input='\n', catch_exceptions=True
         )
         assert result.error_exit(error=IndexError), (
             'expected error exit and known error type'
@@ -4427,6 +4439,43 @@ A fine choice: Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam
 Your selection? (1-10, leave empty to abort):\x20
 """
         ), 'expected known output'
+        # click.testing.CliRunner on click < 8.2.1 incorrectly mocks the
+        # click prompting machinery, meaning that the mixed output will
+        # incorrectly contain a line break, contrary to what the
+        # documentation for click.prompt prescribes.
+        result = runner.invoke(
+            driver, ['--heading='], input='', catch_exceptions=True
+        )
+        assert result.error_exit(error=IndexError), (
+            'expected error exit and known error type'
+        )
+        assert result.stdout in {
+            """\
+[1] Egg and bacon
+[2] Egg, sausage and bacon
+[3] Egg and spam
+[4] Egg, bacon and spam
+[5] Egg, bacon, sausage and spam
+[6] Spam, bacon, sausage and spam
+[7] Spam, egg, spam, spam, bacon and spam
+[8] Spam, spam, spam, egg and spam
+[9] Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam and spam
+[10] Lobster thermidor aux crevettes with a mornay sauce garnished with truffle paté, brandy and a fried egg on top and spam
+Your selection? (1-10, leave empty to abort):\x20
+""",
+            """\
+[1] Egg and bacon
+[2] Egg, sausage and bacon
+[3] Egg and spam
+[4] Egg, bacon and spam
+[5] Egg, bacon, sausage and spam
+[6] Spam, bacon, sausage and spam
+[7] Spam, egg, spam, spam, bacon and spam
+[8] Spam, spam, spam, egg and spam
+[9] Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam and spam
+[10] Lobster thermidor aux crevettes with a mornay sauce garnished with truffle paté, brandy and a fried egg on top and spam
+Your selection? (1-10, leave empty to abort): """,
+        }, 'expected known output'
 
     def test_112_prompt_for_selection_single(self) -> None:
         """[`cli_helpers.prompt_for_selection`][] works in the "single" case."""
@@ -4459,7 +4508,7 @@ Great!
         result = runner.invoke(
             driver,
             ['Will replace with spam, okay? (Please say "y" or "n".)'],
-            input='',
+            input='\n',
         )
         assert result.error_exit(error=IndexError), (
             'expected error exit and known error type'
@@ -4472,6 +4521,29 @@ Will replace with spam, okay? (Please say "y" or "n".):\x20
 Boo.
 """
         ), 'expected known output'
+        # click.testing.CliRunner on click < 8.2.1 incorrectly mocks the
+        # click prompting machinery, meaning that the mixed output will
+        # incorrectly contain a line break, contrary to what the
+        # documentation for click.prompt prescribes.
+        result = runner.invoke(
+            driver,
+            ['Will replace with spam, okay? (Please say "y" or "n".)'],
+            input='',
+        )
+        assert result.error_exit(error=IndexError), (
+            'expected error exit and known error type'
+        )
+        assert result.stdout in {
+            """\
+[1] baked beans
+Will replace with spam, okay? (Please say "y" or "n".):\x20
+Boo.
+""",
+            """\
+[1] baked beans
+Will replace with spam, okay? (Please say "y" or "n".): Boo.
+""",
+        }, 'expected known output'
 
     def test_113_prompt_for_passphrase(
         self,

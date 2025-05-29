@@ -657,14 +657,24 @@ def prompt_for_selection(
         click.echo(x, err=True, color=color)
     if n > 1:
         choices = click.Choice([''] + [str(i) for i in range(1, n + 1)])
-        choice = click.prompt(
-            f'Your selection? (1-{n}, leave empty to abort)',
-            err=True,
-            type=choices,
-            show_choices=False,
-            show_default=False,
-            default='',
-        )
+        try:
+            choice = click.prompt(
+                f'Your selection? (1-{n}, leave empty to abort)',
+                err=True,
+                type=choices,
+                show_choices=False,
+                show_default=False,
+                default='',
+            )
+        except click.Abort:  # pragma: no cover
+            # This branch will not be triggered during testing on
+            # `click` versions < 8.2.1, due to (non-monkeypatch-able)
+            # deficiencies in `click.testing.CliRunner`. Therefore, as
+            # an external source of nondeterminism, exclude it from
+            # coverage.
+            #
+            # https://github.com/pallets/click/issues/2934
+            choice = ''
         if not choice:
             raise IndexError(EMPTY_SELECTION)
         return int(choice) - 1
@@ -763,16 +773,25 @@ def prompt_for_passphrase() -> str:
         The user input.
 
     """
-    return cast(
-        'str',
-        click.prompt(
-            'Passphrase',
-            default='',
-            hide_input=True,
-            show_default=False,
-            err=True,
-        ),
-    )
+    try:
+        return cast(
+            'str',
+            click.prompt(
+                'Passphrase',
+                default='',
+                hide_input=True,
+                show_default=False,
+                err=True,
+            ),
+        )
+    except click.Abort:  # pragma: no cover
+        # This branch will not be triggered during testing on `click`
+        # versions < 8.2.1, due to (non-monkeypatch-able) deficiencies
+        # in `click.testing.CliRunner`. Therefore, as an external source
+        # of nondeterminism, exclude it from coverage.
+        #
+        # https://github.com/pallets/click/issues/2934
+        return ''
 
 
 def toml_key(*parts: str) -> str:
