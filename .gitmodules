@@ -1,0 +1,4 @@
+[submodule "docs/wishlist"]
+	path = docs/wishlist
+	url = ./
+	branch = wishlist
