@@ -57,9 +57,9 @@ plugins:
   mkdocstrings:
     handlers:
       python:
-        import:
+        inventories:
           - 'https://docs.python.org/3/objects.inv'
-          - 'https://click.palletsprojects.com/en/8.1.x/objects.inv'
+          - 'https://click.palletsprojects.com/en/stable/objects.inv'
           - 'https://typing-extensions.readthedocs.io/en/latest/objects.inv'
           - 'https://cryptography.readthedocs.io/en/latest/objects.inv'
           - 'https://hypothesis.readthedocs.io/en/latest/objects.inv'
