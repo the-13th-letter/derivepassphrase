@@ -887,12 +887,23 @@ def color_forcing_callback(
     param: click.Parameter,
     value: Any,  # noqa: ANN401
 ) -> None:
-    """Force the `click` context to honor `NO_COLOR` and `FORCE_COLOR`."""
+    """Disable automatic color (and text highlighting).
+
+    Ideally, we would default to color and text styling if outputting to
+    a TTY, or monochrome/unstyled otherwise. We would also support the
+    `NO_COLOR` and `FORCE_COLOR` environment variables to override this
+    auto-detection, and perhaps the `TTY_COMPATIBLE` variable too.
+
+    Alas, this is not sensible to support at the moment, because the
+    conventions are still in flux. And settling on a specific
+    interpretation of the conventions would likely prove very difficult
+    to change later on in a backward-compatible way. We thus opt for
+    a conservative approach and use device-indepedendent text output
+    without any color or text styling whatsoever.
+
+    """
     del param, value
-    if os.environ.get('NO_COLOR'):
-        ctx.color = False
-    if os.environ.get('FORCE_COLOR'):
-        ctx.color = True
+    ctx.color = False
 
 
 def validate_occurrence_constraint(
