@@ -11,6 +11,7 @@
       - [windows-ssh-agent-support][]{: .scheduled-next }
 
 ???+ question "things to add"
+      - [conventional-configurable-text-styling][]{: .unscheduled }
       - [other-derivation-schemes][]{: .unscheduled }
 
 ??? success "fixed things"
@@ -49,6 +50,7 @@
   [concurrency-audit]: concurrency-audit.md
   [concurrency-testing-in-test-suite]: concurrency-testing-in-test-suite.md
   [configuration-directory-must-exist]: configuration-directory-must-exist.md
+  [conventional-configurable-text-styling]: conventional-configurable-text-styling.md
   [export-vault-formats]: export-vault-formats.md
   [exporter-script-as-subcommand]: exporter-script-as-subcommand.md
   [fail-gracefully-without-af-unix]: fail-gracefully-without-af-unix.md
