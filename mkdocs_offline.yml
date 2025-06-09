@@ -5,6 +5,8 @@ draft_docs: |
   reference/tests.*
 not_in_nav: |
   changelog.d
+  wishlist/*.md
+  !wishlist/index.md
 
 plugins:
   offline:

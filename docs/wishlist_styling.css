@@ -1,0 +1,34 @@
+p:has(+ table#bug-summary) {
+    margin: 0em;
+}
+table#bug-summary {
+    width: 100%;
+    border: none;
+}
+table#bug-summary + p {
+    margin: 0em;
+}
+table#bug-summary th, table#bug-summary td {
+    padding: 0.25em;
+    border: none;
+}
+table#bug-summary td:first-of-type {
+    padding-right: 1.5em;
+}
+
+a.scheduled-next {
+    font-weight: bold;
+}
+
+a.scheduled {
+    font-style: oblique;
+}
+
+a.unscheduled {
+    opacity: 0.75;
+}
+a.fixed {
+    font-weight: normal;
+    font-style: normal;
+    text-decoration: line-through;
+}

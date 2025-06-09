@@ -104,7 +104,7 @@
     or
     [`derivepassphrase_vault`][derivepassphrase.cli.derivepassphrase_vault],
     or calling [`derivepassphrase`][derivepassphrase.cli.derivepassphrase]
-    via its [`.main`][click.BaseCommand.main] method, causes those functions
+    via its [`.main`][click.Command.main] method, causes those functions
     to use the standard Python [logging][] and [warnings][] facilities to
     issue diagnostic messages, without output to standard error.
     (This includes using [`click.testing.CliRunner`][], which uses `.main`

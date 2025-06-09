@@ -2160,7 +2160,7 @@ class CliRunner:
     """
     True if and only if [`click.testing.CliRunner`][] supports the
     `mix_stderr` attribute.  It was removed in 8.2.0 in favor of the
-    [`click.testing.StreamMixer`][] class.
+    `click.testing.StreamMixer` class.
 
     See also
     [`pallets/click#2523`](https://github.com/pallets/click/pull/2523).

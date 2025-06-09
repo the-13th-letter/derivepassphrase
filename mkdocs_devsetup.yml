@@ -3,6 +3,8 @@ INHERIT: mkdocs_offline.yml
 draft_docs: ''
 not_in_nav: |
   changelog.d
+  wishlist/*.md
+  !wishlist/index.md
 
 nav:
   - Overview: index.md
@@ -52,3 +54,5 @@ nav:
     - Upgrade notes: upgrade-notes.md
     - Python compatibility: pycompatibility.md
     - Future ideas: _future.md
+  - Wishlist:
+    - wishlist/index.md
