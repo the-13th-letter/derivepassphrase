@@ -1299,11 +1299,6 @@ class Parametrize(types.SimpleNamespace):
             ['--export-as=sh'],
         ],
     )
-    FORCE_COLOR = pytest.mark.parametrize(
-        'force_color',
-        [False, True],
-        ids=['noforce', 'force'],
-    )
     INCOMPLETE = pytest.mark.parametrize('incomplete', ['', 'partial'])
     ISATTY = pytest.mark.parametrize(
         'isatty',
@@ -1458,11 +1453,6 @@ class Parametrize(types.SimpleNamespace):
     CONFIG_SETTING_MODE = pytest.mark.parametrize('mode', ['config', 'import'])
     MODERN_EDITOR_INTERFACE = pytest.mark.parametrize(
         'modern_editor_interface', [False, True], ids=['legacy', 'modern']
-    )
-    NO_COLOR = pytest.mark.parametrize(
-        'no_color',
-        [False, True],
-        ids=['yescolor', 'nocolor'],
     )
     NOTES_PLACEMENT = pytest.mark.parametrize(
         ['notes_placement', 'placement_args'],
@@ -1824,22 +1814,22 @@ class TestAllCLI:
             )
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
 
-    @Parametrize.NO_COLOR
-    @Parametrize.FORCE_COLOR
     @Parametrize.ISATTY
     @Parametrize.COLORFUL_COMMAND_INPUT
-    def test_201_no_color_force_color(
+    def test_201_automatic_color_mode(
         self,
-        no_color: bool,
-        force_color: bool,
         isatty: bool,
         command_line: list[str],
         input: str | None,
     ) -> None:
-        """Respect the `NO_COLOR` and `FORCE_COLOR` environment variables."""
-        # Force color on if force_color.  Otherwise force color off if
-        # no_color.  Otherwise set color if and only if we have a TTY.
-        color = force_color or not no_color if isatty else force_color
+        """Auto-detect if color should be used.
+
+        (The answer currently is always no. See the
+        [`conventional-configurable-text-styling` wishlist
+        entry](../wishlist/conventional-configurable-text-styling.md).)
+
+        """
+        color = False
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -1852,10 +1842,6 @@ class TestAllCLI:
                     runner=runner,
                 )
             )
-            if no_color:
-                monkeypatch.setenv('NO_COLOR', 'yes')
-            if force_color:
-                monkeypatch.setenv('FORCE_COLOR', 'yes')
             result = runner.invoke(
                 cli.derivepassphrase,
                 command_line,
