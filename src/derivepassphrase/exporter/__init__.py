@@ -63,16 +63,16 @@ def get_vault_key() -> bytes:
             Please set `VAULT_KEY` manually to the desired value.
 
     """
-    if os.supports_bytes_environ:
 
-        def getenv(env_var: str) -> bytes:
-            return os.environb.get(env_var.encode('UTF-8'), b'')  # type: ignore[attr-defined]
+    def getenv_environ(env_var: str) -> bytes:  # pragma: no cover
+        return os.environb.get(env_var.encode('UTF-8'), b'')  # type: ignore[attr-defined]
 
-    else:
+    def getenv_environb(env_var: str) -> bytes:  # pragma: no cover
+        return os.environ.get(env_var, '').encode('UTF-8')
 
-        def getenv(env_var: str) -> bytes:
-            return os.environ.get(env_var, '').encode('UTF-8')
-
+    getenv: Callable[[str], bytes] = (
+        getenv_environb if os.supports_bytes_environ else getenv_environ
+    )
     username = (
         getenv('VAULT_KEY')
         or getenv('LOGNAME')
