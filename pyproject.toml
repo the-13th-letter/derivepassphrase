@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "derivepassphrase"
 description = "An almost faithful Python reimplementation of James Coglan's vault."
 readme = "README.md"
-version = '0.5a1.dev1'
+version = "0.5"
 requires-python = ">= 3.9"
 license = { text = "zlib/libpng" }
 keywords = []
@@ -97,7 +97,7 @@ Issues = "https://github.com/the-13th-letter/derivepassphrase/issues"
 Source = "https://github.com/the-13th-letter/derivepassphrase"
 
 [tool.bumpversion]
-current_version = '0.5a1.dev1'
+current_version = "0.5"
 # As of bump-my-version 0.32.0, version components are strictly
 # hierarchical in the order of occurrence, and there is no support for
 # pre-release markers.  The documentation suggests a fake "dev/rc/final"

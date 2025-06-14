@@ -1,16 +1,14 @@
-# English translation for derivepassphrase.
-# Copyright (C) 2025 AUTHOR
+# English debug translation for derivepassphrase.
+# Copyright (C) 2025 Marco Ricci <software@the13thletter.info>
 # This file is distributed under the same license as derivepassphrase.
-# AUTHOR <someone@example.com>, 2025.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: derivepassphrase 0.5\n"
 "Report-Msgid-Bugs-To: software@the13thletter.info\n"
-"POT-Creation-Date: 2025-06-14 21:36+0200\n"
 "PO-Revision-Date: 2025-06-14 21:36+0200\n"
-"Last-Translator: AUTHOR <someone@example.com>\n"
-"Language: en\n"
+"Last-Translator: Marco Ricci <software@the13thletter.info>\n"
+"Language: en_US@DEBUG\n"
 "Language-Team: English\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -22,60 +20,60 @@ msgstr ""
 #. Message-ID: Label.DEPRECATION_WARNING_LABEL
 msgctxt "Label :: Diagnostics :: Marker"
 msgid "Deprecation warning"
-msgstr ""
+msgstr "Label.DEPRECATION_WARNING_LABEL"
 
 #. TRANSLATORS: This is a short label that will be prepended to a warning message, e.g., "Warning: An empty service name is not supported by vault(1)."
 #. 
 #. Message-ID: Label.WARNING_LABEL
 msgctxt "Label :: Diagnostics :: Marker"
 msgid "Warning"
-msgstr ""
+msgstr "Label.WARNING_LABEL"
 
 #. TRANSLATORS: This is one of two values of the settings_type metavar used in the CANNOT_UPDATE_SETTINGS_NO_SETTINGS entry.  It is only used there.  The full sentence then reads: "Cannot update the global settings without any given settings."
 #. 
 #. Message-ID: Label.CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_GLOBAL
 msgctxt "Label :: Error message :: Metavar"
 msgid "global settings"
-msgstr ""
+msgstr "Label.CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_GLOBAL"
 
 #. TRANSLATORS: This is one of two values of the settings_type metavar used in the CANNOT_UPDATE_SETTINGS_NO_SETTINGS entry.  It is only used there.  The full sentence then reads: "Cannot update the service-specific settings without any given settings."
 #. 
 #. Message-ID: Label.CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_SERVICE
 msgctxt "Label :: Error message :: Metavar"
 msgid "service-specific settings"
-msgstr ""
+msgstr "Label.CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_SERVICE"
 
 #. TRANSLATORS: This value is used as the {key} metavar for Label.PASSPHRASE_NOT_NORMALIZED if the passphrase was entered interactively.
 #. 
 #. Message-ID: Label.SETTINGS_ORIGIN_INTERACTIVE
 msgctxt "Label :: Error message :: Metavar"
 msgid "interactive input"
-msgstr ""
+msgstr "Label.SETTINGS_ORIGIN_INTERACTIVE"
 
 #. TRANSLATORS: Message-ID: Label.CONFIGURATION_EPILOG
 msgctxt "Label :: Help text :: Explanation"
 msgid "Use $VISUAL or $EDITOR to configure the spawned editor."
-msgstr ""
+msgstr "Label.CONFIGURATION_EPILOG"
 
 #. TRANSLATORS: Message-ID: Label.DERIVEPASSPHRASE_02
 msgctxt "Label :: Help text :: Explanation"
 msgid "The currently implemented subcommands are \"vault\" (for the scheme used by vault) and \"export\" (for exporting foreign configuration data).  See the respective `--help` output for instructions.  If no subcommand is given, we default to \"vault\"."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_02"
 
 #. TRANSLATORS: Message-ID: Label.DERIVEPASSPHRASE_03
 msgctxt "Label :: Help text :: Explanation"
 msgid "Deprecation notice: Defaulting to \"vault\" is deprecated.  Starting in v1.0, the subcommand must be specified explicitly."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_03"
 
 #. TRANSLATORS: Message-ID: Label.DERIVEPASSPHRASE_EPILOG_01
 msgctxt "Label :: Help text :: Explanation"
 msgid "Configuration is stored in a directory according to the `DERIVEPASSPHRASE_PATH` variable, which defaults to `~/.derivepassphrase` on UNIX-like systems and `C:\\Users\\<user>\\AppData\\Roaming\\Derivepassphrase` on Windows."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_EPILOG_01"
 
 #. TRANSLATORS: Message-ID: Label.DERIVEPASSPHRASE_EXPORT_02
 msgctxt "Label :: Help text :: Explanation"
 msgid "The only available subcommand is \"vault\", which implements the vault-native configuration scheme.  If no subcommand is given, we default to \"vault\"."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_EXPORT_02"
 
 #. TRANSLATORS: The metavar is Label.EXPORT_VAULT_METAVAR_PATH.
 #. 
@@ -83,7 +81,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: Explanation"
 msgid "Depending on the configuration format, {path_metavar} may either be a file or a directory.  We support the vault \"v0.2\", \"v0.3\" and \"storeroom\" formats."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_EXPORT_VAULT_02(path_metavar={path_metavar!r})"
 
 #. TRANSLATORS: The metavar is Label.EXPORT_VAULT_METAVAR_PATH.
 #. 
@@ -91,7 +89,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: Explanation"
 msgid "If {path_metavar} is explicitly given as `VAULT_PATH`, then use the `VAULT_PATH` environment variable to determine the correct path.  (Use `./VAULT_PATH` or similar to indicate a file/directory actually named `VAULT_PATH`.)"
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_EXPORT_VAULT_03(path_metavar={path_metavar!r})"
 
 #. TRANSLATORS: The metavar is Label.VAULT_METAVAR_SERVICE.
 #. 
@@ -99,17 +97,17 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: Explanation"
 msgid "If operating on global settings, or importing/exporting settings, then {service_metavar} must be omitted.  Otherwise it is required."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_02(service_metavar={service_metavar!r})"
 
 #. TRANSLATORS: Message-ID: Label.DERIVEPASSPHRASE_VAULT_EPILOG_01
 msgctxt "Label :: Help text :: Explanation"
 msgid "WARNING: There is NO WAY to retrieve the generated passphrases if the master passphrase, the SSH key, or the exact passphrase settings are lost, short of trying out all possible combinations.  You are STRONGLY advised to keep independent backups of the settings and the SSH key, if any."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_EPILOG_01"
 
 #. TRANSLATORS: Message-ID: Label.DERIVEPASSPHRASE_VAULT_EPILOG_02
 msgctxt "Label :: Help text :: Explanation"
 msgid "The configuration is NOT encrypted, and you are STRONGLY discouraged from using a stored passphrase."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_EPILOG_02"
 
 #. TRANSLATORS: This instruction text is shown above the user's old stored notes for this service, if any, if the recommended "modern" editor interface is used.  The next line is the cut marking defined in Label.DERIVEPASSPHRASE_VAULT_NOTES_MARKER.
 #. 
@@ -123,14 +121,14 @@ msgid "# Enter notes below the line with the cut mark (ASCII scissors and\n"
 "# the cut mark, then the edit is aborted, and the old notes contents are\n"
 "# retained.\n"
 "#"
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_NOTES_INSTRUCTION_TEXT"
 
 #. TRANSLATORS: This instruction text is shown if the vault(1)-compatible "legacy" editor interface is used and no previous notes exist.  The interface does not support commentary in the notes, so we fill this with obvious placeholder text instead.  (Please replace this with what *your* language/culture would obviously recognize as placeholder text.)
 #. 
 #. Message-ID: Label.DERIVEPASSPHRASE_VAULT_NOTES_LEGACY_INSTRUCTION_TEXT
 msgctxt "Label :: Help text :: Explanation"
 msgid "INSERT NOTES HERE"
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_NOTES_LEGACY_INSTRUCTION_TEXT"
 
 #. TRANSLATORS: The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
 #. 
@@ -138,7 +136,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: Explanation"
 msgid "Use {metavar}=0 to exclude a character type from the output."
-msgstr ""
+msgstr "Label.PASSPHRASE_GENERATION_EPILOG(metavar={metavar!r})"
 
 #. TRANSLATORS: The metavar is Label.STORAGE_MANAGEMENT_METAVAR_PATH.
 #. 
@@ -146,7 +144,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: Explanation"
 msgid "Using \"-\" as {metavar} for standard input/standard output is supported."
-msgstr ""
+msgstr "Label.STORAGE_MANAGEMENT_EPILOG(metavar={metavar!r})"
 
 #. TRANSLATORS: We use this format string to indicate, at the beginning of a command's help text, that this command is deprecated.
 #. 
@@ -154,89 +152,89 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: Marker"
 msgid "(Deprecated) {text}"
-msgstr ""
+msgstr "Label.DEPRECATED_COMMAND_LABEL(text={text!r})"
 
 #. TRANSLATORS: The marker for separating the text from Label.DERIVEPASSPHRASE_VAULT_NOTES_INSTRUCTION_TEXT from the user's input (below the marker).  The first line starting with this label marks the separation point.
 #. 
 #. Message-ID: Label.DERIVEPASSPHRASE_VAULT_NOTES_MARKER
 msgctxt "Label :: Help text :: Marker"
 msgid "# - - - - - >8 - - - - - >8 - - - - - >8 - - - - - >8 - - - - -"
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_NOTES_MARKER"
 
 #. TRANSLATORS: This text is used as {metavar} in Label.EXPORT_VAULT_FORMAT_HELP_TEXT, yielding e.g. "Try the following storage format FMT."
 #. 
 #. Message-ID: Label.EXPORT_VAULT_FORMAT_METAVAR_FMT
 msgctxt "Label :: Help text :: Metavar :: export vault"
 msgid "FMT"
-msgstr ""
+msgstr "Label.EXPORT_VAULT_FORMAT_METAVAR_FMT"
 
 #. TRANSLATORS: This text is used as {metavar} in Label.EXPORT_VAULT_KEY_HELP_TEXT, yielding e.g. "Use K as the storage master key."
 #. 
 #. Message-ID: Label.EXPORT_VAULT_KEY_METAVAR_K
 msgctxt "Label :: Help text :: Metavar :: export vault"
 msgid "K"
-msgstr ""
+msgstr "Label.EXPORT_VAULT_KEY_METAVAR_K"
 
 #. TRANSLATORS: Used as "path_metavar" in Label.DERIVEPASSPHRASE_EXPORT_VAULT_02 and others, yielding e.g. "Depending on the configuration format, PATH may either be a file or a directory."
 #. 
 #. Message-ID: Label.EXPORT_VAULT_METAVAR_PATH
 msgctxt "Label :: Help text :: Metavar :: export vault"
 msgid "PATH"
-msgstr ""
+msgstr "Label.EXPORT_VAULT_METAVAR_PATH"
 
 #. TRANSLATORS: This metavar is used in Label.PASSPHRASE_GENERATION_EPILOG, Label.DERIVEPASSPHRASE_VAULT_LENGTH_HELP_TEXT and others, yielding e.g. "Ensure a passphrase length of NUMBER characters.".
 #. 
 #. Message-ID: Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
 msgctxt "Label :: Help text :: Metavar :: vault"
 msgid "NUMBER"
-msgstr ""
+msgstr "Label.PASSPHRASE_GENERATION_METAVAR_NUMBER"
 
 #. TRANSLATORS: This metavar is used in Label.STORAGE_MANAGEMENT_EPILOG, Label.DERIVEPASSPHRASE_VAULT_IMPORT_HELP_TEXT and others, yielding e.g. "Ensure a passphrase length of NUMBER characters.".
 #. 
 #. Message-ID: Label.STORAGE_MANAGEMENT_METAVAR_PATH
 msgctxt "Label :: Help text :: Metavar :: vault"
 msgid "PATH"
-msgstr ""
+msgstr "Label.STORAGE_MANAGEMENT_METAVAR_PATH"
 
 #. TRANSLATORS: This metavar is used as "service_metavar" in multiple help texts, such as Label.DERIVEPASSPHRASE_VAULT_CONFIG_HELP_TEXT, Label.DERIVEPASSPHRASE_VAULT_02, ErrMsgTemplate.SERVICE_REQUIRED, etc.  Sample texts are "Deriving a passphrase requires a SERVICE.", "save the given settings for SERVICE, or global" and "If operating on global settings, or importing/exporting settings, then SERVICE must be omitted."
 #. 
 #. Message-ID: Label.VAULT_METAVAR_SERVICE
 msgctxt "Label :: Help text :: Metavar :: vault"
 msgid "SERVICE"
-msgstr ""
+msgstr "Label.VAULT_METAVAR_SERVICE"
 
 #. TRANSLATORS: Message-ID: Label.DEBUG_OPTION_HELP_TEXT
 msgctxt "Label :: Help text :: One-line description"
 msgid "Also emit debug information.  Implies --verbose."
-msgstr ""
+msgstr "Label.DEBUG_OPTION_HELP_TEXT"
 
 #. TRANSLATORS: This is the first paragraph of the command help text, but it also appears (in truncated form, if necessary) as one-line help text for this command.  The translation should thus be as meaningful as possible even if truncated.
 #. 
 #. Message-ID: Label.DERIVEPASSPHRASE_01
 msgctxt "Label :: Help text :: One-line description"
 msgid "Derive a strong passphrase, deterministically, from a master secret."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_01"
 
 #. TRANSLATORS: This is the first paragraph of the command help text, but it also appears (in truncated form, if necessary) as one-line help text for this command.  The translation should thus be as meaningful as possible even if truncated.
 #. 
 #. Message-ID: Label.DERIVEPASSPHRASE_EXPORT_01
 msgctxt "Label :: Help text :: One-line description"
 msgid "Export a foreign configuration to standard output."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_EXPORT_01"
 
 #. TRANSLATORS: This is the first paragraph of the command help text, but it also appears (in truncated form, if necessary) as one-line help text for this command.  The translation should thus be as meaningful as possible even if truncated.
 #. 
 #. Message-ID: Label.DERIVEPASSPHRASE_EXPORT_VAULT_01
 msgctxt "Label :: Help text :: One-line description"
 msgid "Export a vault-native configuration to standard output."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_EXPORT_VAULT_01"
 
 #. TRANSLATORS: This is the first paragraph of the command help text, but it also appears (in truncated form, if necessary) as one-line help text for this command.  The translation should thus be as meaningful as possible even if truncated.
 #. 
 #. Message-ID: Label.DERIVEPASSPHRASE_VAULT_01
 msgctxt "Label :: Help text :: One-line description"
 msgid "Derive a passphrase using the vault derivation scheme."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_01"
 
 #. TRANSLATORS: The metavar is Label.VAULT_METAVAR_SERVICE.
 #. 
@@ -244,7 +242,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: One-line description"
 msgid "Save the given settings for {service_metavar}, or global."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_CONFIG_HELP_TEXT(service_metavar={service_metavar!r})"
 
 #. TRANSLATORS: The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
 #. 
@@ -252,17 +250,17 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: One-line description"
 msgid "Ensure at least {metavar} \"-\" or \"_\" characters."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_DASH_HELP_TEXT(metavar={metavar!r})"
 
 #. TRANSLATORS: Message-ID: Label.DERIVEPASSPHRASE_VAULT_DELETE_ALL_HELP_TEXT
 msgctxt "Label :: Help text :: One-line description"
 msgid "Delete all settings."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_DELETE_ALL_HELP_TEXT"
 
 #. TRANSLATORS: Message-ID: Label.DERIVEPASSPHRASE_VAULT_DELETE_GLOBALS_HELP_TEXT
 msgctxt "Label :: Help text :: One-line description"
 msgid "Delete the global settings."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_DELETE_GLOBALS_HELP_TEXT"
 
 #. TRANSLATORS: The metavar is Label.VAULT_METAVAR_SERVICE.
 #. 
@@ -270,21 +268,21 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: One-line description"
 msgid "Delete the settings for {service_metavar}."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_DELETE_HELP_TEXT(service_metavar={service_metavar!r})"
 
 #. TRANSLATORS: The corresponding option is displayed as "--modern-editor-interface / --vault-legacy-editor-interface", so you may want to hint that the default (legacy) is the second of those options.  Though the vault(1) legacy editor interface clearly has deficiencies and (in my opinion) should only be used for compatibility purposes, the one-line help text should try not to sound too judgmental, if possible.
 #. 
 #. Message-ID: Label.DERIVEPASSPHRASE_VAULT_EDITOR_INTERFACE_HELP_TEXT
 msgctxt "Label :: Help text :: One-line description"
 msgid "Edit notes using the modern editor interface or the vault-like legacy one (default)."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_EDITOR_INTERFACE_HELP_TEXT"
 
 #. TRANSLATORS: The corresponding option is displayed as "--export-as=json|sh", so json refers to the JSON format (default) and sh refers to the POSIX sh format.  Please ensure that it is clear what the "json" and "sh" refer to in your translation... even if you cannot use texutal correspondence like the English text does.
 #. 
 #. Message-ID: Label.DERIVEPASSPHRASE_VAULT_EXPORT_AS_HELP_TEXT
 msgctxt "Label :: Help text :: One-line description"
 msgid "When exporting, export as JSON (default) or as POSIX sh."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_EXPORT_AS_HELP_TEXT"
 
 #. TRANSLATORS: The metavar is Label.STORAGE_MANAGEMENT_METAVAR_PATH.
 #. 
@@ -292,7 +290,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: One-line description"
 msgid "Export all saved settings to {metavar}."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_EXPORT_HELP_TEXT(metavar={metavar!r})"
 
 #. TRANSLATORS: The metavar is Label.STORAGE_MANAGEMENT_METAVAR_PATH.
 #. 
@@ -300,12 +298,12 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: One-line description"
 msgid "Import saved settings from {metavar}."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_IMPORT_HELP_TEXT(metavar={metavar!r})"
 
 #. TRANSLATORS: Message-ID: Label.DERIVEPASSPHRASE_VAULT_KEY_HELP_TEXT
 msgctxt "Label :: Help text :: One-line description"
 msgid "Select a suitable SSH key from the SSH agent."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_KEY_HELP_TEXT"
 
 #. TRANSLATORS: The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
 #. 
@@ -313,7 +311,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: One-line description"
 msgid "Ensure a passphrase length of {metavar} characters."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_LENGTH_HELP_TEXT(metavar={metavar!r})"
 
 #. TRANSLATORS: The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
 #. 
@@ -321,7 +319,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: One-line description"
 msgid "Ensure at least {metavar} lowercase characters."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_LOWER_HELP_TEXT(metavar={metavar!r})"
 
 #. TRANSLATORS: The metavar is Label.VAULT_METAVAR_SERVICE.
 #. 
@@ -329,7 +327,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: One-line description"
 msgid "With --config and {service_metavar}, spawn an editor to edit notes."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_NOTES_HELP_TEXT(service_metavar={service_metavar!r})"
 
 #. TRANSLATORS: The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
 #. 
@@ -337,19 +335,19 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: One-line description"
 msgid "Ensure at least {metavar} digits."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_NUMBER_HELP_TEXT(metavar={metavar!r})"
 
 #. TRANSLATORS: The corresponding option is displayed as "--overwrite-existing / --merge-existing", so you may want to hint that the default (merge) is the second of those options.
 #. 
 #. Message-ID: Label.DERIVEPASSPHRASE_VAULT_OVERWRITE_HELP_TEXT
 msgctxt "Label :: Help text :: One-line description"
 msgid "Overwrite or merge (default) the existing configuration."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_OVERWRITE_HELP_TEXT"
 
 #. TRANSLATORS: Message-ID: Label.DERIVEPASSPHRASE_VAULT_PHRASE_HELP_TEXT
 msgctxt "Label :: Help text :: One-line description"
 msgid "Prompt for a master passphrase."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_PHRASE_HELP_TEXT"
 
 #. TRANSLATORS: The corresponding option is displayed as "--print-notes-before / --print-notes-after", so you may want to hint that the default (after) is the second of those options.
 #. 
@@ -357,7 +355,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: One-line description"
 msgid "Print the notes for {service_metavar} (if any) before or after (default) the derived passphrase."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_PRINT_NOTES_BEFORE_HELP_TEXT(service_metavar={service_metavar!r})"
 
 #. TRANSLATORS: The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
 #. 
@@ -365,7 +363,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: One-line description"
 msgid "Restrict runs of identical characters to at most {metavar} characters."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_REPEAT_HELP_TEXT(metavar={metavar!r})"
 
 #. TRANSLATORS: The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
 #. 
@@ -373,7 +371,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: One-line description"
 msgid "Ensure at least {metavar} spaces."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_SPACE_HELP_TEXT(metavar={metavar!r})"
 
 #. TRANSLATORS: The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
 #. 
@@ -381,14 +379,14 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: One-line description"
 msgid "Ensure at least {metavar} symbol characters."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_SYMBOL_HELP_TEXT(metavar={metavar!r})"
 
 #. TRANSLATORS: The corresponding option is displayed as "--unset=phrase|key|...|symbol", so the "given setting" is referring to "phrase", "key", "lower", ..., or "symbol", respectively.  "with --config" here means that the user must also specify "--config" for this option to have any effect.
 #. 
 #. Message-ID: Label.DERIVEPASSPHRASE_VAULT_UNSET_HELP_TEXT
 msgctxt "Label :: Help text :: One-line description"
 msgid "With --config, also unset the given setting.  May be specified multiple times."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_UNSET_HELP_TEXT"
 
 #. TRANSLATORS: The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
 #. 
@@ -396,14 +394,14 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: One-line description"
 msgid "Ensure at least {metavar} uppercase characters."
-msgstr ""
+msgstr "Label.DERIVEPASSPHRASE_VAULT_UPPER_HELP_TEXT(metavar={metavar!r})"
 
 #. TRANSLATORS: See EXPORT_VAULT_FORMAT_HELP_TEXT.  The format names/labels "v0.3", "v0.2" and "storeroom" should not be translated.
 #. 
 #. Message-ID: Label.EXPORT_VAULT_FORMAT_DEFAULTS_HELP_TEXT
 msgctxt "Label :: Help text :: One-line description"
 msgid "Default: v0.3, v0.2, storeroom."
-msgstr ""
+msgstr "Label.EXPORT_VAULT_FORMAT_DEFAULTS_HELP_TEXT"
 
 #. TRANSLATORS: The defaults_hint is Label.EXPORT_VAULT_FORMAT_DEFAULTS_HELP_TEXT, the metavar is Label.EXPORT_VAULT_FORMAT_METAVAR_FMT.
 #. 
@@ -411,14 +409,14 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: One-line description"
 msgid "Try the following storage format {metavar}.  If specified multiple times, the formats will be tried in order.  {defaults_hint}"
-msgstr ""
+msgstr "Label.EXPORT_VAULT_FORMAT_HELP_TEXT(metavar={metavar!r}, defaults_hint={defaults_hint!r})"
 
 #. TRANSLATORS: See EXPORT_VAULT_KEY_HELP_TEXT.
 #. 
 #. Message-ID: Label.EXPORT_VAULT_KEY_DEFAULTS_HELP_TEXT
 msgctxt "Label :: Help text :: One-line description"
 msgid "Default: check the VAULT_KEY, LOGNAME, USER, or USERNAME environment variables."
-msgstr ""
+msgstr "Label.EXPORT_VAULT_KEY_DEFAULTS_HELP_TEXT"
 
 #. TRANSLATORS: The defaults_hint is Label.EXPORT_VAULT_KEY_DEFAULTS_HELP_TEXT, the metavar is Label.EXPORT_VAULT_KEY_METAVAR_K.
 #. 
@@ -426,67 +424,67 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Help text :: One-line description"
 msgid "Use {metavar} as the storage master key.  {defaults_hint}"
-msgstr ""
+msgstr "Label.EXPORT_VAULT_KEY_HELP_TEXT(metavar={metavar!r}, defaults_hint={defaults_hint!r})"
 
 #. TRANSLATORS: Message-ID: Label.HELP_OPTION_HELP_TEXT
 msgctxt "Label :: Help text :: One-line description"
 msgid "Show this help text, then exit."
-msgstr ""
+msgstr "Label.HELP_OPTION_HELP_TEXT"
 
 #. TRANSLATORS: Message-ID: Label.QUIET_OPTION_HELP_TEXT
 msgctxt "Label :: Help text :: One-line description"
 msgid "Suppress even warnings; emit only errors."
-msgstr ""
+msgstr "Label.QUIET_OPTION_HELP_TEXT"
 
 #. TRANSLATORS: Message-ID: Label.VERBOSE_OPTION_HELP_TEXT
 msgctxt "Label :: Help text :: One-line description"
 msgid "Emit extra/progress information to standard error."
-msgstr ""
+msgstr "Label.VERBOSE_OPTION_HELP_TEXT"
 
 #. TRANSLATORS: Message-ID: Label.VERSION_OPTION_HELP_TEXT
 msgctxt "Label :: Help text :: One-line description"
 msgid "Show version and feature information, then exit."
-msgstr ""
+msgstr "Label.VERSION_OPTION_HELP_TEXT"
 
 #. TRANSLATORS: Message-ID: Label.COMMANDS_LABEL
 msgctxt "Label :: Help text :: Option group name"
 msgid "Commands"
-msgstr ""
+msgstr "Label.COMMANDS_LABEL"
 
 #. TRANSLATORS: Message-ID: Label.COMPATIBILITY_OPTION_LABEL
 msgctxt "Label :: Help text :: Option group name"
 msgid "Compatibility and extension options"
-msgstr ""
+msgstr "Label.COMPATIBILITY_OPTION_LABEL"
 
 #. TRANSLATORS: Message-ID: Label.CONFIGURATION_LABEL
 msgctxt "Label :: Help text :: Option group name"
 msgid "Configuration"
-msgstr ""
+msgstr "Label.CONFIGURATION_LABEL"
 
 #. TRANSLATORS: Message-ID: Label.LOGGING_LABEL
 msgctxt "Label :: Help text :: Option group name"
 msgid "Logging"
-msgstr ""
+msgstr "Label.LOGGING_LABEL"
 
 #. TRANSLATORS: Message-ID: Label.OPTIONS_LABEL
 msgctxt "Label :: Help text :: Option group name"
 msgid "Options"
-msgstr ""
+msgstr "Label.OPTIONS_LABEL"
 
 #. TRANSLATORS: Message-ID: Label.OTHER_OPTIONS_LABEL
 msgctxt "Label :: Help text :: Option group name"
 msgid "Other options"
-msgstr ""
+msgstr "Label.OTHER_OPTIONS_LABEL"
 
 #. TRANSLATORS: Message-ID: Label.PASSPHRASE_GENERATION_LABEL
 msgctxt "Label :: Help text :: Option group name"
 msgid "Passphrase generation"
-msgstr ""
+msgstr "Label.PASSPHRASE_GENERATION_LABEL"
 
 #. TRANSLATORS: Message-ID: Label.STORAGE_MANAGEMENT_LABEL
 msgctxt "Label :: Help text :: Option group name"
 msgid "Storage management"
-msgstr ""
+msgstr "Label.STORAGE_MANAGEMENT_LABEL"
 
 #. TRANSLATORS: This message reports on the version of a major library currently in use, such as "cryptography".
 #. 
@@ -494,83 +492,83 @@ msgstr ""
 #, python-brace-format
 msgctxt "Label :: Info Message"
 msgid "Using {dependency_name_and_version}"
-msgstr ""
+msgstr "Label.VERSION_INFO_MAJOR_LIBRARY_TEXT(dependency_name_and_version={dependency_name_and_version!r})"
 
 #. TRANSLATORS: This is part of the version output, emitting lists of enabled PEP 508 extras.  A comma-separated English list of items follows, with standard English punctuation.
 #. 
 #. Message-ID: Label.ENABLED_PEP508_EXTRAS
 msgctxt "Label :: Info Message:: Table row header"
 msgid "PEP 508 extras:"
-msgstr ""
+msgstr "Label.ENABLED_PEP508_EXTRAS"
 
 #. TRANSLATORS: This is part of the version output, emitting lists of supported derivation schemes.  A comma-separated English list of items follows, with standard English punctuation.
 #. 
 #. Message-ID: Label.SUPPORTED_DERIVATION_SCHEMES
 msgctxt "Label :: Info Message:: Table row header"
 msgid "Supported derivation schemes:"
-msgstr ""
+msgstr "Label.SUPPORTED_DERIVATION_SCHEMES"
 
 #. TRANSLATORS: This is part of the version output, emitting lists of supported features for this subcommand.  A comma-separated English list of items follows, with standard English punctuation.
 #. 
 #. Message-ID: Label.SUPPORTED_FEATURES
 msgctxt "Label :: Info Message:: Table row header"
 msgid "Supported features:"
-msgstr ""
+msgstr "Label.SUPPORTED_FEATURES"
 
 #. TRANSLATORS: This is part of the version output, emitting lists of supported foreign configuration formats.  A comma-separated English list of items follows, with standard English punctuation.
 #. 
 #. Message-ID: Label.SUPPORTED_FOREIGN_CONFIGURATION_FORMATS
 msgctxt "Label :: Info Message:: Table row header"
 msgid "Supported foreign configuration formats:"
-msgstr ""
+msgstr "Label.SUPPORTED_FOREIGN_CONFIGURATION_FORMATS"
 
 #. TRANSLATORS: This is part of the version output, emitting lists of supported subcommands.  A comma-separated English list of items follows, with standard English punctuation.
 #. 
 #. Message-ID: Label.SUPPORTED_SUBCOMMANDS
 msgctxt "Label :: Info Message:: Table row header"
 msgid "Supported subcommands:"
-msgstr ""
+msgstr "Label.SUPPORTED_SUBCOMMANDS"
 
 #. TRANSLATORS: This is part of the version output, emitting lists of known, unavailable derivation schemes.  A comma-separated English list of items follows, with standard English punctuation.
 #. 
 #. Message-ID: Label.UNAVAILABLE_DERIVATION_SCHEMES
 msgctxt "Label :: Info Message:: Table row header"
 msgid "Known derivation schemes:"
-msgstr ""
+msgstr "Label.UNAVAILABLE_DERIVATION_SCHEMES"
 
 #. TRANSLATORS: This is part of the version output, emitting lists of known, unavailable features for this subcommand.  A comma-separated English list of items follows, with standard English punctuation.
 #. 
 #. Message-ID: Label.UNAVAILABLE_FEATURES
 msgctxt "Label :: Info Message:: Table row header"
 msgid "Known features:"
-msgstr ""
+msgstr "Label.UNAVAILABLE_FEATURES"
 
 #. TRANSLATORS: This is part of the version output, emitting lists of known, unavailable foreign configuration formats.  A comma-separated English list of items follows, with standard English punctuation.
 #. 
 #. Message-ID: Label.UNAVAILABLE_FOREIGN_CONFIGURATION_FORMATS
 msgctxt "Label :: Info Message:: Table row header"
 msgid "Known foreign configuration formats:"
-msgstr ""
+msgstr "Label.UNAVAILABLE_FOREIGN_CONFIGURATION_FORMATS"
 
 #. TRANSLATORS: There is no support for "yes" or "no" in other languages than English, so it is advised that your translation makes it clear that only the strings "y", "yes", "n" or "no" are supported, even if the prompt becomes a bit longer.
 #. 
 #. Message-ID: Label.CONFIRM_THIS_CHOICE_PROMPT_TEXT
 msgctxt "Label :: Interactive prompt"
 msgid "Confirm this choice?  (y/N)"
-msgstr ""
+msgstr "Label.CONFIRM_THIS_CHOICE_PROMPT_TEXT"
 
 #. TRANSLATORS: This label is the heading of the list of suitable SSH keys.
 #. 
 #. Message-ID: Label.SUITABLE_SSH_KEYS_LABEL
 msgctxt "Label :: Interactive prompt"
 msgid "Suitable SSH keys:"
-msgstr ""
+msgstr "Label.SUITABLE_SSH_KEYS_LABEL"
 
 #. TRANSLATORS: Message-ID: Label.YOUR_SELECTION_PROMPT_TEXT
 #, python-brace-format
 msgctxt "Label :: Interactive prompt"
 msgid "Your selection?  (1-{n}, leave empty to abort)"
-msgstr ""
+msgstr "Label.YOUR_SELECTION_PROMPT_TEXT(n={n!r})"
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "storeroom"-type configuration directories.  The system stores entries in different "buckets" of a hash table.  Here, we report on a single item (path and value) we discovered after decrypting the whole bucket.  (We ensure the path and value are printable as-is.)
 #. 
@@ -578,7 +576,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Debug message"
 msgid "Found bucket item: {path} -> {value}"
-msgstr ""
+msgstr "DebugMsgTemplate.BUCKET_ITEM_FOUND(path={path!r}, value={value!r})"
 
 #. TRANSLATORS: "AES256-CBC" and "PKCS#7" are, in essence, names of formats, and should not be translated.  "IV" means "initialization vector", and is specifically a cryptographic term, as are "plaintext" and "ciphertext".
 #. 
@@ -592,7 +590,7 @@ msgid "Decrypt bucket item contents:\n"
 "  Encryption IV: {iv}\n"
 "  Encrypted ciphertext: {ciphertext}\n"
 "  Plaintext: {plaintext}"
-msgstr ""
+msgstr "DebugMsgTemplate.DECRYPT_BUCKET_ITEM_INFO(enc_key={enc_key!r}, iv={iv!r}, ciphertext={ciphertext!r}, plaintext={plaintext!r})"
 
 #. TRANSLATORS: Message-ID: DebugMsgTemplate.DECRYPT_BUCKET_ITEM_KEY_INFO
 #, python-brace-format
@@ -602,7 +600,7 @@ msgid "Decrypt bucket item:\n"
 "  Plaintext: {plaintext}\n"
 "  Encryption key (master key): {enc_key}\n"
 "  Signing key (master key): {sign_key}"
-msgstr ""
+msgstr "DebugMsgTemplate.DECRYPT_BUCKET_ITEM_KEY_INFO(plaintext={plaintext!r}, enc_key={enc_key!r}, sign_key={sign_key!r})"
 
 #. TRANSLATORS: The MAC stands for "message authentication code", which guarantees the authenticity of the message to anyone who holds the corresponding key, similar to a digital signature.  The acronym "MAC" is assumed to be well-known to the English target audience, or at least discoverable by them; they *are* asking for debug output, after all.  Please use your judgement as to whether to translate this term or not, expanded or not.
 #. 
@@ -615,7 +613,7 @@ msgid "Decrypt bucket item contents:\n"
 "  Authenticated content: {ciphertext}\n"
 "  Claimed MAC value: {claimed_mac}\n"
 "  Computed MAC value: {actual_mac}"
-msgstr ""
+msgstr "DebugMsgTemplate.DECRYPT_BUCKET_ITEM_MAC_INFO(sign_key={sign_key!r}, ciphertext={ciphertext!r}, claimed_mac={claimed_mac!r}, actual_mac={actual_mac!r})"
 
 #. TRANSLATORS: "AES256-CBC" and "PKCS#7" are, in essence, names of formats, and should not be translated.  "IV" means "initialization vector", and is specifically a cryptographic term, as are "plaintext" and "ciphertext".
 #. 
@@ -630,7 +628,7 @@ msgid "Decrypt bucket item session keys:\n"
 "  Encrypted ciphertext: {ciphertext}\n"
 "  Plaintext: {plaintext}\n"
 "  Parsed plaintext: {code}"
-msgstr ""
+msgstr "DebugMsgTemplate.DECRYPT_BUCKET_ITEM_SESSION_KEYS_INFO(enc_key={enc_key!r}, iv={iv!r}, ciphertext={ciphertext!r}, plaintext={plaintext!r}, code={code!r})"
 
 #. TRANSLATORS: The MAC stands for "message authentication code", which guarantees the authenticity of the message to anyone who holds the corresponding key, similar to a digital signature.  The acronym "MAC" is assumed to be well-known to the English target audience, or at least discoverable by them; they *are* asking for debug output, after all.  Please use your judgement as to whether to translate this term or not, expanded or not.
 #. 
@@ -643,7 +641,7 @@ msgid "Decrypt bucket item session keys:\n"
 "  Authenticated content: {ciphertext}\n"
 "  Claimed MAC value: {claimed_mac}\n"
 "  Computed MAC value: {actual_mac}"
-msgstr ""
+msgstr "DebugMsgTemplate.DECRYPT_BUCKET_ITEM_SESSION_KEYS_MAC_INFO(sign_key={sign_key!r}, ciphertext={ciphertext!r}, claimed_mac={claimed_mac!r}, actual_mac={actual_mac!r})"
 
 #. TRANSLATORS: Message-ID: DebugMsgTemplate.DERIVED_MASTER_KEYS_KEYS
 #, python-brace-format
@@ -654,7 +652,7 @@ msgid "Derived master keys' keys:\n"
 "  Signing key: {sign_key}\n"
 "  Password: {pw_bytes}\n"
 "  Function call: pbkdf2(algorithm={algorithm!r}, length={length!r}, salt={salt!r}, iterations={iterations!r})"
-msgstr ""
+msgstr "DebugMsgTemplate.DERIVED_MASTER_KEYS_KEYS(enc_key={enc_key!r}, sign_key={sign_key!r}, pw_bytes={pw_bytes!r}, algorithm={algorithm!r}, length={length!r}, salt={salt!r}, iterations={iterations!r})"
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "storeroom"-type configuration directories, while "assembling" the items stored in the configuration according to the item's "path".  Each "directory" in the path contains a list of children it claims to contain, and this list must be matched against the actual discovered items.  Now, at the end, we actually confirm the claim.  (We would have already thrown an error here otherwise.)
 #. 
@@ -662,7 +660,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Debug message"
 msgid "Directory contents check OK: {path} -> {contents}"
-msgstr ""
+msgstr "DebugMsgTemplate.DIRECTORY_CONTENTS_CHECK_OK(path={path!r}, contents={contents!r})"
 
 #. TRANSLATORS: The MAC stands for "message authentication code", which guarantees the authenticity of the message to anyone who holds the corresponding key, similar to a digital signature.  The acronym "MAC" is assumed to be well-known to the English target audience, or at least discoverable by them; they *are* asking for debug output, after all.  Please use your judgement as to whether to translate this term or not, expanded or not.
 #. 
@@ -675,7 +673,7 @@ msgid "Master keys data:\n"
 "  Authenticated content: {ciphertext}\n"
 "  Claimed MAC value: {claimed_mac}\n"
 "  Computed MAC value: {actual_mac}"
-msgstr ""
+msgstr "DebugMsgTemplate.MASTER_KEYS_DATA_MAC_INFO(sign_key={sign_key!r}, ciphertext={ciphertext!r}, claimed_mac={claimed_mac!r}, actual_mac={actual_mac!r})"
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "storeroom"-type configuration directories, while "assembling" the items stored in the configuration according to the item's "path".  Each "directory" in the path contains a list of children it claims to contain, and this list must be matched against the actual discovered items.  When emitting this message, we merely indicate that we saved the "claimed" list for this directory for later.
 #. 
@@ -683,7 +681,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Debug message"
 msgid "Postponing directory contents check: {path} -> {contents}"
-msgstr ""
+msgstr "DebugMsgTemplate.POSTPONING_DIRECTORY_CONTENTS_CHECK(path={path!r}, contents={contents!r})"
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "storeroom"-type configuration directories, while "assembling" the items stored in the configuration according to the item's "path".  We confirm that we set the entry at the given path to the given value.
 #. 
@@ -691,7 +689,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Debug message"
 msgid "Setting contents: {path} -> {value}"
-msgstr ""
+msgstr "DebugMsgTemplate.SETTING_CONFIG_STRUCTURE_CONTENTS(path={path!r}, value={value!r})"
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "storeroom"-type configuration directories, while "assembling" the items stored in the configuration according to the item's "path".  We confirm that we set up a currently empty directory at the given path.
 #. 
@@ -699,7 +697,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Debug message"
 msgid "Setting contents (empty directory): {path}"
-msgstr ""
+msgstr "DebugMsgTemplate.SETTING_CONFIG_STRUCTURE_CONTENTS_EMPTY_DIRECTORY(path={path!r})"
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "native"-type configuration directories.  It is preceded by the info message VAULT_NATIVE_PARSING_IV_PAYLOAD_MAC; see the commentary there concerning the terms and thoughts on translating them.
 #. 
@@ -710,7 +708,7 @@ msgid "MAC details:\n"
 "\n"
 "  MAC input: {mac_input}\n"
 "  Expected MAC: {mac}"
-msgstr ""
+msgstr "DebugMsgTemplate.VAULT_NATIVE_CHECKING_MAC_DETAILS(mac_input={mac_input!r}, mac={mac!r})"
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "native"-type configuration directories: in v0.2, the non-standard and deprecated "EVP_bytestokey" function from OpenSSL must be reimplemented from scratch.  The terms "salt" and "IV" (initialization vector) are cryptographic terms.
 #. 
@@ -725,7 +723,7 @@ msgid "evp_bytestokey_md5 (initialization):\n"
 "  IV size: {iv_size}\n"
 "  Buffer length: {buffer_length}\n"
 "  Buffer: {buffer}"
-msgstr ""
+msgstr "DebugMsgTemplate.VAULT_NATIVE_EVP_BYTESTOKEY_INIT(data={data!r}, salt={salt!r}, key_size={key_size!r}, iv_size={iv_size!r}, buffer_length={buffer_length!r}, buffer={buffer!r})"
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "native"-type configuration directories: in v0.2, the non-standard and deprecated "EVP_bytestokey" function from OpenSSL must be reimplemented from scratch.  The terms "salt" and "IV" (initialization vector) are cryptographic terms.This function reports on the final results.
 #. 
@@ -736,7 +734,7 @@ msgid "evp_bytestokey_md5 (result):\n"
 "\n"
 "  Encryption key: {enc_key}\n"
 "  IV: {iv}"
-msgstr ""
+msgstr "DebugMsgTemplate.VAULT_NATIVE_EVP_BYTESTOKEY_RESULT(enc_key={enc_key!r}, iv={iv!r})"
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "native"-type configuration directories: in v0.2, the non-standard and deprecated "EVP_bytestokey" function from OpenSSL must be reimplemented from scratch.  The terms "salt" and "IV" (initialization vector) are cryptographic terms.This function reports on the updated buffer length and contents after executing one round of hashing.
 #. 
@@ -747,7 +745,7 @@ msgid "evp_bytestokey_md5 (round update):\n"
 "\n"
 "  Buffer length: {buffer_length}\n"
 "  Buffer: {buffer}"
-msgstr ""
+msgstr "DebugMsgTemplate.VAULT_NATIVE_EVP_BYTESTOKEY_ROUND(buffer_length={buffer_length!r}, buffer={buffer!r})"
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "native"-type configuration directories.  "padding" and "plaintext" are cryptographic terms.
 #. 
@@ -755,7 +753,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Debug message"
 msgid "Padded plaintext: {contents}"
-msgstr ""
+msgstr "DebugMsgTemplate.VAULT_NATIVE_PADDED_PLAINTEXT(contents={contents!r})"
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "native"-type configuration directories.  It is preceded by the info message VAULT_NATIVE_PARSING_IV_PAYLOAD_MAC; see the commentary there concerning the terms and thoughts on translating them.
 #. 
@@ -767,7 +765,7 @@ msgid "Buffer: {contents}\n"
 "  IV: {iv}\n"
 "  Payload (ciphertext): {payload}\n"
 "  MAC: {mac}"
-msgstr ""
+msgstr "DebugMsgTemplate.VAULT_NATIVE_PARSE_BUFFER(contents={contents!r}, iv={iv!r}, payload={payload!r}, mac={mac!r})"
 
 #. TRANSLATORS: Message-ID: DebugMsgTemplate.VAULT_NATIVE_PBKDF2_CALL
 #, python-brace-format
@@ -777,7 +775,7 @@ msgid "Master key derivation:\n"
 "  PBKDF2 call: PBKDF2-HMAC(password={password!r}, salt={salt!r}, iterations={iterations!r}, key_size={key_size!r}, algorithm={algorithm!r})\n"
 "  Result (binary): {raw_result}\n"
 "  Result (hex key): {result_key!r}"
-msgstr ""
+msgstr "DebugMsgTemplate.VAULT_NATIVE_PBKDF2_CALL(password={password!r}, salt={salt!r}, iterations={iterations!r}, key_size={key_size!r}, algorithm={algorithm!r}, raw_result={raw_result!r}, result_key={result_key!r})"
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "native"-type configuration directories.  "plaintext" is a cryptographic term.
 #. 
@@ -785,7 +783,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Debug message"
 msgid "Plaintext: {contents}"
-msgstr ""
+msgstr "DebugMsgTemplate.VAULT_NATIVE_PLAINTEXT(contents={contents!r})"
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "native"-type configuration directories.  It is preceded by the info message VAULT_NATIVE_PARSING_IV_PAYLOAD_MAC and the debug message PARSING_NATIVE_PARSE_BUFFER; see the commentary there concerning the terms and thoughts on translating them.
 #. 
@@ -796,14 +794,14 @@ msgid "Postprocessing buffer (v0.2):\n"
 "\n"
 "  Payload: {payload} (decoded from base64)\n"
 "  MAC: {mac} (decoded from hex)"
-msgstr ""
+msgstr "DebugMsgTemplate.VAULT_NATIVE_V02_PAYLOAD_MAC_POSTPROCESSING(payload={payload!r}, mac={mac!r})"
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "storeroom"-type configuration directories.  The system stores entries in different "buckets" of a hash table.  After the respective items in the buckets have been decrypted, we then have a list of item paths plus contents to populate.  This must be done in a certain order (we don't yet have an existing directory tree to rely on, but rather must build it on-the-fly), hence the term "assembling".
 #. 
 #. Message-ID: InfoMsgTemplate.ASSEMBLING_CONFIG_STRUCTURE
 msgctxt "Info message"
 msgid "Assembling config structure."
-msgstr ""
+msgstr "InfoMsgTemplate.ASSEMBLING_CONFIG_STRUCTURE"
 
 #. TRANSLATORS: "fmt" is a string such as "v0.2" or "storeroom", indicating the format which we tried to load the vault configuration as.
 #. 
@@ -811,14 +809,14 @@ msgstr ""
 #, python-brace-format
 msgctxt "Info message"
 msgid "Cannot load {path!r} as a {fmt} vault configuration."
-msgstr ""
+msgstr "InfoMsgTemplate.CANNOT_LOAD_AS_VAULT_CONFIG(path={path!r}, fmt={fmt!r})"
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "storeroom"-type configuration directories.  Having "assembled" the configuration items according to their claimed paths and contents, we then check if the assembled structure is internally consistent.
 #. 
 #. Message-ID: InfoMsgTemplate.CHECKING_CONFIG_STRUCTURE_CONSISTENCY
 msgctxt "Info message"
 msgid "Checking config structure consistency."
-msgstr ""
+msgstr "InfoMsgTemplate.CHECKING_CONFIG_STRUCTURE_CONSISTENCY"
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "storeroom"-type configuration directories.  The system stores entries in different "buckets" of a hash table.  We parse the directory bucket by bucket.  All buckets are numbered in hexadecimal, and typically there are 32 buckets, so 2-digit hex numbers.
 #. 
@@ -826,14 +824,14 @@ msgstr ""
 #, python-brace-format
 msgctxt "Info message"
 msgid "Decrypting bucket {bucket_number}."
-msgstr ""
+msgstr "InfoMsgTemplate.DECRYPTING_BUCKET(bucket_number={bucket_number!r})"
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "storeroom"-type configuration directories.  `.keys` is a filename, from which data about the master keys for this configuration are loaded.
 #. 
 #. Message-ID: InfoMsgTemplate.PARSING_MASTER_KEYS_DATA
 msgctxt "Info message"
 msgid "Parsing master keys data from `.keys`."
-msgstr ""
+msgstr "InfoMsgTemplate.PARSING_MASTER_KEYS_DATA"
 
 #. TRANSLATORS: This message immediately follows an error message about a missing library that needs to be installed.  The Python Package Index (PyPI) supports declaring sets of optional dependencies as "extras", so users installing from PyPI can request reinstallation with a named "extra" being enabled.  This would then let the installer take care of the missing libraries automatically, hence this suggestion to PyPI users.
 #. 
@@ -841,7 +839,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Info message"
 msgid "For users installing from PyPI, see the {extra_name!r} extra."
-msgstr ""
+msgstr "InfoMsgTemplate.PIP_INSTALL_EXTRA(extra_name={extra_name!r})"
 
 #. TRANSLATORS: This info message immediately follows the "Using deprecated v0.1-style ..." deprecation warning.
 #. 
@@ -849,46 +847,46 @@ msgstr ""
 #, python-brace-format
 msgctxt "Info message"
 msgid "Successfully migrated to {path!r}."
-msgstr ""
+msgstr "InfoMsgTemplate.SUCCESSFULLY_MIGRATED(path={path!r})"
 
 #. TRANSLATORS: Message-ID: InfoMsgTemplate.VAULT_NATIVE_CHECKING_MAC
 msgctxt "Info message"
 msgid "Checking MAC."
-msgstr ""
+msgstr "InfoMsgTemplate.VAULT_NATIVE_CHECKING_MAC"
 
 #. TRANSLATORS: Message-ID: InfoMsgTemplate.VAULT_NATIVE_DECRYPTING_CONTENTS
 msgctxt "Info message"
 msgid "Decrypting contents."
-msgstr ""
+msgstr "InfoMsgTemplate.VAULT_NATIVE_DECRYPTING_CONTENTS"
 
 #. TRANSLATORS: Message-ID: InfoMsgTemplate.VAULT_NATIVE_DERIVING_KEYS
 msgctxt "Info message"
 msgid "Deriving an encryption and signing key."
-msgstr ""
+msgstr "InfoMsgTemplate.VAULT_NATIVE_DERIVING_KEYS"
 
 #. TRANSLATORS: This message is emitted by the vault configuration exporter for "native"-type configuration directories.  "IV" means "initialization vector", and "MAC" means "message authentication code".  They are specifically cryptographic terms, as is "payload".  The acronyms "IV" and "MAC" are assumed to be well-known to the English target audience, or at least discoverable by them; they *are* asking for debug output, after all.  Please use your judgement as to whether to translate these terms or not, expanded or not.
 #. 
 #. Message-ID: InfoMsgTemplate.VAULT_NATIVE_PARSING_IV_PAYLOAD_MAC
 msgctxt "Info message"
 msgid "Parsing IV, payload and MAC from the file contents."
-msgstr ""
+msgstr "InfoMsgTemplate.VAULT_NATIVE_PARSING_IV_PAYLOAD_MAC"
 
 #. TRANSLATORS: Message-ID: WarnMsgTemplate.EDITING_NOTES_BUT_NOT_STORING_CONFIG
 msgctxt "Warning message"
 msgid "Specifying --notes without --config is ineffective.  No notes will be edited."
-msgstr ""
+msgstr "WarnMsgTemplate.EDITING_NOTES_BUT_NOT_STORING_CONFIG"
 
 #. TRANSLATORS: Message-ID: WarnMsgTemplate.EMPTY_SERVICE_NOT_SUPPORTED
 #, python-brace-format
 msgctxt "Warning message"
 msgid "An empty {service_metavar} is not supported by vault(1).  For compatibility, this will be treated as if {service_metavar} was not supplied, i.e., it will error out, or operate on global settings."
-msgstr ""
+msgstr "WarnMsgTemplate.EMPTY_SERVICE_NOT_SUPPORTED(service_metavar={service_metavar!r})"
 
 #. TRANSLATORS: Message-ID: WarnMsgTemplate.EMPTY_SERVICE_SETTINGS_INACCESSIBLE
 #, python-brace-format
 msgctxt "Warning message"
 msgid "An empty {service_metavar} is not supported by vault(1).  The empty-string service settings will be inaccessible and ineffective.  To ensure that vault(1) and {PROG_NAME} see the settings, move them into the \"global\" section."
-msgstr ""
+msgstr "WarnMsgTemplate.EMPTY_SERVICE_SETTINGS_INACCESSIBLE(service_metavar={service_metavar!r}, PROG_NAME={PROG_NAME!r})"
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -896,7 +894,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Warning message"
 msgid "Failed to migrate to {path!r}: {error}: {filename!r}."
-msgstr ""
+msgstr "WarnMsgTemplate.FAILED_TO_MIGRATE_CONFIG(path={path!r}, error={error!r}, filename={filename!r})"
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -904,18 +902,18 @@ msgstr ""
 #, python-brace-format
 msgctxt "Warning message"
 msgid "Failed to migrate to {path!r}: {error}."
-msgstr ""
+msgstr "WarnMsgTemplate.FAILED_TO_MIGRATE_CONFIG(path={path!r}, error={error!r}, filename=None)"
 
 #. TRANSLATORS: Message-ID: WarnMsgTemplate.GLOBAL_PASSPHRASE_INEFFECTIVE
 msgctxt "Warning message"
 msgid "Setting a global passphrase is ineffective because a key is also set."
-msgstr ""
+msgstr "WarnMsgTemplate.GLOBAL_PASSPHRASE_INEFFECTIVE"
 
 #. TRANSLATORS: Message-ID: WarnMsgTemplate.LEGACY_EDITOR_INTERFACE_NOTES_BACKUP
 #, python-brace-format
 msgctxt "Warning message"
 msgid "A backup copy of the old notes was saved to {filename!r}.  This is a safeguard against editing mistakes, because the vault(1)-compatible legacy editor interface does not allow aborting mid-edit, and because the notes were actually changed."
-msgstr ""
+msgstr "WarnMsgTemplate.LEGACY_EDITOR_INTERFACE_NOTES_BACKUP(filename={filename!r})"
 
 #. TRANSLATORS: The key is a (vault) configuration key, in JSONPath syntax, typically "$.global" for the global passphrase or "$.services.service_name" or "$.services["service with spaces"]" for the services "service_name" and "service with spaces", respectively.  Alternatively, it may be the value of Label.SETTINGS_ORIGIN_INTERACTIVE if the passphrase was entered interactively.  The form is one of the four Unicode normalization forms: NFC, NFD, NFKC, NFKD.  The asterisks are not special.  Please feel free to substitute any other appropriate way to mark up emphasis of the word "displays".
 #. 
@@ -923,13 +921,13 @@ msgstr ""
 #, python-brace-format
 msgctxt "Warning message"
 msgid "The {key} passphrase is not {form}-normalized.  Its serialization as a byte string may not be what you expect it to be, even if it *displays* correctly.  Please make sure to double-check any derived passphrases for unexpected results."
-msgstr ""
+msgstr "WarnMsgTemplate.PASSPHRASE_NOT_NORMALIZED(key={key!r}, form={form!r})"
 
 #. TRANSLATORS: Message-ID: WarnMsgTemplate.SERVICE_NAME_INCOMPLETABLE
 #, python-brace-format
 msgctxt "Warning message"
 msgid "The service name {service!r} contains an ASCII control character, which is not supported by our shell completion code.  This service name will therefore not be available for completion on the command-line.  You may of course still type it in manually in whatever format your shell accepts, but we highly recommend choosing a different service name instead."
-msgstr ""
+msgstr "WarnMsgTemplate.SERVICE_NAME_INCOMPLETABLE(service={service!r})"
 
 #. TRANSLATORS: The key that is set need not necessarily be set at the service level; it may be a global key as well.
 #. 
@@ -937,46 +935,46 @@ msgstr ""
 #, python-brace-format
 msgctxt "Warning message"
 msgid "Setting a service passphrase is ineffective because a key is also set: {service}."
-msgstr ""
+msgstr "WarnMsgTemplate.SERVICE_PASSPHRASE_INEFFECTIVE(service={service!r})"
 
 #. TRANSLATORS: Message-ID: WarnMsgTemplate.STEP_REMOVE_INEFFECTIVE_VALUE
 #, python-brace-format
 msgctxt "Warning message"
 msgid "Removing ineffective setting {path} = {old}."
-msgstr ""
+msgstr "WarnMsgTemplate.STEP_REMOVE_INEFFECTIVE_VALUE(path={path!r}, old={old!r})"
 
 #. TRANSLATORS: Message-ID: WarnMsgTemplate.STEP_REPLACE_INVALID_VALUE
 #, python-brace-format
 msgctxt "Warning message"
 msgid "Replacing invalid value {old} for key {path} with {new}."
-msgstr ""
+msgstr "WarnMsgTemplate.STEP_REPLACE_INVALID_VALUE(old={old!r}, path={path!r}, new={new!r})"
 
 #. TRANSLATORS: Message-ID: WarnMsgTemplate.V01_STYLE_CONFIG
 #, python-brace-format
 msgctxt "Warning message :: Deprecation"
 msgid "Using deprecated v0.1-style config file {old!r}, instead of v0.2-style {new!r}.  Support for v0.1-style config filenames will be removed in v1.0."
-msgstr ""
+msgstr "WarnMsgTemplate.V01_STYLE_CONFIG(old={old!r}, new={new!r})"
 
 #. TRANSLATORS: This deprecation warning may be issued at any level, i.e. we may actually be talking about subcommands, or sub-subcommands, or sub-sub-subcommands, etc., which is what the "here" is supposed to indicate.
 #. 
 #. Message-ID: WarnMsgTemplate.V10_SUBCOMMAND_REQUIRED
 msgctxt "Warning message :: Deprecation"
 msgid "A subcommand will be required here in v1.0.  See --help for available subcommands.  Defaulting to subcommand \"vault\"."
-msgstr ""
+msgstr "WarnMsgTemplate.V10_SUBCOMMAND_REQUIRED"
 
 #. TRANSLATORS: "loaded keys" being keys loaded into the agent.
 #. 
 #. Message-ID: ErrMsgTemplate.AGENT_REFUSED_LIST_KEYS
 msgctxt "Error message"
 msgid "The SSH agent failed to or refused to supply a list of loaded keys."
-msgstr ""
+msgstr "ErrMsgTemplate.AGENT_REFUSED_LIST_KEYS"
 
 #. TRANSLATORS: The message to be signed is the vault UUID, but there's no space to explain that here, so ideally the error message does not go into detail.
 #. 
 #. Message-ID: ErrMsgTemplate.AGENT_REFUSED_SIGNATURE
 msgctxt "Error message"
 msgid "The SSH agent failed to or refused to issue a signature with the selected key, necessary for deriving a service passphrase."
-msgstr ""
+msgstr "ErrMsgTemplate.AGENT_REFUSED_SIGNATURE"
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -984,7 +982,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Cannot connect to the SSH agent: {error}: {filename!r}."
-msgstr ""
+msgstr "ErrMsgTemplate.CANNOT_CONNECT_TO_AGENT(error={error!r}, filename={filename!r})"
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -992,7 +990,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Cannot connect to the SSH agent: {error}."
-msgstr ""
+msgstr "ErrMsgTemplate.CANNOT_CONNECT_TO_AGENT(error={error!r}, filename=None)"
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -1000,7 +998,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Cannot import vault settings: cannot decode JSON: {error}."
-msgstr ""
+msgstr "ErrMsgTemplate.CANNOT_DECODEIMPORT_VAULT_SETTINGS(error={error!r})"
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -1008,7 +1006,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Cannot export vault settings: {error}: {filename!r}."
-msgstr ""
+msgstr "ErrMsgTemplate.CANNOT_EXPORT_VAULT_SETTINGS(error={error!r}, filename={filename!r})"
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -1016,7 +1014,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Cannot export vault settings: {error}."
-msgstr ""
+msgstr "ErrMsgTemplate.CANNOT_EXPORT_VAULT_SETTINGS(error={error!r}, filename=None)"
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -1024,7 +1022,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Cannot import vault settings: {error}: {filename!r}."
-msgstr ""
+msgstr "ErrMsgTemplate.CANNOT_IMPORT_VAULT_SETTINGS(error={error!r}, filename={filename!r})"
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -1032,7 +1030,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Cannot import vault settings: {error}."
-msgstr ""
+msgstr "ErrMsgTemplate.CANNOT_IMPORT_VAULT_SETTINGS(error={error!r}, filename=None)"
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -1040,7 +1038,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Cannot load user config: {error}: {filename!r}."
-msgstr ""
+msgstr "ErrMsgTemplate.CANNOT_LOAD_USER_CONFIG(error={error!r}, filename={filename!r})"
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -1048,7 +1046,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Cannot load user config: {error}."
-msgstr ""
+msgstr "ErrMsgTemplate.CANNOT_LOAD_USER_CONFIG(error={error!r}, filename=None)"
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -1056,7 +1054,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Cannot load vault settings: {error}: {filename!r}."
-msgstr ""
+msgstr "ErrMsgTemplate.CANNOT_LOAD_VAULT_SETTINGS(error={error!r}, filename={filename!r})"
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -1064,7 +1062,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Cannot load vault settings: {error}."
-msgstr ""
+msgstr "ErrMsgTemplate.CANNOT_LOAD_VAULT_SETTINGS(error={error!r}, filename=None)"
 
 #. TRANSLATORS: Unlike the "Cannot load {path!r} as a {fmt} vault configuration." message, *this* error message is emitted when we have tried loading the path in each of our supported formats, and failed.  The user will thus see the above "Cannot load ..." warning message potentially multiple times, and this error message at the very bottom.
 #. 
@@ -1072,7 +1070,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Cannot parse {path!r} as a valid vault-native configuration file/directory."
-msgstr ""
+msgstr "ErrMsgTemplate.CANNOT_PARSE_AS_VAULT_CONFIG(path={path!r})"
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -1080,7 +1078,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Cannot parse {path!r} as a valid vault-native configuration file/directory: {error}: {filename!r}."
-msgstr ""
+msgstr "ErrMsgTemplate.CANNOT_PARSE_AS_VAULT_CONFIG_OSERROR(path={path!r}, error={error!r}, filename={filename!r})"
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -1088,7 +1086,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Cannot parse {path!r} as a valid vault-native configuration file/directory: {error}."
-msgstr ""
+msgstr "ErrMsgTemplate.CANNOT_PARSE_AS_VAULT_CONFIG_OSERROR(path={path!r}, error={error!r}, filename=None)"
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -1096,7 +1094,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Cannot store vault settings: {error}: {filename!r}."
-msgstr ""
+msgstr "ErrMsgTemplate.CANNOT_STORE_VAULT_SETTINGS(error={error!r}, filename={filename!r})"
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -1104,14 +1102,14 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Cannot store vault settings: {error}."
-msgstr ""
+msgstr "ErrMsgTemplate.CANNOT_STORE_VAULT_SETTINGS(error={error!r}, filename=None)"
 
 #. TRANSLATORS: This error message is used whenever we cannot make any sense of a response from the SSH agent because the response is ill-formed (truncated, improperly encoded, etc.) or otherwise violates the communications protocol.  Well-formed responses that adhere to the protocol, even if they indicate that the requested operation failed, are handled with a different error message.
 #. 
 #. Message-ID: ErrMsgTemplate.CANNOT_UNDERSTAND_AGENT
 msgctxt "Error message"
 msgid "Cannot understand the SSH agent's response because it violates the communication protocol."
-msgstr ""
+msgstr "ErrMsgTemplate.CANNOT_UNDERSTAND_AGENT"
 
 #. TRANSLATORS: The settings_type metavar contains translations for either "global settings" or "service-specific settings"; see the CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_GLOBAL and CANNOT_UPDATE_SETTINGS_METAVAR_SETTINGS_TYPE_SERVICE entries.  The first sentence will thus read either "Cannot update the global settings without any given settings." or "Cannot update the service-specific settings without any given settings.".  You may update this entry, and the two metavar entries, in any way you see fit that achieves the desired translations of the first sentence.
 #. 
@@ -1119,7 +1117,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Cannot update the {settings_type} without any given settings.  You must specify at least one of --lower, ..., --symbol, --notes, or --phrase or --key."
-msgstr ""
+msgstr "ErrMsgTemplate.CANNOT_UPDATE_SETTINGS_NO_SETTINGS(settings_type={settings_type!r})"
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -1127,7 +1125,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "The user configuration file is invalid.  {error}: {filename!r}."
-msgstr ""
+msgstr "ErrMsgTemplate.INVALID_USER_CONFIG(error={error!r}, filename={filename!r})"
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -1135,7 +1133,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "The user configuration file is invalid.  {error}."
-msgstr ""
+msgstr "ErrMsgTemplate.INVALID_USER_CONFIG(error={error!r}, filename=None)"
 
 #. TRANSLATORS: This error message is a reaction to a validator function saying *that* the configuration is not valid, but not *how* it is not valid.  The configuration file is principally parsable, however.
 #. 
@@ -1143,34 +1141,34 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Invalid vault config: {config!r}."
-msgstr ""
+msgstr "ErrMsgTemplate.INVALID_VAULT_CONFIG(config={config!r})"
 
 #. TRANSLATORS: Message-ID: ErrMsgTemplate.MISSING_MODULE
 #, python-brace-format
 msgctxt "Error message"
 msgid "Cannot load the required Python module {module!r}."
-msgstr ""
+msgstr "ErrMsgTemplate.MISSING_MODULE(module={module!r})"
 
 #. TRANSLATORS: Message-ID: ErrMsgTemplate.NO_AF_UNIX
 msgctxt "Error message"
 msgid "Cannot connect to an SSH agent because this Python version does not support UNIX domain sockets."
-msgstr ""
+msgstr "ErrMsgTemplate.NO_AF_UNIX"
 
 #. TRANSLATORS: Message-ID: ErrMsgTemplate.NO_KEY_OR_PHRASE
 msgctxt "Error message"
 msgid "No passphrase or key was given in the configuration.  In this case, the --phrase or --key argument is required."
-msgstr ""
+msgstr "ErrMsgTemplate.NO_KEY_OR_PHRASE"
 
 #. TRANSLATORS: Message-ID: ErrMsgTemplate.NO_SSH_AGENT_FOUND
 msgctxt "Error message"
 msgid "Cannot find any running SSH agent because SSH_AUTH_SOCK is not set."
-msgstr ""
+msgstr "ErrMsgTemplate.NO_SSH_AGENT_FOUND"
 
 #. TRANSLATORS: Message-ID: ErrMsgTemplate.NO_SUITABLE_SSH_KEYS
 #, python-brace-format
 msgctxt "Error message"
 msgid "The SSH agent contains no keys suitable for {PROG_NAME}."
-msgstr ""
+msgstr "ErrMsgTemplate.NO_SUITABLE_SSH_KEYS(PROG_NAME={PROG_NAME!r})"
 
 #. TRANSLATORS: The params are long-form command-line option names.  Typical example: "--key is mutually exclusive with --phrase."
 #. 
@@ -1178,7 +1176,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "{param1} is mutually exclusive with {param2}."
-msgstr ""
+msgstr "ErrMsgTemplate.PARAMS_MUTUALLY_EXCLUSIVE(param1={param1!r}, param2={param2!r})"
 
 #. TRANSLATORS: The param is a long-form command-line option name, the metavar is Label.VAULT_METAVAR_SERVICE.
 #. 
@@ -1186,7 +1184,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "{param} requires a {service_metavar}."
-msgstr ""
+msgstr "ErrMsgTemplate.PARAMS_NEEDS_SERVICE(param={param!r}, service_metavar={service_metavar!r})"
 
 #. TRANSLATORS: The param is a long-form command-line option name, the metavar is Label.VAULT_METAVAR_SERVICE.
 #. 
@@ -1194,7 +1192,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "{param} requires a {service_metavar} or --config."
-msgstr ""
+msgstr "ErrMsgTemplate.PARAMS_NEEDS_SERVICE_OR_CONFIG(param={param!r}, service_metavar={service_metavar!r})"
 
 #. TRANSLATORS: The param is a long-form command-line option name, the metavar is Label.VAULT_METAVAR_SERVICE.
 #. 
@@ -1202,7 +1200,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "{param} does not take a {service_metavar} argument."
-msgstr ""
+msgstr "ErrMsgTemplate.PARAMS_NO_SERVICE(param={param!r}, service_metavar={service_metavar!r})"
 
 #. TRANSLATORS: The metavar is Label.VAULT_METAVAR_SERVICE.
 #. 
@@ -1210,7 +1208,7 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Deriving a passphrase requires a {service_metavar}."
-msgstr ""
+msgstr "ErrMsgTemplate.SERVICE_REQUIRED(service_metavar={service_metavar!r})"
 
 #. TRANSLATORS: The rephrasing "Attempted to unset and set the same setting (--unset={setting} --{setting}=...) at the same time."may or may not be more suitable as a basis for translation instead.
 #. 
@@ -1218,30 +1216,30 @@ msgstr ""
 #, python-brace-format
 msgctxt "Error message"
 msgid "Attempted to unset and set --{setting} at the same time."
-msgstr ""
+msgstr "ErrMsgTemplate.SET_AND_UNSET_SAME_SETTING(setting={setting!r})"
 
 #. TRANSLATORS: Message-ID: ErrMsgTemplate.SSH_KEY_NOT_LOADED
 msgctxt "Error message"
 msgid "The requested SSH key is not loaded into the agent."
-msgstr ""
+msgstr "ErrMsgTemplate.SSH_KEY_NOT_LOADED"
 
 #. TRANSLATORS: The user requested to edit the notes for a service, but aborted the request mid-editing.
 #. 
 #. Message-ID: ErrMsgTemplate.USER_ABORTED_EDIT
 msgctxt "Error message"
 msgid "Not saving any new notes: the user aborted the request."
-msgstr ""
+msgstr "ErrMsgTemplate.USER_ABORTED_EDIT"
 
 #. TRANSLATORS: The user was prompted for a master passphrase, but aborted the request.
 #. 
 #. Message-ID: ErrMsgTemplate.USER_ABORTED_PASSPHRASE
 msgctxt "Error message"
 msgid "No passphrase was given; the user aborted the request."
-msgstr ""
+msgstr "ErrMsgTemplate.USER_ABORTED_PASSPHRASE"
 
 #. TRANSLATORS: The user was prompted to select a master SSH key, but aborted the request.
 #. 
 #. Message-ID: ErrMsgTemplate.USER_ABORTED_SSH_KEY_SELECTION
 msgctxt "Error message"
 msgid "No SSH key was selected; the user aborted the request."
-msgstr ""
+msgstr "ErrMsgTemplate.USER_ABORTED_SSH_KEY_SELECTION"

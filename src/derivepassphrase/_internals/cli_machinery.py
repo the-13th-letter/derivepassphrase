@@ -18,7 +18,6 @@ import collections
 import importlib.metadata
 import inspect
 import logging
-import os
 import socket
 import warnings
 from typing import TYPE_CHECKING, Callable, Literal, TextIO, TypeVar
