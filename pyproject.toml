@@ -128,10 +128,10 @@ parse = '''(?x)
     )?
 '''
 serialize = [
-    '{major}.{minor}.{patch}{pre_l}{pre_n}-{dev_t}{dev_n}',
+    '{major}.{minor}.{patch}{pre_l}{pre_n}.{dev_t}{dev_n}',
     '{major}.{minor}.{patch}{pre_l}{pre_n}',
     '{major}.{minor}.{patch}',
-    '{major}.{minor}{pre_l}{pre_n}-{dev_t}{dev_n}',
+    '{major}.{minor}{pre_l}{pre_n}.{dev_t}{dev_n}',
     '{major}.{minor}{pre_l}{pre_n}',
     '{major}.{minor}',
 ]
@@ -189,27 +189,27 @@ regex = true
 
 [[tool.bumpversion.files]]
 filename = 'pyproject.toml'
-search = "version = '{current_version}'"
+search = "^ *version *= *'{current_version}'"
 replace = "version = '{new_version}'"
 regex = true
 
 [[tool.bumpversion.files]]
 filename = 'pyproject.toml'
-search = "current_version = '{current_version}'"
+search = "^ *current_version *= *'{current_version}'"
 replace = "current_version = '{new_version}'"
 regex = true
 
 [[tool.bumpversion.files]]
-glob = 'man/derivepassphrase*.1'
+glob = 'share/man/man1/derivepassphrase*.1'
 regex = true
-search = '^\.Dd \d\d\d\d-\d\d-\d\d'
+search = '^\.Dd +\d\d\d\d-\d\d-\d\d'
 replace = '.Dd {now:%Y-%m-%d}'
 
 [[tool.bumpversion.files]]
-glob = 'man/derivepassphrase*.1'
+glob = 'share/man/man1/derivepassphrase*.1'
 regex = true
-search = '^\.Os derivepassphrase {current_version}'
-replace = '\.Os derivepassphrase {new_version}'
+search = '^\.Os +derivepassphrase +{current_version}'
+replace = '.Os derivepassphrase {new_version}'
 
 [tool.coverage.html]
 directory = "html/coverage"

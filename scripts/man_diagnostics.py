@@ -31,8 +31,14 @@ def _replace_known_metavars(string: str) -> str:
             '{service_metavar!s}',
             cli_messages.Label.VAULT_METAVAR_SERVICE.value.singular,
         )
+        .replace(
+            '{service_metavar}',
+            cli_messages.Label.VAULT_METAVAR_SERVICE.value.singular,
+        )
         .replace('{PROG_NAME!s}', cli_messages.PROG_NAME)
+        .replace('{PROG_NAME}', cli_messages.PROG_NAME)
         .replace('{settings_type!s}', 'global/service-specific settings')
+        .replace('{settings_type}', 'global/service-specific settings')
     )
 
 
@@ -193,7 +199,11 @@ manpagedoc_documented_warnings: dict[EnumName, DiagnosticText] = {}
 for set_name, globs, errors, warnings in [
     (
         'manpages',
-        sorted(pathlib.Path(base, 'man').glob('derivepassphrase*.1')),
+        sorted(
+            pathlib.Path(base, 'share', 'man', 'man1').glob(
+                'derivepassphrase*.1'
+            )
+        ),
         manpage_documented_errors,
         manpage_documented_warnings,
     ),
@@ -209,23 +219,17 @@ for set_name, globs, errors, warnings in [
     ),
 ]:
     for path in globs:
-        print(f'Checking manpage {path}', file=sys.stderr)
+        print(f'CHECK DOC {str(path.relative_to(base))!r}')
         checker = (
             _check_manpage if set_name == 'manpages' else _check_manpagedoc
         )
         for diagnostic_type, (text, name) in checker(path):
             if diagnostic_type == 'warning':
                 warnings[name] = text
-                print(
-                    f'Found warning message {name!r} with {text!r} in manpage.',  # noqa: E501
-                    file=sys.stderr,
-                )
+                print(f'DOC WARN {name} {text!r}')
             else:
                 errors[name] = text
-                print(
-                    f'Found error message {name!r} with {text!r} in manpage.',
-                    file=sys.stderr,
-                )
+                print(f'DOC ERR {name} {text!r}')
     assert set(errors) >= set(known_errors), (
         f"Some error messages aren't documented in the {set_name}: "
         + repr(set(known_errors) - set(errors))
@@ -248,27 +252,22 @@ py_file_warnings: set[EnumName] = set()
 match_errors_warnings = re.compile(
     r'\b(?:cli_messages|msg|_msg)\.(Err|Warn)MsgTemplate\.([A-Z0-9_]+)'
 )
-for path in pathlib.Path(base, 'src', 'derivepassphrase').glob('**/*.py'):
+for path in sorted(
+    pathlib.Path(base, 'src', 'derivepassphrase').glob('**/*.py')
+):
     if path != pathlib.Path(
         base, 'src', 'derivepassphrase', '_internals', 'cli_messages.py'
     ):
+        print(f'CHECK SOURCE {str(path.relative_to(base))!r}')
         filecontents = path.read_text(encoding='UTF-8')
         for match in match_errors_warnings.finditer(filecontents):
             message_type, symbol = match.group(1, 2)
             if message_type == 'Err':
                 py_file_errors.add(cast('EnumName', symbol))
-                print(
-                    f'Found mention of error message {symbol} '
-                    f'in source file {path!r}.',
-                    file=sys.stderr,
-                )
+                print(f'SOURCE ERR {symbol}')
             elif message_type == 'Warn':
                 py_file_warnings.add(cast('EnumName', symbol))
-                print(
-                    f'Found mention of warning message {symbol} '
-                    f'in source file {path!r}.',
-                    file=sys.stderr,
-                )
+                print(f'SOURCE WARN {symbol}')
 if py_file_errors != set(known_errors):
     print(
         "Some error messages aren't in use: "
