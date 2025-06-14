@@ -12,21 +12,25 @@
         <meta name="author" content="Marco Ricci">
       
       
-        <link rel="canonical" href="https://the13thletter.info/derivepassphrase/0.x/_future/">
+        <link rel="canonical" href="https://the13thletter.info/derivepassphrase/0.x/upgrade-notes/">
       
       
+        <link rel="prev" href="../changelog/">
+      
+      
+        <link rel="next" href="../pycompatibility/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.42">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
     
     
       
-        <title>Some ideas for future work - derivepassphrase</title>
+        <title>Upgrade notes - derivepassphrase</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.0253249f.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.342714a4.min.css">
       
       
 
@@ -45,6 +49,8 @@
     
       <link rel="stylesheet" href="../mkdocstrings_recommended_styles.css">
     
+      <link rel="stylesheet" href="../wishlist_styling.css">
+    
     
     
     
@@ -61,7 +67,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#some-ideas-for-future-work" class="md-skip">
+        <a href="#upgrade-notes-for-derivepassphrase" class="md-skip">
           Skip to content
         </a>
       
@@ -91,9 +97,11 @@
   
   
   
+  
     <li class="md-tabs__item">
       <a href=".." class="md-tabs__link">
         
+  
   
     
   
@@ -108,11 +116,13 @@
   
   
   
+  
     
     
       <li class="md-tabs__item">
         <a href="../tutorials/" class="md-tabs__link">
           
+  
   
     
   
@@ -128,11 +138,13 @@
   
   
   
+  
     
     
       <li class="md-tabs__item">
         <a href="../how-tos/" class="md-tabs__link">
           
+  
   
     
   
@@ -148,11 +160,13 @@
   
   
   
+  
     
     
       <li class="md-tabs__item">
         <a href="../reference/" class="md-tabs__link">
           
+  
   
     
   
@@ -168,11 +182,13 @@
   
   
   
+  
     
     
       <li class="md-tabs__item">
         <a href="../explanation/" class="md-tabs__link">
           
+  
   
     
   
@@ -188,16 +204,45 @@
   
   
   
-    <li class="md-tabs__item">
-      <a href="../changelog/" class="md-tabs__link">
-        
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../changelog/" class="md-tabs__link">
+          
+  
   
     
   
   Changelog
 
-      </a>
-    </li>
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../wishlist/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Wishlist
+
+        </a>
+      </li>
+    
   
 
       
@@ -236,7 +281,7 @@
       <a href="https://github.com/the-13th-letter/derivepassphrase" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
   </div>
   <div class="md-source__repository">
     the-13th-letter/derivepassphrase
@@ -256,8 +301,10 @@
       <a href=".." class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     Overview
+    
   </span>
   
 
@@ -283,6 +330,7 @@
       
     
     
+    
       
       
         
@@ -296,13 +344,14 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
         
           
-          
           <div class="md-nav__link md-nav__container">
             <a href="../tutorials/" class="md-nav__link ">
               
   
+  
   <span class="md-ellipsis">
     Tutorials & Examples
+    
   </span>
   
 
@@ -334,8 +383,10 @@
       <a href="../tutorials/basic-setup-passphrase/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     Setting up derivepassphrase vault for three accounts, with a master passphrase
+    
   </span>
   
 
@@ -369,6 +420,7 @@
       
     
     
+    
       
       
         
@@ -382,13 +434,14 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
         
           
-          
           <div class="md-nav__link md-nav__container">
             <a href="../how-tos/" class="md-nav__link ">
               
   
+  
   <span class="md-ellipsis">
     How-Tos
+    
   </span>
   
 
@@ -420,8 +473,10 @@
       <a href="../how-tos/ssh-key/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     How to set up derivepassphrase vault with an SSH key
+    
   </span>
   
 
@@ -459,6 +514,7 @@
       
     
     
+    
       
       
         
@@ -472,13 +528,14 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          
           <div class="md-nav__link md-nav__container">
             <a href="../reference/" class="md-nav__link ">
               
   
+  
   <span class="md-ellipsis">
     Reference
+    
   </span>
   
 
@@ -519,6 +576,7 @@
       
     
     
+    
       
       
         
@@ -535,8 +593,10 @@
           <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
             
   
+  
   <span class="md-ellipsis">
     Man pages
+    
   </span>
   
 
@@ -560,8 +620,10 @@
       <a href="../reference/derivepassphrase.1/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     derivepassphrase(1)
+    
   </span>
   
 
@@ -581,8 +643,10 @@
       <a href="../reference/derivepassphrase-vault.1/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     derivepassphrase-vault(1)
+    
   </span>
   
 
@@ -602,8 +666,10 @@
       <a href="../reference/derivepassphrase-export.1/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     derivepassphrase-export(1)
+    
   </span>
   
 
@@ -623,8 +689,10 @@
       <a href="../reference/derivepassphrase-export-vault.1/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     derivepassphrase-export-vault(1)
+    
   </span>
   
 
@@ -665,6 +733,7 @@
       
     
     
+    
       
       
         
@@ -681,8 +750,10 @@
           <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
             
   
+  
   <span class="md-ellipsis">
     API docs: Module derivepassphrase
+    
   </span>
   
 
@@ -706,8 +777,10 @@
       <a href="../reference/derivepassphrase.cli/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     Submodule cli
+    
   </span>
   
 
@@ -727,8 +800,10 @@
       <a href="../reference/derivepassphrase.exporter/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     Subpackage exporter
+    
   </span>
   
 
@@ -748,8 +823,10 @@
       <a href="../reference/derivepassphrase.sequin/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     Submodule sequin
+    
   </span>
   
 
@@ -769,8 +846,10 @@
       <a href="../reference/derivepassphrase.ssh_agent/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     Submodule ssh_agent
+    
   </span>
   
 
@@ -790,8 +869,10 @@
       <a href="../reference/derivepassphrase._types/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     Submodule _types
+    
   </span>
   
 
@@ -811,8 +892,10 @@
       <a href="../reference/derivepassphrase.vault/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     Submodule vault
+    
   </span>
   
 
@@ -843,6 +926,7 @@
       
     
     
+    
       
       
         
@@ -859,8 +943,10 @@
           <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="0">
             
   
+  
   <span class="md-ellipsis">
     Technical prerequisites
+    
   </span>
   
 
@@ -884,8 +970,10 @@
       <a href="../reference/prerequisites-ssh-key/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     Using derivepassphrase vault with an SSH key
+    
   </span>
   
 
@@ -925,6 +1013,9 @@
       
         
       
+        
+      
+    
     
     
       
@@ -940,13 +1031,14 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          
           <div class="md-nav__link md-nav__container">
             <a href="../explanation/" class="md-nav__link ">
               
   
+  
   <span class="md-ellipsis">
     Design & Background
+    
   </span>
   
 
@@ -978,8 +1070,249 @@
       <a href="../explanation/faq-altered-versions/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     "altered versions" license requirement
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../explanation/faq-vault-interchangable-passphrases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    "interchangable passphrases" in vault
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    Changelog
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Changelog
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Changelog
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Upgrade notes
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Upgrade notes
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#upgrading-to-v1.0" class="md-nav__link">
+    <span class="md-ellipsis">
+      Upgrading to 1.0
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Upgrading to 1.0">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#v1.0-implied-subcommands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Remove implicit subcommand calls
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v1.0-old-settings-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      Do not use the old settings.json config file
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v1.0-allow-derivepassphrase-extensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Do not use the allow_derivepassphrase_extensions vault config validator option
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pycompatibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Python compatibility
+    
   </span>
   
 
@@ -1002,16 +1335,56 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="../changelog/" class="md-nav__link">
+    
+    
+      
         
+          
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../wishlist/" class="md-nav__link ">
+              
+  
   
   <span class="md-ellipsis">
-    Changelog
+    Wishlist
+    
   </span>
   
 
-      </a>
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Wishlist
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1043,79 +1416,37 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#subcommands" class="md-nav__link">
+  <a href="#upgrading-to-v1.0" class="md-nav__link">
     <span class="md-ellipsis">
-      Subcommands
+      Upgrading to 1.0
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Subcommands">
+    <nav class="md-nav" aria-label="Upgrading to 1.0">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#derivation-schemes" class="md-nav__link">
+  <a href="#v1.0-implied-subcommands" class="md-nav__link">
     <span class="md-ellipsis">
-      Derivation schemes
+      Remove implicit subcommand calls
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#other-functionality" class="md-nav__link">
+  <a href="#v1.0-old-settings-file" class="md-nav__link">
     <span class="md-ellipsis">
-      Other functionality
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#documentation" class="md-nav__link">
-    <span class="md-ellipsis">
-      Documentation
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Documentation">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#tutorials" class="md-nav__link">
-    <span class="md-ellipsis">
-      Tutorials
+      Do not use the old settings.json config file
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#how-tos" class="md-nav__link">
+  <a href="#v1.0-allow-derivepassphrase-extensions" class="md-nav__link">
     <span class="md-ellipsis">
-      How-tos
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#reference" class="md-nav__link">
-    <span class="md-ellipsis">
-      Reference
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#explanation" class="md-nav__link">
-    <span class="md-ellipsis">
-      Explanation
+      Do not use the allow_derivepassphrase_extensions vault config validator option
     </span>
   </a>
   
@@ -1140,82 +1471,46 @@
                 
                   
 
+
   
   
     
       
     
-    <a href="https://github.com/the-13th-letter/derivepassphrase/raw/master/docs/_future.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/the-13th-letter/derivepassphrase/raw/master/docs/upgrade-notes.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
     </a>
   
 
 
-<h1 id="some-ideas-for-future-work">Some ideas for future work<a class="headerlink" href="#some-ideas-for-future-work" title="Permanent link">&para;</a></h1>
-<h2 id="subcommands">Subcommands<a class="headerlink" href="#subcommands" title="Permanent link">&para;</a></h2>
-<p>(In no particular order.)</p>
-<h3 id="derivation-schemes">Derivation schemes<a class="headerlink" href="#derivation-schemes" title="Permanent link">&para;</a></h3>
-<ul>
-<li><code>spectre</code> (<code>master-password</code>): derive passphrases according to the &ldquo;Master Password&rdquo; scheme as used by the Spectre app. (<a href="https://github.com/the-13th-letter/derivepassphrase/issues/2">#2</a>)</li>
-</ul>
-<h3 id="other-functionality">Other functionality<a class="headerlink" href="#other-functionality" title="Permanent link">&para;</a></h3>
-<ul>
-<li><code>explore-permitted-special-characters</code>: generate new configurations starting from a base configuration until one of them passes the &ldquo;special characters&rdquo; constraints.</li>
-<li><code>rotate</code>: generate a new configuration suitable for passphrase rotation, compatible with the base configuration&rsquo;s constraints.</li>
-<li>
-<p><code>service-plugins</code>: manage plugins that automate certain tasks, as outlined in the notes of the queried service.</p>
-<ul>
-<li>
-<p><code>load-ssh-key</code>: if the service uses an SSH key, autoload the key from a well-known location into the SSH agent if it isn&rsquo;t already loaded.</p>
-<p><code>vault</code>-specific.</p>
-</li>
-<li>
-<p><code>decrypt-notes</code>: decrypt OpenPGP-encrypted notes with GnuPG or Sequoia <code>sq</code>.</p>
-<p>Open questions:</p>
-<ul>
-<li>Use an automatic, symmetric encryption key, or rely on the standard OpenPGP key store?  (Do <em>not</em> use the derived service passphrase for this: the quality may be arbitrarily bad due to the passphrase constaints, and the service itself could compromise that passphrase.)</li>
-</ul>
-</li>
-<li>
-<p><code>generate-otp</code>: if the service uses two-factor authentication and the configuration contains one-time password settings, call <code>oathtool</code> to obtain one or more OTPs.</p>
-<p>May require the <code>decrypt-notes</code> plugin first.</p>
-</li>
-<li>
-<p><code>manage-runit-services</code>: if the service contains <code>runit</code> service configuration, ensure the specified <code>runit</code> services are running concurrently, and stopped after signalling.</p>
-<p>Typical use case is a service only accessible via VPN or SSH proxy, where the VPN/proxy would run as a <code>runit</code> service.</p>
-<p>Open questions:</p>
-<ul>
-<li>Interface with <code>inotifywait</code> to wait for SSH control socket?</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<h2 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
-<p>(Categorized as per <a href="https://diataxis.fr">the diataxis framework</a>, but otherwise in no particular order.)</p>
-<h3 id="tutorials">Tutorials<a class="headerlink" href="#tutorials" title="Permanent link">&para;</a></h3>
-<ul>
-<li><a href="../tutorials/basic-setup-passphrase/">Setting up <code>derivepassphrase vault</code> from scratch for three existing accounts, with a master passphrase</a></li>
-</ul>
-<h3 id="how-tos">How-tos<a class="headerlink" href="#how-tos" title="Permanent link">&para;</a></h3>
-<ul>
-<li><a href="../how-tos/ssh-key/">How to set up <code>derivepassphrase vault</code> with an SSH key</a></li>
-<li>How to choose a good service name</li>
-<li>How to edit a saved <code>derivepassphrase vault</code> configuration correctly</li>
-<li>How to deal with &ldquo;supported&rdquo; and &ldquo;unsupported&rdquo; special characters</li>
-<li>How to deal with regular passphrase rotation/rollover</li>
-</ul>
-<h3 id="reference">Reference<a class="headerlink" href="#reference" title="Permanent link">&para;</a></h3>
-<ul>
-<li><code>derivepassphrase-vault.json</code>(<b>5</b>)</li>
-</ul>
-<h3 id="explanation">Explanation<a class="headerlink" href="#explanation" title="Permanent link">&para;</a></h3>
-<ul>
-<li>Security aspects and other tradeoffs when using deterministic password generators</li>
-<li>Tradeoffs between a master passphrase and a master SSH key</li>
-<li>Why is <code>vault</code>&rsquo;s <code>--repeat</code> option named this way if it counts occurrences, not repetitions?</li>
-</ul>
+<h1 id="upgrade-notes-for-derivepassphrase">Upgrade notes for <code>derivepassphrase</code><a class="headerlink" href="#upgrade-notes-for-derivepassphrase" title="Permanent link">&para;</a></h1>
+<p>(Oldest version first.)</p>
+<h2 id="upgrading-to-v1.0">Upgrading to 1.0<a class="headerlink" href="#upgrading-to-v1.0" title="Permanent link">&para;</a></h2>
+<h3 id="v1.0-implied-subcommands">Remove implicit subcommand calls<a class="headerlink" href="#v1.0-implied-subcommands" title="Permanent link">&para;</a></h3>
+<p><code>derivepassphrase</code> will throw an error if the selected command or subcommand requires a subcommand of its own.
+This affects <code>derivepassphrase</code> and <code>derivepassphrase export</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="gp">$ </span>derivepassphrase<span class="w"> </span>-p<span class="w"> </span>service-name<span class="w">        </span><span class="c1"># deprecated</span>
+<span class="gp">$ </span>derivepassphrase<span class="w"> </span><span class="nb">export</span><span class="w"> </span>-f<span class="w"> </span>v0.2<span class="w"> </span>.vault<span class="w">  </span><span class="c1"># deprecated</span>
+</code></pre></div>
+<p>To avoid this, specify the subcommand explicitly.
+The default subcommand in both cases is <code>vault</code>, so use <code>derivepassphrase vault ...</code> and <code>derivepassphrase export vault ...</code> instead.</p>
+<div class="highlight"><pre><span></span><code><span class="gp">$ </span>derivepassphrase<span class="w"> </span>vault<span class="w"> </span>-p<span class="w"> </span>service-name
+<span class="gp">$ </span>derivepassphrase<span class="w"> </span><span class="nb">export</span><span class="w"> </span>vault<span class="w"> </span>-f<span class="w"> </span>v0.2<span class="w"> </span>.vault
+</code></pre></div>
+<h3 id="v1.0-old-settings-file">Do not use the old <code>settings.json</code> config file<a class="headerlink" href="#v1.0-old-settings-file" title="Permanent link">&para;</a></h3>
+<p><code>derivepassphrase</code> has multiple subcommands.
+The old settings file <code>$DERIVEPASSPHRASE_PATH/settings.json</code> suggests that this is a global file for <code>derivepassphrase</code>, but in fact it is specific to the <code>vault</code> subcommand.</p>
+<p>Do not use this file; use the <code>vault</code> subcommand-specific configuration file <code>$DERIVEPASSPHRASE_PATH/vault.json</code> instead.
+The file format is identical.
+Existing <code>settings.json</code> files can be renamed to <code>vault.json</code> directly.</p>
+<p><code>derivepassphrase</code> versions between 0.2.0 (inclusive) and 1.0 (exclusive) will attempt to migrate/rename the file automatically.</p>
+<h3 id="v1.0-allow-derivepassphrase-extensions">Do not use the <code>allow_derivepassphrase_extensions</code> vault config validator option<a class="headerlink" href="#v1.0-allow-derivepassphrase-extensions" title="Permanent link">&para;</a></h3>
+<p>The <code>allow_derivepassphrase_extensions</code> keyword argument to <a class="autorefs autorefs-internal" title="            validate_vault_config" href="../reference/derivepassphrase._types/#derivepassphrase._types.validate_vault_config"><code>derivepassphrase._types.validate_vault_config</code></a> is without effect since <code>derivepassphrase</code> version 0.4.0.
+No extensions are defined as of version 0.4.0.</p>
+<p>The only historic extension ever defined, which deals with storing Unicode normalization preferences, is a configuration option in the user configuration file in version 0.4.0 and higher:
+<code>vault.SERVICE.unicode-normalization-form</code> (if set) for the service <var>SERVICE</var>, otherwise <code>vault.default-unicode-normalization-form</code>.
+The latter defaults to <code>"NFC"</code>.</p>
 
 
 
@@ -1239,6 +1534,44 @@
       
         <footer class="md-footer">
   
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../changelog/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Changelog">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Changelog
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../pycompatibility/" class="md-footer__link md-footer__link--next" aria-label="Next: Python compatibility">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Python compatibility
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
     
   
   <div class="md-footer-meta md-typeset">

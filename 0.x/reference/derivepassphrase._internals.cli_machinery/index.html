@@ -1,0 +1,3795 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="An almost faithful Python reimplementation of James Coglan's vault.">
+      
+      
+        <meta name="author" content="Marco Ricci">
+      
+      
+        <link rel="canonical" href="https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase._internals.cli_machinery/">
+      
+      
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+    
+    
+      
+        <title>Derivepassphrase. internals.cli machinery - derivepassphrase</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.342714a4.min.css">
+      
+      
+
+
+    
+    
+    
+  
+    
+    
+        <style>:root{--md-text-font:"Noto Sans";--md-code-font:"Noto Mono"}</style>
+  
+
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../mkdocstrings_recommended_styles.css">
+    
+      <link rel="stylesheet" href="../../wishlist_styling.css">
+    
+    
+    
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#derivepassphrase._internals.cli_machinery" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Overview
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../tutorials/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Tutorials & Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../how-tos/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  How-Tos
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../explanation/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Design & Background
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../changelog/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Changelog
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../wishlist/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Wishlist
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="derivepassphrase" class="md-nav__button md-logo" aria-label="derivepassphrase" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    derivepassphrase
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/the-13th-letter/derivepassphrase" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    the-13th-letter/derivepassphrase
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../tutorials/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    Tutorials & Examples
+    
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials & Examples
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/basic-setup-passphrase/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Setting up derivepassphrase vault for three accounts, with a master passphrase
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../how-tos/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    How-Tos
+    
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            How-Tos
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-tos/ssh-key/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    How to set up derivepassphrase vault with an SSH key
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    Reference
+    
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Man pages
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            Man pages
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../derivepassphrase.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    derivepassphrase(1)
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../derivepassphrase-vault.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    derivepassphrase-vault(1)
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../derivepassphrase-export.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    derivepassphrase-export(1)
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../derivepassphrase-export-vault.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    derivepassphrase-export-vault(1)
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    API docs: Module derivepassphrase
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            API docs: Module derivepassphrase
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../derivepassphrase.cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Submodule cli
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../derivepassphrase.exporter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Subpackage exporter
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../derivepassphrase.sequin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Submodule sequin
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../derivepassphrase.ssh_agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Submodule ssh_agent
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../derivepassphrase._types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Submodule _types
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../derivepassphrase.vault/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Submodule vault
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Technical prerequisites
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_4">
+            <span class="md-nav__icon md-icon"></span>
+            Technical prerequisites
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../prerequisites-ssh-key/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Using derivepassphrase vault with an SSH key
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../explanation/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    Design & Background
+    
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Design & Background
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/faq-altered-versions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    "altered versions" license requirement
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/faq-vault-interchangable-passphrases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    "interchangable passphrases" in vault
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Changelog
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Changelog
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Changelog
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../upgrade-notes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Upgrade notes
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pycompatibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Python compatibility
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../wishlist/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    Wishlist
+    
+  </span>
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Wishlist
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.ClickEchoStderrHandler" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ClickEchoStderrHandler
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" ClickEchoStderrHandler">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.ClickEchoStderrHandler.emit" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;emit
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.CLIofPackageFormatter" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;CLIofPackageFormatter
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" CLIofPackageFormatter">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.CLIofPackageFormatter.format" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;format
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.StandardCLILogging" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;StandardCLILogging
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" StandardCLILogging">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.StandardCLILogging.ensure_standard_logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;ensure_standard_logging
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.StandardCLILogging.ensure_standard_warnings_logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;ensure_standard_warnings_logging
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.StandardLoggingContextManager" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;StandardLoggingContextManager
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.StandardWarningsLoggingContextManager" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;StandardWarningsLoggingContextManager
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.OptionGroupOption" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;OptionGroupOption
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" OptionGroupOption">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.OptionGroupOption.option_group_name" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;option_group_name
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.OptionGroupOption.epilog" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;epilog
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.CommandWithHelpGroups" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;CommandWithHelpGroups
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" CommandWithHelpGroups">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.collect_usage_pieces" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;collect_usage_pieces
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.get_help_option" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_help_option
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.get_short_help_str" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_short_help_str
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.format_help_text" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;format_help_text
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.format_options" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;format_options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.format_commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;format_commands
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.format_epilog" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;format_epilog
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.DefaultToVaultGroup" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;DefaultToVaultGroup
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" DefaultToVaultGroup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.DefaultToVaultGroup.resolve_command" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;resolve_command
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.TopLevelCLIEntryPoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;TopLevelCLIEntryPoint
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" TopLevelCLIEntryPoint">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.TopLevelCLIEntryPoint.__call__" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__call__
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.PassphraseGenerationOption" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;PassphraseGenerationOption
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.ConfigurationOption" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ConfigurationOption
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.StorageManagementOption" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;StorageManagementOption
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.CompatibilityOption" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;CompatibilityOption
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.LoggingOption" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;LoggingOption
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.ZshComplete" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;ZshComplete
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" ZshComplete">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.ZshComplete.format_completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;format_completion
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.adjust_logging_level" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;adjust_logging_level
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.color_forcing_callback" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;color_forcing_callback
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.validate_occurrence_constraint" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;validate_occurrence_constraint
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.validate_length" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;validate_length
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derivepassphrase._internals.cli_machinery.standard_logging_options" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;standard_logging_options
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+    
+      
+    
+    <a href="https://github.com/the-13th-letter/derivepassphrase/raw/master/docs/reference/derivepassphrase._internals.cli_machinery.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
+    </a>
+  
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h1 id="derivepassphrase._internals.cli_machinery" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">derivepassphrase._internals.cli_machinery</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery" class="headerlink" title="Permanent link">&para;</a></h1>
+
+    <div class="doc doc-contents first">
+
+        <p>Command-line machinery for derivepassphrase.</p>
+
+
+<details class="warning" open>
+  <summary>Warning</summary>
+  <p>Non-public module (implementation detail), provided for didactical and
+educational purposes only. Subject to change without notice, including
+removal.</p>
+</details>
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.ClickEchoStderrHandler" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">ClickEchoStderrHandler</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.ClickEchoStderrHandler" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-external" title="logging.Handler" href="https://docs.python.org/3/library/logging.html#logging.Handler">Handler</a></code></p>
+
+
+
+        <p>A <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/logging.html#logging.Handler"><code>logging.Handler</code></a> for <code>click</code> applications.</p>
+<p>Outputs log messages to <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/sys.html#sys.stderr"><code>sys.stderr</code></a> via <a class="autorefs autorefs-external" href="https://click.palletsprojects.com/en/stable/api/#click.echo"><code>click.echo</code></a>.</p>
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="derivepassphrase._internals.cli_machinery.ClickEchoStderrHandler.emit" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">emit</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.ClickEchoStderrHandler.emit" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">emit</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="logging.LogRecord" href="https://docs.python.org/3/library/logging.html#logging.LogRecord">LogRecord</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Emit a log record.</p>
+<p>Format the log record, then emit it via <a class="autorefs autorefs-external" href="https://click.palletsprojects.com/en/stable/api/#click.echo"><code>click.echo</code></a> to
+<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/sys.html#sys.stderr"><code>sys.stderr</code></a>.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.CLIofPackageFormatter" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">CLIofPackageFormatter</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.CLIofPackageFormatter" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">CLIofPackageFormatter</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">prog_name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">=</span> <span class="n"><span title="derivepassphrase._internals.cli_machinery.PROG_NAME">PROG_NAME</span></span><span class="p">,</span>
+    <span class="n">package_name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-external" title="logging.Formatter" href="https://docs.python.org/3/library/logging.html#logging.Formatter">Formatter</a></code></p>
+
+
+
+        <p>A <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/logging.html#logging.LogRecord"><code>logging.LogRecord</code></a> formatter for the CLI of a Python package.</p>
+<p>Assuming a package <code>PKG</code> and loggers within the same hierarchy
+<code>PKG</code>, format all log records from that hierarchy for proper user
+feedback on the console.  Intended for use with <a href="https://pypi.org/projects/click/"><code>click</code></a> and
+when <code>PKG</code> provides a command-line tool <code>PKG</code> and when logs from
+that package should show up as output of the command-line tool.</p>
+<p>Essentially, this prepends certain short strings to the log message
+lines to make them readable as standard error output.</p>
+<p>Because this log output is intended to be displayed on standard
+error as high-level diagnostic output, you are strongly discouraged
+from changing the output format to include more tokens besides the
+log message.  Use a dedicated log file handler instead, without this
+formatter.</p>
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="derivepassphrase._internals.cli_machinery.CLIofPackageFormatter.format" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">format</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.CLIofPackageFormatter.format" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">format</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="logging.LogRecord" href="https://docs.python.org/3/library/logging.html#logging.LogRecord">LogRecord</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Format a log record suitably for standard error console output.</p>
+<p>Prepend the formatted string <code>"PROG_NAME: LABEL"</code> to each line
+of the message, where <code>PROG_NAME</code> is the program name, and
+<code>LABEL</code> depends on the record&rsquo;s level and on the logger name as
+follows:</p>
+<ul>
+<li>For records at level <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/logging.html#logging.DEBUG"><code>logging.DEBUG</code></a>, <code>LABEL</code> is
+    <code>"Debug: "</code>.</li>
+<li>For records at level <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/logging.html#logging.INFO"><code>logging.INFO</code></a>, <code>LABEL</code> is the
+    empty string.</li>
+<li>For records at level <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/logging.html#logging.WARNING"><code>logging.WARNING</code></a>, <code>LABEL</code> is
+    <code>"Deprecation warning: "</code> if the logger is named
+    <code>PKG.deprecation</code> (where <code>PKG</code> is the package name), else
+    <code>"Warning: "</code>.</li>
+<li>For records at level <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/logging.html#logging.ERROR"><code>logging.ERROR</code></a> and
+    <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/logging.html#logging.CRITICAL"><code>logging.CRITICAL</code></a> <code>"Error: "</code>, <code>LABEL</code> is the empty
+    string.</li>
+</ul>
+<p>The level indication strings at level <code>WARNING</code> or above are
+highlighted.  Use <a class="autorefs autorefs-external" href="https://click.palletsprojects.com/en/stable/api/#click.echo"><code>click.echo</code></a> to output them and remove
+color output if necessary.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>record</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="logging.LogRecord" href="https://docs.python.org/3/library/logging.html#logging.LogRecord">LogRecord</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A log record.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A formatted log record.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/exceptions.html#AssertionError">AssertionError</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The log level is not supported.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.StandardCLILogging" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">StandardCLILogging</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.StandardCLILogging" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>Set up CLI logging handlers upon instantiation.</p>
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="derivepassphrase._internals.cli_machinery.StandardCLILogging.ensure_standard_logging" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">ensure_standard_logging</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#derivepassphrase._internals.cli_machinery.StandardCLILogging.ensure_standard_logging" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">ensure_standard_logging</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="            StandardLoggingContextManager (derivepassphrase._internals.cli_machinery.StandardLoggingContextManager)" href="#derivepassphrase._internals.cli_machinery.StandardLoggingContextManager">StandardLoggingContextManager</a></span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return a context manager to ensure standard logging is set up.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="derivepassphrase._internals.cli_machinery.StandardCLILogging.ensure_standard_warnings_logging" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">ensure_standard_warnings_logging</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#derivepassphrase._internals.cli_machinery.StandardCLILogging.ensure_standard_warnings_logging" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">ensure_standard_warnings_logging</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="p">(</span>
+    <span class="n"><a class="autorefs autorefs-internal" title="            StandardWarningsLoggingContextManager (derivepassphrase._internals.cli_machinery.StandardWarningsLoggingContextManager)" href="#derivepassphrase._internals.cli_machinery.StandardWarningsLoggingContextManager">StandardWarningsLoggingContextManager</a></span>
+<span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return a context manager to ensure warnings logging is set up.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.StandardLoggingContextManager" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">StandardLoggingContextManager</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.StandardLoggingContextManager" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">StandardLoggingContextManager</span><span class="p">(</span>
+    <span class="n">handler</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="logging.Handler" href="https://docs.python.org/3/library/logging.html#logging.Handler">Handler</a></span><span class="p">,</span> <span class="n">root_logger</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>A reentrant context manager setting up standard CLI logging.</p>
+<p>Ensures that the given handler (defaulting to the CLI logging
+handler) is added to the named logger (defaulting to the root
+logger), and if it had to be added, then that it will be removed
+upon exiting the context.</p>
+<p>Reentrant, but not thread safe, because it temporarily modifies
+global state.</p>
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.StandardWarningsLoggingContextManager" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">StandardWarningsLoggingContextManager</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.StandardWarningsLoggingContextManager" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">StandardWarningsLoggingContextManager</span><span class="p">(</span><span class="n">handler</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="logging.Handler" href="https://docs.python.org/3/library/logging.html#logging.Handler">Handler</a></span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="            StandardLoggingContextManager (derivepassphrase._internals.cli_machinery.StandardLoggingContextManager)" href="#derivepassphrase._internals.cli_machinery.StandardLoggingContextManager">StandardLoggingContextManager</a></code></p>
+
+
+
+        <p>A reentrant context manager setting up standard warnings logging.</p>
+<p>Ensures that warnings are being diverted to the logging system, and
+that the given handler (defaulting to the CLI logging handler) is
+added to the warnings logger. If the handler had to be added, then
+it will be removed upon exiting the context.</p>
+<p>Reentrant, but not thread safe, because it temporarily modifies
+global state.</p>
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.OptionGroupOption" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">OptionGroupOption</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.OptionGroupOption" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">OptionGroupOption</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-external" title="click.Option" href="https://click.palletsprojects.com/en/stable/api/#click.Option">Option</a></code></p>
+
+
+
+        <p>A <a class="autorefs autorefs-external" href="https://click.palletsprojects.com/en/stable/api/#click.Option"><code>click.Option</code></a> with an associated group name and group epilog.</p>
+<p>Used by <a class="autorefs autorefs-internal" title="            CommandWithHelpGroups" href="#derivepassphrase._internals.cli_machinery.CommandWithHelpGroups"><code>CommandWithHelpGroups</code></a> to print help sections.  Each
+subclass contains its own group name and epilog.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            option_group_name
+
+
+  
+      class-attribute
+      instance-attribute
+   (derivepassphrase._internals.cli_machinery.OptionGroupOption.option_group_name)" href="#derivepassphrase._internals.cli_machinery.OptionGroupOption.option_group_name">option_group_name</a></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#object">object</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The name of the option group.  Used as a heading on the help
+text for options in this section.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="            epilog
+
+
+  
+      class-attribute
+      instance-attribute
+   (derivepassphrase._internals.cli_machinery.OptionGroupOption.epilog)" href="#derivepassphrase._internals.cli_machinery.OptionGroupOption.epilog">epilog</a></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#object">object</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An epilog to print after listing the options in this
+section.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="derivepassphrase._internals.cli_machinery.OptionGroupOption.option_group_name" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">option_group_name</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#derivepassphrase._internals.cli_machinery.OptionGroupOption.option_group_name" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">option_group_name</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#object">object</a></span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="derivepassphrase._internals.cli_machinery.OptionGroupOption.epilog" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">epilog</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#derivepassphrase._internals.cli_machinery.OptionGroupOption.epilog" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">epilog</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#object">object</a></span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        
+
+    </div>
+
+</div>
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.CommandWithHelpGroups" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">CommandWithHelpGroups</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.CommandWithHelpGroups" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-external" title="click.Command" href="https://click.palletsprojects.com/en/stable/api/#click.Command">Command</a></code></p>
+
+
+
+        <p>A <a class="autorefs autorefs-external" href="https://click.palletsprojects.com/en/stable/api/#click.Command"><code>click.Command</code></a> with support for some help text customizations.</p>
+<p>Supports help/option groups, group epilogs, and help text objects
+(objects that stringify to help texts).  The latter is primarily
+used to implement translations.</p>
+<p>Inspired by <a href="https://github.com/pallets/click/issues/373#issuecomment-515293746">a comment on <code>pallets/click#373</code></a> for
+help/option group support, and further modified to include group
+epilogs and help text objects.</p>
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.collect_usage_pieces" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">collect_usage_pieces</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.collect_usage_pieces" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">collect_usage_pieces</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.Context" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Context</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return the pieces for the usage string.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>ctx</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="click.Context" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Context</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The click context.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.get_help_option" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">get_help_option</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.get_help_option" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">get_help_option</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.Context" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Context</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="click.Option" href="https://click.palletsprojects.com/en/stable/api/#click.Option">Option</a></span> <span class="o">|</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return a standard help option object.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>ctx</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="click.Context" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Context</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The click context.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.get_short_help_str" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">get_short_help_str</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.get_short_help_str" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">get_short_help_str</span><span class="p">(</span><span class="n">limit</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">=</span> <span class="mi">45</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return the short help string for a command.</p>
+<p>If only a long help string is given, shorten it.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>limit</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The maximum width of the short help string.</p>
+              </div>
+            </td>
+            <td>
+                  <code>45</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.format_help_text" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">format_help_text</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.format_help_text" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">format_help_text</span><span class="p">(</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.Context" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Context</a></span><span class="p">,</span> <span class="n">formatter</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.HelpFormatter" href="https://click.palletsprojects.com/en/stable/api/#click.HelpFormatter">HelpFormatter</a></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Format the help text prologue, if any.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>ctx</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="click.Context" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Context</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The click context.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>formatter</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="click.HelpFormatter" href="https://click.palletsprojects.com/en/stable/api/#click.HelpFormatter">HelpFormatter</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The formatter for the <code>--help</code> listing.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.format_options" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">format_options</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.format_options" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">format_options</span><span class="p">(</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.Context" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Context</a></span><span class="p">,</span> <span class="n">formatter</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.HelpFormatter" href="https://click.palletsprojects.com/en/stable/api/#click.HelpFormatter">HelpFormatter</a></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Format options on the help listing, grouped into sections.</p>
+<p>This is a callback for <a class="autorefs autorefs-external" href="https://click.palletsprojects.com/en/stable/api/#click.Command.get_help"><code>click.Command.get_help</code></a> that
+implements the <code>--help</code> listing, by calling appropriate methods
+of the <code>formatter</code>.  We list all options (like the base
+implementation), but grouped into sections according to the
+concrete <a class="autorefs autorefs-external" href="https://click.palletsprojects.com/en/stable/api/#click.Option"><code>click.Option</code></a> subclass being used.  If the option
+is an instance of some subclass of <a class="autorefs autorefs-internal" title="            OptionGroupOption" href="#derivepassphrase._internals.cli_machinery.OptionGroupOption"><code>OptionGroupOption</code></a>, then
+the section heading and the epilog are taken from the
+<a class="autorefs autorefs-internal" title="            option_group_name
+
+
+  
+      class-attribute
+      instance-attribute
+  " href="#derivepassphrase._internals.cli_machinery.OptionGroupOption.option_group_name"><code>option_group_name</code></a> and
+<a class="autorefs autorefs-internal" title="            epilog
+
+
+  
+      class-attribute
+      instance-attribute
+  " href="#derivepassphrase._internals.cli_machinery.OptionGroupOption.epilog"><code>epilog</code></a> attributes; otherwise, the
+section heading is &ldquo;Options&rdquo; (or &ldquo;Other options&rdquo; if there are
+other option groups) and the epilog is empty.</p>
+<p>We unconditionally call <a class="autorefs autorefs-internal" title="            format_commands" href="#derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.format_commands"><code>format_commands</code></a>, and rely on it to
+act as a no-op if we aren&rsquo;t actually a <a class="autorefs autorefs-external" href="https://click.palletsprojects.com/en/stable/api/#click.MultiCommand"><code>click.MultiCommand</code></a>.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>ctx</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="click.Context" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Context</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The click context.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>formatter</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="click.HelpFormatter" href="https://click.palletsprojects.com/en/stable/api/#click.HelpFormatter">HelpFormatter</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The formatter for the <code>--help</code> listing.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.format_commands" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">format_commands</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.format_commands" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">format_commands</span><span class="p">(</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.Context" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Context</a></span><span class="p">,</span> <span class="n">formatter</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.HelpFormatter" href="https://click.palletsprojects.com/en/stable/api/#click.HelpFormatter">HelpFormatter</a></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Format the subcommands, if any.</p>
+<p>If called on a command object that isn&rsquo;t derived from
+<a class="autorefs autorefs-external" href="https://click.palletsprojects.com/en/stable/api/#click.Group"><code>click.Group</code></a>, then do nothing.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>ctx</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="click.Context" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Context</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The click context.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>formatter</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="click.HelpFormatter" href="https://click.palletsprojects.com/en/stable/api/#click.HelpFormatter">HelpFormatter</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The formatter for the <code>--help</code> listing.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.format_epilog" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">format_epilog</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.CommandWithHelpGroups.format_epilog" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">format_epilog</span><span class="p">(</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.Context" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Context</a></span><span class="p">,</span> <span class="n">formatter</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.HelpFormatter" href="https://click.palletsprojects.com/en/stable/api/#click.HelpFormatter">HelpFormatter</a></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Format the epilog, if any.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>ctx</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="click.Context" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Context</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The click context.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>formatter</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="click.HelpFormatter" href="https://click.palletsprojects.com/en/stable/api/#click.HelpFormatter">HelpFormatter</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The formatter for the <code>--help</code> listing.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.DefaultToVaultGroup" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">DefaultToVaultGroup</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.DefaultToVaultGroup" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="            CommandWithHelpGroups (derivepassphrase._internals.cli_machinery.CommandWithHelpGroups)" href="#derivepassphrase._internals.cli_machinery.CommandWithHelpGroups">CommandWithHelpGroups</a></code>, <code><a class="autorefs autorefs-external" title="click.Group" href="https://click.palletsprojects.com/en/stable/api/#click.Group">Group</a></code></p>
+
+
+
+        <p>A helper class to implement the default-to-&ldquo;vault&rdquo;-subcommand behavior.</p>
+<p>Modifies internal <a class="autorefs autorefs-external" href="https://click.palletsprojects.com/en/stable/api/#click.MultiCommand"><code>click.MultiCommand</code></a> methods, and thus is both
+an implementation detail and a kludge.</p>
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="derivepassphrase._internals.cli_machinery.DefaultToVaultGroup.resolve_command" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">resolve_command</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.DefaultToVaultGroup.resolve_command" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">resolve_command</span><span class="p">(</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.Context" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Context</a></span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" title="click.Command" href="https://click.palletsprojects.com/en/stable/api/#click.Command">Command</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Resolve a command, defaulting to &ldquo;vault&rdquo; instead of erroring out.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.TopLevelCLIEntryPoint" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">TopLevelCLIEntryPoint</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.TopLevelCLIEntryPoint" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="            DefaultToVaultGroup (derivepassphrase._internals.cli_machinery.DefaultToVaultGroup)" href="#derivepassphrase._internals.cli_machinery.DefaultToVaultGroup">DefaultToVaultGroup</a></code></p>
+
+
+
+        <p>A minor variation of DefaultToVaultGroup for the top-level command.</p>
+<p>When called as a function, this sets up the environment properly
+before invoking the actual callbacks.  Currently, this means setting
+up the logging subsystem and the delegation of Python warnings to
+the logging subsystem.</p>
+<p>The environment setup can be bypassed by calling the <code>.main</code> method
+directly.</p>
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="derivepassphrase._internals.cli_machinery.TopLevelCLIEntryPoint.__call__" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">__call__</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.TopLevelCLIEntryPoint.__call__" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">__call__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.PassphraseGenerationOption" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">PassphraseGenerationOption</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.PassphraseGenerationOption" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">PassphraseGenerationOption</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="            OptionGroupOption (derivepassphrase._internals.cli_machinery.OptionGroupOption)" href="#derivepassphrase._internals.cli_machinery.OptionGroupOption">OptionGroupOption</a></code></p>
+
+
+
+        <p>Passphrase generation options for the CLI.</p>
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.ConfigurationOption" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">ConfigurationOption</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.ConfigurationOption" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">ConfigurationOption</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="            OptionGroupOption (derivepassphrase._internals.cli_machinery.OptionGroupOption)" href="#derivepassphrase._internals.cli_machinery.OptionGroupOption">OptionGroupOption</a></code></p>
+
+
+
+        <p>Configuration options for the CLI.</p>
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.StorageManagementOption" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">StorageManagementOption</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.StorageManagementOption" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">StorageManagementOption</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="            OptionGroupOption (derivepassphrase._internals.cli_machinery.OptionGroupOption)" href="#derivepassphrase._internals.cli_machinery.OptionGroupOption">OptionGroupOption</a></code></p>
+
+
+
+        <p>Storage management options for the CLI.</p>
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.CompatibilityOption" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">CompatibilityOption</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.CompatibilityOption" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">CompatibilityOption</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="            OptionGroupOption (derivepassphrase._internals.cli_machinery.OptionGroupOption)" href="#derivepassphrase._internals.cli_machinery.OptionGroupOption">OptionGroupOption</a></code></p>
+
+
+
+        <p>Compatibility and incompatibility options for the CLI.</p>
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.LoggingOption" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">LoggingOption</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.LoggingOption" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">LoggingOption</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="            OptionGroupOption (derivepassphrase._internals.cli_machinery.OptionGroupOption)" href="#derivepassphrase._internals.cli_machinery.OptionGroupOption">OptionGroupOption</a></code></p>
+
+
+
+        <p>Logging options for the CLI.</p>
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.ZshComplete" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">ZshComplete</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.ZshComplete" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="click.shell_completion.ZshComplete">ZshComplete</span></code></p>
+
+
+
+        <p>Zsh completion class that supports colons.</p>
+<p><code>click</code>&rsquo;s Zsh completion class (at least v8.1.7 and v8.1.8) uses
+some completion helper functions (provided by Zsh) that parse each
+completion item into value-description pairs, separated by a colon.
+Other completion helper functions don&rsquo;t.  Correspondingly, any
+internal colons in the completion item&rsquo;s value sometimes need to be
+escaped, and sometimes don&rsquo;t.</p>
+<p>The &ldquo;right&rdquo; way to fix this is to modify the Zsh completion script
+to only use one type of serialization: either escaped, or unescaped.
+However, the Zsh completion script itself may already be installed
+in the user&rsquo;s Zsh settings, and we have no way of knowing that.
+Therefore, it is better to change the <code>format_completion</code> method to
+adaptively and &ldquo;smartly&rdquo; emit colon-escaped output or not, based on
+whether the completion script will be using it.</p>
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="derivepassphrase._internals.cli_machinery.ZshComplete.format_completion" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">format_completion</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.ZshComplete.format_completion" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">format_completion</span><span class="p">(</span><span class="n">item</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.shell_completion.CompletionItem" href="https://click.palletsprojects.com/en/stable/api/#click.shell_completion.CompletionItem">CompletionItem</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return a suitable serialization of the CompletionItem.</p>
+<p>This serialization ensures colons in the item value are properly
+escaped if and only if the completion script will attempt to
+pass a colon-separated key/description pair to the underlying
+Zsh machinery.  This is the case if and only if the help text is
+non-degenerate.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.adjust_logging_level" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">adjust_logging_level</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.adjust_logging_level" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">adjust_logging_level</span><span class="p">(</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.Context" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Context</a></span><span class="p">,</span>
+    <span class="o">/</span><span class="p">,</span>
+    <span class="n">param</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.Parameter" href="https://click.palletsprojects.com/en/stable/api/#click.Parameter">Parameter</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">value</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Change the logs that are emitted to standard error.</p>
+<p>This modifies the <a class="autorefs autorefs-internal" title="            StandardCLILogging" href="#derivepassphrase._internals.cli_machinery.StandardCLILogging"><code>StandardCLILogging</code></a> settings such that log
+records at the respective level are emitted, based on the <code>param</code>
+and the <code>value</code>.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.color_forcing_callback" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">color_forcing_callback</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.color_forcing_callback" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">color_forcing_callback</span><span class="p">(</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.Context" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Context</a></span><span class="p">,</span> <span class="n">param</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.Parameter" href="https://click.palletsprojects.com/en/stable/api/#click.Parameter">Parameter</a></span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Disable automatic color (and text highlighting).</p>
+<p>Ideally, we would default to color and text styling if outputting to
+a TTY, or monochrome/unstyled otherwise. We would also support the
+<code>NO_COLOR</code> and <code>FORCE_COLOR</code> environment variables to override this
+auto-detection, and perhaps the <code>TTY_COMPATIBLE</code> variable too.</p>
+<p>Alas, this is not sensible to support at the moment, because the
+conventions are still in flux. And settling on a specific
+interpretation of the conventions would likely prove very difficult
+to change later on in a backward-compatible way. We thus opt for
+a conservative approach and use device-indepedendent text output
+without any color or text styling whatsoever.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.validate_occurrence_constraint" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">validate_occurrence_constraint</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.validate_occurrence_constraint" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">validate_occurrence_constraint</span><span class="p">(</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.Context" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Context</a></span><span class="p">,</span> <span class="n">param</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.Parameter" href="https://click.palletsprojects.com/en/stable/api/#click.Parameter">Parameter</a></span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Check that the occurrence constraint is valid (int, 0 or larger).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>ctx</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="click.Context" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Context</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The <code>click</code> context.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>param</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="click.Parameter" href="https://click.palletsprojects.com/en/stable/api/#click.Parameter">Parameter</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The current command-line parameter.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>value</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The parameter value to be checked.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The parsed parameter value.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" title="click.BadParameter" href="https://click.palletsprojects.com/en/stable/api/#click.BadParameter">BadParameter</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The parameter value is invalid.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.validate_length" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">validate_length</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.validate_length" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">validate_length</span><span class="p">(</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.Context" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Context</a></span><span class="p">,</span> <span class="n">param</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="click.Parameter" href="https://click.palletsprojects.com/en/stable/api/#click.Parameter">Parameter</a></span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span> <span class="o">|</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Check that the length is valid (int, 1 or larger).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>ctx</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="click.Context" href="https://click.palletsprojects.com/en/stable/api/#click.Context">Context</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The <code>click</code> context.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>param</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="click.Parameter" href="https://click.palletsprojects.com/en/stable/api/#click.Parameter">Parameter</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The current command-line parameter.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>value</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="typing_extensions.Any" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Any">Any</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The parameter value to be checked.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The parsed parameter value.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" title="click.BadParameter" href="https://click.palletsprojects.com/en/stable/api/#click.BadParameter">BadParameter</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The parameter value is invalid.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="derivepassphrase._internals.cli_machinery.standard_logging_options" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">standard_logging_options</span>
+
+
+<a href="#derivepassphrase._internals.cli_machinery.standard_logging_options" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">standard_logging_options</span><span class="p">(</span>
+    <span class="n">f</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Callable" href="https://docs.python.org/3/library/typing.html#typing.Callable">Callable</a></span><span class="p">[</span><span class="n"><span title="derivepassphrase._internals.cli_machinery.P">P</span></span><span class="p">,</span> <span class="n"><span title="derivepassphrase._internals.cli_machinery.R">R</span></span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="typing.Callable" href="https://docs.python.org/3/library/typing.html#typing.Callable">Callable</a></span><span class="p">[</span><span class="n"><span title="derivepassphrase._internals.cli_machinery.P">P</span></span><span class="p">,</span> <span class="n"><span title="derivepassphrase._internals.cli_machinery.R">R</span></span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Decorate the function with standard logging click options.</p>
+<p>Adds the three click options <code>-v</code>/<code>--verbose</code>, <code>-q</code>/<code>--quiet</code> and
+<code>--debug</code>, which calls back into the <a class="autorefs autorefs-internal" title="            adjust_logging_level" href="#derivepassphrase._internals.cli_machinery.adjust_logging_level"><code>adjust_logging_level</code></a>
+function (with different argument values).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>f</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="typing.Callable" href="https://docs.python.org/3/library/typing.html#typing.Callable">Callable</a>[<span title="derivepassphrase._internals.cli_machinery.P">P</span>, <span title="derivepassphrase._internals.cli_machinery.R">R</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A callable to decorate.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-external" title="typing.Callable" href="https://docs.python.org/3/library/typing.html#typing.Callable">Callable</a>[<span title="derivepassphrase._internals.cli_machinery.P">P</span>, <span title="derivepassphrase._internals.cli_machinery.R">R</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The decorated callable.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2025 Marco Ricci (the-13th-letter)
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+    and
+    <a href="https://mkdocstrings.github.io/python/" target="_blank" rel="noopener">
+        mkdocstrings-python
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+    
+  </body>
+</html>
