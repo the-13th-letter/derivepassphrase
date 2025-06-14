@@ -1651,12 +1651,10 @@ def get_concurrency_limit() -> int:
     if sys.version_info >= (3, 13):
         result = os.process_cpu_count()
     else:
-        try:
-            cpus = os.sched_getaffinity(os.getpid())
-        except AttributeError:
-            pass
-        else:
-            result = len(cpus)
+        with contextlib.suppress(ValueError):
+            result = result or int(os.environ['PYTHON_CPU_COUNT'], 10)
+        with contextlib.suppress(AttributeError):
+            result = result or len(os.sched_getaffinity(os.getpid()))
     return max(result if result is not None else 0, MIN_CONCURRENCY)
 
 
