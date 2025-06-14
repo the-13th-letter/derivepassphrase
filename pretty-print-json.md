@@ -4,7 +4,7 @@
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>wish</i><td>This is a request for an enhancement.
         <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 0.1.2 0.2.0 0.3.0 0.3.1 0.3.2 0.3.3 <b>0.4.0</b>
-        <tr><th scope=col>Fixed-in<td colspan=2><a href="https://github.com/the-13th-letter/derivepassphrase/commit/b05668d5614d47158c8f8f0ef5145775d5ee40d8">b05668d5614d47158c8f8f0ef5145775d5ee40d8</a>
+        <tr><th scope=col>Fixed-in<td colspan=2><a href="https://github.com/the-13th-letter/derivepassphrase/commit/b05668d5614d47158c8f8f0ef5145775d5ee40d8">b05668d5614d47158c8f8f0ef5145775d5ee40d8</a> (0.5)
     </table>
 
 `derivepassphrase vault` stores and exports the vault configuration using the Python standard library's `json` module, with default settings.  This leads to very terse output in the configuration, particularly if it stores notes or SSH key references.  This terse notation, as reported to me by a certain non-Github user, becomes an unnecessary obstacle when debugging the configuration or looking up information in it.
