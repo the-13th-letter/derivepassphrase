@@ -42,6 +42,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    # dev - developers' setup
+    #
     # Development uses the hatch build system, to isolate all tools in
     # their own virtual environment...
     "hatch >= 1.10",
@@ -60,14 +62,30 @@ dev = [
     "pytest >= 8.1",
     "pytest-randomly >= 3.15",
     "pytest-xdist[psutil] >= 3.6.0",
+    # Versions 6.130.13 through 6.135.1 of `hypothesis` use syntax only
+    # available on Python 3.10 and later: `with (x as y, a as b)`
+    'hypothesis != 6.130.13, != 6.131.*, != 6.132.*, != 6.133.*, != 6.134.*, != 6.135.0, != 6.135.1 ; python_version < "3.10"',
 ]
 export = [
+    # export - additional dependencies for `derivepassphrase export`
+    #
     # The vault configuration exporter relies on cryptography.
     # Version 38 was the first to include the `algorithms.AES256`
     # interface, instead of only the `algorithms.AES` interface, but
     # this was never tested, so we require the earliest cryptography
     # version we tested on.
     "cryptography >= 42.0.0",
+]
+export-dev-wheels = [
+    # export-dev-wheels - wheel requirements for "export" in the "dev"
+    # setup
+    #
+    # `cryptography` 44.0.0 does not publish wheels for PyPy 3.9
+    # anymore.
+    'cryptography < 44 ; python_version < "3.10" and platform_python_implementation == "PyPy"',
+    # `cryptography` 44.0.1 is the first version to publish wheels for
+    # PyPy 3.11.
+    'cryptography > 44.0.1 ; python_version >= "3.11" and platform_python_implementation == "PyPy"',
 ]
 
 [project.scripts]
@@ -289,6 +307,7 @@ dependencies = [
     "pytest >= 8.1",
     "pytest-randomly >= 3.15",
     "pytest-xdist[psutil] >= 3.6.0",
+    'hypothesis != 6.130.13, != 6.131.*, != 6.132.*, != 6.133.*, != 6.134.*, != 6.135.0, != 6.135.1 ; python_version < "3.10"',
 ]
 matrix-name-format = '{variable}_{value}'
 
@@ -305,6 +324,7 @@ parser-version = ["LL1"]
 [tool.hatch.envs.hatch-test.overrides]
 matrix.cryptography.features = [
     { value = "export", if = ["yes"] },
+    { value = "export-dev-wheels", if = ["yes"] },
 ]
 matrix.parser-version.env-vars = [
     { key = "PYTHONOLDPARSER", value = "1", if = ["LL1"] },
