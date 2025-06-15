@@ -44,6 +44,196 @@
 
 <!-- scriv changelog start -->
 
+## 0.5 (2025-06-14)  {#v0.5}
+
+### Removed  {#removed-in-v0.5}
+
+  - `derivepassphrase` no longer supports (automatic) colored output or
+    output with embedded text styling. There exist pseudo-standards (the
+    `NO_COLOR` and `FORCE_COLOR` environment variables) governing how to
+    influence this automatic detection, but they are under-specified with
+    regard to their interaction with each other. Until a consensus is
+    reached and automatic colored/styled output can be requested or rejected
+    reliably across different terminal programs, `derivepassphrase` will
+    rather emit only uncolored, unstyled, lowest-common-denominator
+    device-independent output.
+
+### Added  {#added-in-v0.5}
+
+  - [`Vault`][derivepassphrase.vault.Vault] now can report on whether two
+    master passphrases are interchangable with respect to the service
+    passphrases they can derive.
+    This is an artefact of how the master passphrase is converted to the
+    random bit sequence with which the service passphrases are generated.
+    See the corresponding [FAQ entry: What are "interchangable passphrases"
+    in vault?][INTERCHANGABLE_PASSPHRASES] for details, including the
+    practical security (non-)implications.
+
+    The `derivepassphrase vault` command-line interface does not address
+    this in any manner, mostly because the "non-standard" interchangable
+    variants of a given master password tend to be ugly to type in, and
+    because they do not have practical security implications.
+
+  - Beyond [`bytes`][] and [`bytearray`][],
+    [`Vault`][derivepassphrase.vault.Vault] objects now accept arbitrary
+    [Buffer][collections.abc.Buffer] objects as passphrases or service
+    names.
+
+  - [`Vault`][derivepassphrase.vault.Vault] objects now expose [the vault
+    UUID][derivepassphrase.vault.Vault.UUID] and [the character
+    sets][derivepassphrase.vault.Vault.CHARSETS] as public attributes.
+
+  - `derivepassphrase vault` now supports selecting the editor interface
+    when editing notes via the `--modern-editor-interface` and
+    `--vault-legacy-editor-interface` options.
+
+  - `derivepassphrase vault` now supports printing the service notes before
+    the passphrase, as an alternative, instead of always printing them
+    *after* the passphrase.
+
+  - The tests concerning `derivepassphrase vault` and `--notes` usage have
+    been rewritten into [hypothesis][]-based tests where feasible.
+
+  - The `derivepassphrase` source tree now contains scripts to ensure
+    consistent code quality: automatic linting, formatting and type
+    checking, and optional running of the test suite and building of the
+    documentation.  The master quality control script doubles as a
+    servicable "pre-commit" hook for git.
+
+  - The `--version` option of `derivepassphrase` and each subcommand
+    additionally reports build and environment information, such as
+    supported subcommands, derivation schemes, foreign configuration formats
+    and active [PEP 508 extras][PEP_508].  Each subcommand only reports the
+    items relevant to that subcommand.
+
+[INTERCHANGABLE_PASSPHRASES]: ../explanation/faq-vault-interchangable-passphrases.md
+[PEP_508]: https://peps.python.org/pep-0508/
+[hypothesis]: https://pypi.org/project/hypothesis/
+
+### Changed  {#changed-in-v0.5}
+
+  - The export handlers for "storeroom" and "vault-native" configuration
+    data,
+    [`export_storeroom_data`][derivepassphrase.exporter.storeroom.export_storeroom_data]
+    and
+    [`export_vault_native_data`][derivepassphrase.exporter.vault_native.export_vault_native_data]
+    configuration data now both support a unified interface:
+    [`ExportVaultConfigDataFunction`][derivepassphrase.exporter.ExportVaultConfigDataFunction].
+    A new dispatch function
+    [`export_vault_config_data`][derivepassphrase.exporter.export_vault_config_data]
+    automatically calls the correct backend, based on the requested format.
+
+    This is a **breaking API change** due to the change in function
+    parameter names and return types.
+
+  - `KeyCommentPair` from [`derivepassphrase._types`][], and `KeyPair` and
+    `MasterKeys` from [`derivepassphrase.exporter.storeroom`][], have been
+    converted to [`NamedTuple`s][typing.NamedTuple] and renamed to
+    [`SSHKeyCommentPair`][derivepassphrase._types.SSHKeyCommentPair],
+    [`StoreroomKeyPair`][derivepassphrase._types.StoreroomKeyPair] and
+    [`StoreroomMasterKeys`][derivepassphrase._types.StoreroomMasterKeys],
+    respectively, in the [`derivepassphrase._types`][] module.
+
+    This is a **breaking API change**.
+
+  - Move the non-essential content of the [`derivepassphrase.cli`][] module
+    into the "internals" subpackage.
+
+    This is a **breaking API change** due to the removal of most functions
+    from the [`derivepassphrase.cli`][] module.
+
+  - The test suite now uses a different feature matrix and different
+    [hypothesis][] profiles.
+    The slowdown caused by coverage measurement is now more accurately
+    estimated and adjusted for in the [hypothesis][] settings.
+
+  - The test suite has been cleaned up, partly reorganized, and
+    rudimentarily documented.
+    Several new [hypothesis][]-based tests were also added, particularly to
+    test the core assumptions of the [vault][derivepassphrase.vault]
+    derivation scheme about sensitivity (or lack thereof) to its inputs and
+    its input formats.
+
+  - `derivepassphrase vault` stores its `vault.json` data file in
+    pretty-printed form.  This is a stopgap measure to ease debugging and
+    introspection until better built-in query functionality for the effective
+    configuration is available, because users should not be rewarded. ([#20])
+
+  - `derivepassphrase vault` now correctly requires the `--config` option in
+    addition to the `--notes` option to request that the service notes be
+    edited, for compatibility with vault(1).  `notes` is now also a valid
+    setting name for `--unset` to take.  Furthermore, editing the notes
+    successfully in any way, including no-op edits, will register the
+    service name as a known service to `derivepassphrase vault`, even if the
+    settings are otherwise empty.  Finally, using plain `--notes` without
+    `--config` has no effect, and issues a warning to that extent.
+
+  - `derivepassphrase vault` by default now uses an editor interface that
+    matches vault(1): the contents of the edited text file are used directly
+    as the service notes, without interpretation.  Previously, we
+    post-processed the text file to remove comments and our instruction
+    texts, and interpreted an empty file as a request to abort the edit.
+    These two editor interfaces ("legacy" and "modern") can be explicitly
+    selected, and for the legacy interface, which is less resilient against
+    data entry or usage errors, a backup copy of the old notes content is
+    made.
+
+[#20]: https://github.com/the-13th-letter/derivepassphrase/issues/20
+[hypothesis]: https://pypi.org/project/hypothesis/
+
+### Fixed  {#fixed-in-v0.5}
+
+  - Shell completion for `zsh` was misbehaving in the presence of colons in
+    the completion item.
+    This was due to an overzealous workaround for
+    [`pallets/click#2703`][CLICK_2703].
+
+  - When exporting a vault configuration, `derivepassphrase vault` now
+    exports a pretty-printed configuration, to ease debugging and
+    introspection. ([#20])
+
+  - `derivepassphrase vault` now also prints the service notes (if any) when
+    deriving a service passphrase, just like vault(1) does.
+
+  - Instead of having to do this by hand, `derivepassphrase` now includes
+    build machinery to ensure consistency of its version number and its
+    diagnostic messages between the documentation and the code.
+
+    (The canonical way to get the version number is the
+    [`importlib.metadata.version`][] standard library interface.)
+
+  - `derivepassphrase` now locks its internals and its configuration against
+    concurrent modifications. ([#22])
+
+  - Test `derivepassphrase` against PyPy 3.11.
+
+  - `derivepassphrase` now tests its locking implementation for correctness,
+    on both sides of the API.  Specifically, we test that the respective
+    platform-specific locking primitives provide the requested mutual
+    exclusion properties, and we also test that the locking system as
+    a whole, when given functioning locking primitives, correctly serializes
+    access to the facilities it is supposed to guard.
+
+  - `derivepassphrase` has been successfully tested on <abbr
+    title="Microsoft Windows">The Annoying OS</abbr>[^the-annoying-os] in
+    its baseline version, i.e., without SSH agent functionality but with
+    `cryptography` support.  All incompatibilities in the test suite were
+    fixed if essential and/or feasible, or documented as skips or expected
+    failures if neither.
+
+    (The latter case currently only concerns one single test that is
+    supposed to trigger OS errors while attempting to read the
+    `derivepassphrase` configuration files. <abbr title="Microsoft
+    Windows">The Annoying OS</abbr> happily returns an empty file instead.)
+
+[^the-annoying-os]: Hat tip---and apologies---to
+    [Timothée Mazzucotelli (`@pawamoy`)](https://github.com/pawamoy/) for
+    the fitting terminology.
+
+[#22]: https://github.com/the-13th-letter/derivepassphrase/issues/22
+[#23]: https://github.com/the-13th-letter/derivepassphrase/issues/23
+[CLICK_2703]: https://github.com/pallets/click/issues/2703
+
 ## 0.4.0 (2025-01-07)  {#v0.4.0}
 
 ### Added  {#added-in-v0.4.0}
