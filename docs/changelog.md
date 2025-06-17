@@ -36,6 +36,13 @@
             or <b>minor</b>, these are accompanied by corresponding entries
             of the respective types above.
 
+!!! abstract inline end "Legend: symbols"
+
+    <ul style="list-style-type: none;">
+    <li>:material-bug: --- a related bug entry from the wishlist page
+    <li>:material-gift: --- a related wishlist entry from the wishlist page
+    </ul>
+
 <aside markdown><small>
 (All entries are from the perspective of a user of the program or the API.
 As an exception, entries partaining to developers of `derivepassphrase` are
@@ -61,7 +68,7 @@ specifically marked as such.)
     requested or rejected reliably across different terminal programs, we
     will rather emit only uncolored, unstyled, lowest-common-denominator
     device-independent output.
-    ([`conventional-configurable-text-styling`][WISH_CONVENTIONAL_CONFIGURABLE_TEXT_STYLING])
+    →[:material-gift:][WISH_CONVENTIONAL_CONFIGURABLE_TEXT_STYLING]
 
 ### Added  {#added-in-v0.5}
 
@@ -95,14 +102,14 @@ specifically marked as such.)
   - For [`derivepassphrase vault`][CLI_VAULT], support printing the service
     notes before the passphrase, as an alternative, instead of always
     printing them *after* the passphrase.
-    ([`print-service-notes-above`][WISH_PRINT_SERVICE_NOTES_ABOVE])
+    →[:material-gift:][WISH_PRINT_SERVICE_NOTES_ABOVE]
 
   - In the `--version` option of [`derivepassphrase`][CLI] and each
     subcommand, additionally report build and environment information, such
     as supported subcommands, derivation schemes, foreign configuration
     formats and active [PEP 508 extras](https://peps.python.org/pep-0508/).
     (Each subcommand only reports the items relevant to that subcommand.)
-    ([`report-build-flags-and-features`][WISH_REPORT_BUILD_FLAGS_AND_FEATURES])
+    →[:material-gift:][WISH_REPORT_BUILD_FLAGS_AND_FEATURES]
 
   - For developers: Rewrite the tests concerning [`derivepassphrase
     vault`][CLI_VAULT] and `--notes` usage into [hypothesis][]-based tests
@@ -194,7 +201,7 @@ specifically marked as such.)
     better built-in query functionality for the effective configuration is
     available, because users should not be rewarded for meddling around in
     data files.
-    ([`pretty-print-json`][WISH_PRETTY_PRINT_JSON])
+    →[:material-gift:][WISH_PRETTY_PRINT_JSON]
 
 ### Fixed  {#fixed-in-v0.5}
 
@@ -206,16 +213,16 @@ specifically marked as such.)
   - For [`derivepassphrase vault`][CLI_VAULT], when exporting a vault
     configuration, export a pretty-printed configuration, to ease debugging
     and introspection.
-    ([`pretty-print-json`][WISH_PRETTY_PRINT_JSON])
+    →[:material-gift:][WISH_PRETTY_PRINT_JSON]
 
   - For [`derivepassphrase vault`][CLI_VAULT], also print the service notes
     (if any) when deriving a service passphrase, just like <i>vault</i>(1)
     does.
-    ([`print-service-notes`][BUG_PRINT_SERVICE_NOTES])
+    →[:material-bug:][BUG_PRINT_SERVICE_NOTES]
 
   - Lock our internals and their configuration against concurrent
     modifications.
-    ([`concurrency-audit`][BUG_CONCURRENCY_AUDIT])
+    →[:material-bug:][BUG_CONCURRENCY_AUDIT]
 
   - Test against PyPy 3.11.
 
@@ -245,7 +252,7 @@ specifically marked as such.)
     the locking system as a whole, when given functioning locking
     primitives, correctly serializes access to the facilities it is supposed
     to guard.
-    ([`concurrency-testing-in-test-suite`][BUG_CONCURRENCY_TESTING_IN_TEST_SUITE])
+    →[:material-bug:][BUG_CONCURRENCY_TESTING_IN_TEST_SUITE]
 
 ## 0.4.0 (2025-01-07)  {#v0.4.0}
 
@@ -372,13 +379,13 @@ specifically marked as such.)
   - Add SSH agent spawning support to the test suite.
     Use this support to test the agent functionality on all known major SSH
     agent implementations automatically.
-    ([`test-suite-isolated-ssh-agent`][WISH_TEST_SUITE_ISOLATED_SSH_AGENT])
+    →[:material-gift:][WISH_TEST_SUITE_ISOLATED_SSH_AGENT]
   - Add [hypothesis][]-based tests to the test suite.
   - Update README to add explanations for virtual environments and package
     extras.
   - Update README to demonstrate configuration storing and SSH agent use.
     Include comments on Windows support for SSH agents.
-    ([`windows-ssh-agent-support`][BUG_WINDOWS_SSH_AGENT_SUPPORT])
+    →[:material-bug:][BUG_WINDOWS_SSH_AGENT_SUPPORT]
   - Use cross-references in the documentation of function signatures.
   - Add proper support for Buffer types in the SSH agent client.
     Any Python object supporting the buffer protocol can be used as input to
@@ -414,8 +421,8 @@ specifically marked as such.)
     the SSH agent because Python does not support UNIX domain sockets on
     this system.
     In particular, this is the current situation on Windows.
-    ([`fail-gracefully-without-af-unix`][BUG_FAIL_GRACEFULLY_WITHOUT_AF_UNIX],
-    [`windows-ssh-agent-support`][BUG_WINDOWS_SSH_AGENT_SUPPORT])
+    →[:material-bug:][BUG_FAIL_GRACEFULLY_WITHOUT_AF_UNIX]
+    [:material-bug:][BUG_WINDOWS_SSH_AGENT_SUPPORT]
 
     This adds another failure case to the `SSHAgentClient` constructor, and
     therefore constitutes a **breaking API change**.
@@ -430,7 +437,7 @@ specifically marked as such.)
     accept falsy values everywhere `vault` does, with a warning.
     Depending on the setting, they are equivalent to zero, the empty string,
     or "not set".
-    ([`falsy-vault-config-values`][BUG_FALSY_VAULT_CONFIG_VALUES])
+    →[:material-bug:][BUG_FALSY_VAULT_CONFIG_VALUES]
 
     This is a command-line only change, and only affects importing.
     The API provides a new function to normalize falsy settings, but still
@@ -446,7 +453,7 @@ specifically marked as such.)
     The import procedure is thus more akin to a section-wise import of
     the configurations, instead of a "full" import, and the resulting
     configuration generally is a merge of both inputs.
-    ([`amend-vault-config`][BUG_AMEND_VAULT_CONFIG])
+    →[:material-bug:][BUG_AMEND_VAULT_CONFIG]
 
   - The following operations or configuration settings now raise
     warnings:
@@ -474,7 +481,7 @@ specifically marked as such.)
 
     This feature requires the `cryptography` Python module, but is available
     even if `vault` is not installed.
-    ([`export-vault-formats`][WISH_EXPORT_VAULT_FORMATS])
+    →[:material-gift:][WISH_EXPORT_VAULT_FORMATS]
 
 ### Fixed  {#fixed-in-v0.2.0}
 
@@ -489,20 +496,20 @@ specifically marked as such.)
     Further moved `derivepassphrase.Vault` and
     `derivepassphrase.AmbiguousByteRepresentation` into a new submodule
     `vault`, and renamed submodule `ssh_agent_client` to `ssh_agent`.
-    ([`single-toplevel-module`][BUG_SINGLE_TOPLEVEL_MODULE])
+    →[:material-bug:][BUG_SINGLE_TOPLEVEL_MODULE]
   - Changed internal error handling and error messages, to better work in
     the context of a command-line tool.
-    ([`better-error-messages`][BUG_BETTER_ERROR_MESSAGES])
+    →[:material-bug:][BUG_BETTER_ERROR_MESSAGES]
   - Combine and consolidate `derivepassphrase.types` and
     `derivepassphrase.ssh_agent.types` into a new submodule
     `derivepassphrase._types`.
     Despite the name, the module is public.
-    ([`no-stdlib-module-names`][BUG_NO_STDLIB_MODULE_NAMES])
+    →[:material-bug:][BUG_NO_STDLIB_MODULE_NAMES]
   - Warn the user when entering (directly, or via configuration
     editing/importing) a passphrase that is not in the configured Unicode
     normalization form.
     (But don't otherwise reject any textual master passphrases.)
-    ([`allow-all-unicode-passphrases`][BUG_ALLOW_ALL_UNICODE_PASSPHRASES])
+    →[:material-bug:][BUG_ALLOW_ALL_UNICODE_PASSPHRASES]
   - Move all existing functionality into a subcommand, in anticipation of
     other passphrase derivation schemes, with different settings.
     Automatically forward calls without a subcommand to the "vault"
@@ -512,12 +519,12 @@ specifically marked as such.)
     instead of globally.
     Automatically fall back to, and migrate, the old global settings file if
     no subsystem-specific configuration was found.
-    ([`other-derivation-schemes`][WISH_OTHER_DERIVATION_SCHEMES],
-    [`scheme-specific-cli-and-config`][WISH_SCHEME_SPECIFIC_CLI_AND_CONFIG])
+    →[:material-gift:][WISH_OTHER_DERIVATION_SCHEMES]
+    [:material-gift:][WISH_SCHEME_SPECIFIC_CLI_AND_CONFIG]
 
   - Make `derivepassphrase_export` a subcommand: [`derivepassphrase
     export`][CLI_EXPORT].
-    ([`exporter-script-as-subcommand`][WISH_EXPORTER_SCRIPT_AS_SUBCOMMAND])
+    →[:material-gift:][WISH_EXPORTER_SCRIPT_AS_SUBCOMMAND]
 
 ### Deprecated  {#deprecated-in-v0.2.0}
 
@@ -531,14 +538,14 @@ specifically marked as such.)
 
   - Do not crash upon selecting a key on the command-line if there already
     is a key stored in the configuration.
-    ([`one-time-key-override-fails`][BUG_ONE_TIME_KEY_OVERRIDE_FAILS])
+    →[:material-bug:][BUG_ONE_TIME_KEY_OVERRIDE_FAILS]
   - Create the configuration directory upon saving, if it does not yet
     exist.
-    ([`configuration-directory-must-exist`][BUG_CONFIGURATION_DIRECTORY_MUST_EXIST])
+    →[:material-bug:][BUG_CONFIGURATION_DIRECTORY_MUST_EXIST]
   - Isolate the tests properly and consistently from the user's
     configuration, so that user configuration problems do not cause
     unrelated test failures.
-    ([`test-filesystem-isolation`][BUG_TEST_FILESYSTEM_ISOLATION])
+    →[:material-bug:][BUG_TEST_FILESYSTEM_ISOLATION]
   - Add an alternate MkDocs configuration for building the documentation in
     offline mode.
   - Fix typing issues according to `mypy`'s strict mode.
