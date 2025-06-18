@@ -2,206 +2,206 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/changelog/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/pycompatibility/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/upgrade-notes/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/explanation/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/explanation/faq-altered-versions/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/explanation/faq-vault-interchangable-passphrases/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/how-tos/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/how-tos/ssh-key/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase-export-vault.1/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase-export.1/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase-vault.1/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase.1/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase._internals.cli_helpers/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase._internals.cli_machinery/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase._internals.cli_messages/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase._types/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase.cli/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase.exporter/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase.sequin/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase.ssh_agent/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/derivepassphrase.vault/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/reference/prerequisites-ssh-key/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/tutorials/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/tutorials/basic-setup-passphrase/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/allow-all-unicode-passphrases/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/amend-vault-config/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/better-error-messages/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/concurrency-audit/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/concurrency-testing-in-test-suite/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/configuration-directory-must-exist/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/conventional-configurable-text-styling/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/export-vault-formats/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/exporter-script-as-subcommand/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/fail-gracefully-without-af-unix/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/falsy-vault-config-values/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/no-stdlib-module-names/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/one-time-key-override-fails/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/other-derivation-schemes/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/pretty-print-json/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/print-service-notes-above/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/print-service-notes/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/remove-pageant-build-info-check/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/report-build-flags-and-features/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/scheme-specific-cli-and-config/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/single-toplevel-module/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/test-filesystem-isolation/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/test-suite-isolated-ssh-agent/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
     <url>
          <loc>https://the13thletter.info/derivepassphrase/0.x/wishlist/windows-ssh-agent-support/</loc>
-         <lastmod>2025-06-14</lastmod>
+         <lastmod>2025-06-18</lastmod>
     </url>
 </urlset>
