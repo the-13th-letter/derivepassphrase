@@ -6,7 +6,7 @@
 
 ### Derivation schemes
 
-* `spectre` (`master-password`): derive passphrases according to the "Master Password" scheme as used by the Spectre app. →[:material-gift:][WISH_OTHER_DERIVATION_SCHEMES]
+* `spectre` (`master-password`): derive passphrases according to the "Master Password" scheme as used by the Spectre app. →[:material-file-document-plus-outline:][WISH_OTHER_DERIVATION_SCHEMES]
 
 ### Other functionality
 
