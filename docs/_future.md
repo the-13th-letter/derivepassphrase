@@ -6,7 +6,7 @@
 
 ### Derivation schemes
 
-* `spectre` (`master-password`): derive passphrases according to the "Master Password" scheme as used by the Spectre app. ([#2])
+* `spectre` (`master-password`): derive passphrases according to the "Master Password" scheme as used by the Spectre app. →[:material-gift:][WISH_OTHER_DERIVATION_SCHEMES]
 
 ### Other functionality
 
@@ -36,7 +36,7 @@
 
         - Interface with `inotifywait` to wait for SSH control socket?
 
-[#2]: https://github.com/the-13th-letter/derivepassphrase/issues/2
+[WISH_OTHER_DERIVATION_SCHEMES]: wishlist/other-derivation-schemes.md "Wish entry: “Consider implementing passphrase schemes other than vault's”"
 
 ## Documentation
 

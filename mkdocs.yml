@@ -130,6 +130,7 @@ not_in_nav: |
 draft_docs: |
   changelog.d
   _future.md
+  reference/derivepassphrase._internals.*
   reference/tests.*
 
 markdown_extensions:

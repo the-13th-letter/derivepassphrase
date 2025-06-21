@@ -752,8 +752,7 @@ class _VaultContext:  # noqa: PLR0904
             If the requested operation is a read-only operation, return
             a no-op mutex.  (Concurrent reads are always allowed, even
             in the presence of writers.)  Otherwise, for read-write
-            operations, returns the result from
-            [`cli_helpers.configuration_mutex`][].
+            operations, return an actual mutex.
 
         """
         return (

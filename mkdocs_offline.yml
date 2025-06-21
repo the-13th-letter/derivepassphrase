@@ -2,6 +2,7 @@ INHERIT: mkdocs.yml
 
 draft_docs: |
   _future.md
+  reference/derivepassphrase._internals.*
   reference/tests.*
 not_in_nav: |
   changelog.d
