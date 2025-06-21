@@ -36,6 +36,9 @@ a.fixed {
 .md-typeset div.admonition.abstract .emojione,
 .md-typeset div.admonition.abstract .gemoji,
 .md-typeset div.admonition.abstract .twemoji,
+.md-typeset a[href^="../wishlist/"] .emojione,
+.md-typeset a[href^="../wishlist/"] .gemoji,
+.md-typeset a[href^="../wishlist/"] .twemoji,
 .md-typeset a[href^="wishlist/"] .emojione,
 .md-typeset a[href^="wishlist/"] .gemoji,
 .md-typeset a[href^="wishlist/"] .twemoji {
