@@ -133,6 +133,7 @@ draft_docs: |
   _future.md
   reference/derivepassphrase._internals.*
   reference/tests.*
+  _release_checklist.md
 
 markdown_extensions:
   - abbr

@@ -54,5 +54,6 @@ nav:
     - Upgrade notes: upgrade-notes.md
     - Python compatibility: pycompatibility.md
     - Future ideas: _future.md
+    - Release checklist: _release_checklist.md
   - Wishlist:
     - wishlist/index.md

@@ -4,6 +4,7 @@ draft_docs: |
   _future.md
   reference/derivepassphrase._internals.*
   reference/tests.*
+  _release_checklist.md
 not_in_nav: |
   changelog.d
   wishlist/*.md
