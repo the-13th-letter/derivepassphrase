@@ -1,6 +1,7 @@
 site_name: derivepassphrase
 site_url: 'https://the13thletter.info/derivepassphrase/'
-repo_url: 'https://github.com/the-13th-letter/derivepassphrase'
+repo_url: 'https://git.schokokeks.org/derivepassphrase.git'
+edit_uri: 'raw/master/docs/'
 repo_name: the-13th-letter/derivepassphrase
 site_description: An almost faithful Python reimplementation of James Coglan's vault.
 site_author: Marco Ricci
