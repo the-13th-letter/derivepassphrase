@@ -40,7 +40,7 @@
 
     <ul style="list-style-type: none;">
     <li>:material-bug: --- a related bug entry from the wishlist page
-    <li>:material-gift: --- a related wishlist entry from the wishlist page
+    <li>:material-file-document-plus-outline: --- a related wishlist entry from the wishlist page
     </ul>
 
 <aside markdown><small>
@@ -68,7 +68,7 @@ specifically marked as such.)
     requested or rejected reliably across different terminal programs, we
     will rather emit only uncolored, unstyled, lowest-common-denominator
     device-independent output.
-    →[:material-gift:][WISH_CONVENTIONAL_CONFIGURABLE_TEXT_STYLING]
+    →[:material-file-document-plus-outline:][WISH_CONVENTIONAL_CONFIGURABLE_TEXT_STYLING]
 
 ### Added  {#added-in-v0.5}
 
@@ -102,14 +102,14 @@ specifically marked as such.)
   - For [`derivepassphrase vault`][CLI_VAULT], support printing the service
     notes before the passphrase, as an alternative, instead of always
     printing them *after* the passphrase.
-    →[:material-gift:][WISH_PRINT_SERVICE_NOTES_ABOVE]
+    →[:material-file-document-plus-outline:][WISH_PRINT_SERVICE_NOTES_ABOVE]
 
   - In the `--version` option of [`derivepassphrase`][CLI] and each
     subcommand, additionally report build and environment information, such
     as supported subcommands, derivation schemes, foreign configuration
     formats and active [PEP 508 extras](https://peps.python.org/pep-0508/).
     (Each subcommand only reports the items relevant to that subcommand.)
-    →[:material-gift:][WISH_REPORT_BUILD_FLAGS_AND_FEATURES]
+    →[:material-file-document-plus-outline:][WISH_REPORT_BUILD_FLAGS_AND_FEATURES]
 
   - For developers: Rewrite the tests concerning [`derivepassphrase
     vault`][CLI_VAULT] and `--notes` usage into [hypothesis][]-based tests
@@ -201,7 +201,7 @@ specifically marked as such.)
     better built-in query functionality for the effective configuration is
     available, because users should not be rewarded for meddling around in
     data files.
-    →[:material-gift:][WISH_PRETTY_PRINT_JSON]
+    →[:material-file-document-plus-outline:][WISH_PRETTY_PRINT_JSON]
 
 ### Fixed  {#fixed-in-v0.5}
 
@@ -213,7 +213,7 @@ specifically marked as such.)
   - For [`derivepassphrase vault`][CLI_VAULT], when exporting a vault
     configuration, export a pretty-printed configuration, to ease debugging
     and introspection.
-    →[:material-gift:][WISH_PRETTY_PRINT_JSON]
+    →[:material-file-document-plus-outline:][WISH_PRETTY_PRINT_JSON]
 
   - For [`derivepassphrase vault`][CLI_VAULT], also print the service notes
     (if any) when deriving a service passphrase, just like <i>vault</i>(1)
@@ -379,7 +379,7 @@ specifically marked as such.)
   - Add SSH agent spawning support to the test suite.
     Use this support to test the agent functionality on all known major SSH
     agent implementations automatically.
-    →[:material-gift:][WISH_TEST_SUITE_ISOLATED_SSH_AGENT]
+    →[:material-file-document-plus-outline:][WISH_TEST_SUITE_ISOLATED_SSH_AGENT]
   - Add [hypothesis][]-based tests to the test suite.
   - Update README to add explanations for virtual environments and package
     extras.
@@ -481,7 +481,7 @@ specifically marked as such.)
 
     This feature requires the `cryptography` Python module, but is available
     even if `vault` is not installed.
-    →[:material-gift:][WISH_EXPORT_VAULT_FORMATS]
+    →[:material-file-document-plus-outline:][WISH_EXPORT_VAULT_FORMATS]
 
 ### Fixed  {#fixed-in-v0.2.0}
 
@@ -519,12 +519,12 @@ specifically marked as such.)
     instead of globally.
     Automatically fall back to, and migrate, the old global settings file if
     no subsystem-specific configuration was found.
-    →[:material-gift:][WISH_OTHER_DERIVATION_SCHEMES]
-    [:material-gift:][WISH_SCHEME_SPECIFIC_CLI_AND_CONFIG]
+    →[:material-file-document-plus-outline:][WISH_OTHER_DERIVATION_SCHEMES]
+    [:material-file-document-plus-outline:][WISH_SCHEME_SPECIFIC_CLI_AND_CONFIG]
 
   - Make `derivepassphrase_export` a subcommand: [`derivepassphrase
     export`][CLI_EXPORT].
-    →[:material-gift:][WISH_EXPORTER_SCRIPT_AS_SUBCOMMAND]
+    →[:material-file-document-plus-outline:][WISH_EXPORTER_SCRIPT_AS_SUBCOMMAND]
 
 ### Deprecated  {#deprecated-in-v0.2.0}
 
