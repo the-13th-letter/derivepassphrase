@@ -10,11 +10,11 @@
 ???+ bug "things to fix"
       - [windows-ssh-agent-support][]{: .scheduled-next }
 
-???+ question "things to add"
+???+ wish "things to add"
       - [conventional-configurable-text-styling][]{: .unscheduled }
       - [other-derivation-schemes][]{: .unscheduled }
 
-??? success "fixed things"
+??? bug-success "things fixed"
       - [allow-all-unicode-passphrases][]{: .fixed }
       - [amend-vault-config][]{: .fixed }
       - [better-error-messages][]{: .fixed }
@@ -30,7 +30,7 @@
       - [single-toplevel-module][]{: .fixed }
       - [test-filesystem-isolation][]{: .fixed }
 
-    ---
+??? wish-success "things added"
 
       - [export-vault-formats][]{: .fixed }
       - [exporter-script-as-subcommand][]{: .fixed }
@@ -39,10 +39,6 @@
       - [report-build-flags-and-features][]{: .fixed }
       - [scheme-specific-cli-and-config][]{: .fixed }
       - [test-suite-isolated-ssh-agent][]{: .fixed }
-
-!!! abstract "Further reading"
-
-    → Scheduled bugs and wishes
 
   [allow-all-unicode-passphrases]: allow-all-unicode-passphrases.md
   [amend-vault-config]: amend-vault-config.md

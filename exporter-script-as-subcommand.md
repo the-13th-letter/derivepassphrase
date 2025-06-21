@@ -1,6 +1,6 @@
 # `derivepassphrase` wish exporter-script-as-subcommand
 
-???+ success "Wish details: Make the exporter a subcommand of `derivepassphrase`"
+???+ wish-success "Wish details: Make the exporter a subcommand of `derivepassphrase`"
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>wish</i><td>This is a request for an enhancement.
         <tr><th scope=col>Present-in<td colspan=2><a href="https://github.com/the-13th-letter/derivepassphrase/commit/b4d8439fa4207b665ad8ea2217f21f807f603734">b4d8439fa4207b665ad8ea2217f21f807f603734</a> (0.2.0)

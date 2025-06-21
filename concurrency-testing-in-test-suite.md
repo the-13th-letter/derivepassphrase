@@ -1,6 +1,6 @@
 # `derivepassphrase` bug concurrency-testing-in-test-suite
 
-???+ success "Bug details: Test for concurrency and assert thread-safety in `derivepassphrase`&apos;s test suite"
+???+ bug-success "Bug details: Test for concurrency and assert thread-safety in `derivepassphrase`&apos;s test suite"
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>bug</i><td>This is clearly an actual problem we want fixed.
         <tr><th scope=col>Priority<td><i>high</i><td>This should be fixed in the next release.

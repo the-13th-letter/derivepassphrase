@@ -1,6 +1,6 @@
 # `derivepassphrase` wish other-derivation-schemes
 
-???+ question "Wish details: Consider implementing passphrase schemes other than vault&apos;s"
+???+ wish "Wish details: Consider implementing passphrase schemes other than vault&apos;s"
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>wish</i><td>This is a request for an enhancement.
         <tr><th scope=col>Priority<td><i>medium</i><td>This should be fixed one day.

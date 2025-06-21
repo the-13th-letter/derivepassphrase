@@ -1,6 +1,6 @@
 # `derivepassphrase` bug print-service-notes
 
-???+ success "Bug details: `derivepassphrase vault` does not print service notes"
+???+ bug-success "Bug details: `derivepassphrase vault` does not print service notes"
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>bug</i><td>This is clearly an actual problem we want fixed.
         <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 0.1.2 0.2.0 0.3.0 0.3.1 0.3.2 0.3.3 <b>0.4.0</b>

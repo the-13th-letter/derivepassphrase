@@ -1,6 +1,6 @@
 # `derivepassphrase` bug concurrency-audit
 
-???+ success "Bug details: Audit `derivepassphrase` for concurrency/thread-safety issues"
+???+ bug-success "Bug details: Audit `derivepassphrase` for concurrency/thread-safety issues"
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>bug</i><td>This is clearly an actual problem we want fixed.
         <tr><th scope=col>Priority<td><i>high</i><td>This should be fixed in the next release.

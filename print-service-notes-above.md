@@ -1,6 +1,6 @@
 # `derivepassphrase` wish print-service-notes-above
 
-???+ success "Wish details: `derivepassphrase vault` should be able to print service notes *above* the passphrase"
+???+ wish-success "Wish details: `derivepassphrase vault` should be able to print service notes *above* the passphrase"
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>wish</i><td>This is a request for an enhancement.
         <tr><th scope=col>Present-in<td colspan=2><b>0.4.0</b>

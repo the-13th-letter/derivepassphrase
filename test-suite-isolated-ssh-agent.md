@@ -1,6 +1,6 @@
 # `derivepassphrase` wish test-suite-isolated-ssh-agent
 
-???+ success "Wish details: Support and isolate OpenSSH&apos;s `ssh-agent` and PuTTY&apos;s `pageant` in the test suite"
+???+ wish-success "Wish details: Support and isolate OpenSSH&apos;s `ssh-agent` and PuTTY&apos;s `pageant` in the test suite"
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>wish</i><td>This is a request for an enhancement.
         <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 0.1.2 0.1.3 <b>0.2.0</b>

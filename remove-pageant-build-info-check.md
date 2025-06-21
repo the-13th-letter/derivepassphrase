@@ -1,6 +1,6 @@
 # `derivepassphrase` bug remove-pageant-build-info-check
 
-???+ success "Bug details: Remove Pageant build info check"
+???+ bug-success "Bug details: Remove Pageant build info check"
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>bug</i><td>This is clearly an actual problem we want fixed.
         <tr><th scope=col>Present-in<td colspan=2><b>0.2.0</b> 0.3.0 0.3.1 0.3.2 0.3.3

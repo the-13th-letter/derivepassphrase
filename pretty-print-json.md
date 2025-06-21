@@ -1,6 +1,6 @@
 # `derivepassphrase` wish pretty-print-json
 
-???+ success "Wish details: `derivepassphrase vault` should store and export the vault configuration in pretty-printed JSON"
+???+ wish-success "Wish details: `derivepassphrase vault` should store and export the vault configuration in pretty-printed JSON"
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>wish</i><td>This is a request for an enhancement.
         <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 0.1.2 0.2.0 0.3.0 0.3.1 0.3.2 0.3.3 <b>0.4.0</b>

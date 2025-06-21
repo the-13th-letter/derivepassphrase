@@ -1,6 +1,6 @@
 # `derivepassphrase` bug amend-vault-config
 
-???+ success "Bug details: `derivepassphrase vault --import` overwrites config instead of amending it"
+???+ bug-success "Bug details: `derivepassphrase vault --import` overwrites config instead of amending it"
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>bug</i><td>This is clearly an actual problem we want fixed.
         <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 0.1.2 <b>0.2.0</b>

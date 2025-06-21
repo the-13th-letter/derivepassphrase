@@ -1,6 +1,6 @@
 # `derivepassphrase` bug fail-gracefully-without-af-unix
 
-???+ success "Bug details: Fail gracefully if support for UNIX domain sockets is unavailable"
+???+ bug-success "Bug details: Fail gracefully if support for UNIX domain sockets is unavailable"
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>bug</i><td>This is clearly an actual problem we want fixed.
         <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 0.1.2 <b>0.2.0</b>

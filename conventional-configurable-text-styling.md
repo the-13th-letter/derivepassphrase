@@ -1,6 +1,6 @@
 # `derivepassphrase` wish conventional-configurable-text-styling
 
-???+ question "Wish details: `derivepassphrase vault` should support conventional and configurable text styling"
+???+ wish "Wish details: `derivepassphrase vault` should support conventional and configurable text styling"
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>wish</i><td>This is a request for an enhancement.
         <tr><th scope=col>Priority<td><i>low</i><td>We aren&apos;t sure whether to fix this or not.

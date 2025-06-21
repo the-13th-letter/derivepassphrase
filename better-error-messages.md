@@ -1,6 +1,6 @@
 # `derivepassphrase` bug better-error-messages
 
-???+ success "Bug details: Improve common error messages in the command-line interface"
+???+ bug-success "Bug details: Improve common error messages in the command-line interface"
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>bug</i><td>This is clearly an actual problem we want fixed.
         <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 <b>0.1.2</b> 0.1.3

@@ -1,6 +1,6 @@
 # `derivepassphrase` wish export-vault-formats
 
-???+ success "Wish details: Support data export from vault v0.2, vault v0.3, and storeroom storage formats"
+???+ wish-success "Wish details: Support data export from vault v0.2, vault v0.3, and storeroom storage formats"
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>wish</i><td>This is a request for an enhancement.
         <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 <b>0.1.2</b> 0.1.3
