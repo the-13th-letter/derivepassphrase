@@ -23,7 +23,7 @@ title: Reference overview
 
 ## Technical prerequisites
 
-* Prerequisites for [using `derivepassphrase vault` with an SSH key][PREREQ_SSH_KEY]
+* [Prerequisites for using `derivepassphrase vault` with an SSH key][PREREQ_SSH_KEY]
 
   [top_man]: derivepassphrase.1.md
   [vault_man]: derivepassphrase-vault.1.md

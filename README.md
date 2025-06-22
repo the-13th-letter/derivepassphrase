@@ -88,7 +88,7 @@ JKeet7GeBpxysOgdCEJo6UzmP8A0Ih
 ### SSH agent support
 
 On UNIX-like systems with OpenSSH or PuTTY installed, you can use an Ed25519, Ed448 or RSA key from the agent instead of a master passphrase.
-([On Windows there are problems establishing communication channels with the agent.][#13])
+([On Windows there are problems establishing communication channels with the agent.][BUG_WINDOWS_SSH_AGENT_SUPPORT])
 
 ```` shell-session
 $ derivepassphrase vault -k my-email-account
@@ -114,7 +114,7 @@ $ derivepassphrase vault my-email-account
 oXDGCvMhLWPQyCzYtaobOq2Wh9olYj
 ````
 
-[#13]: https://github.com/the-13th-letter/derivepassphrase/issues/13 "Issue 13: Support PuTTY/Pageant (and maybe OpenSSH/ssh-agent) on Windows"
+[BUG_WINDOWS_SSH_AGENT_SUPPORT]: https://the13thletter.info/derivepassphrase/0.x/wishlist/windows-ssh-agent-support/ "Bug entry: Support PuTTY/Pageant (and maybe OpenSSH/ssh-agent) on Windows"
 
 ## License
 
