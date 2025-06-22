@@ -66,9 +66,8 @@ canonical SSH agent implementation.
 
 !!! bug "Windows is currently *not* supported"
 
-    <i>→ Further details:</i> [Issue
-    `the-13th-letter/derivepassphrase#13`: Support PuTTY/Pageant on
-    Windows][ISSUE_WINDOWS_SUPPORT]
+    <i>→ Bug entry:</i> [Support PuTTY/Pageant (and maybe
+    OpenSSH/`ssh-agent`) on Windows][BUG_WINDOWS_SSH_AGENT_SUPPORT]
 
     The two major SSH agents on Windows (PuTTY/Pageant and OpenSSH) use
     <i>Windows named pipes</i> for communication, and Python on Windows
@@ -235,7 +234,7 @@ widely implemented.
 
 [HOWTO]: ../how-tos/ssh-key.md
 [GnuPG]: https://gnupg.org/
-[ISSUE_WINDOWS_SUPPORT]: https://github.com/the-13th-letter/derivepassphrase/issues/13
+[BUG_WINDOWS_SSH_AGENT_SUPPORT]: ../wishlist/windows-ssh-agent-support.md
 [OpenSSH]: https://www.openssh.com/
 [PuTTY]: https://www.chiark.greenend.org.uk/~sgtatham/putty/
 [PYTHON_AF_UNIX]: https://docs.python.org/3/library/socket.html#socket.AF_UNIX
