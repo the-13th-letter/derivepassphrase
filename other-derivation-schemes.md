@@ -5,7 +5,7 @@
         <tr><th scope=col>Class<td><i>wish</i><td>This is a request for an enhancement.
         <tr><th scope=col>Priority<td><i>medium</i><td>This should be fixed one day.
         <tr><th scope=col>Difficulty<td><i>tricky</i><td>Needs many tuits.
-        <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 <b>0.1.2</b> 0.1.3 0.2.0 0.3.0 0.3.1 0.3.2 0.3.3 0.4.0 0.5
+        <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 <b>0.1.2</b> 0.1.3 0.2.0 0.3.0 0.3.1 0.3.2 0.3.3 0.4.0 0.5 0.5.1
         <tr><th scope=col>Depends<td colspan=2>[scheme-specific-cli-and-config](scheme-specific-cli-and-config.md){: .fixed }
     </table>
 

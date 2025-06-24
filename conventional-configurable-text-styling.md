@@ -5,7 +5,7 @@
         <tr><th scope=col>Class<td><i>wish</i><td>This is a request for an enhancement.
         <tr><th scope=col>Priority<td><i>low</i><td>We aren&apos;t sure whether to fix this or not.
         <tr><th scope=col>Difficulty<td><i>taxing</i><td>Needs external things we don't have (standards, users etc).
-        <tr><th scope=col>Present-in<td colspan=2><b>0.5</b>
+        <tr><th scope=col>Present-in<td colspan=2><b>0.5</b> 0.5.1
     </table>
 
 `derivepassphrase` intends to support text styling (color, boldface) for warning and error messages (and possibly for other future uses) for TTY devices.
