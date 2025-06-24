@@ -272,7 +272,7 @@
   </label>
   
     <div class="md-nav__source">
-      <a href="https://github.com/the-13th-letter/derivepassphrase" title="Go to repository" class="md-source" data-md-component="source">
+      <a href="https://git.schokokeks.org/derivepassphrase.git" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
@@ -1332,7 +1332,7 @@
     
       
     
-    <a href="https://github.com/the-13th-letter/derivepassphrase/raw/wishlist/other-derivation-schemes.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://git.schokokeks.org/derivepassphrase.git/raw/wishlist/other-derivation-schemes.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
     </a>
@@ -1340,23 +1340,125 @@
 
 
 <h1 id="derivepassphrase-wish-other-derivation-schemes"><code>derivepassphrase</code> wish other-derivation-schemes<a class="headerlink" href="#derivepassphrase-wish-other-derivation-schemes" title="Permanent link">&para;</a></h1>
-<details class="question" open="open">
+<details class="wish" open="open">
 <summary>Wish details: Consider implementing passphrase schemes other than vault&apos;s</summary>
 <p><table id="bug-summary" markdown>
     <tr><th scope=col>Class<td><i>wish</i><td>This is a request for an enhancement.
-    <tr><th scope=col>Priority<td><i>low</i><td>We aren&apos;t sure whether to fix this or not.
+    <tr><th scope=col>Priority<td><i>medium</i><td>This should be fixed one day.
     <tr><th scope=col>Difficulty<td><i>tricky</i><td>Needs many tuits.
-    <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 <b>0.1.2</b> 0.1.3 0.2.0 0.3.0 0.3.1 0.3.2 0.3.3 0.4.0
+    <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 <b>0.1.2</b> 0.1.3 0.2.0 0.3.0 0.3.1 0.3.2 0.3.3 0.4.0 0.5 0.5.1
     <tr><th scope=col>Depends<td colspan=2><a class="fixed" href="../scheme-specific-cli-and-config/">scheme-specific-cli-and-config</a>
 </table></p>
 </details>
 <p>Consider implementing other deterministic password/passphrase generation schemes, beyond vault.</p>
 <p>Some candidates:</p>
 <ul>
-<li><a href="https://github.com/chriszarate/supergenpass">chriszarate/supergenpass</a></li>
-<li><a href="https://github.com/grempe/strongpass">grempe/strongpass</a></li>
-<li><a href="https://github.com/aprico-org/aprico-gen">aprico-org/aprico-gen</a></li>
-<li><a href="https://spectre.app/blog/2018-01-06-algorithm/">Master Passphrase/Spectre.app scheme</a></li>
+<li>
+<details class="failure">
+<summary><a href="https://github.com/chriszarate/supergenpass"><code>chriszarate/supergenpass</code></a></summary>
+<ul>
+<li><a href="https://github.com/chriszarate/supergenpass-lib">standalone library</a></li>
+<li>High-level scheme: hash the master passphrase and the domain/URL repeatedly until the output satisfies a certain passphrase pattern.<ul>
+<li>The hash is either MD5 or SHA512.</li>
+<li>The hash input is the naive concatenation of master passphrase, an optional secret string, a colon, and the domain/URL.
+(No protection against components aliasing each other.)</li>
+<li>The output is base64-encoded and truncated to at most 24 characters.</li>
+<li>The output pattern is static, and forces the output to start with a lowercase character and contain both an uppercase character and a number.</li>
+<li>The hash is used for at least 10 rounds, more if necessary to satisfy the output pattern.</li>
+<li>There is no explicit support for deriving a different passphrase for a certain domain/URL if the current one was compromised; this needs to be effected by changing the hash, the hash rounds, the master passphrase or the optional secret.</li>
+<li>The domain usually is truncated to the &ldquo;base domain&rdquo; just below the TLD, using a static list of TLDs.</li>
+</ul>
+</li>
+<li>do not implement</li>
+<li>improvised key derivation function does not appear to be cryptographically sound</li>
+<li>design also contains certain unfortunate choices (idiosyncratic domain truncation, fixed pattern and fixed character set for the derived passphrase, low maximum derived passphrase length) which harm the usability of this system</li>
+<li>offers less flexibility and less cryptographic soundness than the <code>vault</code> scheme does, but has no other redeeming qualities instead</li>
+</ul>
+</details>
+</li>
+<li>
+<details class="failure">
+<summary><a href="https://github.com/grempe/strongpass"><code>grempe/strongpass</code></a></summary>
+<ul>
+<li>High-level scheme: pass the master passphrase and the service name to a cryptographic key derivation function, then convert the output to a suitable passphrase.<ul>
+<li>A master key is generated from the master passphrase and the service name, via HMAC-SHA512.</li>
+<li>A salt is generated from the service name and other, user-controlled input, hashed with SHA512.</li>
+<li>The derived key is derived from the master key using scrypt with the aforementioned salt.</li>
+<li>The derived key is converted to base64. The first 18 characters are used directly, the last two characters are converted to a number and a symbol, respectively. This yields a 20-character passphrase with a guaranteed number and symbol at the end.</li>
+</ul>
+</li>
+<li>do not implement</li>
+<li>very sound design that at its core is not unlike the <code>vault</code> scheme, but lacks any configurability for the output (length, character set, reset counter)</li>
+</ul>
+</details>
+</li>
+<li>
+<details class="failure">
+<summary><a href="https://github.com/aprico-org/aprico-gen"><code>aprico-org/aprico-gen</code></a></summary>
+<ul>
+<li>High-level scheme: the input is put into a cryptographic key derivation function, then the result is rehashed until it satisfies a certain passphrase pattern.<ul>
+<li>uses scrypt for KDF and for rehashing (with lower CPU cost factor)</li>
+<li>output passphrase pattern is static, but the character classes (alpha, number, symbol) can be enabled and disabled</li>
+</ul>
+</li>
+<li>do not implement</li>
+<li>sound design, but lacks configurability for the output</li>
+</ul>
+</details>
+</li>
+<li>
+<details class="note">
+<summary><a href="https://spectre.app/blog/2018-01-06-algorithm/">Master Password/Spectre.app scheme</a></summary>
+<ul>
+<li>High-level scheme: the input is put into a cryptographic key derivation function, then the result is used as a pseudorandom stream of bits to select an output template and characters in that template.<ul>
+<li>uses scrypt for KDF</li>
+<li>uses a separate reset counter</li>
+<li>provides only a limited set of output templates</li>
+<li>strives for maximum statelessness: by design, it should be possible to try out all sensible counter values and templates without getting blocked for excessive password attempts</li>
+<li>published specification (with minor errors and omissions)</li>
+<li>test suite</li>
+<li>several &ldquo;old&rdquo; versions of the algorithm contain implementation mistakes relative to what the spec describes</li>
+</ul>
+</li>
+<li><strong>implement</strong></li>
+<li>…but use &ldquo;master&rdquo; terminology freely</li>
+<li>sound design, and battle-tested</li>
+<li>very pure application of the statelessness principle without sacrificing too much practicability</li>
+</ul>
+</details>
+</li>
+<li>
+<details class="question">
+<summary><a href="https://github.com/lesspass/lesspass/">LessPass</a></summary>
+<ul>
+<li>High-level scheme: same as Master Password/Spectre.app<ul>
+<li>uses PBKDF2-HMAC-SHA256 as KDF</li>
+<li>character sets can be turned on and off</li>
+<li>&ldquo;old&rdquo; versions of the algorithm</li>
+<li>test suite</li>
+<li>supports &ldquo;profiles&rdquo; (akin to <code>vault</code> service settings) for customizing character sets, length, counter values, etc.; the author advises using only public site-specific profiles, not user-specific ones</li>
+<li>web client uses &ldquo;visual fingerprinting&rdquo; to guard against data entry mistakes… but this allows online attacks against the master passphrase</li>
+</ul>
+</li>
+<li>undecided</li>
+<li>definitely do not implement visual fingerprinting</li>
+</ul>
+</details>
+</li>
+<li>
+<details class="note">
+<summary><a href="https://theworld.com/~reinhold/diceware.html">Diceware</a></summary>
+<ul>
+<li>High-level scheme: generates passphrases from a random bitstring via a table of words, to be concatenated.<ul>
+<li>not a full passphrase derivation scheme (lacks a hashing or key-derivation step), but combinable with other &ldquo;classic&rdquo; passphrase derivation schemes</li>
+<li>original wordlist by Arnold G. Reinhold; other wordlists available, e.g. from the EFF</li>
+</ul>
+</li>
+<li><strong>implement</strong>, as a supplement to existing passphrase derivation schemes</li>
+<li>requires a new API in the other derivation schemes to expose the pseudo-random bitstream from which the final passphrase normally is assembled</li>
+</ul>
+</details>
+</li>
 </ul>
 <p>The hard part about these will probably not be the coding, but the correctness testing.</p>
 
