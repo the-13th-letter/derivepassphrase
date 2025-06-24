@@ -27,15 +27,10 @@ Release checklist
     1.  `hatch run docs:scriv collect --add --edit --version <VERSION>`
     2.  fix header IDs, move & consolidate Markdown references at page bottom
 
-???+ info "bump version"
+???+ info "bump version, commit and tag"
 
-    1.  `bump-my-version --current-version <OLD_VERSION> --new-version <NEW_VERSION>`
-    2.  check source, `pyproject.toml`, man pages & documentation
-
-???+ info "commit and tag"
-
-    1.  commit message: `Release <VERSION>`
-    2.  tag message: `Release derivepassphrase v<VERSION>`
+    1.  `git add` all the above changes
+    2.  `bump-my-version bump --current-version <OLD_VERSION> --new-version <NEW_VERSION>`
 
 ???+ info "update wishlist"
 
