@@ -51,6 +51,18 @@ specifically marked as such.)
 
 <!-- scriv changelog start -->
 
+## 0.5.1 (2025-06-24)  {#v0.5.1}
+
+### Fixed  {#fixed-in-v0.5.1}
+
+  - Add icons and more internal links (reference documentation, wishlist
+    entries) to the changelog.
+
+  - Change the upstream URLs for the issue/wishlist tracking and the source
+    code away from the GitHub mirror, and to the private hosting sites.
+
+  - Declare support for Python 3.14 (as of beta 3).
+
 ## 0.5 (2025-06-14)  {#v0.5}
 
 ### Removed  {#removed-in-v0.5}

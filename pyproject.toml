@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "derivepassphrase"
 description = "An almost faithful Python reimplementation of James Coglan's vault."
 readme = "README.md"
-version = "0.5"
+version = "0.5.1"
 requires-python = ">= 3.9"
 license = { text = "zlib/libpng" }
 keywords = []
@@ -98,7 +98,7 @@ Issues = "https://the13thletter.info/derivepassphrase/latest/wishlist/"
 Source = "https://git.schokokeks.org/derivepassphrase.git"
 
 [tool.bumpversion]
-current_version = "0.5"
+current_version = "0.5.1"
 # As of bump-my-version 0.32.0, version components are strictly
 # hierarchical in the order of occurrence, and there is no support for
 # pre-release markers.  The documentation suggests a fake "dev/rc/final"
@@ -190,14 +190,14 @@ regex = true
 
 [[tool.bumpversion.files]]
 filename = 'pyproject.toml'
-search = "^ *version *= *'{current_version}'"
-replace = "version = '{new_version}'"
+search = '^ *version *= *"{current_version}"'
+replace = 'version = "{new_version}"'
 regex = true
 
 [[tool.bumpversion.files]]
 filename = 'pyproject.toml'
-search = "^ *current_version *= *'{current_version}'"
-replace = "current_version = '{new_version}'"
+search = '^ *current_version *= *"{current_version}"'
+replace = 'current_version = "{new_version}"'
 regex = true
 
 [[tool.bumpversion.files]]
