@@ -46,6 +46,6 @@ Release checklist
 ???+ info "publish"
 
     1.  publish to PyPI: `hatch clean && hatch build && hatch publish` (prepare credentials first)
-    2.  upload documentation: `git worktree add doctree documentation-tree`, `coverage html --show-context --data-file=<COVERAGE-FILE>` (if desired), `rsync -aR --delete-after html/./ <HOST>`, `git worktree remove doctree`
+    2.  upload documentation: `git worktree add doctree documentation-tree`, `coverage html --show-context -d doctree --data-file=<COVERAGE-FILE>` (if desired), `rsync -aR --exclude=.git --delete-after doctree/./ <HOST>`, `git worktree remove doctree`
     3.  publish source: `git push origin master wishlist documentation-tree`
 
