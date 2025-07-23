@@ -1651,7 +1651,7 @@ def get_concurrency_limit() -> int:
     if sys.version_info >= (3, 13):
         result = os.process_cpu_count()
     else:
-        with contextlib.suppress(ValueError):
+        with contextlib.suppress(KeyError, ValueError):
             result = result or int(os.environ['PYTHON_CPU_COUNT'], 10)
         with contextlib.suppress(AttributeError):
             result = result or len(os.sched_getaffinity(os.getpid()))

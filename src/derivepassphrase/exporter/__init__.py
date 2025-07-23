@@ -64,10 +64,10 @@ def get_vault_key() -> bytes:
 
     """
 
-    def getenv_environ(env_var: str) -> bytes:  # pragma: no cover
+    def getenv_environb(env_var: str) -> bytes:  # pragma: no cover
         return os.environb.get(env_var.encode('UTF-8'), b'')  # type: ignore[attr-defined]
 
-    def getenv_environb(env_var: str) -> bytes:  # pragma: no cover
+    def getenv_environ(env_var: str) -> bytes:  # pragma: no cover
         return os.environ.get(env_var, '').encode('UTF-8')
 
     getenv: Callable[[str], bytes] = (

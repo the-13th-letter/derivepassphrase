@@ -54,15 +54,26 @@ dev = [
     "mypy >= 1.0",
     "ruff >= 0.9.0",
     # Test dependencies should be installed as well, to have static
-    # analysis in the test suite working too.  `packaging` is needed
-    # because the test suite compares version numbers.
+    # analysis in the test suite working too.
+    #
+    # `packaging` is needed because the test suite compares version
+    # numbers.
+    #
+    # `pytest-xdist` is used by `hatch test -p`, but for the `psutil`
+    # extra, the `psutil` package provides no wheels for PyPy.  Users on
+    # The Annoying OS are especially screwed if they lack the admin
+    # priviledges necessary to install the developers' tools.  So skip
+    # the extra, and accept that for PyPy environments, `hatch test -p`
+    # will not be able to distinguish logical and physical CPU core
+    # counts.
     "coverage[toml] >= 7.4",
     "coverage-enable-subprocess >= 1.0",
     "hypothesis >= 6.0",
     "packaging",
     "pytest >= 8.1",
     "pytest-randomly >= 3.15",
-    "pytest-xdist[psutil] >= 3.6.0",
+    "pytest-xdist >= 3.6.0",
+    'pytest-xdist[psutil] >= 3.6.0; platform_python_implementation != "PyPy"',
     # Versions 6.130.13 through 6.135.1 of `hypothesis` use syntax only
     # available on Python 3.10 and later: `with (x as y, a as b)`
     'hypothesis != 6.130.13, != 6.131.*, != 6.132.*, != 6.133.*, != 6.134.*, != 6.135.0, != 6.135.1 ; python_version < "3.10"',
@@ -307,7 +318,8 @@ dependencies = [
     "packaging",
     "pytest >= 8.1",
     "pytest-randomly >= 3.15",
-    "pytest-xdist[psutil] >= 3.6.0",
+    "pytest-xdist >= 3.6.0",
+    'pytest-xdist[psutil] >= 3.6.0; platform_python_implementation != "PyPy"',
     'hypothesis != 6.130.13, != 6.131.*, != 6.132.*, != 6.133.*, != 6.134.*, != 6.135.0, != 6.135.1 ; python_version < "3.10"',
 ]
 matrix-name-format = '{variable}_{value}'
