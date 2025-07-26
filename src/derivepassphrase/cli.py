@@ -150,7 +150,7 @@ def derivepassphrase_export(ctx: click.Context, /) -> None:
             # Constructing the subcontext above will usually already
             # lead to a click.UsageError, so this block typically won't
             # actually be called.
-            with sub_ctx:  # pragma: no cover
+            with sub_ctx:  # pragma: no cover [unused]
                 return derivepassphrase_export_vault.invoke(sub_ctx)
     return None
 
@@ -407,7 +407,7 @@ class _VaultContext:  # noqa: PLR0904
                         if isinstance(param, class_):
                             group = class_
                             break
-                    else:  # pragma: no cover
+                    else:  # pragma: no cover [failsafe]
                         assert False, f'Unknown option group for {param!r}'  # noqa: B011,PT015
                 else:
                     group = click.Option

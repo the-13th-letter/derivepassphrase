@@ -144,7 +144,7 @@ class CLIofPackageFormatter(logging.Formatter):
         """
         preliminary_result = record.getMessage()
         prefix = f'{self.prog_name}: '
-        if record.levelname == 'DEBUG':  # pragma: no cover
+        if record.levelname == 'DEBUG':  # pragma: no cover [unused]
             level_indicator = 'Debug: '
         elif record.levelname == 'INFO':
             level_indicator = ''
@@ -156,7 +156,7 @@ class CLIofPackageFormatter(logging.Formatter):
             )
         elif record.levelname in {'ERROR', 'CRITICAL'}:
             level_indicator = ''
-        else:  # pragma: no cover
+        else:  # pragma: no cover [failsafe]
             msg = f'Unsupported logging level: {record.levelname}'
             raise AssertionError(msg)
         parts = [
@@ -299,7 +299,7 @@ class StandardWarningsLoggingContextManager(StandardLoggingContextManager):
             file: TextIO | None = None,
             line: str | None = None,
         ) -> None:
-            if file is not None:  # pragma: no cover
+            if file is not None:  # pragma: no cover [external-api]
                 self.stack[0][1](
                     message, category, filename, lineno, file, line
                 )
@@ -492,7 +492,9 @@ class CommandWithHelpGroups(click.Command):
         """
         help_options = self.get_help_option_names(ctx)
 
-        if not help_options or not self.add_help_option:  # pragma: no cover
+        if (
+            not help_options or not self.add_help_option
+        ):  # pragma: no cover [external-api]
             return None
 
         def show_help(
@@ -534,15 +536,15 @@ class CommandWithHelpGroups(click.Command):
         # to allow help texts to be general objects, not just strings.
         # Used to implement translatable strings, as objects that
         # stringify to the translation.
-        if self.short_help:  # pragma: no cover
+        if self.short_help:  # pragma: no cover [external-api]
             text = inspect.cleandoc(self._text(self.short_help))
         elif self.help:
             text = click.utils.make_default_short_help(
                 self._text(self.help), limit
             )
-        else:  # pragma: no cover
+        else:  # pragma: no cover [external-api]
             text = ''
-        if self.deprecated:  # pragma: no cover
+        if self.deprecated:  # pragma: no cover [external-api]
             # Modification against click 8.1: The translated string is
             # looked up in the derivepassphrase message domain, not the
             # gettext default domain.
@@ -577,7 +579,7 @@ class CommandWithHelpGroups(click.Command):
             if self.help is not None
             else ''
         )
-        if self.deprecated:  # pragma: no cover
+        if self.deprecated:  # pragma: no cover [external-api]
             # Modification against click 8.1: The translated string is
             # looked up in the derivepassphrase message domain, not the
             # gettext default domain.
@@ -638,7 +640,7 @@ class CommandWithHelpGroups(click.Command):
                 if isinstance(param, OptionGroupOption):
                     group_name = self._text(param.option_group_name)
                     epilogs.setdefault(group_name, self._text(param.epilog))
-                else:  # pragma: no cover
+                else:  # pragma: no cover [external-api]
                     group_name = default_group_name
                 help_records.setdefault(group_name, []).append(rec)
         if default_group_name in help_records:  # pragma: no branch
@@ -688,7 +690,7 @@ class CommandWithHelpGroups(click.Command):
         commands: list[tuple[str, click.Command]] = []
         for subcommand in self.list_commands(ctx):
             cmd = self.get_command(ctx, subcommand)
-            if cmd is None or cmd.hidden:  # pragma: no cover
+            if cmd is None or cmd.hidden:  # pragma: no cover [external-api]
                 continue
             commands.append((subcommand, cmd))
         if commands:  # pragma: no branch
@@ -795,7 +797,7 @@ class DefaultToVaultGroup(CommandWithHelpGroups, click.Group):
 
         # If we can't find the command but there is a normalization
         # function available, we try with that one.
-        if (  # pragma: no cover
+        if (  # pragma: no cover [external-api]
             cmd is None and ctx.token_normalize_func is not None
         ):
             cmd_name = ctx.token_normalize_func(cmd_name)
@@ -860,7 +862,7 @@ class TopLevelCLIEntryPoint(DefaultToVaultGroup):
 
     """
 
-    def __call__(  # pragma: no cover
+    def __call__(  # pragma: no cover [external-api]
         self,
         *args: Any,  # noqa: ANN401
         **kwargs: Any,  # noqa: ANN401
@@ -1108,23 +1110,20 @@ def export_vault_version_option_callback(
         known_extras = {
             _types.PEP508Extra.EXPORT: False,
         }
-        try:
-            from derivepassphrase.exporter import storeroom, vault_native  # noqa: I001,PLC0415
+        from derivepassphrase.exporter import storeroom, vault_native  # noqa: I001,PLC0415
 
-            foreign_configuration_formats[
-                _types.ForeignConfigurationFormat.VAULT_STOREROOM
-            ] = not storeroom.STUBBED
-            foreign_configuration_formats[
-                _types.ForeignConfigurationFormat.VAULT_V02
-            ] = not vault_native.STUBBED
-            foreign_configuration_formats[
-                _types.ForeignConfigurationFormat.VAULT_V03
-            ] = not vault_native.STUBBED
-            known_extras[_types.PEP508Extra.EXPORT] = (
-                not storeroom.STUBBED and not vault_native.STUBBED
-            )
-        except ModuleNotFoundError:  # pragma: no cover
-            pass
+        foreign_configuration_formats[
+            _types.ForeignConfigurationFormat.VAULT_STOREROOM
+        ] = not storeroom.STUBBED
+        foreign_configuration_formats[
+            _types.ForeignConfigurationFormat.VAULT_V02
+        ] = not vault_native.STUBBED
+        foreign_configuration_formats[
+            _types.ForeignConfigurationFormat.VAULT_V03
+        ] = not vault_native.STUBBED
+        known_extras[_types.PEP508Extra.EXPORT] = (
+            not storeroom.STUBBED and not vault_native.STUBBED
+        )
         click.echo()
         version_info_types: dict[_msg.Label, list[str]] = {
             _msg.Label.SUPPORTED_FOREIGN_CONFIGURATION_FORMATS: [
@@ -1391,5 +1390,5 @@ fi
 """
 if (
     click.shell_completion.ZshComplete.source_template == _ORIG_SOURCE_TEMPLATE
-):  # pragma: no cover
+):  # pragma: no cover [external]
     click.shell_completion.add_completion_class(ZshComplete)

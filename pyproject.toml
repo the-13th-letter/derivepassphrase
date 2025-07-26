@@ -248,7 +248,39 @@ exclude_also = [
     'class .*\(Protocol\):',
     'pytest\.fail\(',
     '@(?:(?:pytest\.)?mark\.)?xfail\(',
+    'class _Omitted:',
+    'class _DummyModule:',
 ]
+
+# We use a bunch of "codes", similar to the "type: ignore" comments, as
+# shorthand notation for why we are excluding a certain piece of code
+# manually from coverage, instead of writing a verbose explanation at each
+# call site:
+#
+# "external-api" and "unused": The code is defined by an external API not
+# under our control, or it implements an external interface, and some of the
+# branches of that code we do not yet use ("unused") or don't ever intend to
+# use ("external-api").  In particular, in production and in testing use, we
+# do not expect to hit these code branches unless there are errors in our
+# code.
+#
+# "external": Whether or not we hit this code branch is non-deterministic,
+# and dependent on external factors that are difficult or impossible for us
+# to control, predict, or simulate.  We therefore categorically exclude all
+# branches from coverage.  (Typically though, one particular branch *will*
+# actually run.  We just don't know ahead of time which one.)  (While this
+# applies to "choice of operating system" and "installed Python/library
+# version" as well, these cases are usually tagged with more specific codes,
+# or explained in long-form commentary.)
+#
+# "failsafe": Akin to assertions, these are used to catch "impossible"
+# situations and to still fail in a controlled manner.  We do not expect to
+# hit these code branches during production or testing.
+#
+# "debug", "internal" and "interactive": These code branches are not
+# intended to be called by the general public ("debug", "internal"), or they
+# are only intended to be called interactively ("interactive").  We do not
+# expect to hit these code branches during production or testing.
 
 [tool.coverage.run]
 source_pkgs = ["derivepassphrase", "tests"]

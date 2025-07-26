@@ -57,7 +57,7 @@ else:
         importlib.import_module('cryptography')
     except ModuleNotFoundError as exc:
 
-        class _DummyModule:  # pragma: no cover
+        class _DummyModule:
             def __init__(self, exc: type[Exception]) -> None:
                 self.exc = exc
 
@@ -121,7 +121,7 @@ def export_vault_native_data(  # noqa: D417
         'v0.2': VaultNativeV02ConfigParser,
         'v0.3': VaultNativeV03ConfigParser,
     }.get(format)
-    if parser_class is None:  # pragma: no cover
+    if parser_class is None:  # pragma: no cover [failsafe]
         msg = exporter.INVALID_VAULT_NATIVE_CONFIGURATION_FORMAT.format(
             fmt=format
         )

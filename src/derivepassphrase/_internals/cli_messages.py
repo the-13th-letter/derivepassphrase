@@ -51,7 +51,7 @@ def load_translations(
     localedirs: list[str | bytes | os.PathLike] | None = None,
     languages: Sequence[str] | None = None,
     class_: type[gettext.NullTranslations] | None = None,
-) -> gettext.NullTranslations:  # pragma: no cover
+) -> gettext.NullTranslations:  # pragma: no cover [external]
     """Load a translation catalog for derivepassphrase.
 
     Runs [`gettext.translation`][] under the hood for multiple locale
@@ -149,8 +149,7 @@ class DebugTranslations(gettext.NullTranslations):
                     plural = v.plural
                     context = v.l10n_context
                     cache.setdefault((context, singular), (member, trimmed))
-                    # Currently no translatable messages use plural forms
-                    if plural:  # pragma: no cover
+                    if plural:  # pragma: no cover [unused]
                         cache.setdefault((context, plural), (member, trimmed))
 
     @classmethod
@@ -206,7 +205,8 @@ class DebugTranslations(gettext.NullTranslations):
         msgid2: str,
         n: int,
         /,
-    ) -> str:  # pragma: no cover
+    ) -> str:  # pragma: no cover [unused]
+        """"""  # noqa: D419
         return self._locate_message(msgid1, message_plural=msgid2, n=n)
 
     @override
@@ -226,7 +226,8 @@ class DebugTranslations(gettext.NullTranslations):
         msgid2: str,
         n: int,
         /,
-    ) -> str:  # pragma: no cover
+    ) -> str:  # pragma: no cover [unused]
+        """"""  # noqa: D419
         return self._locate_message(
             msgid1,
             context=context,
@@ -276,7 +277,7 @@ class TranslatableString(NamedTuple):
                 implemented.
 
         """
-        if 'python-format' in self.flags:  # pragma: no cover
+        if 'python-format' in self.flags:  # pragma: no cover [unused]
             err_msg = (
                 'Replacement field discovery for %-formatting '
                 'is not implemented'
@@ -334,8 +335,7 @@ class TranslatableString(NamedTuple):
         c, sep2, d = self.plural.partition(filename_str)
         if sep1:
             ret = ret._replace(singular=(a + b))
-        # Currently no translatable messages use plural forms
-        if sep2:  # pragma: no cover
+        if sep2:  # pragma: no cover [unused]
             ret = ret._replace(plural=(c + d))
         return ret
 
@@ -370,7 +370,7 @@ class TranslatableString(NamedTuple):
         """
         if comments.strip() and not comments.lstrip().startswith(
             'TRANSLATORS:'
-        ):  # pragma: no cover
+        ):  # pragma: no cover [unused]
             comments = 'TRANSLATORS: ' + comments.lstrip()
         comments = self._maybe_rewrap(comments, fix_sentence_endings=False)
         return self._replace(translator_comments=comments)
@@ -511,15 +511,16 @@ class TranslatedString:
         """Return true if the rendered string is truthy."""
         return bool(str(self))
 
-    def __eq__(self, other: object) -> bool:  # pragma: no cover
+    def __eq__(self, other: object) -> bool:  # pragma: no cover [debug]
         """Return true if the rendered string is equal to `other`."""
         return str(self) == other
 
-    def __hash__(self) -> int:  # pragma: no cover
+    def __hash__(self) -> int:  # pragma: no cover [debug]
         """Return the hash of the rendered string."""
         return hash(str(self))
 
-    def __repr__(self) -> str:  # pragma: no cover
+    def __repr__(self) -> str:  # pragma: no cover [debug]
+        """"""  # noqa: D419
         return (
             f'{self.__class__.__name__}({self.template!r}, '
             f'{dict(self.kwargs)!r})'
@@ -2348,7 +2349,7 @@ def _write_po_file(  # noqa: C901,PLR0912
     is_template: bool = True,
     version: str = VERSION,
     build_time: datetime.datetime | None = None,
-) -> None:  # pragma: no cover
+) -> None:  # pragma: no cover [interactive]
     r"""Write a .po file to the given file object.
 
     Assumes the file object is opened for writing and accepts string
@@ -2483,7 +2484,8 @@ def _write_po_file(  # noqa: C901,PLR0912
 def _format_po_info(
     data: Mapping[str, Any],
     /,
-) -> Iterator[str]:  # pragma: no cover
+) -> Iterator[str]:  # pragma: no cover [internal]
+    """"""  # noqa: D419
     sortorder = [
         'project-id-version',
         'report-msgid-bugs-to',
@@ -2517,7 +2519,8 @@ def _format_po_entry(
     *,
     is_debug_translation: bool = False,
     transformed_string: TranslatableString | None = None,
-) -> tuple[str, ...]:  # pragma: no cover
+) -> tuple[str, ...]:  # pragma: no cover [internal]
+    """"""  # noqa: D419
     ret: list[str] = ['\n']
     ts = transformed_string or cast('TranslatableString', enum_value.value)
     if ts.translator_comments:
@@ -2542,7 +2545,9 @@ def _format_po_entry(
     return tuple(ret)
 
 
-def _cstr(s: str) -> str:  # pragma: no cover
+def _cstr(s: str) -> str:  # pragma: no cover [internal]
+    """"""  # noqa: D419
+
     def escape(string: str) -> str:
         return string.translate({
             0: r'\000',

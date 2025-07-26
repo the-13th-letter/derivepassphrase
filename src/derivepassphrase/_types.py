@@ -42,7 +42,7 @@ __all__ = (
 )
 
 
-class _Omitted:  # pragma: no cover
+class _Omitted:
     def __bool__(self) -> bool:
         return False
 
@@ -331,14 +331,20 @@ class _VaultConfigValidator:
             or 'services' not in obj
             or not isinstance(obj['services'], dict)
         ):
-            raise ValueError(self.INVALID_CONFIG_ERROR)  # pragma: no cover
+            raise ValueError(
+                self.INVALID_CONFIG_ERROR
+            )  # pragma: no cover [failsafe]
         if 'global' in obj and not isinstance(obj['global'], dict):
-            raise ValueError(self.INVALID_CONFIG_ERROR)  # pragma: no cover
+            raise ValueError(
+                self.INVALID_CONFIG_ERROR
+            )  # pragma: no cover [failsafe]
         if not all(
             isinstance(service_obj, dict)
             for service_obj in obj['services'].values()
         ):
-            raise ValueError(self.INVALID_CONFIG_ERROR)  # pragma: no cover
+            raise ValueError(
+                self.INVALID_CONFIG_ERROR
+            )  # pragma: no cover [failsafe]
 
         def falsy(value: Any) -> bool:  # noqa: ANN401
             return not js_truthiness(value)
@@ -460,7 +466,7 @@ def validate_vault_config(
     # then include this in coverage.
     if not isinstance(
         allow_derivepassphrase_extensions, _Omitted
-    ):  # pragma: no cover
+    ):  # pragma: no cover [unused]
         warnings.warn(
             get_overloads(validate_vault_config)[0].__deprecated__,  # type: ignore[attr-defined]
             DeprecationWarning,
@@ -488,7 +494,7 @@ def is_vault_config(obj: Any) -> TypeIs[VaultConfig]:  # noqa: ANN401
             allow_unknown_settings=True,
         )
     except (TypeError, ValueError) as exc:
-        if 'vault config ' not in str(exc):  # pragma: no cover
+        if 'vault config ' not in str(exc):  # pragma: no cover [failsafe]
             raise
         return False
     return True
