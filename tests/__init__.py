@@ -68,13 +68,13 @@ class SSHTestKey(NamedTuple):
 
     """
 
-    public_key: bytes | str
+    public_key: bytes
     """"""
     public_key_data: bytes
     """"""
     private_key: bytes
     """"""
-    private_key_blob: bytes | None = None
+    private_key_blob: bytes
     """"""
     expected_signature: bytes | None = None
     """"""
@@ -1126,7 +1126,7 @@ Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQ==
 """,
         public_key_data=bytes.fromhex("""
             00 00 00 13 65 63 64
-            73 61 2d 73 68 61 32 2d 6e 69 73 74 70 32 35 36
+            73 61 2d 73 68 61 32 2d 6e 69 73 74 70 35 32 31
             00 00 00 08 6e 69 73 74 70 35 32 31
             00 00 00 85 04 00 49 53 9d
             c0 3c e7 9a 57 06 aa 22 ef 16 d6 1e 56 da c0 12
