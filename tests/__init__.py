@@ -42,6 +42,66 @@ if TYPE_CHECKING:
     from typing_extensions import Any
 
 
+class SSHTestKeyDeterministicSignatureClass(str, enum.Enum):
+    """The class of a deterministic signature from an SSH test key.
+
+    Attributes:
+        SPEC:
+            A deterministic signature directly implied by the
+            specification of the signature algorithm.
+        RFC_6979:
+            A deterministic signature as specified by RFC 6979.  Only
+            used with DSA and ECDSA keys (that aren't also EdDSA keys).
+        Pageant_068_080:
+            A deterministic signature as specified by Pageant 0.68.
+            Only used with DSA and ECDSA keys (that aren't also EdDSA
+            keys), and only used with Pageant from 0.68 up to and
+            including 0.80.
+
+            Usage of this signature class together with an ECDSA NIST
+            P-521 key [turned out to leak enough information per
+            signature to quickly compromise the entire private key
+            (CVE-2024-31497)][PUTTY_CVE_2024_31497], so newer Pageant
+            versions abandon this signature class in favor of RFC 6979.
+
+            [PUTTY_CVE_2024_31497]: https://www.chiark.greenend.org.uk/~sgtatham/putty/wishlist/vuln-p521-bias.html
+
+    """
+
+    SPEC = enum.auto()
+    """"""
+    RFC_6979 = enum.auto()
+    """"""
+    Pageant_068_080 = enum.auto()
+    """"""
+
+
+class SSHTestKeyDeterministicSignature(NamedTuple):
+    """An SSH test key deterministic signature.
+
+    Attributes:
+        signature:
+            The binary signature of the [vault UUID][vault.Vault.UUID]
+            under this signature class.
+        derived_passphrase:
+            The equivalent master passphrase derived from this
+            signature.
+        signature_class:
+            The [signature
+            class][SSHTestKeyDeterministicSignatureClass].
+
+    """
+
+    signature: bytes
+    """"""
+    derived_passphrase: bytes
+    """"""
+    signature_class: SSHTestKeyDeterministicSignatureClass = (
+        SSHTestKeyDeterministicSignatureClass.SPEC
+    )
+    """"""
+
+
 class SSHTestKey(NamedTuple):
     """An SSH test key.
 
@@ -56,15 +116,11 @@ class SSHTestKey(NamedTuple):
             OpenSSH's v1 private key format.
         private_key_blob:
             The SSH protocol wire format of the private key.
-        expected_signature:
-            For deterministic signature types, this is the expected
-            signature of the vault UUID.  For other types this is
-            `None`.
-        derived_passphrase:
-            For deterministic signature types, this is the "equivalent
-            master passphrase" derived from this key (a transformation
-            of [`expected_signature`][]).  For other types this is
-            `None`.
+        expected_signatures:
+            A mapping of deterministic signature classes to the
+            expected, deterministic signature (of that class) of the
+            vault UUID for this key, together with the respective
+            "equivalent master passphrase" derived from this signature.
 
     """
 
@@ -76,9 +132,9 @@ class SSHTestKey(NamedTuple):
     """"""
     private_key_blob: bytes
     """"""
-    expected_signature: bytes | None = None
-    """"""
-    derived_passphrase: bytes | str | None = None
+    expected_signatures: Mapping[
+        SSHTestKeyDeterministicSignatureClass, SSHTestKeyDeterministicSignature
+    ]
     """"""
 
     def is_suitable(
@@ -644,15 +700,19 @@ idwcakUGCekJD/vCEml2AAAAG3Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQEC
             81 78 81 68 26 d6 02 48 5f 0f ff 32 48 6f e4 c1
             30 89 dc 1c 6a 45 06 09 e9 09 0f fb c2 12 69 76
 """),
-        expected_signature=bytes.fromhex("""
-            00 00 00 0b 73 73 68 2d 65 64 32 35 35 31 39
-            00 00 00 40
-            f0 98 19 80 6c 1a 97 d5 26 03 6e cc e3 65 8f 86
-            66 07 13 19 13 09 21 33 33 f9 e4 36 53 1d af fd
-            0d 08 1f ec f8 73 9b 8c 5f 55 39 16 7c 53 54 2c
-            1e 52 bb 30 ed 7f 89 e2 2f 69 51 55 d8 9e a6 02
-        """),
-        derived_passphrase=rb'8JgZgGwal9UmA27M42WPhmYHExkTCSEzM/nkNlMdr/0NCB/s+HObjF9VORZ8U1QsHlK7MO1/ieIvaVFV2J6mAg==',
+        expected_signatures={
+            SSHTestKeyDeterministicSignatureClass.SPEC: SSHTestKeyDeterministicSignature(
+                signature=bytes.fromhex("""
+                    00 00 00 0b 73 73 68 2d 65 64 32 35 35 31 39
+                    00 00 00 40
+                    f0 98 19 80 6c 1a 97 d5 26 03 6e cc e3 65 8f 86
+                    66 07 13 19 13 09 21 33 33 f9 e4 36 53 1d af fd
+                    0d 08 1f ec f8 73 9b 8c 5f 55 39 16 7c 53 54 2c
+                    1e 52 bb 30 ed 7f 89 e2 2f 69 51 55 d8 9e a6 02
+"""),
+                derived_passphrase=rb'8JgZgGwal9UmA27M42WPhmYHExkTCSEzM/nkNlMdr/0NCB/s+HObjF9VORZ8U1QsHlK7MO1/ieIvaVFV2J6mAg==',
+            ),
+        },
     ),
     # Currently only supported by PuTTY (which is deficient in other
     # niceties of the SSH agent and the agent's client).
@@ -694,18 +754,22 @@ dGhvdXQgcGFzc3BocmFzZQECAwQFBgcICQ==
             46 c4 ad 64 38 01 43 bd 99 82 d3 cc 72 47 73 69
             b8 b3 ec 96 cc fd bd 09 cd c4 73 18 b3 2c 6f 00
         """),
-        expected_signature=bytes.fromhex("""
-            00 00 00 09 73 73 68 2d 65 64 34 34 38
-            00 00 00 72 06 86
-            f4 64 a4 a6 ba d9 c3 22 c4 93 49 99 fc 11 de 67
-            97 08 f2 d8 b7 3c 2c 13 e7 c5 1c 1e 92 a6 0e d8
-            2f 6d 81 03 82 00 e3 72 e4 32 6d 72 d2 6d 32 84
-            3f cc a9 1e 57 2c 00 9a b3 99 de 45 da ce 2e d1
-            db e5 89 f3 35 be 24 58 90 c6 ca 04 f0 db 88 80
-            db bd 77 7c 80 20 7f 3a 48 61 f6 1f ae a9 5e 53
-            7b e0 9d 93 1e ea dc eb b5 cd 56 4c ea 8f 08 00
-        """),
-        derived_passphrase=rb'Bob0ZKSmutnDIsSTSZn8Ed5nlwjy2Lc8LBPnxRwekqYO2C9tgQOCAONy5DJtctJtMoQ/zKkeVywAmrOZ3kXazi7R2+WJ8zW+JFiQxsoE8NuIgNu9d3yAIH86SGH2H66pXlN74J2THurc67XNVkzqjwgA',
+        expected_signatures={
+            SSHTestKeyDeterministicSignatureClass.SPEC: SSHTestKeyDeterministicSignature(
+                signature=bytes.fromhex("""
+                    00 00 00 09 73 73 68 2d 65 64 34 34 38
+                    00 00 00 72 06 86
+                    f4 64 a4 a6 ba d9 c3 22 c4 93 49 99 fc 11 de 67
+                    97 08 f2 d8 b7 3c 2c 13 e7 c5 1c 1e 92 a6 0e d8
+                    2f 6d 81 03 82 00 e3 72 e4 32 6d 72 d2 6d 32 84
+                    3f cc a9 1e 57 2c 00 9a b3 99 de 45 da ce 2e d1
+                    db e5 89 f3 35 be 24 58 90 c6 ca 04 f0 db 88 80
+                    db bd 77 7c 80 20 7f 3a 48 61 f6 1f ae a9 5e 53
+                    7b e0 9d 93 1e ea dc eb b5 cd 56 4c ea 8f 08 00
+"""),
+                derived_passphrase=rb'Bob0ZKSmutnDIsSTSZn8Ed5nlwjy2Lc8LBPnxRwekqYO2C9tgQOCAONy5DJtctJtMoQ/zKkeVywAmrOZ3kXazi7R2+WJ8zW+JFiQxsoE8NuIgNu9d3yAIH86SGH2H66pXlN74J2THurc67XNVkzqjwgA',
+            ),
+        },
     ),
     'rsa': SSHTestKey(
         private_key=rb"""-----BEGIN OPENSSH PRIVATE KEY-----
@@ -873,35 +937,39 @@ Bgp6142WnSCQAAABt0ZXN0IGtleSB3aXRob3V0IHBhc3NwaHJhc2UB
             0b 96 00 59 f7 97 c9 cb 2f 25 9d ae 69 84 63 31
             d6 5e 24 63 40 9c 72 d4 18 b9 01 b1 cc 39 68 8f
 """),
-        expected_signature=bytes.fromhex("""
-            00 00 00 07 73 73 68 2d 72 73 61
-            00 00 01 80
-            a2 10 7c 2e f6 bb 53 a8 74 2a a1 19 99 ad 81 be
-            79 9c ed d6 9d 09 4e 6e c5 18 48 33 90 77 99 68
-            f7 9e 03 5a cd 4e 18 eb 89 7d 85 a2 ee ae 4a 92
-            f6 6f ce b9 fe 86 7f 2a 6b 31 da 6e 1a fe a2 a5
-            88 b8 44 7f a1 76 73 b3 ec 75 b5 d0 a6 b9 15 97
-            65 09 13 7d 94 21 d1 fb 5d 0f 8b 23 04 77 c2 c3
-            55 22 b1 a0 09 8a f5 38 2a d6 7f 1b 87 29 a0 25
-            d3 25 6f cb 64 61 07 98 dc 14 c5 84 f8 92 24 5e
-            50 11 6b 49 e5 f0 cc 29 cb 29 a9 19 d8 a7 71 1f
-            91 0b 05 b1 01 4b c2 5f 00 a5 b6 21 bf f8 2c 9d
-            67 9b 47 3b 0a 49 6b 79 2d fc 1d ec 0c b0 e5 27
-            22 d5 a9 f8 d3 c3 f9 df 48 68 e9 fb ef 3c dc 26
-            bf cf ea 29 43 01 a6 e3 c5 51 95 f4 66 6d 8a 55
-            e2 47 ec e8 30 45 4c ae 47 e7 c9 a4 21 8b 64 ba
-            b6 88 f6 21 f8 73 b9 cb 11 a1 78 75 92 c6 5a e5
-            64 fe ed 42 d9 95 99 e6 2b 6f 3c 16 3c 28 74 a4
-            72 2f 0d 3f 2c 33 67 aa 35 19 8e e7 b5 11 2f b3
-            f7 6a c5 02 e2 6f a3 42 e3 62 19 99 03 ea a5 20
-            e7 a1 e3 bc c8 06 a3 b5 7c d6 76 5d df 6f 60 46
-            83 2a 08 00 d6 d3 d9 a4 c1 41 8c f8 60 56 45 81
-            da 3b a2 16 1f 9e 4e 75 83 17 da c3 53 c3 3e 19
-            a4 1b bc d2 29 b8 78 61 2b 78 e6 b1 52 b0 d5 ec
-            de 69 2c 48 62 d9 fd d1 9b 6b b0 49 db d3 ff 38
-            e7 10 d9 2d ce 9f 0d 5e 09 7b 37 d2 7b c3 bf ce
+        expected_signatures={
+            SSHTestKeyDeterministicSignatureClass.SPEC: SSHTestKeyDeterministicSignature(
+                signature=bytes.fromhex("""
+                    00 00 00 07 73 73 68 2d 72 73 61
+                    00 00 01 80
+                    a2 10 7c 2e f6 bb 53 a8 74 2a a1 19 99 ad 81 be
+                    79 9c ed d6 9d 09 4e 6e c5 18 48 33 90 77 99 68
+                    f7 9e 03 5a cd 4e 18 eb 89 7d 85 a2 ee ae 4a 92
+                    f6 6f ce b9 fe 86 7f 2a 6b 31 da 6e 1a fe a2 a5
+                    88 b8 44 7f a1 76 73 b3 ec 75 b5 d0 a6 b9 15 97
+                    65 09 13 7d 94 21 d1 fb 5d 0f 8b 23 04 77 c2 c3
+                    55 22 b1 a0 09 8a f5 38 2a d6 7f 1b 87 29 a0 25
+                    d3 25 6f cb 64 61 07 98 dc 14 c5 84 f8 92 24 5e
+                    50 11 6b 49 e5 f0 cc 29 cb 29 a9 19 d8 a7 71 1f
+                    91 0b 05 b1 01 4b c2 5f 00 a5 b6 21 bf f8 2c 9d
+                    67 9b 47 3b 0a 49 6b 79 2d fc 1d ec 0c b0 e5 27
+                    22 d5 a9 f8 d3 c3 f9 df 48 68 e9 fb ef 3c dc 26
+                    bf cf ea 29 43 01 a6 e3 c5 51 95 f4 66 6d 8a 55
+                    e2 47 ec e8 30 45 4c ae 47 e7 c9 a4 21 8b 64 ba
+                    b6 88 f6 21 f8 73 b9 cb 11 a1 78 75 92 c6 5a e5
+                    64 fe ed 42 d9 95 99 e6 2b 6f 3c 16 3c 28 74 a4
+                    72 2f 0d 3f 2c 33 67 aa 35 19 8e e7 b5 11 2f b3
+                    f7 6a c5 02 e2 6f a3 42 e3 62 19 99 03 ea a5 20
+                    e7 a1 e3 bc c8 06 a3 b5 7c d6 76 5d df 6f 60 46
+                    83 2a 08 00 d6 d3 d9 a4 c1 41 8c f8 60 56 45 81
+                    da 3b a2 16 1f 9e 4e 75 83 17 da c3 53 c3 3e 19
+                    a4 1b bc d2 29 b8 78 61 2b 78 e6 b1 52 b0 d5 ec
+                    de 69 2c 48 62 d9 fd d1 9b 6b b0 49 db d3 ff 38
+                    e7 10 d9 2d ce 9f 0d 5e 09 7b 37 d2 7b c3 bf ce
 """),
-        derived_passphrase=rb'ohB8Lva7U6h0KqEZma2Bvnmc7dadCU5uxRhIM5B3mWj3ngNazU4Y64l9haLurkqS9m/Ouf6GfyprMdpuGv6ipYi4RH+hdnOz7HW10Ka5FZdlCRN9lCHR+10PiyMEd8LDVSKxoAmK9Tgq1n8bhymgJdMlb8tkYQeY3BTFhPiSJF5QEWtJ5fDMKcspqRnYp3EfkQsFsQFLwl8ApbYhv/gsnWebRzsKSWt5Lfwd7Ayw5Sci1an408P530ho6fvvPNwmv8/qKUMBpuPFUZX0Zm2KVeJH7OgwRUyuR+fJpCGLZLq2iPYh+HO5yxGheHWSxlrlZP7tQtmVmeYrbzwWPCh0pHIvDT8sM2eqNRmO57URL7P3asUC4m+jQuNiGZkD6qUg56HjvMgGo7V81nZd329gRoMqCADW09mkwUGM+GBWRYHaO6IWH55OdYMX2sNTwz4ZpBu80im4eGEreOaxUrDV7N5pLEhi2f3Rm2uwSdvT/zjnENktzp8NXgl7N9J7w7/O',
+                derived_passphrase=rb'ohB8Lva7U6h0KqEZma2Bvnmc7dadCU5uxRhIM5B3mWj3ngNazU4Y64l9haLurkqS9m/Ouf6GfyprMdpuGv6ipYi4RH+hdnOz7HW10Ka5FZdlCRN9lCHR+10PiyMEd8LDVSKxoAmK9Tgq1n8bhymgJdMlb8tkYQeY3BTFhPiSJF5QEWtJ5fDMKcspqRnYp3EfkQsFsQFLwl8ApbYhv/gsnWebRzsKSWt5Lfwd7Ayw5Sci1an408P530ho6fvvPNwmv8/qKUMBpuPFUZX0Zm2KVeJH7OgwRUyuR+fJpCGLZLq2iPYh+HO5yxGheHWSxlrlZP7tQtmVmeYrbzwWPCh0pHIvDT8sM2eqNRmO57URL7P3asUC4m+jQuNiGZkD6qUg56HjvMgGo7V81nZd329gRoMqCADW09mkwUGM+GBWRYHaO6IWH55OdYMX2sNTwz4ZpBu80im4eGEreOaxUrDV7N5pLEhi2f3Rm2uwSdvT/zjnENktzp8NXgl7N9J7w7/O',
+            ),
+        },
     ),
     'dsa1024': SSHTestKey(
         private_key=rb"""-----BEGIN OPENSSH PRIVATE KEY-----
@@ -996,8 +1064,19 @@ u7HfrQhdOiKSa+ZO9AAojbURqrLDRfBJa5dXn2AAAAFQDJHfenj4EJ9WkehpdJatPBlqCW
             a2 0a a8 7b bb 1d fa d0 85 d3 a2 29 26 be 64 ef
             40 02 88 db 51 1a ab 2c 34 5f 04 96 b9 75 79 f6
 """),
-        expected_signature=None,
-        derived_passphrase=None,
+        expected_signatures={
+            SSHTestKeyDeterministicSignatureClass.RFC_6979: SSHTestKeyDeterministicSignature(
+                signature=bytes.fromhex("""
+                    00 00 00 07 73 73 68 2d 64 73 73
+                    00 00 00 28 11 5f 4d 13 c2 ee 61 97
+                    1e f6 23 14 3b 2b dd cf 06 c0 71 13 cc ac 34 19
+                    ad 36 8d 79 aa 25 fb 5e 4f ea fe 6b 5b fa 57 42
+"""),
+                derived_passphrase=rb"""EV9NE8LuYZce9iMUOyvdzwbAcRPMrDQZrTaNeaol+15P6v5rW/pXQg==
+""",
+                signature_class=SSHTestKeyDeterministicSignatureClass.RFC_6979,
+            ),
+        },
     ),
     'ecdsa256': SSHTestKey(
         private_key=rb"""-----BEGIN OPENSSH PRIVATE KEY-----
@@ -1037,8 +1116,24 @@ dGhvdXQgcGFzc3BocmFzZQECAwQ=
             64 95 ab 22 28 1c 93 89 73 e3 50 22 d0 1a ef 19
             49 ff c6 7a 81 fc f9 ed 9d da a5 49 1a 30 99 ba
 """),
-        expected_signature=None,
-        derived_passphrase=None,
+        expected_signatures={
+            SSHTestKeyDeterministicSignatureClass.RFC_6979: SSHTestKeyDeterministicSignature(
+                signature=bytes.fromhex("""
+                    00 00 00 13 65 63 64
+                    73 61 2d 73 68 61 32 2d 6e 69 73 74 70 32 35 36
+                    00 00 00 49
+                    00 00 00 20
+                    22 ad 23 8a 9c 5d ca 4e ea 73 e7 29 77 ab a8 b2
+                    2e 01 d8 de 11 ae c9 b3 57 ce d5 84 9c 85 73 eb
+                    00 00 00 21 00
+                    9b 1a cb dd 45 89 f0 37 95 9c a2 d8 ac c3 f7 71
+                    55 33 50 86 9e cb 3a 95 e4 68 80 1a 9d d6 d5 bc
+"""),
+                derived_passphrase=rb"""AAAAICKtI4qcXcpO6nPnKXerqLIuAdjeEa7Js1fO1YSchXPrAAAAIQCbGsvdRYnwN5Wcotisw/dxVTNQhp7LOpXkaIAandbVvA==
+""",
+                signature_class=SSHTestKeyDeterministicSignatureClass.RFC_6979,
+            ),
+        },
     ),
     'ecdsa384': SSHTestKey(
         private_key=rb"""-----BEGIN OPENSSH PRIVATE KEY-----
@@ -1084,8 +1179,26 @@ JAu0J3Q+cypZuKQVAAAAMQD5sTy8p+B1cn/DhOmXquui1BcxvASqzzevkBlbQoBa73y04B
             7c 8b 16 08 e7 58 93 95 8f dc d6 4f ce ff 75 d5
             79 fb c1 b1 24 0b b4 27 74 3e 73 2a 59 b8 a4 15
 """),
-        expected_signature=None,
-        derived_passphrase=None,
+        expected_signatures={
+            SSHTestKeyDeterministicSignatureClass.RFC_6979: SSHTestKeyDeterministicSignature(
+                signature=bytes.fromhex("""
+                    00 00 00 13 65 63 64
+                    73 61 2d 73 68 61 32 2d 6e 69 73 74 70 33 38 34
+                    00 00 00 68
+                    00 00 00 30
+                    78 e1 a8 f5 8c d2 7a 21 e5 a2 ca e6 d0 1a 19 f8
+                    3a 1c 39 7e 71 a0 e6 7e 93 83 49 95 05 01 d0 3e
+                    23 22 cd 09 63 7f 7c 6c b0 97 44 6d 7e 48 39 87
+                    00 00 00 30
+                    10 ee 85 51 77 2b 91 2c e9 42 79 66 59 8a a2 c0
+                    d2 c8 8a 8f 2f 8f 33 87 9e 12 54 e4 da 02 f9 e7
+                    95 f5 82 6f 82 2b 38 6d 6e 5d 17 15 ac 12 e7 62
+"""),
+                derived_passphrase=rb"""AAAAMHjhqPWM0noh5aLK5tAaGfg6HDl+caDmfpODSZUFAdA+IyLNCWN/fGywl0Rtfkg5hwAAADAQ7oVRdyuRLOlCeWZZiqLA0siKjy+PM4eeElTk2gL555X1gm+CKzhtbl0XFawS52I=
+""",
+                signature_class=SSHTestKeyDeterministicSignatureClass.RFC_6979,
+            ),
+        },
     ),
     'ecdsa521': SSHTestKey(
         private_key=rb"""-----BEGIN OPENSSH PRIVATE KEY-----
@@ -1138,8 +1251,28 @@ Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQ==
             23 a0 a4 b7 fc 27 43 54 c4 a6 3f 33 0c a8 91 12
             bc 6c f5 ee 90 2c 61 25 35 19 33 2c f3 2c fa 63
 """),
-        expected_signature=None,
-        derived_passphrase=None,
+        expected_signatures={
+            SSHTestKeyDeterministicSignatureClass.RFC_6979: SSHTestKeyDeterministicSignature(
+                signature=bytes.fromhex("""
+                    00 00 00 13 65 63 64
+                    73 61 2d 73 68 61 32 2d 6e 69 73 74 70 35 32 31
+                    00 00 00 8b
+                    00 00 00 42 01 d8
+                    ea c2 1e 55 c6 9e dd 4b 00 ed 1b 93 19 cc 9b 74
+                    27 44 c0 c0 e3 5b 3d 81 15 00 12 cc 07 89 54 97
+                    ec 60 42 ad e6 40 c1 c6 5f c0 1b c3 0a 8e 58 6e
+                    da 3f a9 57 90 04 79 46 1d 48 bb 19 67 e9 65 19
+                    00 00 00 41 7d
+                    58 e0 2e d7 86 2e 36 8c 1a 44 23 af 19 e7 51 97
+                    bb fb 32 90 a1 35 bb 88 d7 b5 22 37 b3 99 ba e4
+                    a7 9d 2d 56 14 0a f5 68 f5 cc 38 84 e9 b6 c6 71
+                    7a 3b 87 e7 7a b1 37 e7 1d e6 80 96 d1 a6 1e bc
+"""),
+                derived_passphrase=rb"""AAAAQgHY6sIeVcae3UsA7RuTGcybdCdEwMDjWz2BFQASzAeJVJfsYEKt5kDBxl/AG8MKjlhu2j+pV5AEeUYdSLsZZ+llGQAAAEF9WOAu14YuNowaRCOvGedRl7v7MpChNbuI17UiN7OZuuSnnS1WFAr1aPXMOITptsZxejuH53qxN+cd5oCW0aYevA==
+""",
+                signature_class=SSHTestKeyDeterministicSignatureClass.RFC_6979,
+            ),
+        },
     ),
 }
 """The master list of SSH test keys."""
@@ -1749,8 +1882,9 @@ def sign(
     assert message == vault.Vault.UUID
     for value in SUPPORTED_KEYS.values():
         if value.public_key_data == key:  # pragma: no branch
-            assert value.expected_signature is not None
-            return value.expected_signature
+            return value.expected_signatures[
+                SSHTestKeyDeterministicSignatureClass.SPEC
+            ].signature
     raise AssertionError
 
 
