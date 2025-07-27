@@ -572,10 +572,15 @@ class TestAgentInteraction:
         client = ssh_agent_client_with_test_keys_loaded
         key_comment_pairs = {bytes(k): bytes(c) for k, c in client.list_keys()}
         public_key_data = ssh_test_key.public_key_data
-        expected_signature = ssh_test_key.expected_signature
-        derived_passphrase = ssh_test_key.derived_passphrase
-        assert expected_signature is not None
-        assert derived_passphrase is not None
+        assert (
+            tests.SSHTestKeyDeterministicSignatureClass.SPEC
+            in ssh_test_key.expected_signatures
+        )
+        sig = ssh_test_key.expected_signatures[
+            tests.SSHTestKeyDeterministicSignatureClass.SPEC
+        ]
+        expected_signature = sig.signature
+        derived_passphrase = sig.derived_passphrase
         if public_key_data not in key_comment_pairs:  # pragma: no cover
             pytest.skip(f'prerequisite {ssh_test_key_type} SSH key not loaded')
         signature = bytes(

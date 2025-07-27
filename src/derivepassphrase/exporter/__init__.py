@@ -36,7 +36,8 @@ class NotAVaultConfigError(ValueError):
         self.path = os.fspath(path)
         self.format = format
 
-    def __str__(self) -> str:  # pragma: no cover
+    def __str__(self) -> str:  # pragma: no cover [failsafe]
+        """"""  # noqa: D419
         formatted_format = (
             f'vault {self.format} configuration'
             if self.format
@@ -64,10 +65,10 @@ def get_vault_key() -> bytes:
 
     """
 
-    def getenv_environ(env_var: str) -> bytes:  # pragma: no cover
+    def getenv_environb(env_var: str) -> bytes:  # pragma: no cover [external]
         return os.environb.get(env_var.encode('UTF-8'), b'')  # type: ignore[attr-defined]
 
-    def getenv_environb(env_var: str) -> bytes:  # pragma: no cover
+    def getenv_environ(env_var: str) -> bytes:  # pragma: no cover [external]
         return os.environ.get(env_var, '').encode('UTF-8')
 
     getenv: Callable[[str], bytes] = (
@@ -107,7 +108,7 @@ def get_vault_path() -> pathlib.Path:
     ).expanduser()
 
 
-class ExportVaultConfigDataFunction(Protocol):  # pragma: no cover
+class ExportVaultConfigDataFunction(Protocol):
     """Typing protocol for vault config data export handlers."""
 
     def __call__(

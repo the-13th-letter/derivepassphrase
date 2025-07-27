@@ -53,7 +53,7 @@ else:
         importlib.import_module('cryptography')
     except ModuleNotFoundError as exc:
 
-        class _DummyModule:  # pragma: no cover
+        class _DummyModule:
             def __init__(self, exc: type[Exception]) -> None:
                 self.exc = exc
 
@@ -115,7 +115,7 @@ def export_storeroom_data(  # noqa: C901,D417,PLR0912,PLR0914,PLR0915
         path = pathlib.Path(os.fsdecode(path))
     if key is None:
         key = exporter.get_vault_key()
-    if format != 'storeroom':  # pragma: no cover
+    if format != 'storeroom':  # pragma: no cover [failsafe]
         msg = exporter.INVALID_VAULT_NATIVE_CONFIGURATION_FORMAT.format(
             fmt=format
         )

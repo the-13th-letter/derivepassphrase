@@ -241,7 +241,7 @@ class ConfigurationMutex:
 
     def __init__(self) -> None:
         """Initialize self."""
-        if sys.platform == 'win32':  # pragma: no cover
+        if sys.platform == 'win32':  # pragma: unless the-annoying-os no cover
             import msvcrt  # noqa: PLC0415
 
             locking = msvcrt.locking
@@ -254,7 +254,7 @@ class ConfigurationMutex:
             def unlock_fd(fd: int, /) -> None:
                 locking(fd, LK_UNLCK, LOCK_SIZE)
 
-        else:
+        else:  # pragma: unless posix no cover
             import fcntl  # noqa: PLC0415
 
             flock = fcntl.flock
@@ -440,7 +440,7 @@ def config_filename(
         return temp_path / filename_
     try:
         filename = config_filename_table[subsystem]
-    except (KeyError, TypeError):  # pragma: no cover
+    except (KeyError, TypeError):  # pragma: no cover [failsafe]
         msg = f'Unknown configuration subsystem: {subsystem!r}'
         raise AssertionError(msg) from None
     return path / filename
@@ -596,14 +596,14 @@ def get_suitable_ssh_keys(
     with ssh_agent.SSHAgentClient.ensure_agent_subcontext(conn) as client:
         try:
             all_key_comment_pairs = list(client.list_keys())
-        except EOFError as exc:  # pragma: no cover
+        except EOFError as exc:  # pragma: no cover [failsafe]
             raise RuntimeError(AGENT_COMMUNICATION_ERROR) from exc
         suitable_keys = copy.copy(all_key_comment_pairs)
         for pair in all_key_comment_pairs:
             key, _comment = pair
             if vault.Vault.is_suitable_ssh_key(key, client=client):
                 yield pair
-    if not suitable_keys:  # pragma: no cover
+    if not suitable_keys:
         raise LookupError(NO_SUITABLE_KEYS)
 
 
@@ -666,7 +666,7 @@ def prompt_for_selection(
                 show_default=False,
                 default='',
             )
-        except click.Abort:  # pragma: no cover
+        except click.Abort:  # pragma: no cover [external]
             # This branch will not be triggered during testing on
             # `click` versions < 8.2.1, due to (non-monkeypatch-able)
             # deficiencies in `click.testing.CliRunner`. Therefore, as
@@ -784,7 +784,7 @@ def prompt_for_passphrase() -> str:
                 err=True,
             ),
         )
-    except click.Abort:  # pragma: no cover
+    except click.Abort:  # pragma: no cover [external]
         # This branch will not be triggered during testing on `click`
         # versions < 8.2.1, due to (non-monkeypatch-able) deficiencies
         # in `click.testing.CliRunner`. Therefore, as an external source

@@ -50,14 +50,15 @@ class SSHAgentFailedError(RuntimeError):
             b'',
         ):
             return 'The SSH agent failed to complete the request'
-        elif self.args[1]:  # noqa: RET505  # pragma: no cover
+        elif self.args[1]:  # noqa: RET505  # pragma: no cover [failsafe]
             code = self.args[0]
             msg = self.args[1].decode('utf-8', 'surrogateescape')
             return f'[Code {code:d}] {msg:s}'
-        else:  # pragma: no cover
+        else:  # pragma: no cover [failsafe]
             return repr(self)
 
-    def __repr__(self) -> str:  # pragma: no cover
+    def __repr__(self) -> str:  # pragma: no cover [debug]
+        """"""  # noqa: D419
         return f'{self.__class__.__name__}{self.args!r}'
 
 
@@ -335,7 +336,7 @@ class SSHAgentClient:
         elif isinstance(conn, socket.socket) or conn is None:
             with SSHAgentClient(socket=conn) as client:
                 yield client
-        else:  # pragma: no cover
+        else:  # pragma: no cover [failsafe]
             assert_type(conn, Never)
             msg = f'invalid connection hint: {conn!r}'
             raise TypeError(msg)
@@ -479,7 +480,7 @@ class SSHAgentClient:
         if len(response) < response_length:
             msg = 'truncated response from SSH agent'
             raise EOFError(msg)
-        if not response_code:  # pragma: no cover
+        if not response_code:  # pragma: no cover [failsafe]
             return response[0], response[1:]
         if response[0] not in response_code:
             raise SSHAgentFailedError(response[0], response[1:])

@@ -50,7 +50,7 @@ def _hypothesis_settings_setup() -> None:
         importlib.util.find_spec('coverage') is not None
         and settings.deadline is not None
         and settings.deadline.total_seconds() < 1.0
-    ):  # pragma: no cover
+    ):  # pragma: no cover [external]
         ctracer_class = (
             importlib.import_module('coverage.tracer').CTracer
             if importlib.util.find_spec('coverage.tracer') is not None
@@ -112,7 +112,7 @@ _hypothesis_settings_setup()
 # https://docs.pytest.org/en/stable/explanation/fixtures.html#a-note-about-fixture-cleanup
 # https://github.com/pytest-dev/pytest/issues/5243#issuecomment-491522595
 @pytest.fixture(scope='session', autouse=False)
-def term_handler() -> Iterator[None]:  # pragma: no cover
+def term_handler() -> Iterator[None]:  # pragma: no cover [external]
     try:
         import signal  # noqa: PLC0415
 
@@ -126,7 +126,7 @@ def term_handler() -> Iterator[None]:  # pragma: no cover
 
 
 @pytest.fixture(scope='session')
-def skip_if_no_af_unix_support() -> None:  # pragma: no cover
+def skip_if_no_af_unix_support() -> None:  # pragma: no cover [external]
     """Skip the test if Python does not support AF_UNIX.
 
     Implemented as a fixture instead of a mark because it has
@@ -170,7 +170,7 @@ class SpawnFunc(Protocol):
         """
 
 
-def spawn_pageant(  # pragma: no cover
+def spawn_pageant(  # pragma: no cover [external]
     executable: str | None, env: dict[str, str]
 ) -> subprocess.Popen[str] | None:
     """Spawn an isolated Pageant, if possible.
@@ -195,7 +195,7 @@ def spawn_pageant(  # pragma: no cover
         subprocess.
 
     """
-    if executable is None:  # pragma: no cover
+    if executable is None:  # pragma: no cover [external]
         return None
 
     # Apparently, Pageant 0.81 and lower running in debug mode does
@@ -227,7 +227,7 @@ def spawn_pageant(  # pragma: no cover
     v0_82 = packaging.version.Version('0.82')
     pageant_version = packaging.version.Version(pageant_version_string)
 
-    if pageant_version < v0_82:  # pragma: no cover
+    if pageant_version < v0_82:  # pragma: no cover [external]
         return None
 
     return subprocess.Popen(
@@ -242,7 +242,7 @@ def spawn_pageant(  # pragma: no cover
     )
 
 
-def spawn_openssh_agent(  # pragma: no cover
+def spawn_openssh_agent(  # pragma: no cover [external]
     executable: str | None, env: dict[str, str]
 ) -> subprocess.Popen[str] | None:
     """Spawn an isolated OpenSSH agent, if possible.
@@ -276,7 +276,7 @@ def spawn_openssh_agent(  # pragma: no cover
     )
 
 
-def spawn_noop(  # pragma: no cover
+def spawn_noop(  # pragma: no cover [unused]
     executable: str | None, env: dict[str, str]
 ) -> None:
     """Placeholder function. Does nothing."""
@@ -323,7 +323,7 @@ def spawn_named_agent(
     exec_name: str,
     spawn_func: SpawnFunc,
     agent_type: tests.KnownSSHAgent,
-) -> Iterator[tests.SpawnedSSHAgentInfo]:  # pragma: no cover
+) -> Iterator[tests.SpawnedSSHAgentInfo]:  # pragma: no cover [external]
     """Spawn the named SSH agent and check that it is operational.
 
     Using the correct agent-specific spawn function from the
@@ -379,7 +379,7 @@ def spawn_named_agent(
     with exit_stack:
         if spawn_func is spawn_noop:
             ssh_auth_sock = os.environ['SSH_AUTH_SOCK']
-        elif proc is None:  # pragma: no cover
+        elif proc is None:  # pragma: no cover [external]
             err_msg = f'Cannot spawn usable {exec_name}'
             raise CannotSpawnError(err_msg)
         else:
@@ -393,14 +393,14 @@ def spawn_named_agent(
                 ssh_auth_sock = tests.parse_sh_export_line(
                     ssh_auth_sock_line, env_name='SSH_AUTH_SOCK'
                 )
-            except ValueError:  # pragma: no cover
+            except ValueError:  # pragma: no cover [external]
                 err_msg = f'Cannot parse agent output: {ssh_auth_sock_line!r}'
                 raise CannotSpawnError(err_msg) from None
             pid_line = proc.stdout.readline()
             if (
                 'pid' not in pid_line.lower()
                 and '_pid' not in pid_line.lower()
-            ):  # pragma: no cover
+            ):  # pragma: no cover [external]
                 err_msg = f'Cannot parse agent output: {pid_line!r}'
                 raise CannotSpawnError(err_msg)
         monkeypatch = exit_stack.enter_context(pytest.MonkeyPatch.context())
@@ -418,7 +418,7 @@ def spawn_named_agent(
 
 
 @pytest.fixture
-def running_ssh_agent(  # pragma: no cover
+def running_ssh_agent(  # pragma: no cover [external]
     skip_if_no_af_unix_support: None,
 ) -> Iterator[tests.RunningSSHAgentInfo]:
     """Ensure a running SSH agent, if possible, as a pytest fixture.
@@ -473,7 +473,7 @@ def running_ssh_agent(  # pragma: no cover
 def spawn_ssh_agent(
     request: pytest.FixtureRequest,
     skip_if_no_af_unix_support: None,
-) -> Iterator[tests.SpawnedSSHAgentInfo]:  # pragma: no cover
+) -> Iterator[tests.SpawnedSSHAgentInfo]:  # pragma: no cover [external]
     """Spawn an isolated SSH agent, if possible, as a pytest fixture.
 
     Spawn a new SSH agent isolated from other SSH use by other
@@ -500,9 +500,9 @@ def spawn_ssh_agent(
         # fixtures of the same parameter set have run.  So set
         # SSH_AUTH_SOCK explicitly to the value saved at interpreter
         # startup.
-        if startup_ssh_auth_sock:  # pragma: no cover
+        if startup_ssh_auth_sock:  # pragma: no cover [external]
             monkeypatch.setenv('SSH_AUTH_SOCK', startup_ssh_auth_sock)
-        else:  # pragma: no cover
+        else:  # pragma: no cover [external]
             monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
         try:
             yield from spawn_named_agent(*request.param)
@@ -571,7 +571,7 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
     try:
         for key_type, key_struct in tests.ALL_KEYS.items():
             private_key_data = key_struct.private_key_blob
-            if private_key_data is None:  # pragma: no cover
+            if private_key_data is None:  # pragma: no cover [failsafe]
                 continue
             request_code, payload = prepare_payload(
                 private_key_data, isolated=isolated, time_to_live=30
@@ -583,7 +583,9 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
                         payload,
                         response_code=_types.SSH_AGENT.SUCCESS,
                     )
-                except ssh_agent.SSHAgentFailedError:  # pragma: no cover
+                except (
+                    ssh_agent.SSHAgentFailedError
+                ):  # pragma: no cover [external]
                     # Pageant can fail to accept a key for two separate
                     # reasons:
                     #
@@ -618,16 +620,16 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
                 EOFError,
                 OSError,
                 ssh_agent.SSHAgentFailedError,
-            ):  # pragma: no cover
+            ):  # pragma: no cover [external]
                 pass
-            else:  # pragma: no cover
+            else:  # pragma: no cover [external]
                 successfully_loaded_keys.add(key_type)
         yield client
     finally:
         for key_type, key_struct in tests.ALL_KEYS.items():
             if not isolated and (
                 key_type in successfully_loaded_keys
-            ):  # pragma: no cover
+            ):  # pragma: no cover [external]
                 # The public key blob is the base64-encoded part in
                 # the "public key line".
                 public_key = base64.standard_b64decode(

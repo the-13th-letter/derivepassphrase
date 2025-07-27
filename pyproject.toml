@@ -54,15 +54,26 @@ dev = [
     "mypy >= 1.0",
     "ruff >= 0.9.0",
     # Test dependencies should be installed as well, to have static
-    # analysis in the test suite working too.  `packaging` is needed
-    # because the test suite compares version numbers.
+    # analysis in the test suite working too.
+    #
+    # `packaging` is needed because the test suite compares version
+    # numbers.
+    #
+    # `pytest-xdist` is used by `hatch test -p`, but for the `psutil`
+    # extra, the `psutil` package provides no wheels for PyPy.  Users on
+    # The Annoying OS are especially screwed if they lack the admin
+    # priviledges necessary to install the developers' tools.  So skip
+    # the extra, and accept that for PyPy environments, `hatch test -p`
+    # will not be able to distinguish logical and physical CPU core
+    # counts.
     "coverage[toml] >= 7.4",
     "coverage-enable-subprocess >= 1.0",
     "hypothesis >= 6.0",
     "packaging",
     "pytest >= 8.1",
     "pytest-randomly >= 3.15",
-    "pytest-xdist[psutil] >= 3.6.0",
+    "pytest-xdist >= 3.6.0",
+    'pytest-xdist[psutil] >= 3.6.0; platform_python_implementation != "PyPy"',
     # Versions 6.130.13 through 6.135.1 of `hypothesis` use syntax only
     # available on Python 3.10 and later: `with (x as y, a as b)`
     'hypothesis != 6.130.13, != 6.131.*, != 6.132.*, != 6.133.*, != 6.134.*, != 6.135.0, != 6.135.1 ; python_version < "3.10"',
@@ -237,7 +248,39 @@ exclude_also = [
     'class .*\(Protocol\):',
     'pytest\.fail\(',
     '@(?:(?:pytest\.)?mark\.)?xfail\(',
+    'class _Omitted:',
+    'class _DummyModule:',
 ]
+
+# We use a bunch of "codes", similar to the "type: ignore" comments, as
+# shorthand notation for why we are excluding a certain piece of code
+# manually from coverage, instead of writing a verbose explanation at each
+# call site:
+#
+# "external-api" and "unused": The code is defined by an external API not
+# under our control, or it implements an external interface, and some of the
+# branches of that code we do not yet use ("unused") or don't ever intend to
+# use ("external-api").  In particular, in production and in testing use, we
+# do not expect to hit these code branches unless there are errors in our
+# code.
+#
+# "external": Whether or not we hit this code branch is non-deterministic,
+# and dependent on external factors that are difficult or impossible for us
+# to control, predict, or simulate.  We therefore categorically exclude all
+# branches from coverage.  (Typically though, one particular branch *will*
+# actually run.  We just don't know ahead of time which one.)  (While this
+# applies to "choice of operating system" and "installed Python/library
+# version" as well, these cases are usually tagged with more specific codes,
+# or explained in long-form commentary.)
+#
+# "failsafe": Akin to assertions, these are used to catch "impossible"
+# situations and to still fail in a controlled manner.  We do not expect to
+# hit these code branches during production or testing.
+#
+# "debug", "internal" and "interactive": These code branches are not
+# intended to be called by the general public ("debug", "internal"), or they
+# are only intended to be called interactively ("interactive").  We do not
+# expect to hit these code branches during production or testing.
 
 [tool.coverage.run]
 source_pkgs = ["derivepassphrase", "tests"]
@@ -307,7 +350,8 @@ dependencies = [
     "packaging",
     "pytest >= 8.1",
     "pytest-randomly >= 3.15",
-    "pytest-xdist[psutil] >= 3.6.0",
+    "pytest-xdist >= 3.6.0",
+    'pytest-xdist[psutil] >= 3.6.0; platform_python_implementation != "PyPy"',
     'hypothesis != 6.130.13, != 6.131.*, != 6.132.*, != 6.133.*, != 6.134.*, != 6.135.0, != 6.135.1 ; python_version < "3.10"',
 ]
 matrix-name-format = '{variable}_{value}'
