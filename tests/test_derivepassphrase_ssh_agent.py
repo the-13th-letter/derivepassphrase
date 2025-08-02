@@ -9,11 +9,13 @@ from __future__ import annotations
 import base64
 import contextlib
 import errno
+import importlib.metadata
 import io
 import os
 import pathlib
 import re
 import socket
+import sys
 import types
 from typing import TYPE_CHECKING
 
@@ -21,7 +23,7 @@ import click
 import click.testing
 import hypothesis
 import pytest
-from hypothesis import strategies
+from hypothesis import stateful, strategies
 
 import tests
 from derivepassphrase import _types, ssh_agent, vault
@@ -31,10 +33,83 @@ from derivepassphrase.ssh_agent import socketprovider
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from typing_extensions import Any, Buffer
+    from typing_extensions import Any, Buffer, Literal
+
+if sys.version_info < (3, 11):
+    from exceptiongroup import ExceptionGroup
 
 
 class Parametrize(types.SimpleNamespace):
+    BAD_ENTRY_POINTS = pytest.mark.parametrize(
+        'additional_entry_points',
+        [
+            pytest.param(
+                [
+                    importlib.metadata.EntryPoint(
+                        name=tests.faulty_entry_callable.key,
+                        group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
+                        value='tests: faulty_entry_callable',
+                    ),
+                ],
+                id='not-callable',
+            ),
+            pytest.param(
+                [
+                    importlib.metadata.EntryPoint(
+                        name=tests.faulty_entry_name_exists.key,
+                        group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
+                        value='tests: faulty_entry_name_exists',
+                    ),
+                ],
+                id='name-already-exists',
+            ),
+            pytest.param(
+                [
+                    importlib.metadata.EntryPoint(
+                        name=tests.faulty_entry_alias_exists.key,
+                        group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
+                        value='tests: faulty_entry_alias_exists',
+                    ),
+                ],
+                id='alias-already-exists',
+            ),
+        ],
+    )
+    GOOD_ENTRY_POINTS = pytest.mark.parametrize(
+        'additional_entry_points',
+        [
+            pytest.param(
+                [
+                    importlib.metadata.EntryPoint(
+                        name=tests.posix_entry.key,
+                        group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
+                        value='tests: posix_entry',
+                    ),
+                    importlib.metadata.EntryPoint(
+                        name=tests.the_annoying_os_entry.key,
+                        group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
+                        value='tests: the_annoying_os_entry',
+                    ),
+                ],
+                id='existing-entries',
+            ),
+            pytest.param(
+                [
+                    importlib.metadata.EntryPoint(
+                        name=tests.provider_entry1.key,
+                        group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
+                        value='tests: provider_entry1',
+                    ),
+                    importlib.metadata.EntryPoint(
+                        name=tests.provider_entry2.key,
+                        group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
+                        value='tests: provider_entry2',
+                    ),
+                ],
+                id='new-entries',
+            ),
+        ],
+    )
     STUBBED_AGENT_ADDRESSES = pytest.mark.parametrize(
         ['address', 'exception', 'match'],
         [
@@ -59,6 +134,9 @@ class Parametrize(types.SimpleNamespace):
                 id='invalid-error-code',
             ),
         ],
+    )
+    EXISTING_REGISTRY_ENTRIES = pytest.mark.parametrize(
+        'existing', ['posix', 'the_annoying_os']
     )
     SSH_STRING_EXCEPTIONS = pytest.mark.parametrize(
         ['input', 'exc_type', 'exc_pattern'],
@@ -414,6 +492,17 @@ class Parametrize(types.SimpleNamespace):
         list(tests.UNSUITABLE_KEYS.items()),
         ids=tests.UNSUITABLE_KEYS.keys(),
     )
+    RESOLVE_CHAINS = pytest.mark.parametrize(
+        ['terminal', 'chain'],
+        [
+            pytest.param('callable', ['a'], id='callable-1'),
+            pytest.param('callable', ['a', 'b', 'c', 'd'], id='callable-4'),
+            pytest.param('alias', ['e'], id='alias-5'),
+            pytest.param('alias', ['e', 'f', 'g', 'h', 'i'], id='alias-5'),
+            pytest.param('unimplemented', ['j'], id='unimplemented-1'),
+            pytest.param('unimplemented', ['j', 'k'], id='unimplemented-2'),
+        ],
+    )
 
 
 class TestTestingMachineryStubbedSSHAgentSocket:
@@ -709,18 +798,19 @@ class TestStaticFunctionality:
             with pytest.raises(ValueError, match='Cannot parse sh line:'):
                 tests.parse_sh_export_line(line, env_name=env_name)
 
-    def test_200_constructor_no_running_agent(
+    def test_200_constructor_posix_no_ssh_auth_sock(
         self,
         skip_if_no_af_unix_support: None,
     ) -> None:
-        """Abort if the running agent cannot be located."""
+        """Abort if the running agent cannot be located on POSIX."""
         del skip_if_no_af_unix_support
+        posix_handler = socketprovider.SocketProvider.resolve('posix')
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
             with pytest.raises(
                 KeyError, match='SSH_AUTH_SOCK environment variable'
             ):
-                ssh_agent.SSHAgentClient()
+                posix_handler()
 
     @Parametrize.UINT32_INPUT
     def test_210_uint32(self, input: int, expected: bytes | bytearray) -> None:
@@ -831,6 +921,139 @@ class TestStaticFunctionality:
                 assert canon1(encoded) == canon2(encoded)
                 assert canon1(canon2(encoded)) == canon1(encoded)
 
+    def test_220_registry_resolve(
+        self,
+    ) -> None:
+        """Resolving entries in the socket provider registry works."""
+        registry = socketprovider.SocketProvider.registry
+        resolve = socketprovider.SocketProvider.resolve
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setitem(registry, 'stub_agent', None)
+            assert callable(resolve('native'))
+            with pytest.raises(NotImplementedError):
+                resolve('stub_agent')
+
+    @Parametrize.RESOLVE_CHAINS
+    def test_221_registry_resolve_chains(
+        self,
+        terminal: Literal['unimplemented', 'alias', 'callable'],
+        chain: list[str],
+    ) -> None:
+        """Resolving a chain of providers works."""
+        registry = socketprovider.SocketProvider.registry
+        resolve = socketprovider.SocketProvider.resolve
+        try:
+            implementation = resolve('native')
+        except NotImplementedError:  # pragma: no cover
+            pytest.fail('Native SSH agent socket provider is unavailable?!')
+        # TODO(the-13th-letter): Rewrite using structural pattern matching.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        target = (
+            None
+            if terminal == 'unimplemented'
+            else 'native'
+            if terminal == 'alias'
+            else implementation
+        )
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            for link in chain:
+                monkeypatch.setitem(registry, link, target)
+                target = link
+            if terminal == 'unimplemented':
+                with pytest.raises(NotImplementedError):
+                    resolve(chain[-1])
+            else:
+                assert resolve(chain[-1]) == implementation
+
+    @hypothesis.given(
+        terminal=strategies.sampled_from([
+            'unimplemented',
+            'alias',
+            'callable',
+        ]),
+        chain=strategies.lists(
+            strategies.sampled_from([
+                'c1',
+                'c2',
+                'c3',
+                'c4',
+                'c5',
+                'c6',
+                'c7',
+                'c8',
+                'c9',
+                'c10',
+            ]),
+            min_size=1,
+            unique=True,
+        ),
+    )
+    def test_221a_registry_resolve_chains(
+        self,
+        terminal: Literal['unimplemented', 'alias', 'callable'],
+        chain: list[str],
+    ) -> None:
+        """Resolving a chain of providers works."""
+        registry = socketprovider.SocketProvider.registry
+        resolve = socketprovider.SocketProvider.resolve
+        try:
+            implementation = resolve('native')
+        except NotImplementedError:  # pragma: no cover
+            hypothesis.note(f'{registry = }')
+            pytest.fail('Native SSH agent socket provider is unavailable?!')
+        # TODO(the-13th-letter): Rewrite using structural pattern matching.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        target = (
+            None
+            if terminal == 'unimplemented'
+            else 'native'
+            if terminal == 'alias'
+            else implementation
+        )
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            for link in chain:
+                monkeypatch.setitem(registry, link, target)
+                target = link
+            if terminal == 'unimplemented':
+                with pytest.raises(NotImplementedError):
+                    resolve(chain[-1])
+            else:
+                assert resolve(chain[-1]) == implementation
+
+    @Parametrize.GOOD_ENTRY_POINTS
+    def test_230_find_all_socket_providers(
+        self,
+        additional_entry_points: list[importlib.metadata.EntryPoint],
+    ) -> None:
+        """Finding all SSH agent socket providers works."""
+        resolve = socketprovider.SocketProvider.resolve
+        old_registry = socketprovider.SocketProvider.registry
+        with tests.faked_entry_point_list(
+            additional_entry_points, remove_conflicting_entries=False
+        ) as names:
+            socketprovider.SocketProvider._find_all_ssh_agent_socket_providers()
+            for name in names:
+                assert name in socketprovider.SocketProvider.registry
+                assert resolve(name) in {
+                    tests.provider_entry_provider,
+                    *old_registry.values(),
+                }
+
+    @Parametrize.BAD_ENTRY_POINTS
+    def test_231_find_all_socket_providers_errors(
+        self,
+        additional_entry_points: list[importlib.metadata.EntryPoint],
+    ) -> None:
+        """Finding faulty SSH agent socket providers raises errors."""
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(
+                tests.faked_entry_point_list(
+                    additional_entry_points, remove_conflicting_entries=False
+                )
+            )
+            stack.enter_context(pytest.raises(AssertionError))
+            socketprovider.SocketProvider._find_all_ssh_agent_socket_providers()
+
     @Parametrize.UINT32_EXCEPTIONS
     def test_310_uint32_exceptions(
         self, input: int, exc_type: type[Exception], exc_pattern: str
@@ -868,6 +1091,123 @@ class TestStaticFunctionality:
         else:
             with pytest.raises(exc_type, match=exc_pattern):
                 unstring_prefix(input)
+
+    def test_320_registry_already_registered(
+        self,
+    ) -> None:
+        """The registry forbids overwriting entries."""
+        registry = socketprovider.SocketProvider.registry.copy()
+        resolve = socketprovider.SocketProvider.resolve
+        register = socketprovider.SocketProvider.register
+        the_annoying_os = resolve('the_annoying_os')
+        posix = resolve('posix')
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(
+                socketprovider.SocketProvider, 'registry', registry
+            )
+            register('posix')(posix)
+            register('the_annoying_os')(the_annoying_os)
+            with pytest.raises(ValueError, match='already registered'):
+                register('posix')(the_annoying_os)
+            with pytest.raises(ValueError, match='already registered'):
+                register('the_annoying_os')(posix)
+            with pytest.raises(ValueError, match='already registered'):
+                register('posix', 'the_annoying_os_named_pipe')(posix)
+            with pytest.raises(ValueError, match='already registered'):
+                register('the_annoying_os', 'unix_domain')(the_annoying_os)
+
+    def test_321_registry_resolve_non_existant_entries(
+        self,
+    ) -> None:
+        """Resolving a non-existant entry fails."""
+        new_registry = {
+            'posix': socketprovider.SocketProvider.registry['posix'],
+            'the_annoying_os': socketprovider.SocketProvider.registry[
+                'the_annoying_os'
+            ],
+        }
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(
+                socketprovider.SocketProvider, 'registry', new_registry
+            )
+            with pytest.raises(socketprovider.NoSuchProviderError):
+                socketprovider.SocketProvider.resolve('native')
+
+    def test_322_registry_register_new_entry(
+        self,
+    ) -> None:
+        """Registering new entries works."""
+
+        def socket_provider() -> _types.SSHAgentSocket:
+            raise AssertionError
+
+        names = ['spam', 'ham', 'eggs', 'parrot']
+        new_registry = {
+            'posix': socketprovider.SocketProvider.registry['posix'],
+            'the_annoying_os': socketprovider.SocketProvider.registry[
+                'the_annoying_os'
+            ],
+        }
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(
+                socketprovider.SocketProvider, 'registry', new_registry
+            )
+            assert not any(
+                map(socketprovider.SocketProvider.registry.__contains__, names)
+            )
+            assert (
+                socketprovider.SocketProvider.register(*names)(socket_provider)
+                is socket_provider
+            )
+            assert all(
+                map(socketprovider.SocketProvider.registry.__contains__, names)
+            )
+            assert all([
+                socketprovider.SocketProvider.resolve(n) is socket_provider
+                for n in names
+            ])
+
+    @Parametrize.EXISTING_REGISTRY_ENTRIES
+    def test_323_registry_register_old_entry(
+        self,
+        existing: str,
+    ) -> None:
+        """Registering old entries works."""
+
+        provider = socketprovider.SocketProvider.resolve(existing)
+        new_registry = {
+            'posix': socketprovider.SocketProvider.registry['posix'],
+            'the_annoying_os': socketprovider.SocketProvider.registry[
+                'the_annoying_os'
+            ],
+            'unix_domain': 'posix',
+            'the_annoying_os_named_pipe': 'the_annoying_os',
+        }
+        names = [
+            k
+            for k, v in socketprovider.SocketProvider.registry.items()
+            if v == existing
+        ]
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(
+                socketprovider.SocketProvider, 'registry', new_registry
+            )
+            assert not all(
+                map(socketprovider.SocketProvider.registry.__contains__, names)
+            )
+            assert (
+                socketprovider.SocketProvider.register(existing, *names)(
+                    provider
+                )
+                is provider
+            )
+            assert all(
+                map(socketprovider.SocketProvider.registry.__contains__, names)
+            )
+            assert all([
+                socketprovider.SocketProvider.resolve(n) is provider
+                for n in [existing, *names]
+            ])
 
 
 class TestAgentInteraction:
@@ -1012,7 +1352,7 @@ class TestAgentInteraction:
         @click.command()
         def driver() -> None:
             """Call [`cli_helpers.select_ssh_key`][] directly, as a command."""
-            key = cli_helpers.select_ssh_key()
+            key = cli_helpers.select_ssh_key(client)
             click.echo(base64.standard_b64encode(key).decode('ASCII'))
 
         # TODO(the-13th-letter): (Continued from above.)  Update input
@@ -1033,14 +1373,18 @@ class TestAgentInteraction:
     ) -> None:
         """Fail if the agent address is invalid."""
         with pytest.MonkeyPatch.context() as monkeypatch:
-            monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket + '~')
-            # socket.AF_UNIX is not defined everywhere.
-            sock = socket.socket(family=socket.AF_UNIX)  # type: ignore[attr-defined]
+            new_socket_name = (
+                running_ssh_agent.socket + '~'
+                if isinstance(running_ssh_agent.socket, str)
+                else '<invalid//address>'
+            )
+            monkeypatch.setenv('SSH_AUTH_SOCK', new_socket_name)
             with pytest.raises(OSError):  # noqa: PT011
-                ssh_agent.SSHAgentClient(socket=sock)
+                ssh_agent.SSHAgentClient()
 
     def test_301_constructor_no_af_unix_support(self) -> None:
         """Fail without [`socket.AF_UNIX`][] support."""
+        assert 'posix' in socketprovider.SocketProvider.registry
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setenv('SSH_AUTH_SOCK', "the value doesn't matter")
             monkeypatch.delattr(socket, 'AF_UNIX', raising=False)
@@ -1048,7 +1392,31 @@ class TestAgentInteraction:
                 NotImplementedError,
                 match='UNIX domain sockets',
             ):
-                ssh_agent.SSHAgentClient()
+                ssh_agent.SSHAgentClient(socket='posix')
+
+    def test_302_no_ssh_agent_socket_provider_available(
+        self,
+    ) -> None:
+        """Fail if no SSH agent socket provider is available."""
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setitem(
+                socketprovider.SocketProvider.registry, 'stub_agent', None
+            )
+            with pytest.raises(ExceptionGroup) as excinfo:
+                ssh_agent.SSHAgentClient(
+                    socket=['stub_agent', 'stub_agent', 'stub_agent']
+                )
+            assert all([
+                isinstance(e, NotImplementedError)
+                for e in excinfo.value.exceptions
+            ])
+
+    def test_303_explicit_socket(
+        self,
+        spawn_ssh_agent: tests.SpawnedSSHAgentInfo,
+    ) -> None:
+        conn = spawn_ssh_agent.client._connection
+        ssh_agent.SSHAgentClient(socket=conn)
 
     @Parametrize.TRUNCATED_AGENT_RESPONSES
     def test_310_truncated_server_response(
@@ -1294,3 +1662,254 @@ class TestAgentInteraction:
                 match=r'Malformed response|does not match request',
             ):
                 client.query_extensions()
+
+
+def safe_resolve(name: str) -> _types.SSHAgentSocketProvider | None:
+    """Safely resolve an SSH agent socket provider name.
+
+    If the provider is merely reserved, return `None` instead of raising
+    an exception.  Otherwise behave like
+    [`socketprovider.SocketProvider.resolve`][] does.
+
+    Args:
+        name: The name of the provider to resolve.
+
+    Returns:
+        The SSH agent socket provider if registered, `None` if merely
+        reserved, and an error if not found.
+
+    Raises:
+        socketprovider.NoSuchProviderError:
+            No such provider was found in the registry.  This includes
+            entries that are merely reserved.
+
+    """
+    try:
+        return socketprovider.SocketProvider.resolve(name)
+    except NotImplementedError:  # pragma: no cover
+        return None
+
+
+@strategies.composite
+def draw_alias_chain(
+    draw: strategies.DrawFn,
+    *,
+    known_keys_strategy: strategies.SearchStrategy[str],
+    new_keys_strategy: strategies.SearchStrategy[str],
+    chain_size: strategies.SearchStrategy[int] = strategies.integers(  # noqa: B008
+        min_value=1,
+        max_value=5,
+    ),
+    existing: bool = False,
+) -> tuple[str, ...]:
+    """Draw names for alias chains in the SSH agent socket provider registry.
+
+    Depending on arguments, draw a set of names from the new keys bundle
+    that do not yet exist in the registry, to insert as a new alias
+    chain.  Alternatively, draw a non-alias name from the known keys
+    bundle, then draw other names that either don't exist yet in the
+    registry, or that alias the first name directly or indirectly.  The
+    chain length, and whether to target existing registry entries or
+    not, may be set statically, or may be drawn from a respective
+    strategy.
+
+    Args:
+        draw:
+            The `hypothesis` draw function.
+        chain_size:
+            A strategy for determining the correct alias chain length.
+            Must not yield any integers less than 1.
+        existing:
+            If true, target an existing registry entry in the alias
+            chain, and permit rewriting existing aliases of that same
+            entry to the new alias.  Otherwise, draw only new names.
+        known_keys_strategy:
+            A strategy for generating provider registry keys already
+            contained in the registry.  Typically, this is
+            a [Bundle][hypothesis.stateful.Bundle].
+        new_keys_strategy:
+            A strategy for generating provider registry keys not yet
+            contained in the registry with high probability.  Typically,
+            this is a [consuming][hypothesis.stateful.consumes]
+            [Bundle][hypothesis.stateful.Bundle].
+
+    Returns:
+        A tuple of names forming an alias chain, each entry pointing to
+        or intending to point to the previous entry in the tuple.
+
+    """
+    registry = socketprovider.SocketProvider.registry
+
+    def not_an_alias(key: str) -> bool:
+        return key in registry and not isinstance(registry[key], str)
+
+    def is_indirect_alias_of(
+        key: str, target: str
+    ) -> bool:  # pragma: no cover
+        if key == target:
+            return False  # not an alias
+        seen = set()  # loop detection
+        while key not in seen:
+            seen.add(key)
+            if key not in registry:
+                return False
+            if not isinstance(registry[key], str):
+                return False
+            if key == target:
+                return True
+            tmp = registry[key]
+            assert isinstance(tmp, str)
+            key = tmp
+        return False  # loop
+
+    err_msg_chain_size = 'Chain sizes must always be 1 or larger.'
+
+    size = draw(chain_size)
+    if size < 1:  # pragma: no cover
+        raise ValueError(err_msg_chain_size)
+    names: list[str] = []
+    base: str | None = None
+    if existing:
+        names.append(draw(known_keys_strategy.filter(not_an_alias)))
+        base = names[0]
+        size -= 1
+        new_key_strategy = new_keys_strategy.filter(
+            lambda key: key not in registry
+        )
+        old_key_strategy = known_keys_strategy.filter(
+            lambda key: is_indirect_alias_of(key, target=base)
+        )
+        list_strategy_source = strategies.one_of(
+            new_key_strategy, old_key_strategy
+        )
+    else:
+        list_strategy_source = new_keys_strategy.filter(
+            lambda key: key not in registry
+        )
+    list_strategy = strategies.lists(
+        list_strategy_source.filter(lambda candidate: candidate != base),
+        min_size=size,
+        max_size=size,
+        unique=True,
+    )
+    names.extend(draw(list_strategy))
+    return tuple(names)
+
+
+class SSHAgentSocketProviderRegistryStateMachine(
+    stateful.RuleBasedStateMachine
+):
+    """A state machine for the SSH agent socket provider registry.
+
+    Record possible changes to the socket provider registry, keeping track
+    of true entries, aliases, and reservations.
+
+    """
+
+    def __init__(self) -> None:
+        """Initialize self, set up context managers and enter them."""
+        super().__init__()
+        self.exit_stack = contextlib.ExitStack().__enter__()
+        self.monkeypatch = self.exit_stack.enter_context(
+            pytest.MonkeyPatch.context()
+        )
+        self.orig_registry = socketprovider.SocketProvider.registry
+        self.registry: dict[
+            str, _types.SSHAgentSocketProvider | str | None
+        ] = {
+            'posix': self.orig_registry['posix'],
+            'the_annoying_os': self.orig_registry['the_annoying_os'],
+            'native': self.orig_registry['native'],
+            'unix_domain': 'posix',
+            'the_annoying_os_named_pipe': 'the_annoying_os',
+        }
+        self.monkeypatch.setattr(
+            socketprovider.SocketProvider, 'registry', self.registry
+        )
+        self.model: dict[str, _types.SSHAgentSocketProvider | None] = {}
+
+    known_keys: stateful.Bundle[str] = stateful.Bundle('known_keys')
+    """"""
+    new_keys: stateful.Bundle[str] = stateful.Bundle('new_keys')
+    """"""
+
+    def sample_provider(self) -> _types.SSHAgentSocket:
+        raise AssertionError
+
+    @stateful.initialize(
+        target=known_keys,
+    )
+    def get_registry_keys(self) -> stateful.MultipleResults[str]:
+        """Read the standard keys from the registry."""
+        self.model.update({k: safe_resolve(k) for k in self.registry})
+        return stateful.multiple(*self.registry.keys())
+
+    @stateful.rule(
+        target=new_keys,
+        k=strategies.text('abcdefghijklmnopqrstuvwxyz0123456789_').filter(
+            lambda s: s not in socketprovider.SocketProvider.registry
+        ),
+    )
+    def new_key(self, k: str) -> str:
+        return k
+
+    @stateful.invariant()
+    def check_consistency(self) -> None:
+        assert self.registry.keys() == self.model.keys()
+        for k in self.model:
+            resolved = safe_resolve(k)
+            modelled = self.model[k]
+            step1 = self.registry[k]
+            manually = safe_resolve(step1) if isinstance(step1, str) else step1
+            assert resolved == modelled
+            assert resolved == manually
+
+    @stateful.rule(
+        target=known_keys,
+        chain=draw_alias_chain(
+            known_keys_strategy=known_keys,
+            new_keys_strategy=stateful.consumes(new_keys),
+            existing=True,
+        ),
+    )
+    def alias_existing(
+        self, chain: tuple[str, ...]
+    ) -> stateful.MultipleResults[str]:
+        try:
+            provider = socketprovider.SocketProvider.resolve(chain[0])
+        except NotImplementedError:  # pragma: no cover [failsafe]
+            provider = self.sample_provider
+        assert (
+            socketprovider.SocketProvider.register(*chain)(provider)
+            == provider
+        )
+        for k in chain:
+            self.model[k] = provider
+        return stateful.multiple(*chain[1:])
+
+    @stateful.rule(
+        target=known_keys,
+        chain=draw_alias_chain(
+            known_keys_strategy=known_keys,
+            new_keys_strategy=stateful.consumes(new_keys),
+            existing=False,
+        ),
+    )
+    def alias_new(self, chain: list[str]) -> stateful.MultipleResults[str]:
+        provider = self.sample_provider
+        assert (
+            socketprovider.SocketProvider.register(*chain)(provider)
+            == provider
+        )
+        for k in chain:
+            self.model[k] = provider
+        return stateful.multiple(*chain)
+
+    def teardown(self) -> None:
+        """Upon teardown, exit all contexts entered in `__init__`."""
+        self.exit_stack.close()
+
+
+TestSSHAgentSocketProviderRegistry = (
+    SSHAgentSocketProviderRegistryStateMachine.TestCase
+)

@@ -7,6 +7,7 @@ from __future__ import annotations
 import base64
 import contextlib
 import copy
+import ctypes
 import enum
 import errno
 import io
@@ -39,6 +40,7 @@ from derivepassphrase._internals import (
     cli_machinery,
     cli_messages,
 )
+from derivepassphrase.ssh_agent import socketprovider
 
 if TYPE_CHECKING:
     import multiprocessing
@@ -535,6 +537,258 @@ def zsh_format(item: click.shell_completion.CompletionItem) -> str:
         else (empty_help, item.value)
     )
     return f'{item.type}\n{value}\n{help_}'
+
+
+class ListKeysAction(str, enum.Enum):
+    """Test fixture settings for [`ssh_agent.SSHAgentClient.list_keys`][].
+
+    Attributes:
+        EMPTY: Return an empty key list.
+        FAIL: Raise an [`ssh_agent.SSHAgentFailedError`][].
+        FAIL_RUNTIME: Raise an [`ssh_agent.TrailingDataError`][].
+
+    """
+
+    EMPTY = enum.auto()
+    """"""
+    FAIL = enum.auto()
+    """"""
+    FAIL_RUNTIME = enum.auto()
+    """"""
+
+    def __call__(self, *_args: Any, **_kwargs: Any) -> Any:
+        """Execute the respective action."""
+        # TODO(the-13th-letter): Rewrite using structural pattern
+        # matching.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        if self == self.EMPTY:
+            return []
+        if self == self.FAIL:
+            raise ssh_agent.SSHAgentFailedError(
+                _types.SSH_AGENT.FAILURE.value, b''
+            )
+        if self == self.FAIL_RUNTIME:
+            raise ssh_agent.TrailingDataError()
+        raise AssertionError()
+
+
+class SignAction(str, enum.Enum):
+    """Test fixture settings for [`ssh_agent.SSHAgentClient.sign`][].
+
+    Attributes:
+        FAIL: Raise an [`ssh_agent.SSHAgentFailedError`][].
+        FAIL_RUNTIME: Raise an [`ssh_agent.TrailingDataError`][].
+
+    """
+
+    FAIL = enum.auto()
+    """"""
+    FAIL_RUNTIME = enum.auto()
+    """"""
+
+    def __call__(self, *_args: Any, **_kwargs: Any) -> Any:
+        """Execute the respective action."""
+        # TODO(the-13th-letter): Rewrite using structural pattern
+        # matching.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        if self == self.FAIL:
+            raise ssh_agent.SSHAgentFailedError(
+                _types.SSH_AGENT.FAILURE.value, b''
+            )
+        if self == self.FAIL_RUNTIME:
+            raise ssh_agent.TrailingDataError()
+        raise AssertionError()
+
+
+class SocketAddressAction(str, enum.Enum):
+    """Test fixture settings for the SSH agent socket address.
+
+    Attributes:
+        MANGLE_ANNOYING_OS_NAMED_PIPE:
+            Mangle the address for the Annoying OS named pipe endpoint.
+        MANGLE_SSH_AUTH_SOCK:
+            Mangle the address for the UNIX domain socket (the
+            `SSH_AUTH_SOCK` environment variable).
+        UNSET_ANNOYING_OS_NAMED_PIPE:
+            Unset the address for the Annoying OS named pipe endpoint.
+        UNSET_SSH_AUTH_SOCK:
+            Unset the `SSH_AUTH_SOCK` environment variable (the address
+            for the UNIX domain socket).
+
+    """
+
+    MANGLE_ANNOYING_OS_NAMED_PIPE = enum.auto()
+    """"""
+    MANGLE_SSH_AUTH_SOCK = enum.auto()
+    """"""
+    UNSET_ANNOYING_OS_NAMED_PIPE = enum.auto()
+    """"""
+    UNSET_SSH_AUTH_SOCK = enum.auto()
+    """"""
+
+    def __call__(
+        self, monkeypatch: pytest.MonkeyPatch, /, *_args: Any, **_kwargs: Any
+    ) -> None:
+        """Execute the respective action."""
+        # TODO(the-13th-letter): Rewrite using structural pattern
+        # matching.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        if self in {
+            self.MANGLE_ANNOYING_OS_NAMED_PIPE,
+            self.UNSET_ANNOYING_OS_NAMED_PIPE,
+        }:  # pragma: no cover [unused]
+            pass
+        elif self == self.MANGLE_SSH_AUTH_SOCK:
+            monkeypatch.setenv(
+                'SSH_AUTH_SOCK', os.environ['SSH_AUTH_SOCK'] + '~'
+            )
+        elif self == self.UNSET_SSH_AUTH_SOCK:
+            monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
+        else:
+            raise AssertionError()
+
+
+class SystemSupportAction(str, enum.Enum):
+    """Test fixture settings for [`ssh_agent.SSHAgentClient`][] system support.
+
+    Attributes:
+        UNSET_AF_UNIX:
+            Ensure lack of support for UNIX domain sockets.
+        UNSET_AF_UNIX_AND_ENSURE_USE:
+            Ensure lack of support for UNIX domain sockets, and that the
+            agent will use this socket provider.
+        UNSET_NATIVE:
+            Ensure both `UNSET_AF_UNIX` and `UNSET_WINDLL`.
+        UNSET_NATIVE_AND_ENSURE_USE:
+            Ensure both `UNSET_AF_UNIX` and `UNSET_WINDLL`, and that the
+            agent will use the native socket provider.
+        UNSET_PROVIDER_LIST:
+            Ensure an empty list of SSH agent socket providers.
+        UNSET_WINDLL:
+            Ensure lack of support for The Annoying OS named pipes.
+        UNSET_WINDLL_AND_ENSURE_USE:
+            Ensure lack of support for The Annoying OS named pipes, and
+            that the agent will use this socket provider.
+
+    """
+
+    UNSET_AF_UNIX = enum.auto()
+    """"""
+    UNSET_AF_UNIX_AND_ENSURE_USE = enum.auto()
+    """"""
+    UNSET_NATIVE = enum.auto()
+    """"""
+    UNSET_NATIVE_AND_ENSURE_USE = enum.auto()
+    """"""
+    UNSET_PROVIDER_LIST = enum.auto()
+    """"""
+    UNSET_WINDLL = enum.auto()
+    """"""
+    UNSET_WINDLL_AND_ENSURE_USE = enum.auto()
+    """"""
+
+    def __call__(
+        self, monkeypatch: pytest.MonkeyPatch, /, *_args: Any, **_kwargs: Any
+    ) -> None:
+        """Execute the respective action.
+
+        Args:
+            monkeypatch: The current monkeypatch context.
+
+        """
+        # TODO(the-13th-letter): Rewrite using structural pattern
+        # matching.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        if self == self.UNSET_PROVIDER_LIST:
+            monkeypatch.setattr(
+                ssh_agent.SSHAgentClient, 'SOCKET_PROVIDERS', []
+            )
+        elif self in {self.UNSET_NATIVE, self.UNSET_NATIVE_AND_ENSURE_USE}:
+            self.check_or_ensure_use(
+                'native',
+                monkeypatch=monkeypatch,
+                ensure_use=(self == self.UNSET_NATIVE_AND_ENSURE_USE),
+            )
+            monkeypatch.delattr(socket, 'AF_UNIX', raising=False)
+            monkeypatch.delattr(ctypes, 'WinDLL', raising=False)
+            monkeypatch.delattr(ctypes, 'windll', raising=False)
+        elif self in {self.UNSET_AF_UNIX, self.UNSET_AF_UNIX_AND_ENSURE_USE}:
+            self.check_or_ensure_use(
+                'posix',
+                monkeypatch=monkeypatch,
+                ensure_use=(self == self.UNSET_AF_UNIX_AND_ENSURE_USE),
+            )
+            monkeypatch.delattr(socket, 'AF_UNIX', raising=False)
+        elif self in {self.UNSET_WINDLL, self.UNSET_WINDLL_AND_ENSURE_USE}:
+            self.check_or_ensure_use(
+                'the_annoying_os',
+                monkeypatch=monkeypatch,
+                ensure_use=(self == self.UNSET_WINDLL_AND_ENSURE_USE),
+            )
+            monkeypatch.delattr(ctypes, 'WinDLL', raising=False)
+            monkeypatch.delattr(ctypes, 'windll', raising=False)
+        else:
+            raise AssertionError()
+
+    @staticmethod
+    def check_or_ensure_use(
+        provider: str, /, *, monkeypatch: pytest.MonkeyPatch, ensure_use: bool
+    ) -> None:
+        """Check that the named SSH agent socket provider will be used.
+
+        Either ensure that the socket provider will definitely be used,
+        or, upon detecting that it won't be used, skip the test.
+
+        Args:
+            provider:
+                The provider to check for.
+            ensure_use:
+                If true, ensure that the socket provider will definitely
+                be used.  If false, then check for whether it will be
+                used, and skip this test if not.
+            monkeypatch:
+                The monkeypatch context within which the fixture
+                adjustments should be executed.
+
+        """
+        if ensure_use:
+            monkeypatch.setattr(
+                ssh_agent.SSHAgentClient, 'SOCKET_PROVIDERS', [provider]
+            )
+        else:  # pragma: no cover [external]
+            # This branch operates completely on instrumented or on
+            # externally defined, non-deterministic state.
+            intended: (
+                _types.SSHAgentSocketProvider
+                | socketprovider.NoSuchProviderError
+                | None
+            )
+            try:
+                intended = socketprovider.SocketProvider.resolve(provider)
+            except socketprovider.NoSuchProviderError as exc:
+                intended = exc
+            except NotImplementedError:
+                intended = None
+            actual: (
+                _types.SSHAgentSocketProvider
+                | socketprovider.NoSuchProviderError
+                | None
+            )
+            for name in ssh_agent.SSHAgentClient.SOCKET_PROVIDERS:
+                try:
+                    actual = socketprovider.SocketProvider.resolve(name)
+                except socketprovider.NoSuchProviderError as exc:
+                    actual = exc
+                except NotImplementedError:
+                    continue
+                break
+            else:
+                actual = None
+            if intended != actual:
+                pytest.skip(
+                    f'{provider!r} SSH agent socket provider '
+                    f'is not currently in use'
+                )
 
 
 class Parametrize(types.SimpleNamespace):
@@ -1307,6 +1561,97 @@ class Parametrize(types.SimpleNamespace):
     )
     KEY_INDEX = pytest.mark.parametrize(
         'key_index', [1, 2, 3], ids=lambda i: f'index{i}'
+    )
+    KEY_TO_PHRASE_SETTINGS = pytest.mark.parametrize(
+        [
+            'list_keys_action',
+            'address_action',
+            'system_support_action',
+            'sign_action',
+            'pattern',
+        ],
+        [
+            pytest.param(
+                ListKeysAction.EMPTY,
+                None,
+                None,
+                SignAction.FAIL,
+                'not loaded into the agent',
+                id='key-not-loaded',
+            ),
+            pytest.param(
+                ListKeysAction.FAIL,
+                None,
+                None,
+                SignAction.FAIL,
+                'SSH agent failed to or refused to',
+                id='list-keys-refused',
+            ),
+            pytest.param(
+                ListKeysAction.FAIL_RUNTIME,
+                None,
+                None,
+                SignAction.FAIL,
+                'SSH agent failed to or refused to',
+                id='list-keys-protocol-error',
+            ),
+            pytest.param(
+                None,
+                SocketAddressAction.UNSET_SSH_AUTH_SOCK,
+                None,
+                SignAction.FAIL,
+                'Cannot find any running SSH agent',
+                id='agent-address-missing',
+            ),
+            pytest.param(
+                None,
+                SocketAddressAction.MANGLE_SSH_AUTH_SOCK,
+                None,
+                SignAction.FAIL,
+                'Cannot connect to the SSH agent',
+                id='agent-address-mangled',
+            ),
+            pytest.param(
+                None,
+                None,
+                SystemSupportAction.UNSET_NATIVE,
+                SignAction.FAIL,
+                'does not support communicating with it',
+                id='no-agent-support',
+            ),
+            pytest.param(
+                None,
+                None,
+                SystemSupportAction.UNSET_PROVIDER_LIST,
+                SignAction.FAIL,
+                'does not support communicating with it',
+                id='no-agent-support',
+            ),
+            pytest.param(
+                None,
+                None,
+                SystemSupportAction.UNSET_AF_UNIX_AND_ENSURE_USE,
+                SignAction.FAIL,
+                'does not support communicating with it',
+                id='no-agent-support',
+            ),
+            pytest.param(
+                None,
+                None,
+                SystemSupportAction.UNSET_WINDLL_AND_ENSURE_USE,
+                SignAction.FAIL,
+                'does not support communicating with it',
+                id='no-agent-support',
+            ),
+            pytest.param(
+                None,
+                None,
+                None,
+                SignAction.FAIL_RUNTIME,
+                'violates the communication protocol',
+                id='sign-violates-protocol',
+            ),
+        ],
     )
     UNICODE_NORMALIZATION_ERROR_INPUTS = pytest.mark.parametrize(
         ['main_config', 'command_line', 'input', 'error_message'],
@@ -2267,6 +2612,7 @@ class TestCLI:
         key_index: int,
     ) -> None:
         """A command-line SSH key will override the configured key."""
+        del running_ssh_agent
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -2280,7 +2626,6 @@ class TestCLI:
                     vault_config=config,
                 )
             )
-            monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket)
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
@@ -2302,6 +2647,7 @@ class TestCLI:
         running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
         """A command-line passphrase will override the configured key."""
+        del running_ssh_agent
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -2323,7 +2669,6 @@ class TestCLI:
                     },
                 )
             )
-            monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket)
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
@@ -2352,6 +2697,7 @@ class TestCLI:
         command_line: list[str],
     ) -> None:
         """Configuring a passphrase atop an SSH key works, but warns."""
+        del running_ssh_agent
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -2365,7 +2711,6 @@ class TestCLI:
                     vault_config=config,
                 )
             )
-            monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket)
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
@@ -3629,8 +3974,10 @@ class TestCLI:
 
     def test_225a_store_config_fail_manual_no_ssh_key_selection(
         self,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
         """Not selecting an SSH key during `--config --key` fails."""
+        del running_ssh_agent
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -3644,27 +3991,33 @@ class TestCLI:
                     vault_config={'global': {'phrase': 'abc'}, 'services': {}},
                 )
             )
-            custom_error = 'custom error message'
 
-            def raiser(*_args: Any, **_kwargs: Any) -> None:
-                raise RuntimeError(custom_error)
+            def prompt_for_selection(*_args: Any, **_kwargs: Any) -> NoReturn:
+                raise IndexError(cli_helpers.EMPTY_SELECTION)
 
-            monkeypatch.setattr(cli_helpers, 'select_ssh_key', raiser)
+            monkeypatch.setattr(
+                cli_helpers, 'prompt_for_selection', prompt_for_selection
+            )
+            # Also patch the list of suitable SSH keys, lest we be at
+            # the mercy of whatever SSH agent may be running.
+            monkeypatch.setattr(
+                cli_helpers, 'get_suitable_ssh_keys', tests.suitable_ssh_keys
+            )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ['--key', '--config'],
                 catch_exceptions=False,
             )
-        assert result.error_exit(error=custom_error), (
+        assert result.error_exit(error='the user aborted the request'), (
             'expected error exit and known error message'
         )
 
     def test_225b_store_config_fail_manual_no_ssh_agent(
         self,
-        skip_if_no_af_unix_support: None,
+        running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
         """Not running an SSH agent during `--config --key` fails."""
-        del skip_if_no_af_unix_support
+        del running_ssh_agent
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -3693,7 +4046,7 @@ class TestCLI:
         running_ssh_agent: tests.RunningSSHAgentInfo,
     ) -> None:
         """Not running a reachable SSH agent during `--config --key` fails."""
-        del running_ssh_agent
+        running_ssh_agent.require_external_address()
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -4273,6 +4626,7 @@ class TestCLI:
 
     def test_400_missing_af_unix_support(
         self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Querying the SSH agent without `AF_UNIX` support fails."""
         runner = tests.CliRunner(mix_stderr=False)
@@ -4291,6 +4645,9 @@ class TestCLI:
             monkeypatch.setenv(
                 'SSH_AUTH_SOCK', "the value doesn't even matter"
             )
+            monkeypatch.setattr(
+                ssh_agent.SSHAgentClient, 'SOCKET_PROVIDERS', ['posix']
+            )
             monkeypatch.delattr(socket, 'AF_UNIX', raising=False)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -4300,6 +4657,10 @@ class TestCLI:
         assert result.error_exit(
             error='does not support communicating with it'
         ), 'expected error exit and known error message'
+        assert tests.warning_emitted(
+            'Cannot connect to an SSH agent via UNIX domain sockets',
+            caplog.record_tuples,
+        ), 'expected known warning message in stderr'
 
 
 class TestCLIUtils:
@@ -5122,20 +5483,26 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
     ) -> None:
         """[`cli_helpers.get_suitable_ssh_keys`][] works."""
         with pytest.MonkeyPatch.context() as monkeypatch:
-            monkeypatch.setenv('SSH_AUTH_SOCK', running_ssh_agent.socket)
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
             )
-            hint: ssh_agent.SSHAgentClient | socket.socket | None
+            hint: ssh_agent.SSHAgentClient | _types.SSHAgentSocket | None
             # TODO(the-13th-letter): Rewrite using structural pattern
             # matching.
             # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
             if conn_hint == 'client':
                 hint = ssh_agent.SSHAgentClient()
             elif conn_hint == 'socket':
-                # socket.AF_UNIX is not defined everywhere.
-                hint = socket.socket(family=socket.AF_UNIX)  # type: ignore[attr-defined]
-                hint.connect(running_ssh_agent.socket)
+                if isinstance(
+                    running_ssh_agent.socket, str
+                ):  # pragma: no cover
+                    if not hasattr(socket, 'AF_UNIX'):
+                        pytest.skip('socket module does not support AF_UNIX')
+                    # socket.AF_UNIX is not defined everywhere.
+                    hint = socket.socket(family=socket.AF_UNIX)  # type: ignore[attr-defined]
+                    hint.connect(running_ssh_agent.socket)
+                else:  # pragma: no cover
+                    hint = running_ssh_agent.socket()
             else:
                 assert conn_hint == 'none'
                 hint = None
@@ -5151,10 +5518,15 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
                     'exception querying suitable SSH keys'
                 )
 
+    @Parametrize.KEY_TO_PHRASE_SETTINGS
     def test_400_key_to_phrase(
         self,
-        skip_if_no_af_unix_support: None,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
+        list_keys_action: ListKeysAction | None,
+        system_support_action: SystemSupportAction | None,
+        address_action: SocketAddressAction | None,
+        sign_action: SignAction,
+        pattern: str,
     ) -> None:
         """All errors in [`cli_helpers.key_to_phrase`][] are handled."""
 
@@ -5167,44 +5539,23 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
         def err(*args: Any, **_kwargs: Any) -> NoReturn:
             raise ErrCallback(*args, **_kwargs)
 
-        def fail(*_args: Any, **_kwargs: Any) -> Any:
-            raise ssh_agent.SSHAgentFailedError(
-                _types.SSH_AGENT.FAILURE.value,
-                b'',
-            )
-
-        def fail_runtime(*_args: Any, **_kwargs: Any) -> Any:
-            raise ssh_agent.TrailingDataError()
-
-        del skip_if_no_af_unix_support
         with pytest.MonkeyPatch.context() as monkeypatch:
-            monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', fail)
             loaded_keys = list(
                 ssh_agent_client_with_test_keys_loaded.list_keys()
             )
             loaded_key = base64.standard_b64encode(loaded_keys[0][0])
-            with monkeypatch.context() as mp:
-                mp.setattr(
-                    ssh_agent.SSHAgentClient,
-                    'list_keys',
-                    lambda *_a, **_kw: [],
+            monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', sign_action)
+            if list_keys_action:
+                monkeypatch.setattr(
+                    ssh_agent.SSHAgentClient, 'list_keys', list_keys_action
                 )
-                with pytest.raises(
-                    ErrCallback, match='not loaded into the agent'
-                ):
-                    cli_helpers.key_to_phrase(loaded_key, error_callback=err)
-            with monkeypatch.context() as mp:
-                mp.setattr(ssh_agent.SSHAgentClient, 'list_keys', fail)
-                with pytest.raises(
-                    ErrCallback, match='SSH agent failed to or refused to'
-                ):
-                    cli_helpers.key_to_phrase(loaded_key, error_callback=err)
-            with monkeypatch.context() as mp:
-                mp.setattr(ssh_agent.SSHAgentClient, 'list_keys', fail_runtime)
-                with pytest.raises(
-                    ErrCallback, match='SSH agent failed to or refused to'
-                ) as excinfo:
-                    cli_helpers.key_to_phrase(loaded_key, error_callback=err)
+            if address_action:
+                address_action(monkeypatch)
+            if system_support_action:
+                system_support_action(monkeypatch)
+            with pytest.raises(ErrCallback, match=pattern) as excinfo:
+                cli_helpers.key_to_phrase(loaded_key, error_callback=err)
+            if list_keys_action == ListKeysAction.FAIL_RUNTIME:
                 assert excinfo.value.kwargs
                 assert isinstance(
                     excinfo.value.kwargs['exc_info'],
@@ -5215,30 +5566,6 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
                     excinfo.value.kwargs['exc_info'].__context__,
                     ssh_agent.TrailingDataError,
                 )
-            with monkeypatch.context() as mp:
-                mp.delenv('SSH_AUTH_SOCK', raising=True)
-                with pytest.raises(
-                    ErrCallback, match='Cannot find any running SSH agent'
-                ):
-                    cli_helpers.key_to_phrase(loaded_key, error_callback=err)
-            with monkeypatch.context() as mp:
-                mp.setenv('SSH_AUTH_SOCK', os.environ['SSH_AUTH_SOCK'] + '~')
-                with pytest.raises(
-                    ErrCallback, match='Cannot connect to the SSH agent'
-                ):
-                    cli_helpers.key_to_phrase(loaded_key, error_callback=err)
-            with monkeypatch.context() as mp:
-                mp.delattr(socket, 'AF_UNIX', raising=True)
-                with pytest.raises(
-                    ErrCallback, match='does not support communicating with it'
-                ):
-                    cli_helpers.key_to_phrase(loaded_key, error_callback=err)
-            with monkeypatch.context() as mp:
-                mp.setattr(ssh_agent.SSHAgentClient, 'sign', fail_runtime)
-                with pytest.raises(
-                    ErrCallback, match='violates the communication protocol'
-                ):
-                    cli_helpers.key_to_phrase(loaded_key, error_callback=err)
 
 
 # TODO(the-13th-letter): Remove this class in v1.0.
@@ -6654,7 +6981,7 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
         ] = {}
         true_configs: dict[int, _types.VaultConfig] = {}
         true_results: dict[int, tuple[bool, str | None, str | None]] = {}
-        timeout = 5
+        timeout = 30  # Hopefully slow enough to accomodate The Annoying OS.
         actions = self.actions
         mp = multiprocessing.get_context()
         # Coverage tracking writes coverage data to the current working

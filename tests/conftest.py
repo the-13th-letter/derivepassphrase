@@ -8,7 +8,6 @@ import base64
 import contextlib
 import datetime
 import importlib
-import operator
 import os
 import shutil
 import socket
@@ -170,10 +169,10 @@ class SpawnFunc(Protocol):
         """
 
 
-def spawn_pageant(  # pragma: no cover [external]
+def spawn_pageant_on_posix(  # pragma: no cover [external]
     executable: str | None, env: dict[str, str]
 ) -> subprocess.Popen[str] | None:
-    """Spawn an isolated Pageant, if possible.
+    """Spawn an isolated (UNIX) Pageant, if possible.
 
     We attempt to detect whether Pageant is usable, i.e. whether Pageant
     has output buffering problems when announcing its authentication
@@ -195,7 +194,7 @@ def spawn_pageant(  # pragma: no cover [external]
         subprocess.
 
     """
-    if executable is None:  # pragma: no cover [external]
+    if executable is None or os.name == 'nt':  # pragma: no cover [external]
         return None
 
     # Apparently, Pageant 0.81 and lower running in debug mode does
@@ -242,10 +241,10 @@ def spawn_pageant(  # pragma: no cover [external]
     )
 
 
-def spawn_openssh_agent(  # pragma: no cover [external]
+def spawn_openssh_agent_on_posix(  # pragma: no cover [external]
     executable: str | None, env: dict[str, str]
 ) -> subprocess.Popen[str] | None:
-    """Spawn an isolated OpenSSH agent, if possible.
+    """Spawn an isolated OpenSSH agent (on UNIX), if possible.
 
     Args:
         executable:
@@ -262,7 +261,7 @@ def spawn_openssh_agent(  # pragma: no cover [external]
         subprocess.
 
     """
-    if executable is None:
+    if executable is None or os.name == 'nt':  # pragma: no cover [external]
         return None
     return subprocess.Popen(
         ['ssh-agent', '-D', '-s'],
@@ -282,11 +281,29 @@ def spawn_noop(  # pragma: no cover [unused]
     """Placeholder function. Does nothing."""
 
 
-spawn_handlers: Sequence[tuple[str, SpawnFunc, tests.KnownSSHAgent]] = [
-    ('pageant', spawn_pageant, tests.KnownSSHAgent.Pageant),
-    ('ssh-agent', spawn_openssh_agent, tests.KnownSSHAgent.OpenSSHAgent),
-    ('(system)', spawn_noop, tests.KnownSSHAgent.UNKNOWN),
-]
+spawn_handlers: dict[str, tuple[str, SpawnFunc, tests.KnownSSHAgent]] = {
+    'pageant': (
+        'pageant',
+        spawn_pageant_on_posix,
+        tests.KnownSSHAgent.Pageant,
+    ),
+    'ssh-agent': (
+        'ssh-agent',
+        spawn_openssh_agent_on_posix,
+        tests.KnownSSHAgent.OpenSSHAgent,
+    ),
+    'stub_agent': (
+        'stub_agent',
+        spawn_noop,
+        tests.KnownSSHAgent.StubbedSSHAgent,
+    ),
+    'stub_agent_with_extensions': (
+        'stub_agent_with_extensions',
+        spawn_noop,
+        tests.KnownSSHAgent.StubbedSSHAgent,
+    ),
+    '(system)': ('(system)', spawn_noop, tests.KnownSSHAgent.UNKNOWN),
+}
 """
 The standard registry of agent spawning functions.
 """
@@ -377,7 +394,12 @@ def spawn_named_agent(
     ssh_auth_sock = agent_env.pop('SSH_AUTH_SOCK', None)
     proc = spawn_func(executable=shutil.which(exec_name), env=agent_env)
     with exit_stack:
-        if spawn_func is spawn_noop:
+        if (
+            spawn_func is spawn_noop
+            and agent_type == tests.KnownSSHAgent.StubbedSSHAgent
+        ):
+            ssh_auth_sock = None
+        elif spawn_func is spawn_noop:
             ssh_auth_sock = os.environ['SSH_AUTH_SOCK']
         elif proc is None:  # pragma: no cover [external]
             err_msg = f'Cannot spawn usable {exec_name}'
@@ -404,11 +426,51 @@ def spawn_named_agent(
                 err_msg = f'Cannot parse agent output: {pid_line!r}'
                 raise CannotSpawnError(err_msg)
         monkeypatch = exit_stack.enter_context(pytest.MonkeyPatch.context())
-        monkeypatch.setenv('SSH_AUTH_SOCK', ssh_auth_sock)
-        client = exit_stack.enter_context(
-            ssh_agent.SSHAgentClient.ensure_agent_subcontext()
-        )
-        client.list_keys()  # sanity test
+        if ssh_auth_sock is not None:
+            monkeypatch.setenv('SSH_AUTH_SOCK', ssh_auth_sock)
+            client = exit_stack.enter_context(
+                ssh_agent.SSHAgentClient.ensure_agent_subcontext()
+            )
+        else:
+            monkeypatch.setenv(
+                'SSH_AUTH_SOCK', tests.StubbedSSHAgentSocketWithAddress.ADDRESS
+            )
+            monkeypatch.setattr(
+                ssh_agent.SSHAgentClient,
+                'SOCKET_PROVIDERS',
+                ['stub_with_address_and_deterministic_dsa']
+                if exec_name == 'stub_agent_with_extensions'
+                else ['stub_with_address'],
+            )
+            client = exit_stack.enter_context(
+                ssh_agent.SSHAgentClient.ensure_agent_subcontext(
+                    tests.StubbedSSHAgentSocketWithAddressAndDeterministicDSA()
+                    if exec_name == 'stub_agent_with_extensions'
+                    else tests.StubbedSSHAgentSocketWithAddress()
+                )
+            )
+        # We sanity-test the connected SSH agent if it is not one of our
+        # test agents, because allowing the user to run the test suite
+        # with a clearly faulty agent would likely and unfairly
+        # misattribute the agent's protocol violations to our test
+        # suite.  On the flip side, for our own test agents, the
+        # correctness tests are part of the test suite, so we don't want
+        # the *setup* code here to already decide that the agent is
+        # unsuitable. Therefore, do a sanity check if and only if the
+        # agent is not one of our test agents, and if the check fails,
+        # skip this agent.
+        if (
+            agent_type != tests.KnownSSHAgent.StubbedSSHAgent
+        ):  # pragma: no cover [external]
+            try:
+                client.list_keys()  # sanity test
+            except (
+                EOFError,
+                OSError,
+                ssh_agent.SSHAgentFailedError,
+            ) as exc:  # pragma: no cover [failsafe]
+                msg = f'agent failed the "list keys" sanity test: {exc!r}'
+                raise CannotSpawnError(msg) from exc
         yield tests.SpawnedSSHAgentInfo(
             agent_type, client, spawn_func is not spawn_noop
         )
@@ -417,9 +479,59 @@ def spawn_named_agent(
     )
 
 
+def is_agent_permitted(
+    agent_type: tests.KnownSSHAgent,
+) -> bool:  # pragma: no cover [external]
+    """May the given SSH agent be spawned by the test harness?
+
+    If the environment variable `PERMITTED_SSH_AGENTS` is given, it
+    names a comma-separated list of known SSH agent names that the test
+    harness may spawn.  Invalid names are silently ignored.  If not
+    given, or empty, then any agent may be spawned.
+
+    (To not allow any agent to be spawned, specify a single comma as the
+    list.  But see below.)
+
+    The stubbed agents cannot be restricted in this manner, as the test
+    suite depends on their availability.
+
+    """
+    if not os.environ.get('PERMITTED_SSH_AGENTS'):
+        return True
+    permitted_agents = {tests.KnownSSHAgent.StubbedSSHAgent}
+    permitted_agents.update({
+        tests.KnownSSHAgent(x)
+        for x in os.environ['PERMITTED_SSH_AGENTS'].split(',')
+        if x in tests.KnownSSHAgent.__members__
+    })
+    return agent_type in permitted_agents
+
+
+spawn_handlers_params: list[Sequence] = []
+"""
+The standard registry of agent spawning functions, annotated as
+a `pytest` parameter set.  (In particular, this includes the conditional
+skip marks.)  Used by some test fixtures.
+"""
+for key, handler in spawn_handlers.items():
+    marks = [
+        pytest.mark.skipif(
+            not is_agent_permitted(handler[2]),
+            reason='agent excluded via PERMITTED_AGENTS environment variable',
+        ),
+    ]
+    if key in {'pageant', 'ssh-agent', '(system)'}:
+        marks.append(
+            pytest.mark.skipif(
+                not hasattr(socket, 'AF_UNIX'),
+                reason='socket module does not support AF_UNIX',
+            )
+        )
+    spawn_handlers_params.append(pytest.param(handler, id=key, marks=marks))
+
+
 @pytest.fixture
 def running_ssh_agent(  # pragma: no cover [external]
-    skip_if_no_af_unix_support: None,
 ) -> Iterator[tests.RunningSSHAgentInfo]:
     """Ensure a running SSH agent, if possible, as a pytest fixture.
 
@@ -441,7 +553,30 @@ def running_ssh_agent(  # pragma: no cover [external]
             If no agent is running or can be spawned, skip this test.
 
     """
-    del skip_if_no_af_unix_support
+
+    def prepare_environment(
+        agent_type: tests.KnownSSHAgent,
+    ) -> Iterator[tests.RunningSSHAgentInfo]:
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            if agent_type == tests.KnownSSHAgent.StubbedSSHAgent:
+                monkeypatch.setattr(
+                    ssh_agent.SSHAgentClient,
+                    'SOCKET_PROVIDERS',
+                    ['stub_with_address'],
+                )
+                monkeypatch.setenv(
+                    'SSH_AUTH_SOCK',
+                    tests.StubbedSSHAgentSocketWithAddress.ADDRESS,
+                )
+                yield tests.RunningSSHAgentInfo(
+                    tests.StubbedSSHAgentSocketWithAddress,
+                    tests.KnownSSHAgent.StubbedSSHAgent,
+                )
+            else:
+                yield tests.RunningSSHAgentInfo(
+                    os.environ['SSH_AUTH_SOCK'],
+                    agent_type,
+                )
 
     with pytest.MonkeyPatch.context() as monkeypatch:
         # pytest's fixture system does not seem to guarantee that
@@ -455,30 +590,30 @@ def running_ssh_agent(  # pragma: no cover [external]
             monkeypatch.setenv('SSH_AUTH_SOCK', startup_ssh_auth_sock)
         else:
             monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
-        for exec_name, spawn_func, agent_type in spawn_handlers:
+        for exec_name, spawn_func, agent_type in spawn_handlers.values():
+            if not is_agent_permitted(agent_type):
+                continue
             try:
                 for _agent_info in spawn_named_agent(
                     exec_name, spawn_func, agent_type
                 ):
-                    yield tests.RunningSSHAgentInfo(
-                        os.environ['SSH_AUTH_SOCK'], agent_type
-                    )
+                    yield from prepare_environment(agent_type)
             except (KeyError, OSError, CannotSpawnError):
                 continue
             return
         pytest.skip('No SSH agent running or spawnable')
 
 
-@pytest.fixture(params=spawn_handlers, ids=operator.itemgetter(0))
+@pytest.fixture(params=spawn_handlers_params)
 def spawn_ssh_agent(
     request: pytest.FixtureRequest,
-    skip_if_no_af_unix_support: None,
 ) -> Iterator[tests.SpawnedSSHAgentInfo]:  # pragma: no cover [external]
     """Spawn an isolated SSH agent, if possible, as a pytest fixture.
 
     Spawn a new SSH agent isolated from other SSH use by other
-    processes, if possible.  We know how to spawn OpenSSH's agent and
-    PuTTY's Pageant, and the "(system)" fallback agent.
+    processes, if possible.  We know how to spawn OpenSSH's agent (on
+    UNIX) and PuTTY's Pageant (on UNIX), the stubbed agents, and the
+    "(system)" fallback agent.
 
     Yields:
         A [named tuple][collections.namedtuple] containing information
@@ -491,7 +626,7 @@ def spawn_ssh_agent(
             If the agent cannot be spawned, skip this test.
 
     """
-    del skip_if_no_af_unix_support
+
     with pytest.MonkeyPatch.context() as monkeypatch:
         # pytest's fixture system does not seem to guarantee that
         # environment variables are set up correctly if nested and
@@ -549,6 +684,13 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
     """
     agent_type, client, isolated = spawn_ssh_agent
     successfully_loaded_keys: set[str] = set()
+
+    # This fixture relies on `spawn_ssh_agent`, which in turn uses
+    # `spawn_named_agent` to, well, spawn agents.  `spawn_named_agent`
+    # runs sanity tests on the agents it spawns, via
+    # `SSHAgentClient.list_keys`.  There is thus little point in
+    # repeating the very same sanity test here, on an agent that was
+    # already sanity-tested.
 
     def prepare_payload(
         payload: bytes | bytearray,

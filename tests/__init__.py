@@ -27,7 +27,7 @@ import click.testing
 import hypothesis
 import pytest
 from hypothesis import strategies
-from typing_extensions import NamedTuple, assert_never
+from typing_extensions import NamedTuple, assert_never, overload
 
 from derivepassphrase import _types, cli, ssh_agent, vault
 from derivepassphrase._internals import cli_helpers, cli_machinery
@@ -670,10 +670,18 @@ class RunningSSHAgentInfo(NamedTuple):
 
     """
 
-    socket: str
+    socket: str | type[_types.SSHAgentSocket]
     """"""
     agent_type: KnownSSHAgent
     """"""
+
+    def require_external_address(self) -> str:  # pragma: no cover
+        if not isinstance(self.socket, str):
+            pytest.skip(
+                reason='This test requires a real, externally resolvable '
+                'address for the SSH agent socket.'
+            )
+        return self.socket
 
 
 ALL_KEYS: Mapping[str, SSHTestKey] = {
@@ -2306,6 +2314,214 @@ def phrase_from_key(
     raise KeyError(key)  # pragma: no cover
 
 
+def provider_entry_provider() -> _types.SSHAgentSocket:  # pragma: no cover
+    """A pseudo provider for a [`_types.SSHAgentSocketProviderEntry`][]."""
+    msg = 'We are not supposed to be called!'
+    raise AssertionError(msg)
+
+
+provider_entry1 = _types.SSHAgentSocketProviderEntry(
+    provider_entry_provider, 'entry1', ('entry1a', 'entry1b', 'entry1c')
+)
+"""A sample [`_types.SSHAgentSocketProviderEntry`][]."""
+
+provider_entry2 = _types.SSHAgentSocketProviderEntry(
+    provider_entry_provider, 'entry2', ('entry2d', 'entry2e')
+)
+"""A sample [`_types.SSHAgentSocketProviderEntry`][]."""
+
+posix_entry = _types.SSHAgentSocketProviderEntry(
+    socketprovider.SocketProvider.resolve('posix'), 'posix', ()
+)
+"""
+The standard [`_types.SSHAgentSocketProviderEntry`][] for the UNIX
+domain socket handler on POSIX systems.
+"""
+
+the_annoying_os_entry = _types.SSHAgentSocketProviderEntry(
+    socketprovider.SocketProvider.resolve('the_annoying_os'),
+    'the_annoying_os',
+    (),
+)
+"""
+The standard [`_types.SSHAgentSocketProviderEntry`][] for the named pipe
+handler on The Annoying Operating System.
+"""
+
+faulty_entry_callable = _types.SSHAgentSocketProviderEntry(
+    (),  # type: ignore[arg-type]
+    'tuple',
+    (),
+)
+"""
+A faulty [`_types.SSHAgentSocketProviderEntry`][]: the indicated handler
+is not a callable.
+"""
+
+faulty_entry_name_exists = _types.SSHAgentSocketProviderEntry(
+    socketprovider.SocketProvider.resolve('the_annoying_os'), 'posix', ()
+)
+"""
+A faulty [`_types.SSHAgentSocketProviderEntry`][]: the indicated handler
+is already registered with a different callable.
+"""
+
+faulty_entry_alias_exists = _types.SSHAgentSocketProviderEntry(
+    socketprovider.SocketProvider.resolve('posix'),
+    'posix',
+    ('unix_domain', 'the_annoying_os'),
+)
+"""
+A faulty [`_types.SSHAgentSocketProviderEntry`][]: the alias is already
+registered with a different callable.
+"""
+
+
+@contextlib.contextmanager
+def faked_entry_point_list(  # noqa: C901
+    additional_entry_points: Sequence[importlib.metadata.EntryPoint],
+    remove_conflicting_entries: bool = False,
+) -> Iterator[Sequence[str]]:
+    """Yield a context where additional entry points are visible.
+
+    Args:
+        additional_entry_points:
+            A sequence of entry point objects that should additionally
+            be visible.
+        remove_conflicting_entries:
+            If true, remove all names provided by the additional entry
+            points, otherwise leave them untouched.
+
+    Yields:
+        A sequence of registry names that are newly available within the
+        context.
+
+    """
+    true_entry_points = importlib.metadata.entry_points()
+    additional_entry_points = list(additional_entry_points)
+
+    if sys.version_info >= (3, 12):
+        new_entry_points = importlib.metadata.EntryPoints(
+            list(true_entry_points) + additional_entry_points
+        )
+
+        @overload
+        def mangled_entry_points(
+            *, group: None = None
+        ) -> importlib.metadata.EntryPoints: ...
+
+        @overload
+        def mangled_entry_points(
+            *, group: str
+        ) -> importlib.metadata.EntryPoints: ...
+
+        def mangled_entry_points(
+            **params: Any,
+        ) -> importlib.metadata.EntryPoints:
+            return new_entry_points.select(**params)
+
+    elif sys.version_info >= (3, 10):
+        # Compatibility concerns within importlib.metadata: depending on
+        # whether the .select() API is used, the result is either the dict
+        # of groups of points (as in < 3.10), or the EntryPoints iterable
+        # (as in >= 3.12).  So our wrapper needs to duplicate that
+        # interface.  FUN.
+        new_entry_points_dict = {
+            k: list(v) for k, v in true_entry_points.items()
+        }
+        for ep in additional_entry_points:
+            new_entry_points_dict.setdefault(ep.group, []).append(ep)
+        new_entry_points = importlib.metadata.EntryPoints([
+            ep for group in new_entry_points_dict.values() for ep in group
+        ])
+
+        @overload
+        def mangled_entry_points(
+            *, group: None = None
+        ) -> dict[
+            str,
+            list[importlib.metadata.EntryPoint]
+            | tuple[importlib.metadata.EntryPoint, ...],
+        ]: ...
+
+        @overload
+        def mangled_entry_points(
+            *, group: str
+        ) -> importlib.metadata.EntryPoints: ...
+
+        def mangled_entry_points(
+            **params: Any,
+        ) -> (
+            importlib.metadata.EntryPoints
+            | dict[
+                str,
+                list[importlib.metadata.EntryPoint]
+                | tuple[importlib.metadata.EntryPoint, ...],
+            ]
+        ):
+            return (
+                new_entry_points.select(**params)
+                if params
+                else new_entry_points_dict
+            )
+
+    else:
+        new_entry_points: dict[
+            str,
+            list[importlib.metadata.EntryPoint]
+            | tuple[importlib.metadata.EntryPoint, ...],
+        ] = {
+            group_name: list(group)
+            for group_name, group in true_entry_points.items()
+        }
+        for ep in additional_entry_points:
+            new_entry_points.setdefault(ep.group, [])
+            new_entry_points[ep.group].append(ep)
+        new_entry_points = {
+            group_name: tuple(group)
+            for group_name, group in new_entry_points.items()
+        }
+
+        @overload
+        def mangled_entry_points(
+            *, group: None = None
+        ) -> dict[str, tuple[importlib.metadata.EntryPoint, ...]]: ...
+
+        @overload
+        def mangled_entry_points(
+            *, group: str
+        ) -> tuple[importlib.metadata.EntryPoint, ...]: ...
+
+        def mangled_entry_points(
+            *, group: str | None = None
+        ) -> (
+            dict[str, tuple[importlib.metadata.EntryPoint, ...]]
+            | tuple[importlib.metadata.EntryPoint, ...]
+        ):
+            return (
+                new_entry_points.get(group, ())
+                if group is not None
+                else new_entry_points
+            )
+
+    registry = socketprovider.SocketProvider.registry
+    new_registry = registry.copy()
+    keys = [ep.load().key for ep in additional_entry_points]
+    aliases = [a for ep in additional_entry_points for a in ep.load().aliases]
+    if remove_conflicting_entries:  # pragma: no cover [unused]
+        for name in [*keys, *aliases]:
+            new_registry.pop(name, None)
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            socketprovider.SocketProvider, 'registry', new_registry
+        )
+        monkeypatch.setattr(
+            importlib.metadata, 'entry_points', mangled_entry_points
+        )
+        yield (*keys, *aliases)
+
+
 @contextlib.contextmanager
 def isolated_config(
     monkeypatch: pytest.MonkeyPatch,
@@ -2525,10 +2741,11 @@ def make_file_readonly(
     group and other, and ensuring the read permission bit for user is
     set.
 
-    Unfortunately, Windows has its own rules: Set exactly(?) the read
-    permission bit for user to make the file read-only, and set
-    exactly(?) the write permission bit for user to make the file
-    read/write; all other permission bit settings are ignored.
+    Unfortunately, The Annoying OS (a.k.a. Microsoft Windows) has its
+    own rules: Set exactly(?) the read permission bit for user to make
+    the file read-only, and set exactly(?) the write permission bit for
+    user to make the file read/write; all other permission bit settings
+    are ignored.
 
     The cross-platform procedure therefore is:
 
