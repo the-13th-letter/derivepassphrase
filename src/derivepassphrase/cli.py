@@ -1154,7 +1154,9 @@ class _VaultContext:  # noqa: PLR0904
                     )
                 )
             except NotImplementedError:
-                self.err(_msg.TranslatedString(_msg.ErrMsgTemplate.NO_AF_UNIX))
+                self.err(
+                    _msg.TranslatedString(_msg.ErrMsgTemplate.NO_AGENT_SUPPORT)
+                )
             except OSError as exc:
                 self.err(
                     _msg.TranslatedString(

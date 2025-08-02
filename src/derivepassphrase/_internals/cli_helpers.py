@@ -962,7 +962,9 @@ def key_to_phrase(
             _msg.TranslatedString(_msg.ErrMsgTemplate.NO_SSH_AGENT_FOUND)
         )
     except NotImplementedError:
-        error_callback(_msg.TranslatedString(_msg.ErrMsgTemplate.NO_AF_UNIX))
+        error_callback(
+            _msg.TranslatedString(_msg.ErrMsgTemplate.NO_AGENT_SUPPORT)
+        )
     except OSError as exc:
         error_callback(
             _msg.TranslatedString(

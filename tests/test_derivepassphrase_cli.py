@@ -4298,7 +4298,7 @@ class TestCLI:
                 catch_exceptions=False,
             )
         assert result.error_exit(
-            error='does not support UNIX domain sockets'
+            error='does not support communicating with it'
         ), 'expected error exit and known error message'
 
 
@@ -5230,7 +5230,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
             with monkeypatch.context() as mp:
                 mp.delattr(socket, 'AF_UNIX', raising=True)
                 with pytest.raises(
-                    ErrCallback, match='does not support UNIX domain sockets'
+                    ErrCallback, match='does not support communicating with it'
                 ):
                     cli_helpers.key_to_phrase(loaded_key, error_callback=err)
             with monkeypatch.context() as mp:
