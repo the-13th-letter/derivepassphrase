@@ -80,7 +80,10 @@ class SSHAgentClient:
     """
 
     _connection: _types.SSHAgentSocket
-    SOCKET_PROVIDERS: ClassVar = ['native']
+    SOCKET_PROVIDERS: ClassVar = ('native',)
+    """
+    The default list of SSH agent socket providers.
+    """
 
     def __init__(  # noqa: C901, PLR0912
         self,

@@ -55,10 +55,44 @@ canonical SSH agent implementation.
           default, contrary to other SSH agents, so it must be manually
           advertised:
 
-            ~~~~ console
-            $ SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)"
-            $ export SSH_AUTH_SOCK
-            ~~~~
+            === "UNIX"
+
+                ~~~~ console
+                $ SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)"
+                $ export SSH_AUTH_SOCK
+                ~~~~
+
+            === "Windows (`libassuan` socket)"
+
+                `gpg-agent` on Windows contains a native emulation of
+                UNIX domain sockets by the `assuan` library, which GnuPG
+                internally uses for network connectivity and
+                inter-process communication.  No specific configuration
+                is necessary, and the agent address can be directly
+                obtained with `gpgconf`:
+
+                ~~~~ console
+                $ gpgconf --list-dirs agent-ssh-socket
+                ~~~~
+
+                This mode, sadly, is not currently supported.  The
+                system is specific to GnuPG/`libassuan`, and unlikely to
+                be deployed widely enough to make implementing this
+                a priority for us… at least, relative to the other, more
+                common interprocess communication channels for SSH
+                agents on Windows.
+
+            === "Windows (OpenSSH emulation)"
+
+                From v2.4 onwards, `gpg-agent` supports masquerading as
+                OpenSSH's `ssh-agent` on Windows, by starting the agent
+                with the `--enable-win32-openssh-support` command-line
+                argument.  (Usually, this would be added to the
+                `gpg-agent` configuration file instead of being manually
+                supplied on the command-line.)
+
+                [This mode, sadly, is not currently
+                supported.](#python-support)
 
 </section>
 
@@ -74,10 +108,12 @@ canonical SSH agent implementation.
     does not inherently support named pipes.  Since no comprehensive
     third-party Python modules to interface with named pipes appear to
     exist, teaching `derivepassphrase` to use Windows named pipes
-    will require us developers to write a custom low-level C module
-    specific to this application---an unrealistic task if we lack both
-    technical know-how for the named pipe API as well as Windows
-    hardware to test any potential implementation on.
+    requires us developers to write the code to interface the Windows
+    system libraries ourselves.  Development on this started after the
+    release of version 0.5, but since this is not our area of expertise,
+    and because the pre-0.5 design hard-codes the UNIX style of looking
+    up and connecting to an SSH agent, development progress on this
+    front has been much slower than usual.
 
 On non-Windows operating systems, the SSH agent is expected to advertise
 its communication socket via the `SSH_AUTH_SOCK` environment variable,
@@ -85,7 +121,13 @@ which is common procedure.  Therefore, [your Python installation must
 support UNIX domain sockets][socket.AF_UNIX].
 
 `derivepassphrase vault --version` will report on supported and on
-unavailable features, including "master SSH key":
+unavailable features, including "master SSH key":[^1]
+
+[^1]: This indicates support in principle, on this
+    hardware/software/system combination, for interfacing with an SSH
+    agent.  At runtime, this could still fail, e.g. because the SSH
+    agent isn't actually running, because `derivepassphrase` is trying
+    to connect to the wrong address, etc.
 
 === "supported"
 
@@ -114,8 +156,8 @@ unavailable features, including "master SSH key":
 For an SSH key to be usable by `derivepassphrase`, the SSH agent must
 always generate the same signature for the same input, i.e. the
 signature must be deterministic for this key type.  Commonly used SSH
-key types include [RSA][], [DSA][], [ECDSA][], [Ed25519][] and
-[Ed448][].
+key types (as of August 2025) include [ECDSA][], [Ed25519][], [RSA][],
+and, somewhat less commonly, [Ed448][] and [DSA][].
 
   [RSA]: https://en.wikipedia.org/wiki/RSA_(cryptosystem)
   [DSA]: https://en.wikipedia.org/wiki/Digital_Signature_Algorithm
@@ -168,7 +210,7 @@ key types include [RSA][], [DSA][], [ECDSA][], [Ed25519][] and
 If you do not yet have a (supported) SSH key, we recommend Ed25519 for
 maximum speed and reasonable availability, otherwise RSA for maximum
 availability.  We do not in general recommend Ed448 because it is not
-widely implemented.
+widely implemented (as of August 2025).
 
 ??? example "Generating new SSH keys for `derivepassphrase`"
 
@@ -220,11 +262,42 @@ widely implemented.
 
     === "GnuPG"
 
-        Not supported natively.  An alternative SSH client distribution
-        such as OpenSSH or PuTTY is necessary.
+        Not supported natively.  A different SSH client distribution
+        such as OpenSSH or PuTTY is necessary to create SSH keys
+        specifically.
 
         Alternatively, GnuPG supports reusing keys in its native OpenPGP
         format for SSH as long as the underlying key type is compatible.
+        First, obtain GnuPG's internal identifier (the "keygrip") for
+        the correct key you may want to use.  (Warning: OpenPGP subkeys
+        have a different keygrip, so be sure to use the correct one.)
+
+        ~~~~ console
+        $ gpg --list-keys --with-keygrip sample-key@example.com
+        pub   rsa4096 2025-07-27 [SC] [expires: 2025-08-01]
+              675F056879A81925E3E0DE60370C2A7D2E40FF4C
+              Keygrip = C71CB33DC50C9972EF9C135B0FB70D87B1491923
+        uid           [ultimate] Sample Key <sample-key@example.com>
+        sub   rsa4096 2025-07-27 [E] [expires: 2025-08-01]
+              Keygrip = 84129D49C9A0654BDFAE2DACBC7A9D8C563FF884
+        ~~~~
+
+        === "before v2.3.7"
+
+            Add the keygrip (on a line of its own) to the `sshcontrol`
+            file in the GnuPG configuration directory.
+
+            ~~~~ console
+            $ echo C71CB33DC50C9972EF9C135B0FB70D87B1491923 >> ~/.gnupg/sshcontrol
+            ~~~~
+
+        === "v2.3.7 and later"
+
+            Set a key attribute to permit this key's use in SSH:
+
+            ~~~~ console
+            $ gpg-connect-agent 'keyattr C71CB33DC50C9972EF9C135B0FB70D87B1491923 Use-for-ssh: true' /bye
+            ~~~~
 
 ---
 
