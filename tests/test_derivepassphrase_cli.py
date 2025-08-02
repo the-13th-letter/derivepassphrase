@@ -764,11 +764,9 @@ class SystemSupportAction(str, enum.Enum):
                 | None
             )
             try:
-                intended = socketprovider.SocketProvider.resolve(provider)
+                intended = socketprovider.SocketProvider.lookup(provider)
             except socketprovider.NoSuchProviderError as exc:
                 intended = exc
-            except NotImplementedError:
-                intended = None
             actual: (
                 _types.SSHAgentSocketProvider
                 | socketprovider.NoSuchProviderError
@@ -776,10 +774,10 @@ class SystemSupportAction(str, enum.Enum):
             )
             for name in ssh_agent.SSHAgentClient.SOCKET_PROVIDERS:
                 try:
-                    actual = socketprovider.SocketProvider.resolve(name)
+                    actual = socketprovider.SocketProvider.lookup(name)
                 except socketprovider.NoSuchProviderError as exc:
                     actual = exc
-                except NotImplementedError:
+                if actual is None:
                     continue
                 break
             else:

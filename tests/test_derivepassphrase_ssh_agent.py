@@ -927,9 +927,12 @@ class TestStaticFunctionality:
         """Resolving entries in the socket provider registry works."""
         registry = socketprovider.SocketProvider.registry
         resolve = socketprovider.SocketProvider.resolve
+        lookup = socketprovider.SocketProvider.lookup
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setitem(registry, 'stub_agent', None)
+            assert callable(lookup('native'))
             assert callable(resolve('native'))
+            assert lookup('stub_agent') is None
             with pytest.raises(NotImplementedError):
                 resolve('stub_agent')
 
@@ -942,6 +945,7 @@ class TestStaticFunctionality:
         """Resolving a chain of providers works."""
         registry = socketprovider.SocketProvider.registry
         resolve = socketprovider.SocketProvider.resolve
+        lookup = socketprovider.SocketProvider.lookup
         try:
             implementation = resolve('native')
         except NotImplementedError:  # pragma: no cover
@@ -959,11 +963,15 @@ class TestStaticFunctionality:
             for link in chain:
                 monkeypatch.setitem(registry, link, target)
                 target = link
-            if terminal == 'unimplemented':
-                with pytest.raises(NotImplementedError):
-                    resolve(chain[-1])
-            else:
-                assert resolve(chain[-1]) == implementation
+            for link in chain:
+                assert lookup(link) == (
+                    implementation if terminal != 'unimplemented' else None
+                )
+                if terminal == 'unimplemented':
+                    with pytest.raises(NotImplementedError):
+                        resolve(link)
+                else:
+                    assert resolve(link) == implementation
 
     @hypothesis.given(
         terminal=strategies.sampled_from([
@@ -996,6 +1004,7 @@ class TestStaticFunctionality:
         """Resolving a chain of providers works."""
         registry = socketprovider.SocketProvider.registry
         resolve = socketprovider.SocketProvider.resolve
+        lookup = socketprovider.SocketProvider.lookup
         try:
             implementation = resolve('native')
         except NotImplementedError:  # pragma: no cover
@@ -1014,11 +1023,15 @@ class TestStaticFunctionality:
             for link in chain:
                 monkeypatch.setitem(registry, link, target)
                 target = link
-            if terminal == 'unimplemented':
-                with pytest.raises(NotImplementedError):
-                    resolve(chain[-1])
-            else:
-                assert resolve(chain[-1]) == implementation
+            for link in chain:
+                assert lookup(link) == (
+                    implementation if terminal != 'unimplemented' else None
+                )
+                if terminal == 'unimplemented':
+                    with pytest.raises(NotImplementedError):
+                        resolve(link)
+                else:
+                    assert resolve(link) == implementation
 
     @Parametrize.GOOD_ENTRY_POINTS
     def test_230_find_all_socket_providers(
@@ -1664,32 +1677,6 @@ class TestAgentInteraction:
                 client.query_extensions()
 
 
-def safe_resolve(name: str) -> _types.SSHAgentSocketProvider | None:
-    """Safely resolve an SSH agent socket provider name.
-
-    If the provider is merely reserved, return `None` instead of raising
-    an exception.  Otherwise behave like
-    [`socketprovider.SocketProvider.resolve`][] does.
-
-    Args:
-        name: The name of the provider to resolve.
-
-    Returns:
-        The SSH agent socket provider if registered, `None` if merely
-        reserved, and an error if not found.
-
-    Raises:
-        socketprovider.NoSuchProviderError:
-            No such provider was found in the registry.  This includes
-            entries that are merely reserved.
-
-    """
-    try:
-        return socketprovider.SocketProvider.resolve(name)
-    except NotImplementedError:  # pragma: no cover
-        return None
-
-
 @strategies.composite
 def draw_alias_chain(
     draw: strategies.DrawFn,
@@ -1841,7 +1828,9 @@ class SSHAgentSocketProviderRegistryStateMachine(
     )
     def get_registry_keys(self) -> stateful.MultipleResults[str]:
         """Read the standard keys from the registry."""
-        self.model.update({k: safe_resolve(k) for k in self.registry})
+        self.model.update({
+            k: socketprovider.SocketProvider.lookup(k) for k in self.registry
+        })
         return stateful.multiple(*self.registry.keys())
 
     @stateful.rule(
@@ -1855,12 +1844,13 @@ class SSHAgentSocketProviderRegistryStateMachine(
 
     @stateful.invariant()
     def check_consistency(self) -> None:
+        lookup = socketprovider.SocketProvider.lookup
         assert self.registry.keys() == self.model.keys()
         for k in self.model:
-            resolved = safe_resolve(k)
+            resolved = lookup(k)
             modelled = self.model[k]
             step1 = self.registry[k]
-            manually = safe_resolve(step1) if isinstance(step1, str) else step1
+            manually = lookup(step1) if isinstance(step1, str) else step1
             assert resolved == modelled
             assert resolved == manually
 

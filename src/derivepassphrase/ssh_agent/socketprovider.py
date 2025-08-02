@@ -186,11 +186,13 @@ class SocketProvider:
             """
             for alias in [name, *aliases]:
                 try:
-                    existing = cls.resolve(alias)
+                    existing = cls.lookup(alias)
                 except (NoSuchProviderError, NotImplementedError):
                     cls.registry[alias] = f if alias == name else name
                 else:
-                    if existing != f:
+                    if existing is None:
+                        cls.registry[alias] = f if alias == name else name
+                    elif existing != f:
                         msg = (
                             f'The SSH agent socket provider {alias!r} '
                             f'is already registered.'
@@ -201,9 +203,35 @@ class SocketProvider:
         return decorator
 
     @classmethod
+    def lookup(
+        cls, provider: _types.SSHAgentSocketProvider | str | None, /
+    ) -> _types.SSHAgentSocketProvider | None:
+        """Look up a socket provider entry.
+
+        Args:
+            provider: The provider to look up.
+
+        Returns:
+            The callable indicated by this provider, if it is
+            implemented, or `None`, if it is merely registered.
+
+        Raises:
+            NoSuchProviderError:
+                The provider is not registered.
+
+        """
+        ret = provider
+        while isinstance(ret, str):
+            try:
+                ret = cls.registry[ret]
+            except KeyError as exc:
+                raise NoSuchProviderError(ret) from exc
+        return ret
+
+    @classmethod
     def resolve(
-        cls, provider: Callable[[], _types.SSHAgentSocket] | str | None, /
-    ) -> Callable[[], _types.SSHAgentSocket]:
+        cls, provider: _types.SSHAgentSocketProvider | str | None, /
+    ) -> _types.SSHAgentSocketProvider:
         """Resolve a socket provider to a proper callable.
 
         Args:
@@ -220,12 +248,7 @@ class SocketProvider:
                 applicable to this `derivepassphrase` installation.
 
         """
-        ret = provider
-        while isinstance(ret, str):
-            try:
-                ret = cls.registry[ret]
-            except KeyError as exc:
-                raise NoSuchProviderError(ret) from exc
+        ret = cls.lookup(provider)
         if ret is None:
             msg = (
                 f'The {ret!r} socket provider is not functional on or '
