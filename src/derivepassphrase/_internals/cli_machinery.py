@@ -18,16 +18,20 @@ import collections
 import importlib.metadata
 import inspect
 import logging
-import socket
+import sys
 import warnings
 from typing import TYPE_CHECKING, Callable, Literal, TextIO, TypeVar
 
 import click
 import click.shell_completion
+import exceptiongroup
 from typing_extensions import Any, ParamSpec, override
 
-from derivepassphrase import _internals, _types
+from derivepassphrase import _internals, _types, ssh_agent
 from derivepassphrase._internals import cli_messages as _msg
+
+if sys.version_info < (3, 11):
+    from exceptiongroup import BaseExceptionGroup
 
 if TYPE_CHECKING:
     import types
@@ -1140,6 +1144,29 @@ def export_vault_version_option_callback(
         ctx.exit()
 
 
+def _test_for_ssh_key_feature() -> bool:
+    """Return true if we support SSH keys.
+
+    This is the feature test for [`_types.Feature.SSH_KEY`][].  We test
+    this by attempting to construct an SSH agent client, reporting
+    whether this can principally work, or not.
+
+    """
+    ret = True
+
+    def handle_notimplementederror(_exc: BaseExceptionGroup) -> None:
+        nonlocal ret
+        ret = False
+
+    with exceptiongroup.catch({  # noqa: SIM117
+        NotImplementedError: handle_notimplementederror,
+        Exception: lambda _exc: None,
+    }):
+        with ssh_agent.SSHAgentClient.ensure_agent_subcontext():
+            pass
+    return ret
+
+
 def vault_version_option_callback(
     ctx: click.Context,
     param: click.Parameter,
@@ -1148,7 +1175,7 @@ def vault_version_option_callback(
     if value and not ctx.resilient_parsing:
         common_version_output(ctx, param, value)
         features = {
-            _types.Feature.SSH_KEY: hasattr(socket, 'AF_UNIX'),
+            _types.Feature.SSH_KEY: _test_for_ssh_key_feature(),
         }
         click.echo()
         version_info_types: dict[_msg.Label, list[str]] = {
