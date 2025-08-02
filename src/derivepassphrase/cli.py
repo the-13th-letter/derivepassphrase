@@ -29,7 +29,7 @@ from typing_extensions import (
     Any,
 )
 
-from derivepassphrase import _internals, _types, exporter, ssh_agent, vault
+from derivepassphrase import _internals, _types, exporter, vault
 from derivepassphrase._internals import cli_helpers, cli_machinery
 from derivepassphrase._internals import cli_messages as _msg
 
@@ -1049,7 +1049,7 @@ class _VaultContext:  # noqa: PLR0904
                 ).maybe_without_filename(),
             )
 
-    def run_subop_query_phrase_or_key_change(  # noqa: C901,PLR0912
+    def run_subop_query_phrase_or_key_change(
         self,
         *,
         empty_service_permitted: bool,
@@ -1130,55 +1130,13 @@ class _VaultContext:  # noqa: PLR0904
             )
             raise click.UsageError(str(err_msg))
         if use_key:
-            try:
-                settings.maps[0]['key'] = base64.standard_b64encode(
-                    cli_helpers.select_ssh_key(ctx=self.ctx)
-                ).decode('ASCII')
-            except IndexError:
-                self.err(
-                    _msg.TranslatedString(
-                        _msg.ErrMsgTemplate.USER_ABORTED_SSH_KEY_SELECTION
-                    ),
+            settings.maps[0]['key'] = base64.standard_b64encode(
+                cli_helpers.select_ssh_key(
+                    ctx=self.ctx,
+                    error_callback=self.err,
+                    warning_callback=self.warning,
                 )
-            except KeyError:
-                self.err(
-                    _msg.TranslatedString(
-                        _msg.ErrMsgTemplate.NO_SSH_AGENT_FOUND
-                    ),
-                )
-            except LookupError:
-                self.err(
-                    _msg.TranslatedString(
-                        _msg.ErrMsgTemplate.NO_SUITABLE_SSH_KEYS,
-                        PROG_NAME=PROG_NAME,
-                    )
-                )
-            except NotImplementedError:
-                self.err(
-                    _msg.TranslatedString(_msg.ErrMsgTemplate.NO_AGENT_SUPPORT)
-                )
-            except OSError as exc:
-                self.err(
-                    _msg.TranslatedString(
-                        _msg.ErrMsgTemplate.CANNOT_CONNECT_TO_AGENT,
-                        error=exc.strerror,
-                        filename=exc.filename,
-                    ).maybe_without_filename(),
-                )
-            except ssh_agent.SSHAgentFailedError as exc:
-                self.err(
-                    _msg.TranslatedString(
-                        _msg.ErrMsgTemplate.AGENT_REFUSED_LIST_KEYS
-                    ),
-                    exc_info=exc,
-                )
-            except RuntimeError as exc:
-                self.err(
-                    _msg.TranslatedString(
-                        _msg.ErrMsgTemplate.CANNOT_UNDERSTAND_AGENT
-                    ),
-                    exc_info=exc,
-                )
+            ).decode('ASCII')
         elif use_phrase:
             maybe_phrase = cli_helpers.prompt_for_passphrase()
             if not maybe_phrase:
@@ -1414,7 +1372,9 @@ class _VaultContext:  # noqa: PLR0904
         # a key is given.  Finally, if nothing is set, error out.
         if use_key:
             phrase = cli_helpers.key_to_phrase(
-                cast('str', overrides['key']), error_callback=self.err
+                cast('str', overrides['key']),
+                error_callback=self.err,
+                warning_callback=self.warning,
             )
         elif use_phrase:
             phrase = cast('str', overrides['phrase'])

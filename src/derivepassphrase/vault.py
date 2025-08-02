@@ -16,11 +16,10 @@ from typing import TYPE_CHECKING, Final
 
 from typing_extensions import TypeAlias, assert_type
 
-from derivepassphrase import sequin, ssh_agent
+from derivepassphrase import _types, sequin, ssh_agent
 
 if TYPE_CHECKING:
-    import socket
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
 
     from typing_extensions import Buffer
 
@@ -520,7 +519,10 @@ class Vault:
         key: Buffer,
         /,
         *,
-        conn: ssh_agent.SSHAgentClient | socket.socket | None = None,
+        conn: ssh_agent.SSHAgentClient
+        | _types.SSHAgentSocket
+        | Sequence[str]
+        | None = None,
     ) -> bytes:
         """Obtain the master passphrase from a configured SSH key.
 
@@ -541,16 +543,26 @@ class Vault:
             unframed but encoded in base64.
 
         Raises:
+            derivepassphrase.ssh_agent.socketprovider.NoSuchProviderError:
+                As per
+                [`ssh_agent.SSHAgentClient.__init__`][ssh_agent.SSHAgentClient].
+                Only applicable if agent auto-discovery is used.
             KeyError:
-                `conn` was `None`, and the `SSH_AUTH_SOCK` environment
-                variable was not found.
+                As per
+                [`ssh_agent.SSHAgentClient.__init__`][ssh_agent.SSHAgentClient].
+                Only applicable if agent auto-discovery is used.
             NotImplementedError:
-                `conn` was `None`, and this Python does not support
-                [`socket.AF_UNIX`][], so the SSH agent client cannot be
-                automatically set up.
+                As per
+                [`ssh_agent.SSHAgentClient.__init__`][ssh_agent.SSHAgentClient],
+                including the mulitple raise as an exception group.
+                Only applicable if agent auto-discovery is used.
             OSError:
-                `conn` was a socket or `None`, and there was an error
-                setting up a socket connection to the agent.
+                If the connection hint was a socket, then there was an
+                error setting up the socket connection to the agent.
+
+                Otherwise, as per
+                [`ssh_agent.SSHAgentClient.__init__`][ssh_agent.SSHAgentClient].
+                Only applicable if agent auto-discovery is used.
             ValueError:
                 The SSH key is principally unsuitable for this use case.
                 Usually this means that the signature is not
