@@ -182,6 +182,12 @@ values = []
 first_value = '1'
 
 [[tool.bumpversion.files]]
+filename = 'src/derivepassphrase/__init__.py'
+search = '^ *__version__ *= *"{current_version}"'
+replace = '__version__ = "{new_version}"'
+regex = true
+
+[[tool.bumpversion.files]]
 glob = 'src/derivepassphrase/*.py'
 search = '# SPDX-FileCopyrightText: \d\d\d\d'
 replace = '# SPDX-FileCopyrightText: {now:%Y}'
