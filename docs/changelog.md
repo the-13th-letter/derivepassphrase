@@ -51,6 +51,41 @@ specifically marked as such.)
 
 <!-- scriv changelog start -->
 
+## 0.5.2 (2025-08-03)  {#v0.5.2}
+
+### Fixed  {#fixed-in-v0.5.2}
+
+  - Correctly report (in `--version` output) the current version as v0.5.2,
+    instead of v0.5 alpha 1, development build #1.
+    This happened because---ironically---our machinery for updating embedded
+    version numbers automatically overlooked the *one* embedded version
+    number that the `--version` output handler actually uses.
+
+  - For developers: Add slightly more details to the release checklist.
+
+  - For developers: Fix some errors in the test suite (both code and
+    dependency declaration) that cause the suite to fail to even start on
+    <abbr title="Microsoft Windows">The Annoying
+    OS</abbr>.[^the-annoying-os]
+    These mistakes were already present in v0.5.
+
+  - For developers: Fix a copy-and-paste error in the parsed data for the
+    ECDSA NIST P-521 SSH test key, which would cause *all* agents to fail
+    when signing with that key, even if the agent otherwise supported the
+    key type.
+    Add additional testing code to catch this kind of test data
+    inconsistency.
+
+  - For developers: Provide expected signatures and equivalent master
+    passphrases for all test keys under Pageant, using both the
+    [RFC 6979][] scheme and the Pageant pre-0.80 scheme.
+
+    Furthermore, provide a script to emit test key data for all defined test
+    keys, augmented with the current agent's signatures and equivalent
+    master passphrases, in a format that can be easily pasted into the test
+    module's code (with only minor reformatting).
+
+
 ## 0.5.1 (2025-06-24)  {#v0.5.1}
 
 ### Fixed  {#fixed-in-v0.5.1}
@@ -238,9 +273,9 @@ specifically marked as such.)
 
   - Test against PyPy 3.11.
 
-  - Test on <abbr title="Microsoft Windows">The Annoying
-    OS</abbr>[^the-annoying-os] in its baseline version, i.e., without SSH
-    agent functionality but with `cryptography` support.
+  - Test on <abbr title="Microsoft Windows">The Annoying OS</abbr> in its
+    baseline version, i.e., without SSH agent functionality but with
+    `cryptography` support.
     Fix all incompatibilities in the test suite if essential and/or
     feasible, otherwise document them as skips or expected failures.
 
@@ -363,8 +398,6 @@ specifically marked as such.)
 
   - If the SSH agent supports deterministic DSA/ECDSA signatures (e.g.
     [RFC 6979][]), then mark DSA and ECDSA SSH keys as suitable.
-
-[RFC 6979]: https://www.rfc-editor.org/rfc/rfc6979
 
 ## 0.3.2 (2024-10-21)  {#v0.3.2}
 
@@ -607,6 +640,8 @@ specifically marked as such.)
 [scriv]: https://pypi.org/project/scriv/
 [tomli]: https://pypi.org/project/tomli/
 [towncrier]: https://pypi.org/project/towncrier/
+
+[RFC 6979]: https://www.rfc-editor.org/rfc/rfc6979
 
 [CLI]: reference/derivepassphrase.1.md
 [CLI_EXPORT]: reference/derivepassphrase-export.1.md
