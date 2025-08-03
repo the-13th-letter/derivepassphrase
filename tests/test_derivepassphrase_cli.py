@@ -28,6 +28,7 @@ import warnings
 from typing import TYPE_CHECKING, cast
 
 import click.testing
+import exceptiongroup
 import hypothesis
 import pytest
 from hypothesis import stateful, strategies
@@ -2333,8 +2334,10 @@ class TestAllCLI:
                 _types.ForeignConfigurationFormat.VAULT_V02: not vault_native.STUBBED,
                 _types.ForeignConfigurationFormat.VAULT_V03: not vault_native.STUBBED,
             })
-            if not storeroom.STUBBED and not vault_native.STUBBED:
-                actually_enabled_extras.add(_types.PEP508Extra.EXPORT)
+        with contextlib.suppress(ModuleNotFoundError):
+            import cryptography  # noqa: F401,PLC0415
+
+            actually_enabled_extras.add(_types.PEP508Extra.EXPORT)
         assert not version_data.derivation_schemes
         assert (
             version_data.foreign_configuration_formats
@@ -2376,8 +2379,23 @@ class TestAllCLI:
         assert result.clean_exit(empty_stderr=True), 'expected clean exit'
         assert result.stdout.strip(), 'expected version output'
         version_data = parse_version_output(result.stdout)
+
+        ssh_key_supported = True
+
+        def react_to_notimplementederror(
+            _exc: BaseException,
+        ) -> None:  # pragma: no cover[unused]
+            nonlocal ssh_key_supported
+            ssh_key_supported = False
+
+        with exceptiongroup.catch({  # noqa: SIM117
+            NotImplementedError: react_to_notimplementederror,
+            Exception: lambda *_args: None,
+        }):
+            with ssh_agent.SSHAgentClient.ensure_agent_subcontext():
+                pass
         features: dict[str, bool] = {
-            _types.Feature.SSH_KEY: hasattr(socket, 'AF_UNIX'),
+            _types.Feature.SSH_KEY: ssh_key_supported,
         }
         assert not version_data.derivation_schemes
         assert not version_data.foreign_configuration_formats
