@@ -1075,6 +1075,16 @@ u7HfrQhdOiKSa+ZO9AAojbURqrLDRfBJa5dXn2AAAAFQDJHfenj4EJ9WkehpdJatPBlqCW
                 derived_passphrase=rb"""EV9NE8LuYZce9iMUOyvdzwbAcRPMrDQZrTaNeaol+15P6v5rW/pXQg==""",
                 signature_class=SSHTestKeyDeterministicSignatureClass.RFC_6979,
             ),
+            SSHTestKeyDeterministicSignatureClass.Pageant_068_080: SSHTestKeyDeterministicSignature(
+                signature=bytes.fromhex("""
+                    00 00 00 07 73 73 68 2d 64 73 73
+                    00 00 00 28 0b f7 a8 ab 89 f5 b6 c4
+                    1c 9b 78 2c 46 35 69 e2 88 b7 eb 55 37 48 7f 6d
+                    49 a1 e6 de 58 1a 04 eb e6 28 99 0e 3c fd 3b 48
+"""),
+                derived_passphrase=rb"""C/eoq4n1tsQcm3gsRjVp4oi361U3SH9tSaHm3lgaBOvmKJkOPP07SA==""",
+                signature_class=SSHTestKeyDeterministicSignatureClass.Pageant_068_080,
+            ),
         },
     ),
     'ecdsa256': SSHTestKey(
@@ -1130,6 +1140,21 @@ dGhvdXQgcGFzc3BocmFzZQECAwQ=
 """),
                 derived_passphrase=rb"""AAAAICKtI4qcXcpO6nPnKXerqLIuAdjeEa7Js1fO1YSchXPrAAAAIQCbGsvdRYnwN5Wcotisw/dxVTNQhp7LOpXkaIAandbVvA==""",
                 signature_class=SSHTestKeyDeterministicSignatureClass.RFC_6979,
+            ),
+            SSHTestKeyDeterministicSignatureClass.Pageant_068_080: SSHTestKeyDeterministicSignature(
+                signature=bytes.fromhex("""
+                    00 00 00 13 65 63 64
+                    73 61 2d 73 68 61 32 2d 6e 69 73 74 70 32 35 36
+                    00 00 00 49
+                    00 00 00 21 00
+                    b7 9e 4f ec ec 9b 77 dd 12 d9 43 a2 f5 bf b5 34
+                    91 e0 89 44 e6 20 48 36 fa 75 22 77 86 38 de 21
+                    00 00 00 20
+                    3f d8 04 0f fa f5 bc d2 26 e0 4c 0c 77 5d 0e 08
+                    ec 30 04 8e 42 58 41 96 f6 7e 4f d2 14 39 f4 87
+"""),
+                derived_passphrase=rb"""AAAAIQC3nk/s7Jt33RLZQ6L1v7U0keCJROYgSDb6dSJ3hjjeIQAAACA/2AQP+vW80ibgTAx3XQ4I7DAEjkJYQZb2fk/SFDn0hw==""",
+                signature_class=SSHTestKeyDeterministicSignatureClass.Pageant_068_080,
             ),
         },
     ),
@@ -1194,6 +1219,23 @@ JAu0J3Q+cypZuKQVAAAAMQD5sTy8p+B1cn/DhOmXquui1BcxvASqzzevkBlbQoBa73y04B
 """),
                 derived_passphrase=rb"""AAAAMHjhqPWM0noh5aLK5tAaGfg6HDl+caDmfpODSZUFAdA+IyLNCWN/fGywl0Rtfkg5hwAAADAQ7oVRdyuRLOlCeWZZiqLA0siKjy+PM4eeElTk2gL555X1gm+CKzhtbl0XFawS52I=""",
                 signature_class=SSHTestKeyDeterministicSignatureClass.RFC_6979,
+            ),
+            SSHTestKeyDeterministicSignatureClass.Pageant_068_080: SSHTestKeyDeterministicSignature(
+                signature=bytes.fromhex("""
+                    00 00 00 13 65 63 64
+                    73 61 2d 73 68 61 32 2d 6e 69 73 74 70 33 38 34
+                    00 00 00 69
+                    00 00 00 30
+                    4b 3e b7 22 c2 87 77 6d e0 3e f5 05 75 36 b6 0f
+                    cd 9f a4 49 c7 48 ef 76 fd ea 4b 49 e3 b1 f2 22
+                    d5 41 22 d7 96 b2 29 70 ff bb 81 97 27 e2 35 60
+                    00 00 00 31 00
+                    c8 a4 d8 62 fe f2 a6 63 97 98 08 c7 39 24 b2 55
+                    0a b8 e7 79 ab a6 62 96 3e cc ea 73 e2 fb dc 46
+                    d6 25 b9 c8 0c e8 3e 33 91 51 78 25 a8 c5 46 85
+"""),
+                derived_passphrase=rb"""AAAAMEs+tyLCh3dt4D71BXU2tg/Nn6RJx0jvdv3qS0njsfIi1UEi15ayKXD/u4GXJ+I1YAAAADEAyKTYYv7ypmOXmAjHOSSyVQq453mrpmKWPszqc+L73EbWJbnIDOg+M5FReCWoxUaF""",
+                signature_class=SSHTestKeyDeterministicSignatureClass.Pageant_068_080,
             ),
         },
     ),
@@ -1267,6 +1309,25 @@ Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQ==
 """),
                 derived_passphrase=rb"""AAAAQgHY6sIeVcae3UsA7RuTGcybdCdEwMDjWz2BFQASzAeJVJfsYEKt5kDBxl/AG8MKjlhu2j+pV5AEeUYdSLsZZ+llGQAAAEF9WOAu14YuNowaRCOvGedRl7v7MpChNbuI17UiN7OZuuSnnS1WFAr1aPXMOITptsZxejuH53qxN+cd5oCW0aYevA==""",
                 signature_class=SSHTestKeyDeterministicSignatureClass.RFC_6979,
+            ),
+            SSHTestKeyDeterministicSignatureClass.Pageant_068_080: SSHTestKeyDeterministicSignature(
+                signature=bytes.fromhex("""
+                    00 00 00 13 65 63 64
+                    73 61 2d 73 68 61 32 2d 6e 69 73 74 70 35 32 31
+                    00 00 00 8c
+                    00 00 00 42 01 ce
+                    fe 9d 66 b6 01 76 2e 86 c2 ab 68 62 73 44 05 23
+                    fd d1 79 07 fc 45 f5 c0 83 36 88 61 d4 04 79 90
+                    b0 ef 8b 3c b5 55 0e cc 26 6b a0 3e 6a 04 48 ca
+                    e4 6a a5 a0 cf 91 5f 71 6f 37 9a 0f 6b a9 fb 9b
+                    00 00 00 42 01 6d
+                    21 77 c6 13 fa ea ac de 90 19 24 5a d2 61 39 d9
+                    66 9b 86 1a 41 04 58 a2 9b b8 93 b6 6f 82 23 f2
+                    01 23 c7 ff 5a d3 86 95 0f da 28 f9 3b e3 9c 27
+                    e7 b2 d7 66 4e 5f 38 36 4c 8c be 76 4e fa 0a 2d
+"""),
+                derived_passphrase=rb"""AAAAQgHO/p1mtgF2LobCq2hic0QFI/3ReQf8RfXAgzaIYdQEeZCw74s8tVUOzCZroD5qBEjK5GqloM+RX3FvN5oPa6n7mwAAAEIBbSF3xhP66qzekBkkWtJhOdlmm4YaQQRYopu4k7ZvgiPyASPH/1rThpUP2ij5O+OcJ+ey12ZOXzg2TIy+dk76Ci0=""",
+                signature_class=SSHTestKeyDeterministicSignatureClass.Pageant_068_080,
             ),
         },
     ),
