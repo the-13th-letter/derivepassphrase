@@ -710,7 +710,7 @@ idwcakUGCekJD/vCEml2AAAAG3Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQEC
                     0d 08 1f ec f8 73 9b 8c 5f 55 39 16 7c 53 54 2c
                     1e 52 bb 30 ed 7f 89 e2 2f 69 51 55 d8 9e a6 02
 """),
-                derived_passphrase=rb'8JgZgGwal9UmA27M42WPhmYHExkTCSEzM/nkNlMdr/0NCB/s+HObjF9VORZ8U1QsHlK7MO1/ieIvaVFV2J6mAg==',
+                derived_passphrase=rb"""8JgZgGwal9UmA27M42WPhmYHExkTCSEzM/nkNlMdr/0NCB/s+HObjF9VORZ8U1QsHlK7MO1/ieIvaVFV2J6mAg==""",
             ),
         },
     ),
@@ -767,7 +767,7 @@ dGhvdXQgcGFzc3BocmFzZQECAwQFBgcICQ==
                     db bd 77 7c 80 20 7f 3a 48 61 f6 1f ae a9 5e 53
                     7b e0 9d 93 1e ea dc eb b5 cd 56 4c ea 8f 08 00
 """),
-                derived_passphrase=rb'Bob0ZKSmutnDIsSTSZn8Ed5nlwjy2Lc8LBPnxRwekqYO2C9tgQOCAONy5DJtctJtMoQ/zKkeVywAmrOZ3kXazi7R2+WJ8zW+JFiQxsoE8NuIgNu9d3yAIH86SGH2H66pXlN74J2THurc67XNVkzqjwgA',
+                derived_passphrase=rb"""Bob0ZKSmutnDIsSTSZn8Ed5nlwjy2Lc8LBPnxRwekqYO2C9tgQOCAONy5DJtctJtMoQ/zKkeVywAmrOZ3kXazi7R2+WJ8zW+JFiQxsoE8NuIgNu9d3yAIH86SGH2H66pXlN74J2THurc67XNVkzqjwgA""",
             ),
         },
     ),
@@ -967,7 +967,7 @@ Bgp6142WnSCQAAABt0ZXN0IGtleSB3aXRob3V0IHBhc3NwaHJhc2UB
                     de 69 2c 48 62 d9 fd d1 9b 6b b0 49 db d3 ff 38
                     e7 10 d9 2d ce 9f 0d 5e 09 7b 37 d2 7b c3 bf ce
 """),
-                derived_passphrase=rb'ohB8Lva7U6h0KqEZma2Bvnmc7dadCU5uxRhIM5B3mWj3ngNazU4Y64l9haLurkqS9m/Ouf6GfyprMdpuGv6ipYi4RH+hdnOz7HW10Ka5FZdlCRN9lCHR+10PiyMEd8LDVSKxoAmK9Tgq1n8bhymgJdMlb8tkYQeY3BTFhPiSJF5QEWtJ5fDMKcspqRnYp3EfkQsFsQFLwl8ApbYhv/gsnWebRzsKSWt5Lfwd7Ayw5Sci1an408P530ho6fvvPNwmv8/qKUMBpuPFUZX0Zm2KVeJH7OgwRUyuR+fJpCGLZLq2iPYh+HO5yxGheHWSxlrlZP7tQtmVmeYrbzwWPCh0pHIvDT8sM2eqNRmO57URL7P3asUC4m+jQuNiGZkD6qUg56HjvMgGo7V81nZd329gRoMqCADW09mkwUGM+GBWRYHaO6IWH55OdYMX2sNTwz4ZpBu80im4eGEreOaxUrDV7N5pLEhi2f3Rm2uwSdvT/zjnENktzp8NXgl7N9J7w7/O',
+                derived_passphrase=rb"""ohB8Lva7U6h0KqEZma2Bvnmc7dadCU5uxRhIM5B3mWj3ngNazU4Y64l9haLurkqS9m/Ouf6GfyprMdpuGv6ipYi4RH+hdnOz7HW10Ka5FZdlCRN9lCHR+10PiyMEd8LDVSKxoAmK9Tgq1n8bhymgJdMlb8tkYQeY3BTFhPiSJF5QEWtJ5fDMKcspqRnYp3EfkQsFsQFLwl8ApbYhv/gsnWebRzsKSWt5Lfwd7Ayw5Sci1an408P530ho6fvvPNwmv8/qKUMBpuPFUZX0Zm2KVeJH7OgwRUyuR+fJpCGLZLq2iPYh+HO5yxGheHWSxlrlZP7tQtmVmeYrbzwWPCh0pHIvDT8sM2eqNRmO57URL7P3asUC4m+jQuNiGZkD6qUg56HjvMgGo7V81nZd329gRoMqCADW09mkwUGM+GBWRYHaO6IWH55OdYMX2sNTwz4ZpBu80im4eGEreOaxUrDV7N5pLEhi2f3Rm2uwSdvT/zjnENktzp8NXgl7N9J7w7/O""",
             ),
         },
     ),
@@ -1072,9 +1072,18 @@ u7HfrQhdOiKSa+ZO9AAojbURqrLDRfBJa5dXn2AAAAFQDJHfenj4EJ9WkehpdJatPBlqCW
                     1e f6 23 14 3b 2b dd cf 06 c0 71 13 cc ac 34 19
                     ad 36 8d 79 aa 25 fb 5e 4f ea fe 6b 5b fa 57 42
 """),
-                derived_passphrase=rb"""EV9NE8LuYZce9iMUOyvdzwbAcRPMrDQZrTaNeaol+15P6v5rW/pXQg==
-""",
+                derived_passphrase=rb"""EV9NE8LuYZce9iMUOyvdzwbAcRPMrDQZrTaNeaol+15P6v5rW/pXQg==""",
                 signature_class=SSHTestKeyDeterministicSignatureClass.RFC_6979,
+            ),
+            SSHTestKeyDeterministicSignatureClass.Pageant_068_080: SSHTestKeyDeterministicSignature(
+                signature=bytes.fromhex("""
+                    00 00 00 07 73 73 68 2d 64 73 73
+                    00 00 00 28 0b f7 a8 ab 89 f5 b6 c4
+                    1c 9b 78 2c 46 35 69 e2 88 b7 eb 55 37 48 7f 6d
+                    49 a1 e6 de 58 1a 04 eb e6 28 99 0e 3c fd 3b 48
+"""),
+                derived_passphrase=rb"""C/eoq4n1tsQcm3gsRjVp4oi361U3SH9tSaHm3lgaBOvmKJkOPP07SA==""",
+                signature_class=SSHTestKeyDeterministicSignatureClass.Pageant_068_080,
             ),
         },
     ),
@@ -1129,9 +1138,23 @@ dGhvdXQgcGFzc3BocmFzZQECAwQ=
                     9b 1a cb dd 45 89 f0 37 95 9c a2 d8 ac c3 f7 71
                     55 33 50 86 9e cb 3a 95 e4 68 80 1a 9d d6 d5 bc
 """),
-                derived_passphrase=rb"""AAAAICKtI4qcXcpO6nPnKXerqLIuAdjeEa7Js1fO1YSchXPrAAAAIQCbGsvdRYnwN5Wcotisw/dxVTNQhp7LOpXkaIAandbVvA==
-""",
+                derived_passphrase=rb"""AAAAICKtI4qcXcpO6nPnKXerqLIuAdjeEa7Js1fO1YSchXPrAAAAIQCbGsvdRYnwN5Wcotisw/dxVTNQhp7LOpXkaIAandbVvA==""",
                 signature_class=SSHTestKeyDeterministicSignatureClass.RFC_6979,
+            ),
+            SSHTestKeyDeterministicSignatureClass.Pageant_068_080: SSHTestKeyDeterministicSignature(
+                signature=bytes.fromhex("""
+                    00 00 00 13 65 63 64
+                    73 61 2d 73 68 61 32 2d 6e 69 73 74 70 32 35 36
+                    00 00 00 49
+                    00 00 00 21 00
+                    b7 9e 4f ec ec 9b 77 dd 12 d9 43 a2 f5 bf b5 34
+                    91 e0 89 44 e6 20 48 36 fa 75 22 77 86 38 de 21
+                    00 00 00 20
+                    3f d8 04 0f fa f5 bc d2 26 e0 4c 0c 77 5d 0e 08
+                    ec 30 04 8e 42 58 41 96 f6 7e 4f d2 14 39 f4 87
+"""),
+                derived_passphrase=rb"""AAAAIQC3nk/s7Jt33RLZQ6L1v7U0keCJROYgSDb6dSJ3hjjeIQAAACA/2AQP+vW80ibgTAx3XQ4I7DAEjkJYQZb2fk/SFDn0hw==""",
+                signature_class=SSHTestKeyDeterministicSignatureClass.Pageant_068_080,
             ),
         },
     ),
@@ -1194,9 +1217,25 @@ JAu0J3Q+cypZuKQVAAAAMQD5sTy8p+B1cn/DhOmXquui1BcxvASqzzevkBlbQoBa73y04B
                     d2 c8 8a 8f 2f 8f 33 87 9e 12 54 e4 da 02 f9 e7
                     95 f5 82 6f 82 2b 38 6d 6e 5d 17 15 ac 12 e7 62
 """),
-                derived_passphrase=rb"""AAAAMHjhqPWM0noh5aLK5tAaGfg6HDl+caDmfpODSZUFAdA+IyLNCWN/fGywl0Rtfkg5hwAAADAQ7oVRdyuRLOlCeWZZiqLA0siKjy+PM4eeElTk2gL555X1gm+CKzhtbl0XFawS52I=
-""",
+                derived_passphrase=rb"""AAAAMHjhqPWM0noh5aLK5tAaGfg6HDl+caDmfpODSZUFAdA+IyLNCWN/fGywl0Rtfkg5hwAAADAQ7oVRdyuRLOlCeWZZiqLA0siKjy+PM4eeElTk2gL555X1gm+CKzhtbl0XFawS52I=""",
                 signature_class=SSHTestKeyDeterministicSignatureClass.RFC_6979,
+            ),
+            SSHTestKeyDeterministicSignatureClass.Pageant_068_080: SSHTestKeyDeterministicSignature(
+                signature=bytes.fromhex("""
+                    00 00 00 13 65 63 64
+                    73 61 2d 73 68 61 32 2d 6e 69 73 74 70 33 38 34
+                    00 00 00 69
+                    00 00 00 30
+                    4b 3e b7 22 c2 87 77 6d e0 3e f5 05 75 36 b6 0f
+                    cd 9f a4 49 c7 48 ef 76 fd ea 4b 49 e3 b1 f2 22
+                    d5 41 22 d7 96 b2 29 70 ff bb 81 97 27 e2 35 60
+                    00 00 00 31 00
+                    c8 a4 d8 62 fe f2 a6 63 97 98 08 c7 39 24 b2 55
+                    0a b8 e7 79 ab a6 62 96 3e cc ea 73 e2 fb dc 46
+                    d6 25 b9 c8 0c e8 3e 33 91 51 78 25 a8 c5 46 85
+"""),
+                derived_passphrase=rb"""AAAAMEs+tyLCh3dt4D71BXU2tg/Nn6RJx0jvdv3qS0njsfIi1UEi15ayKXD/u4GXJ+I1YAAAADEAyKTYYv7ypmOXmAjHOSSyVQq453mrpmKWPszqc+L73EbWJbnIDOg+M5FReCWoxUaF""",
+                signature_class=SSHTestKeyDeterministicSignatureClass.Pageant_068_080,
             ),
         },
     ),
@@ -1268,9 +1307,27 @@ Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQ==
                     a7 9d 2d 56 14 0a f5 68 f5 cc 38 84 e9 b6 c6 71
                     7a 3b 87 e7 7a b1 37 e7 1d e6 80 96 d1 a6 1e bc
 """),
-                derived_passphrase=rb"""AAAAQgHY6sIeVcae3UsA7RuTGcybdCdEwMDjWz2BFQASzAeJVJfsYEKt5kDBxl/AG8MKjlhu2j+pV5AEeUYdSLsZZ+llGQAAAEF9WOAu14YuNowaRCOvGedRl7v7MpChNbuI17UiN7OZuuSnnS1WFAr1aPXMOITptsZxejuH53qxN+cd5oCW0aYevA==
-""",
+                derived_passphrase=rb"""AAAAQgHY6sIeVcae3UsA7RuTGcybdCdEwMDjWz2BFQASzAeJVJfsYEKt5kDBxl/AG8MKjlhu2j+pV5AEeUYdSLsZZ+llGQAAAEF9WOAu14YuNowaRCOvGedRl7v7MpChNbuI17UiN7OZuuSnnS1WFAr1aPXMOITptsZxejuH53qxN+cd5oCW0aYevA==""",
                 signature_class=SSHTestKeyDeterministicSignatureClass.RFC_6979,
+            ),
+            SSHTestKeyDeterministicSignatureClass.Pageant_068_080: SSHTestKeyDeterministicSignature(
+                signature=bytes.fromhex("""
+                    00 00 00 13 65 63 64
+                    73 61 2d 73 68 61 32 2d 6e 69 73 74 70 35 32 31
+                    00 00 00 8c
+                    00 00 00 42 01 ce
+                    fe 9d 66 b6 01 76 2e 86 c2 ab 68 62 73 44 05 23
+                    fd d1 79 07 fc 45 f5 c0 83 36 88 61 d4 04 79 90
+                    b0 ef 8b 3c b5 55 0e cc 26 6b a0 3e 6a 04 48 ca
+                    e4 6a a5 a0 cf 91 5f 71 6f 37 9a 0f 6b a9 fb 9b
+                    00 00 00 42 01 6d
+                    21 77 c6 13 fa ea ac de 90 19 24 5a d2 61 39 d9
+                    66 9b 86 1a 41 04 58 a2 9b b8 93 b6 6f 82 23 f2
+                    01 23 c7 ff 5a d3 86 95 0f da 28 f9 3b e3 9c 27
+                    e7 b2 d7 66 4e 5f 38 36 4c 8c be 76 4e fa 0a 2d
+"""),
+                derived_passphrase=rb"""AAAAQgHO/p1mtgF2LobCq2hic0QFI/3ReQf8RfXAgzaIYdQEeZCw74s8tVUOzCZroD5qBEjK5GqloM+RX3FvN5oPa6n7mwAAAEIBbSF3xhP66qzekBkkWtJhOdlmm4YaQQRYopu4k7ZvgiPyASPH/1rThpUP2ij5O+OcJ+ey12ZOXzg2TIy+dk76Ci0=""",
+                signature_class=SSHTestKeyDeterministicSignatureClass.Pageant_068_080,
             ),
         },
     ),
