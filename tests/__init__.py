@@ -710,7 +710,7 @@ idwcakUGCekJD/vCEml2AAAAG3Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQEC
                     0d 08 1f ec f8 73 9b 8c 5f 55 39 16 7c 53 54 2c
                     1e 52 bb 30 ed 7f 89 e2 2f 69 51 55 d8 9e a6 02
 """),
-                derived_passphrase=rb'8JgZgGwal9UmA27M42WPhmYHExkTCSEzM/nkNlMdr/0NCB/s+HObjF9VORZ8U1QsHlK7MO1/ieIvaVFV2J6mAg==',
+                derived_passphrase=rb"""8JgZgGwal9UmA27M42WPhmYHExkTCSEzM/nkNlMdr/0NCB/s+HObjF9VORZ8U1QsHlK7MO1/ieIvaVFV2J6mAg==""",
             ),
         },
     ),
@@ -767,7 +767,7 @@ dGhvdXQgcGFzc3BocmFzZQECAwQFBgcICQ==
                     db bd 77 7c 80 20 7f 3a 48 61 f6 1f ae a9 5e 53
                     7b e0 9d 93 1e ea dc eb b5 cd 56 4c ea 8f 08 00
 """),
-                derived_passphrase=rb'Bob0ZKSmutnDIsSTSZn8Ed5nlwjy2Lc8LBPnxRwekqYO2C9tgQOCAONy5DJtctJtMoQ/zKkeVywAmrOZ3kXazi7R2+WJ8zW+JFiQxsoE8NuIgNu9d3yAIH86SGH2H66pXlN74J2THurc67XNVkzqjwgA',
+                derived_passphrase=rb"""Bob0ZKSmutnDIsSTSZn8Ed5nlwjy2Lc8LBPnxRwekqYO2C9tgQOCAONy5DJtctJtMoQ/zKkeVywAmrOZ3kXazi7R2+WJ8zW+JFiQxsoE8NuIgNu9d3yAIH86SGH2H66pXlN74J2THurc67XNVkzqjwgA""",
             ),
         },
     ),
@@ -967,7 +967,7 @@ Bgp6142WnSCQAAABt0ZXN0IGtleSB3aXRob3V0IHBhc3NwaHJhc2UB
                     de 69 2c 48 62 d9 fd d1 9b 6b b0 49 db d3 ff 38
                     e7 10 d9 2d ce 9f 0d 5e 09 7b 37 d2 7b c3 bf ce
 """),
-                derived_passphrase=rb'ohB8Lva7U6h0KqEZma2Bvnmc7dadCU5uxRhIM5B3mWj3ngNazU4Y64l9haLurkqS9m/Ouf6GfyprMdpuGv6ipYi4RH+hdnOz7HW10Ka5FZdlCRN9lCHR+10PiyMEd8LDVSKxoAmK9Tgq1n8bhymgJdMlb8tkYQeY3BTFhPiSJF5QEWtJ5fDMKcspqRnYp3EfkQsFsQFLwl8ApbYhv/gsnWebRzsKSWt5Lfwd7Ayw5Sci1an408P530ho6fvvPNwmv8/qKUMBpuPFUZX0Zm2KVeJH7OgwRUyuR+fJpCGLZLq2iPYh+HO5yxGheHWSxlrlZP7tQtmVmeYrbzwWPCh0pHIvDT8sM2eqNRmO57URL7P3asUC4m+jQuNiGZkD6qUg56HjvMgGo7V81nZd329gRoMqCADW09mkwUGM+GBWRYHaO6IWH55OdYMX2sNTwz4ZpBu80im4eGEreOaxUrDV7N5pLEhi2f3Rm2uwSdvT/zjnENktzp8NXgl7N9J7w7/O',
+                derived_passphrase=rb"""ohB8Lva7U6h0KqEZma2Bvnmc7dadCU5uxRhIM5B3mWj3ngNazU4Y64l9haLurkqS9m/Ouf6GfyprMdpuGv6ipYi4RH+hdnOz7HW10Ka5FZdlCRN9lCHR+10PiyMEd8LDVSKxoAmK9Tgq1n8bhymgJdMlb8tkYQeY3BTFhPiSJF5QEWtJ5fDMKcspqRnYp3EfkQsFsQFLwl8ApbYhv/gsnWebRzsKSWt5Lfwd7Ayw5Sci1an408P530ho6fvvPNwmv8/qKUMBpuPFUZX0Zm2KVeJH7OgwRUyuR+fJpCGLZLq2iPYh+HO5yxGheHWSxlrlZP7tQtmVmeYrbzwWPCh0pHIvDT8sM2eqNRmO57URL7P3asUC4m+jQuNiGZkD6qUg56HjvMgGo7V81nZd329gRoMqCADW09mkwUGM+GBWRYHaO6IWH55OdYMX2sNTwz4ZpBu80im4eGEreOaxUrDV7N5pLEhi2f3Rm2uwSdvT/zjnENktzp8NXgl7N9J7w7/O""",
             ),
         },
     ),
@@ -1072,8 +1072,7 @@ u7HfrQhdOiKSa+ZO9AAojbURqrLDRfBJa5dXn2AAAAFQDJHfenj4EJ9WkehpdJatPBlqCW
                     1e f6 23 14 3b 2b dd cf 06 c0 71 13 cc ac 34 19
                     ad 36 8d 79 aa 25 fb 5e 4f ea fe 6b 5b fa 57 42
 """),
-                derived_passphrase=rb"""EV9NE8LuYZce9iMUOyvdzwbAcRPMrDQZrTaNeaol+15P6v5rW/pXQg==
-""",
+                derived_passphrase=rb"""EV9NE8LuYZce9iMUOyvdzwbAcRPMrDQZrTaNeaol+15P6v5rW/pXQg==""",
                 signature_class=SSHTestKeyDeterministicSignatureClass.RFC_6979,
             ),
         },
@@ -1129,8 +1128,7 @@ dGhvdXQgcGFzc3BocmFzZQECAwQ=
                     9b 1a cb dd 45 89 f0 37 95 9c a2 d8 ac c3 f7 71
                     55 33 50 86 9e cb 3a 95 e4 68 80 1a 9d d6 d5 bc
 """),
-                derived_passphrase=rb"""AAAAICKtI4qcXcpO6nPnKXerqLIuAdjeEa7Js1fO1YSchXPrAAAAIQCbGsvdRYnwN5Wcotisw/dxVTNQhp7LOpXkaIAandbVvA==
-""",
+                derived_passphrase=rb"""AAAAICKtI4qcXcpO6nPnKXerqLIuAdjeEa7Js1fO1YSchXPrAAAAIQCbGsvdRYnwN5Wcotisw/dxVTNQhp7LOpXkaIAandbVvA==""",
                 signature_class=SSHTestKeyDeterministicSignatureClass.RFC_6979,
             ),
         },
@@ -1194,8 +1192,7 @@ JAu0J3Q+cypZuKQVAAAAMQD5sTy8p+B1cn/DhOmXquui1BcxvASqzzevkBlbQoBa73y04B
                     d2 c8 8a 8f 2f 8f 33 87 9e 12 54 e4 da 02 f9 e7
                     95 f5 82 6f 82 2b 38 6d 6e 5d 17 15 ac 12 e7 62
 """),
-                derived_passphrase=rb"""AAAAMHjhqPWM0noh5aLK5tAaGfg6HDl+caDmfpODSZUFAdA+IyLNCWN/fGywl0Rtfkg5hwAAADAQ7oVRdyuRLOlCeWZZiqLA0siKjy+PM4eeElTk2gL555X1gm+CKzhtbl0XFawS52I=
-""",
+                derived_passphrase=rb"""AAAAMHjhqPWM0noh5aLK5tAaGfg6HDl+caDmfpODSZUFAdA+IyLNCWN/fGywl0Rtfkg5hwAAADAQ7oVRdyuRLOlCeWZZiqLA0siKjy+PM4eeElTk2gL555X1gm+CKzhtbl0XFawS52I=""",
                 signature_class=SSHTestKeyDeterministicSignatureClass.RFC_6979,
             ),
         },
@@ -1268,8 +1265,7 @@ Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQ==
                     a7 9d 2d 56 14 0a f5 68 f5 cc 38 84 e9 b6 c6 71
                     7a 3b 87 e7 7a b1 37 e7 1d e6 80 96 d1 a6 1e bc
 """),
-                derived_passphrase=rb"""AAAAQgHY6sIeVcae3UsA7RuTGcybdCdEwMDjWz2BFQASzAeJVJfsYEKt5kDBxl/AG8MKjlhu2j+pV5AEeUYdSLsZZ+llGQAAAEF9WOAu14YuNowaRCOvGedRl7v7MpChNbuI17UiN7OZuuSnnS1WFAr1aPXMOITptsZxejuH53qxN+cd5oCW0aYevA==
-""",
+                derived_passphrase=rb"""AAAAQgHY6sIeVcae3UsA7RuTGcybdCdEwMDjWz2BFQASzAeJVJfsYEKt5kDBxl/AG8MKjlhu2j+pV5AEeUYdSLsZZ+llGQAAAEF9WOAu14YuNowaRCOvGedRl7v7MpChNbuI17UiN7OZuuSnnS1WFAr1aPXMOITptsZxejuH53qxN+cd5oCW0aYevA==""",
                 signature_class=SSHTestKeyDeterministicSignatureClass.RFC_6979,
             ),
         },
