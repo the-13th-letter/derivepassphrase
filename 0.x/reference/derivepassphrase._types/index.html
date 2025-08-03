@@ -2851,7 +2851,7 @@
 
     <div class="doc doc-contents ">
 
-        <p>A [<code>TypeVar</code>][] for classes implementing the [<code>Buffer</code>][] interface.</p>
+        <p>A <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/typing.html#typing.TypeVar"><code>TypeVar</code></a> for classes implementing the <a class="autorefs autorefs-external" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.Buffer"><code>Buffer</code></a> interface.</p>
 
 
 <details class="warning" open>
@@ -2879,6 +2879,7 @@ removal.</p>
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="typing_extensions.TypedDict" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.TypedDict">TypedDict</a></code></p>
+
 
 
         <p>Configuration for vault: global settings.</p>
@@ -3391,6 +3392,7 @@ ASCII printable characters (except backquote).</p>
               Bases: <code><a class="autorefs autorefs-internal" title="            VaultConfigGlobalSettings (derivepassphrase._types.VaultConfigGlobalSettings)" href="#derivepassphrase._types.VaultConfigGlobalSettings">VaultConfigGlobalSettings</a></code></p>
 
 
+
         <p>Configuration for vault: services settings.</p>
 
 
@@ -3667,6 +3669,7 @@ generating the passphrase.</p>
               Bases: <code><a class="autorefs autorefs-external" title="typing_extensions.TypedDict" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.TypedDict">TypedDict</a></code>, <code><span title="derivepassphrase._types._VaultConfig">_VaultConfig</span></code></p>
 
 
+
         <p>Configuration for vault.  For typing purposes.</p>
 <p>Usually stored as JSON.</p>
 
@@ -3747,6 +3750,7 @@ generating the passphrase.</p>
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="typing_extensions.NamedTuple" href="https://typing-extensions.readthedocs.io/en/latest/index.html#typing_extensions.NamedTuple">NamedTuple</a></code></p>
+
 
 
         <p>A single executed step during vault config cleanup.</p>
@@ -3975,6 +3979,7 @@ the JSON value that was cleaned up.</p>
    (derivepassphrase._types.T_Buffer)" href="#derivepassphrase._types.T_Buffer">T_Buffer</a>]</code></p>
 
 
+
         <p>SSH key plus comment pair.  For typing purposes.</p>
 
 
@@ -4154,6 +4159,7 @@ the JSON value that was cleaned up.</p>
               Bases: <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
 
 
+
         <p>SSH agent protocol numbers: client requests.</p>
 
 
@@ -4181,7 +4187,13 @@ the JSON value that was cleaned up.</p>
             <td>
               <div class="doc-md-description">
                 <p>List identities.  Expecting
-[<code>SSH_AGENT.IDENTITIES_ANSWER</code>][].</p>
+<a class="autorefs autorefs-internal" title="            IDENTITIES_ANSWER
+
+
+  
+      class-attribute
+      instance-attribute
+  " href="#derivepassphrase._types.SSH_AGENT.IDENTITIES_ANSWER"><code>SSH_AGENT.IDENTITIES_ANSWER</code></a>.</p>
               </div>
             </td>
           </tr>
@@ -4198,7 +4210,13 @@ the JSON value that was cleaned up.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Sign data.  Expecting [<code>SSH_AGENT.SIGN_RESPONSE</code>][].</p>
+                <p>Sign data.  Expecting <a class="autorefs autorefs-internal" title="            SIGN_RESPONSE
+
+
+  
+      class-attribute
+      instance-attribute
+  " href="#derivepassphrase._types.SSH_AGENT.SIGN_RESPONSE"><code>SSH_AGENT.SIGN_RESPONSE</code></a>.</p>
               </div>
             </td>
           </tr>
@@ -4267,9 +4285,27 @@ the JSON value that was cleaned up.</p>
             <td>
               <div class="doc-md-description">
                 <p>Issue a named request that isn&rsquo;t part of the core agent
-protocol.  Expecting [<code>SSH_AGENT.EXTENSION_RESPONSE</code>][] or
-[<code>SSH_AGENT.EXTENSION_FAILURE</code>][] if the named request is
-supported, [<code>SSH_AGENT.FAILURE</code>][] otherwise.</p>
+protocol.  Expecting <a class="autorefs autorefs-internal" title="            EXTENSION_RESPONSE
+
+
+  
+      class-attribute
+      instance-attribute
+  " href="#derivepassphrase._types.SSH_AGENT.EXTENSION_RESPONSE"><code>SSH_AGENT.EXTENSION_RESPONSE</code></a> or
+<a class="autorefs autorefs-internal" title="            EXTENSION_FAILURE
+
+
+  
+      class-attribute
+      instance-attribute
+  " href="#derivepassphrase._types.SSH_AGENT.EXTENSION_FAILURE"><code>SSH_AGENT.EXTENSION_FAILURE</code></a> if the named request is
+supported, <a class="autorefs autorefs-internal" title="            FAILURE
+
+
+  
+      class-attribute
+      instance-attribute
+  " href="#derivepassphrase._types.SSH_AGENT.FAILURE"><code>SSH_AGENT.FAILURE</code></a> otherwise.</p>
               </div>
             </td>
           </tr>
@@ -4469,6 +4505,7 @@ supported, [<code>SSH_AGENT.FAILURE</code>][] otherwise.</p>
               Bases: <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
 
 
+
         <p>SSH agent protocol numbers: server replies.</p>
 
 
@@ -4529,7 +4566,13 @@ supported, [<code>SSH_AGENT.FAILURE</code>][] otherwise.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Successful answer to [<code>SSH_AGENTC.REQUEST_IDENTITIES</code>][].</p>
+                <p>Successful answer to <a class="autorefs autorefs-internal" title="            REQUEST_IDENTITIES
+
+
+  
+      class-attribute
+      instance-attribute
+  " href="#derivepassphrase._types.SSH_AGENTC.REQUEST_IDENTITIES"><code>SSH_AGENTC.REQUEST_IDENTITIES</code></a>.</p>
               </div>
             </td>
           </tr>
@@ -4546,7 +4589,13 @@ supported, [<code>SSH_AGENT.FAILURE</code>][] otherwise.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Successful answer to [<code>SSH_AGENTC.SIGN_REQUEST</code>][].</p>
+                <p>Successful answer to <a class="autorefs autorefs-internal" title="            SIGN_REQUEST
+
+
+  
+      class-attribute
+      instance-attribute
+  " href="#derivepassphrase._types.SSH_AGENTC.SIGN_REQUEST"><code>SSH_AGENTC.SIGN_REQUEST</code></a>.</p>
               </div>
             </td>
           </tr>
@@ -4563,7 +4612,13 @@ supported, [<code>SSH_AGENT.FAILURE</code>][] otherwise.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Unsuccessful answer to [<code>SSH_AGENTC.EXTENSION</code>][].</p>
+                <p>Unsuccessful answer to <a class="autorefs autorefs-internal" title="            EXTENSION
+
+
+  
+      class-attribute
+      instance-attribute
+  " href="#derivepassphrase._types.SSH_AGENTC.EXTENSION"><code>SSH_AGENTC.EXTENSION</code></a>.</p>
               </div>
             </td>
           </tr>
@@ -4580,7 +4635,13 @@ supported, [<code>SSH_AGENT.FAILURE</code>][] otherwise.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Successful answer to [<code>SSH_AGENTC.EXTENSION</code>][].</p>
+                <p>Successful answer to <a class="autorefs autorefs-internal" title="            EXTENSION
+
+
+  
+      class-attribute
+      instance-attribute
+  " href="#derivepassphrase._types.SSH_AGENTC.EXTENSION"><code>SSH_AGENTC.EXTENSION</code></a>.</p>
               </div>
             </td>
           </tr>
@@ -4785,6 +4846,7 @@ supported, [<code>SSH_AGENT.FAILURE</code>][] otherwise.</p>
    (derivepassphrase._types.T_Buffer)" href="#derivepassphrase._types.T_Buffer">T_Buffer</a>]</code></p>
 
 
+
         <p>A pair of AES256 keys, one for encryption and one for signing.</p>
 
 
@@ -4968,6 +5030,7 @@ padding).</p>
   
       module-attribute
    (derivepassphrase._types.T_Buffer)" href="#derivepassphrase._types.T_Buffer">T_Buffer</a>]</code></p>
+
 
 
         <p>A triple of AES256 keys, for encryption, signing and hashing.</p>
@@ -5201,6 +5264,7 @@ padding).</p>
               Bases: <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>, <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
 
 
+
         <p>PEP 508 extras supported by <code>derivepassphrase</code>.</p>
 
 
@@ -5300,6 +5364,7 @@ to handle as many foreign configuration formats as possible.</p>
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>, <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
+
 
 
         <p>Optional features supported by <code>derivepassphrase</code>.</p>
@@ -5406,6 +5471,7 @@ chosen communication channel technology.</p>
               Bases: <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>, <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
 
 
+
         <p>Derivation schemes provided by <code>derivepassphrase</code>.</p>
 
 
@@ -5504,6 +5570,7 @@ chosen communication channel technology.</p>
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>, <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
+
 
 
         <p>Configuration formats supported by <code>derivepassphrase export</code>.</p>
@@ -5691,6 +5758,7 @@ subcommand.</p>
               Bases: <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>, <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
 
 
+
         <p>Subcommands provided by <code>derivepassphrase export</code>.</p>
 
 
@@ -5789,6 +5857,7 @@ subcommand.</p>
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>, <code><a class="autorefs autorefs-external" title="enum.Enum" href="https://docs.python.org/3/library/enum.html#enum.Enum">Enum</a></code></p>
+
 
 
         <p>Subcommands provided by <code>derivepassphrase</code>.</p>
@@ -6319,7 +6388,7 @@ check for <a class="autorefs autorefs-external" href="https://docs.python.org/3/
 <p>Needed for compatibility with vault(1), which sometimes uses only
 truthiness checks.</p>
 <p>If vault(1) considered <code>obj</code> to be valid, then after clean up,
-<code>obj</code> will be valid as per [<code>validate_vault_config</code>][].</p>
+<code>obj</code> will be valid as per <a class="autorefs autorefs-internal" title="            validate_vault_config" href="#derivepassphrase._types.validate_vault_config"><code>validate_vault_config</code></a>.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>

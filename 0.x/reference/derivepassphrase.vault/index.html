@@ -1624,6 +1624,7 @@
     <div class="doc doc-contents ">
 
 
+
         <p>A work-alike of James Coglan&rsquo;s vault.</p>
 <p>Store settings for generating (actually: deriving) passphrases for
 named services, with various constraints, given only a master
@@ -1634,7 +1635,7 @@ kept secret.  The implementation is compatible with <a href="https://www.npmjs.c
 detail</a> in his blog post on said topic: A principally
 infinite bit stream is obtained by running a key-derivation function
 on the master passphrase and the service name, then this bit stream
-is fed into a [sequin.Sequin][] to generate random numbers in the
+is fed into a <a class="autorefs autorefs-internal" title="            Sequin" href="../derivepassphrase.sequin/#derivepassphrase.sequin.Sequin">sequin.Sequin</a> to generate random numbers in the
 correct range, and finally these random numbers select passphrase
 characters until the desired length is reached.</p>
 
@@ -2003,7 +2004,13 @@ string is used.</p>
             <td>
               <div class="doc-md-description">
                 <p>A vault service name.  Will be suffixed with the
-[<code>UUID</code>][], and then used as the salt value for
+<a class="autorefs autorefs-internal" title="            UUID
+
+
+  
+      class-attribute
+      instance-attribute
+  " href="#derivepassphrase.vault.Vault.UUID"><code>UUID</code></a>, and then used as the salt value for
 PBKDF2.  If a string, then the UTF-8 encoding of the
 string is used.</p>
               </div>
@@ -2369,7 +2376,13 @@ restricted to the indicated SSH agent).</p>
 
         <p>Obtain the master passphrase from a configured SSH key.</p>
 <p>vault allows the usage of certain SSH keys to derive a master
-passphrase, by signing the vault [<code>UUID</code>][] with the SSH key.
+passphrase, by signing the vault <a class="autorefs autorefs-internal" title="            UUID
+
+
+  
+      class-attribute
+      instance-attribute
+  " href="#derivepassphrase.vault.Vault.UUID"><code>UUID</code></a> with the SSH key.
 The key type must ensure that signatures are deterministic
 (perhaps only in conjunction with the given SSH agent).</p>
 
@@ -2411,7 +2424,12 @@ The key type must ensure that signatures are deterministic
             <td>
               <div class="doc-md-description">
                 <p>An optional connection hint to the SSH agent.  See
-[<code>ssh_agent.SSHAgentClient.ensure_agent_subcontext</code>][].</p>
+<a class="autorefs autorefs-internal" title="            ensure_agent_subcontext
+
+
+  
+      classmethod
+  " href="../derivepassphrase.ssh_agent/#derivepassphrase.ssh_agent.SSHAgentClient.ensure_agent_subcontext"><code>ssh_agent.SSHAgentClient.ensure_agent_subcontext</code></a>.</p>
               </div>
             </td>
             <td>
@@ -2437,7 +2455,13 @@ The key type must ensure that signatures are deterministic
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The signature of the vault [<code>UUID</code>][] under this key,
+                <p>The signature of the vault <a class="autorefs autorefs-internal" title="            UUID
+
+
+  
+      class-attribute
+      instance-attribute
+  " href="#derivepassphrase.vault.Vault.UUID"><code>UUID</code></a> under this key,
 unframed but encoded in base64.</p>
               </div>
             </td>

@@ -2247,6 +2247,7 @@
               Bases: <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/exceptions.html#ValueError">ValueError</a></code></p>
 
 
+
         <p>The <code>path</code> does not hold a <code>format</code>-type vault configuration.</p>
 
 
@@ -2312,6 +2313,7 @@
               Bases: <code><a class="autorefs autorefs-external" title="typing.Protocol" href="https://docs.python.org/3/library/typing.html#typing.Protocol">Protocol</a></code></p>
 
 
+
         <p>Typing protocol for vault config data export handlers.</p>
 
 
@@ -2375,7 +2377,7 @@
             <td>
               <div class="doc-md-description">
                 <p>The path to the vault configuration file or directory.
-If not given, then query [<code>get_vault_path</code>][] for the
+If not given, then query <a class="autorefs autorefs-internal" title="            get_vault_path" href="#derivepassphrase.exporter.get_vault_path"><code>get_vault_path</code></a> for the
 correct value.</p>
               </div>
             </td>
@@ -2395,7 +2397,7 @@ correct value.</p>
                 <p>Encryption key/password for the configuration file or
 directory, usually the username, or passed via the
 <code>VAULT_KEY</code> environment variable.  If not given, then
-query [<code>get_vault_key</code>][] for the value.</p>
+query <a class="autorefs autorefs-internal" title="            get_vault_key" href="#derivepassphrase.exporter.get_vault_key"><code>get_vault_key</code></a> for the value.</p>
               </div>
             </td>
             <td>
@@ -2770,7 +2772,7 @@ manually to the correct value.</p>
     <div class="doc doc-contents ">
 
         <p>Export the full vault-native configuration stored in <code>path</code>.</p>
-<p>See [<code>ExportVaultConfigDataFunction</code>][] for an explanation of the
+<p>See <a class="autorefs autorefs-internal" title="            ExportVaultConfigDataFunction" href="#derivepassphrase.exporter.ExportVaultConfigDataFunction"><code>ExportVaultConfigDataFunction</code></a> for an explanation of the
 call signature, and the exceptions to expect.</p>
 
 
@@ -2806,7 +2808,7 @@ slots) and provides an impure quasi-filesystem interface.  Each hash
 table entry is separately encrypted and authenticated.  James Coglan
 designed this format to avoid concurrent write issues when updating or
 synchronizing the vault configuration with e.g. a cloud service.</p>
-<p>The public interface is the [<code>export_storeroom_data</code>][] function.
+<p>The public interface is the <a class="autorefs autorefs-internal" title="            export_storeroom_data" href="#derivepassphrase.exporter.storeroom.export_storeroom_data"><code>export_storeroom_data</code></a> function.
 Multiple <em>non-public</em> functions are additionally documented here for
 didactical and educational reasons, but they are not part of the module
 API, are subject to change without notice (including removal), and
@@ -2849,7 +2851,7 @@ should <em>not</em> be used or relied on.</p>
     <div class="doc doc-contents ">
 
         <p>Export the full configuration stored in the storeroom.</p>
-<p>See [<code>exporter.ExportVaultConfigDataFunction</code>][] for an explanation
+<p>See <a class="autorefs autorefs-internal" title="            ExportVaultConfigDataFunction" href="#derivepassphrase.exporter.ExportVaultConfigDataFunction"><code>exporter.ExportVaultConfigDataFunction</code></a> for an explanation
 of the call signature, and the exceptions to expect.</p>
 
 
@@ -3061,7 +3063,7 @@ blocksize, in this case, the PKCS7 padding always is <code>b'\x10' * 16</code>.<
               <div class="doc-md-description">
                 <p>The encryption and signing keys for the master keys data.
 These should have previously been derived via the
-[<code>_derive_master_keys_keys</code>][] function.</p>
+<a class="autorefs autorefs-internal" title="            _derive_master_keys_keys" href="#derivepassphrase.exporter.storeroom._derive_master_keys_keys"><code>_derive_master_keys_keys</code></a> function.</p>
               </div>
             </td>
             <td>
@@ -3212,7 +3214,7 @@ blocksize, in this case, the PKCS7 padding always is <code>b'\x10' * 16</code>.<
             <td>
               <div class="doc-md-description">
                 <p>The master keys.  Presumably these have previously been
-obtained via the [<code>_decrypt_master_keys_data</code>][] function.</p>
+obtained via the <a class="autorefs autorefs-internal" title="            _decrypt_master_keys_data" href="#derivepassphrase.exporter.storeroom._decrypt_master_keys_data"><code>_decrypt_master_keys_data</code></a> function.</p>
               </div>
             </td>
             <td>
@@ -3359,7 +3361,7 @@ MAC can be verified before attempting to decrypt the payload.</p>
             <td>
               <div class="doc-md-description">
                 <p>The bucket item&rsquo;s session keys.  Presumably these have
-previously been obtained via the [<code>_decrypt_session_keys</code>][]
+previously been obtained via the <a class="autorefs autorefs-internal" title="            _decrypt_session_keys" href="#derivepassphrase.exporter.storeroom._decrypt_session_keys"><code>_decrypt_session_keys</code></a>
 function.</p>
               </div>
             </td>
@@ -3496,7 +3498,7 @@ removal.</p>
             <td>
               <div class="doc-md-description">
                 <p>The master keys.  Presumably these have previously been
-obtained via the [<code>_decrypt_master_keys_data</code>][] function.</p>
+obtained via the <a class="autorefs autorefs-internal" title="            _decrypt_master_keys_data" href="#derivepassphrase.exporter.storeroom._decrypt_master_keys_data"><code>_decrypt_master_keys_data</code></a> function.</p>
               </div>
             </td>
             <td>
@@ -3635,7 +3637,7 @@ removal.</p>
             <td>
               <div class="doc-md-description">
                 <p>The master keys.  Presumably these have previously been
-obtained via the [<code>_decrypt_master_keys_data</code>][] function.</p>
+obtained via the <a class="autorefs autorefs-internal" title="            _decrypt_master_keys_data" href="#derivepassphrase.exporter.storeroom._decrypt_master_keys_data"><code>_decrypt_master_keys_data</code></a> function.</p>
               </div>
             </td>
             <td>
@@ -3762,7 +3764,7 @@ structures, so they are <em>not</em> compatible.  v0.2 additionally contains
 cryptographic weaknesses (API misuse of a key derivation function, and
 a low-entropy method of generating initialization vectors for CBC block
 encryption mode) and should thus be avoided if possible.</p>
-<p>The public interface is the [<code>export_vault_native_data</code>][] function.
+<p>The public interface is the <a class="autorefs autorefs-internal" title="            export_vault_native_data" href="#derivepassphrase.exporter.vault_native.export_vault_native_data"><code>export_vault_native_data</code></a> function.
 Multiple <em>non-public</em> classes are additionally documented here for
 didactical and educational reasons, but they are not part of the module
 API, are subject to change without notice (including removal), and
@@ -3802,6 +3804,7 @@ should <em>not</em> be used or relied on.</p>
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-external" title="abc.ABC" href="https://docs.python.org/3/library/abc.html#abc.ABC">ABC</a></code></p>
+
 
 
         <p>A base parser for vault&rsquo;s native configuration format.</p>
@@ -3852,7 +3855,7 @@ here.</p>
               <div class="doc-md-description">
                 <p>The vault master key/master passphrase the file is
 encrypted with.  Must be non-empty.  See
-[<code>exporter.get_vault_key</code>][] for details.</p>
+<a class="autorefs autorefs-internal" title="            get_vault_key" href="#derivepassphrase.exporter.get_vault_key"><code>exporter.get_vault_key</code></a> for details.</p>
 <p>If this is a text string, then the UTF-8 encoding of the
 string is used as the binary password.</p>
               </div>
@@ -3989,7 +3992,13 @@ unexpected extra contents, or invalid padding.)</p>
     <div class="doc doc-contents ">
 
         <p>Generate a key from a password.</p>
-<p>Uses PBKDF2 with HMAC-SHA1, with [vault.Vault.UUID][] as a fixed
+<p>Uses PBKDF2 with HMAC-SHA1, with <a class="autorefs autorefs-internal" title="            UUID
+
+
+  
+      class-attribute
+      instance-attribute
+  " href="../derivepassphrase.vault/#derivepassphrase.vault.Vault.UUID">vault.Vault.UUID</a> as a fixed
 salt value.</p>
 
 
@@ -4156,7 +4165,12 @@ parser.</p>
 
         <p>Derive the signing and encryption keys.</p>
 <p>This is a bookkeeping method.  The actual work is done in
-[<code>_generate_keys</code>][].</p>
+<a class="autorefs autorefs-internal" title="            _generate_keys
+
+
+  
+      abstractmethod
+  " href="#derivepassphrase.exporter.vault_native.VaultNativeConfigParser._generate_keys"><code>_generate_keys</code></a>.</p>
 
 
     </div>
@@ -4320,8 +4334,8 @@ version-specific.  The default implementation raises an error.</p>
     <div class="doc doc-contents ">
 
         <p>Return the decrypted vault configuration.</p>
-<p>Requires [<code>_parse_contents</code>][] and [<code>_derive_keys</code>][] to have
-run, and relies on [<code>_check_signature</code>][] for tampering
+<p>Requires <a class="autorefs autorefs-internal" title="            _parse_contents" href="#derivepassphrase.exporter.vault_native.VaultNativeConfigParser._parse_contents"><code>_parse_contents</code></a> and <a class="autorefs autorefs-internal" title="            _derive_keys" href="#derivepassphrase.exporter.vault_native.VaultNativeConfigParser._derive_keys"><code>_derive_keys</code></a> to have
+run, and relies on <a class="autorefs autorefs-internal" title="            _check_signature" href="#derivepassphrase.exporter.vault_native.VaultNativeConfigParser._check_signature"><code>_check_signature</code></a> for tampering
 detection.</p>
 
 
@@ -4403,6 +4417,7 @@ version-specific.  The default implementation raises an error.</p>
               Bases: <code><a class="autorefs autorefs-internal" title="            VaultNativeConfigParser (derivepassphrase.exporter.vault_native.VaultNativeConfigParser)" href="#derivepassphrase.exporter.vault_native.VaultNativeConfigParser">VaultNativeConfigParser</a></code></p>
 
 
+
         <p>A parser for vault&rsquo;s native configuration format (v0.3).</p>
 <p>This is the modern, pre-storeroom configuration format.</p>
 
@@ -4474,14 +4489,25 @@ strength is half of this value.)</p>
 
         <p>Derive the signing and encryption keys, and set the key sizes.</p>
 <p>Version 0.3 vault configurations use a constant key size; see
-[<code>KEY_SIZE</code>][].  The encryption and signing keys differ in how
+<a class="autorefs autorefs-internal" title="            KEY_SIZE
+
+
+  
+      class-attribute
+      instance-attribute
+  " href="#derivepassphrase.exporter.vault_native.VaultNativeV03ConfigParser.KEY_SIZE"><code>KEY_SIZE</code></a>.  The encryption and signing keys differ in how
 many rounds of PBKDF2 they use (100 and 200, respectively).</p>
 
 
 <details class="danger" open>
   <summary>Insecure use of cryptography</summary>
   <p>This function makes use of the insecure function
-[<code>VaultNativeConfigParser._pbkdf2</code>][], without any attempts
+<a class="autorefs autorefs-internal" title="            _pbkdf2
+
+
+  
+      staticmethod
+  " href="#derivepassphrase.exporter.vault_native.VaultNativeConfigParser._pbkdf2"><code>VaultNativeConfigParser._pbkdf2</code></a>, without any attempts
 at mitigating its insecurity.  It further uses <code>_pbkdf2</code>
 with the low iteration count of 100 and 200 rounds, which is
 <em>drastically</em> insufficient to defend against password
@@ -4563,6 +4589,7 @@ previously derived encryption key and the IV declared in the
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
               Bases: <code><a class="autorefs autorefs-internal" title="            VaultNativeConfigParser (derivepassphrase.exporter.vault_native.VaultNativeConfigParser)" href="#derivepassphrase.exporter.vault_native.VaultNativeConfigParser">VaultNativeConfigParser</a></code></p>
+
 
 
         <p>A parser for vault&rsquo;s native configuration format (v0.2).</p>
@@ -4676,7 +4703,12 @@ iteration count.</p>
 <details class="danger" open>
   <summary>Insecure use of cryptography</summary>
   <p>This function makes use of the insecure function
-[<code>VaultNativeConfigParser._pbkdf2</code>][], without any attempts
+<a class="autorefs autorefs-internal" title="            _pbkdf2
+
+
+  
+      staticmethod
+  " href="#derivepassphrase.exporter.vault_native.VaultNativeConfigParser._pbkdf2"><code>VaultNativeConfigParser._pbkdf2</code></a>, without any attempts
 at mitigating its insecurity.  It further uses <code>_pbkdf2</code>
 with the low iteration count of 16 rounds, which is
 <em>drastically</em> insufficient to defend against password
@@ -4873,7 +4905,7 @@ determined attackers!</p>
     <div class="doc doc-contents ">
 
         <p>Export the full configuration stored in vault native format.</p>
-<p>See [<code>exporter.ExportVaultConfigDataFunction</code>][] for an explanation
+<p>See <a class="autorefs autorefs-internal" title="            ExportVaultConfigDataFunction" href="#derivepassphrase.exporter.ExportVaultConfigDataFunction"><code>exporter.ExportVaultConfigDataFunction</code></a> for an explanation
 of the call signature, and the exceptions to expect.</p>
 
 
