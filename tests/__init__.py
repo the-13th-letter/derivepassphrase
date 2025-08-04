@@ -8,6 +8,7 @@ import base64
 import contextlib
 import copy
 import enum
+import errno
 import importlib.util
 import json
 import logging
@@ -26,10 +27,11 @@ import click.testing
 import hypothesis
 import pytest
 from hypothesis import strategies
-from typing_extensions import NamedTuple, assert_never
+from typing_extensions import NamedTuple, assert_never, overload
 
 from derivepassphrase import _types, cli, ssh_agent, vault
 from derivepassphrase._internals import cli_helpers, cli_machinery
+from derivepassphrase.ssh_agent import socketprovider
 
 __all__ = ()
 
@@ -39,7 +41,7 @@ if TYPE_CHECKING:
     from contextlib import AbstractContextManager
     from typing import IO, NotRequired
 
-    from typing_extensions import Any
+    from typing_extensions import Any, Buffer, Self
 
 
 class SSHTestKeyDeterministicSignatureClass(str, enum.Enum):
@@ -607,6 +609,9 @@ class KnownSSHAgent(str, enum.Enum):
             The agent from Simon Tatham's PuTTY suite.
         OpenSSHAgent (str):
             The agent from OpenBSD's OpenSSH suite.
+        StubbedSSHAgent (str):
+            The stubbed, fake agent pseudo-socket defined in this test
+            suite.
 
     """
 
@@ -615,6 +620,8 @@ class KnownSSHAgent(str, enum.Enum):
     Pageant = 'Pageant'
     """"""
     OpenSSHAgent = 'OpenSSHAgent'
+    """"""
+    StubbedSSHAgent = 'StubbedSSHAgent'
     """"""
 
 
@@ -663,10 +670,18 @@ class RunningSSHAgentInfo(NamedTuple):
 
     """
 
-    socket: str
+    socket: str | type[_types.SSHAgentSocket]
     """"""
     agent_type: KnownSSHAgent
     """"""
+
+    def require_external_address(self) -> str:  # pragma: no cover
+        if not isinstance(self.socket, str):
+            pytest.skip(
+                reason='This test requires a real, externally resolvable '
+                'address for the SSH agent socket.'
+            )
+        return self.socket
 
 
 ALL_KEYS: Mapping[str, SSHTestKey] = {
@@ -1908,6 +1923,361 @@ def xfail_on_the_annoying_os(
     return mark if f is None else mark(f)
 
 
+@socketprovider.SocketProvider.register('stub_agent')
+class StubbedSSHAgentSocket:
+    """A stubbed SSH agent presenting an [`_types.SSHAgentSocket`][]."""
+
+    _SOCKET_IS_CLOSED = 'Socket is closed.'
+    _NO_FLAG_SUPPORT = 'This stubbed SSH agent socket does not support flags.'
+    _PROTOCOL_VIOLATION = 'SSH agent protocol violation.'
+    _INVALID_REQUEST = 'Invalid request.'
+    _UNSUPPORTED_REQUEST = 'Unsupported request.'
+
+    HEADER_SIZE = 4
+    CODE_SIZE = 1
+
+    KNOWN_EXTENSIONS = frozenset({
+        'query',
+        'list-extended@putty.projects.tartarus.org',
+    })
+    """Known and implemented protocol extensions."""
+
+    def __init__(self, *extensions: str) -> None:
+        """Initialize the agent."""
+        self.send_to_client = bytearray()
+        """
+        The buffered response to the client, read piecemeal by [`recv`][].
+        """
+        self.receive_from_client = bytearray()
+        """The last request issued by the client."""
+        self.closed = False
+        """True if the connection is closed, false otherwise."""
+        self.enabled_extensions = frozenset(extensions) & self.KNOWN_EXTENSIONS
+        """
+        Extensions actually enabled in this particular stubbed SSH agent.
+        """
+        self.try_rfc6979 = False
+        """
+        Attempt to issue DSA and ECDSA signatures according to RFC 6979?
+        """
+        self.try_pageant_068_080 = False
+        """
+        Attempt to issue DSA and ECDSA signatures as per Pageant 0.68–0.80?
+        """  # noqa: RUF001
+
+    def __enter__(self) -> Self:
+        """Return self."""
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        """Mark the agent's socket as closed."""
+        self.closed = True
+
+    def sendall(self, data: Buffer, flags: int = 0, /) -> None:
+        """Send data to the SSH agent.
+
+        The signature, and behavior, is identical to
+        [`socket.socket.sendall`][].  Upon successful sending, this
+        agent will parse the request, call the appropriate handler, and
+        buffer the result such that it can be read via [`recv`][], in
+        accordance with the SSH agent protocol.
+
+        Args:
+            data: Binary data to send to the agent.
+            flags: Reserved.  Must be 0.
+
+        Returns:
+            Nothing.  The result should be requested via [`recv`][], and
+            interpreted in accordance with the SSH agent protocol.
+
+        Raises:
+            AssertionError:
+                The flags argument, if specified, must be 0.
+            ValueError:
+                The agent's socket is already closed.  No further
+                requests can be sent.
+
+        """
+        assert not flags, self._NO_FLAG_SUPPORT
+        if self.closed:
+            raise ValueError(self._SOCKET_IS_CLOSED)
+        self.receive_from_client.extend(memoryview(data))
+        try:
+            self.parse_client_request_and_dispatch()
+        except ValueError:
+            payload = int.to_bytes(_types.SSH_AGENT.FAILURE.value, 1, 'big')
+            self.send_to_client.extend(int.to_bytes(len(payload), 4, 'big'))
+            self.send_to_client.extend(payload)
+        finally:
+            self.receive_from_client.clear()
+
+    def recv(self, count: int, flags: int = 0, /) -> bytes:
+        """Read data from the SSH agent.
+
+        As per the SSH agent protocol, data is only available to be read
+        immediately after a request via [`sendall`][].  Calls to
+        [`recv`][] at other points in time that attempt to read data
+        violate the protocol, and will fail.  Notwithstanding the last
+        sentence, at any point in time, though pointless, it is
+        additionally permissible to read 0 bytes from the agent, or any
+        number of bytes from a closed socket.
+
+        Args:
+            count:
+                Number of bytes to read from the agent.
+            flags:
+                Reserved.  Must be 0.
+
+        Returns:
+            (A chunk of) the SSH agent's response to the most recent
+            request.  If reading 0 bytes, or if reading from a closed
+            socket, the returned chunk is always an empty byte string.
+
+        Raises:
+            AssertionError:
+                The flags argument, if specified, must be 0.
+
+                Alternatively, `recv` was called when there was no
+                response to be obtained, in violation of the SSH agent
+                protocol.
+
+        """
+        assert not flags, self._NO_FLAG_SUPPORT
+        assert not count or self.closed or self.send_to_client, (
+            self._PROTOCOL_VIOLATION
+        )
+        ret = bytes(self.send_to_client[:count])
+        del self.send_to_client[:count]
+        return ret
+
+    def parse_client_request_and_dispatch(self) -> None:
+        """Parse the client request and call the matching handler.
+
+        This agent supports the
+        [`SSH_AGENTC_REQUEST_IDENTITIES`][_types.SSH_AGENTC.REQUEST_IDENTITIES],
+        [`SSH_AGENTC_SIGN_REQUEST`][_types.SSH_AGENTC.SIGN_REQUEST] and
+        the [`SSH_AGENTC_EXTENSION`][_types.SSH_AGENTC.EXTENSION]
+        request types.
+
+        """
+
+        if len(self.receive_from_client) < self.HEADER_SIZE + self.CODE_SIZE:
+            raise ValueError(self._INVALID_REQUEST)
+        target_header = ssh_agent.SSHAgentClient.uint32(
+            len(self.receive_from_client) - self.HEADER_SIZE
+        )
+        if target_header != self.receive_from_client[: self.HEADER_SIZE]:
+            raise ValueError(self._INVALID_REQUEST)
+        code = _types.SSH_AGENTC(
+            int.from_bytes(
+                self.receive_from_client[
+                    self.HEADER_SIZE : self.HEADER_SIZE + self.CODE_SIZE
+                ],
+                'big',
+            )
+        )
+
+        def is_enabled_extension(extension: str) -> bool:
+            if (
+                extension not in self.enabled_extensions
+                or code != _types.SSH_AGENTC.EXTENSION
+            ):
+                return False
+            string = ssh_agent.SSHAgentClient.string
+            extension_marker = b'\x1b' + string(extension.encode('ascii'))
+            return self.receive_from_client.startswith(extension_marker, 4)
+
+        result: Buffer | Iterator[int]
+        if code == _types.SSH_AGENTC.REQUEST_IDENTITIES:
+            result = self.request_identities(list_extended=False)
+        elif code == _types.SSH_AGENTC.SIGN_REQUEST:
+            result = self.sign()
+        elif is_enabled_extension('query'):
+            result = self.query_extensions()
+        elif is_enabled_extension('list-extended@putty.projects.tartarus.org'):
+            result = self.request_identities(list_extended=True)
+        else:
+            raise ValueError(self._UNSUPPORTED_REQUEST)
+        self.send_to_client.extend(
+            ssh_agent.SSHAgentClient.string(bytes(result))
+        )
+
+    def query_extensions(self) -> Iterator[int]:
+        """Answer an `SSH_AGENTC_EXTENSION` request.
+
+        Yields:
+            The bytes payload of the response, without the protocol
+            framing.  The payload is yielded byte by byte, as an
+            iterable of 8-bit integers.
+
+        """
+        yield _types.SSH_AGENT.EXTENSION_RESPONSE.value
+        yield from ssh_agent.SSHAgentClient.string(b'query')
+        extension_answers = [
+            b'query',
+            b'list-extended@putty.projects.tartarus.org',
+        ]
+        for a in extension_answers:
+            yield from ssh_agent.SSHAgentClient.string(a)
+
+    def request_identities(
+        self, *, list_extended: bool = False
+    ) -> Iterator[int]:
+        """Answer an `SSH_AGENTC_REQUEST_IDENTITIES` request.
+
+        Args:
+            list_extended:
+                If true, answer an `SSH_AGENTC_EXTENSION` request for
+                the `list-extended@putty.projects.tartarus.org`
+                extension. Otherwise, answer an
+                `SSH_AGENTC_REQUEST_IDENTITIES` request.
+
+        Yields:
+            The bytes payload of the response, without the protocol
+            framing.  The payload is yielded byte by byte, as an
+            iterable of 8-bit integers.
+
+        """
+        if list_extended:
+            yield _types.SSH_AGENT.SUCCESS.value
+        else:
+            yield _types.SSH_AGENT.IDENTITIES_ANSWER.value
+        signature_classes = [
+            SSHTestKeyDeterministicSignatureClass.SPEC,
+        ]
+        if (
+            'list-extended@putty.projects.tartarus.org'
+            in self.enabled_extensions
+        ):
+            signature_classes.append(
+                SSHTestKeyDeterministicSignatureClass.RFC_6979
+            )
+        keys = [
+            v
+            for v in ALL_KEYS.values()
+            if any(cls in v.expected_signatures for cls in signature_classes)
+        ]
+        yield from ssh_agent.SSHAgentClient.uint32(len(keys))
+        for key in keys:
+            yield from ssh_agent.SSHAgentClient.string(key.public_key_data)
+            yield from ssh_agent.SSHAgentClient.string(
+                b'test key without passphrase'
+            )
+            if list_extended:
+                yield from ssh_agent.SSHAgentClient.string(
+                    ssh_agent.SSHAgentClient.uint32(0)
+                )
+
+    def sign(self) -> bytes:
+        """Answer an `SSH_AGENTC_SIGN_REQUEST` request.
+
+        Returns:
+            The bytes payload of the response, without the protocol
+            framing.
+
+        """
+        try_rfc6979 = (
+            'list-extended@putty.projects.tartarus.org'
+            in self.enabled_extensions
+        )
+        spec = SSHTestKeyDeterministicSignatureClass.SPEC
+        rfc6979 = SSHTestKeyDeterministicSignatureClass.RFC_6979
+        key_blob, rest = ssh_agent.SSHAgentClient.unstring_prefix(
+            self.receive_from_client[self.HEADER_SIZE + self.CODE_SIZE :]
+        )
+        sign_data, rest = ssh_agent.SSHAgentClient.unstring_prefix(rest)
+        if len(rest) != 4:
+            raise ValueError(self._INVALID_REQUEST)
+        flags = int.from_bytes(rest, 'big')
+        if flags:
+            raise ValueError(self._UNSUPPORTED_REQUEST)
+        if sign_data != vault.Vault.UUID:
+            raise ValueError(self._UNSUPPORTED_REQUEST)
+        for key in ALL_KEYS.values():
+            if key.public_key_data == key_blob:
+                if spec in key.expected_signatures:
+                    return int.to_bytes(
+                        _types.SSH_AGENT.SIGN_RESPONSE.value, 1, 'big'
+                    ) + ssh_agent.SSHAgentClient.string(
+                        key.expected_signatures[spec].signature
+                    )
+                if try_rfc6979 and rfc6979 in key.expected_signatures:
+                    return int.to_bytes(
+                        _types.SSH_AGENT.SIGN_RESPONSE.value, 1, 'big'
+                    ) + ssh_agent.SSHAgentClient.string(
+                        key.expected_signatures[rfc6979].signature
+                    )
+                raise ValueError(self._UNSUPPORTED_REQUEST)
+        raise ValueError(self._UNSUPPORTED_REQUEST)
+
+
+@socketprovider.SocketProvider.register('stub_with_address')
+class StubbedSSHAgentSocketWithAddress(StubbedSSHAgentSocket):
+    """A [`StubbedSSHAgentSocket`][] requiring a specific address."""
+
+    ADDRESS = 'stub-ssh-agent:'
+    """The correct address for connecting to this stubbed agent."""
+
+    def __init__(self, *extensions: str) -> None:
+        """Initialize the agent, based on `SSH_AUTH_SOCK`.
+
+        Socket addresses of the form `stub-ssh-agent:<errno_value>` will
+        raise an [`OSError`][] (or the respective subclass) with the
+        specified [`errno`][] value.  For example,
+        `stub-ssh-agent:EPERM` will raise a [`PermissionError`][].
+
+        Raises:
+            KeyError:
+                The `SSH_AUTH_SOCK` environment variable is not set.
+            OSError:
+                The address in `SSH_AUTH_SOCK` is unsuited.
+
+        """
+        super().__init__(*extensions)
+        try:
+            orig_address = os.environ['SSH_AUTH_SOCK']
+        except KeyError as exc:
+            msg = 'SSH_AUTH_SOCK environment variable'
+            raise KeyError(msg) from exc
+        address = orig_address
+        if not address.startswith(self.ADDRESS):
+            address = self.ADDRESS + 'ENOENT'
+        errcode = address.removeprefix(self.ADDRESS)
+        if errcode and not (
+            errcode.startswith('E') and hasattr(errno, errcode)
+        ):
+            errcode = 'EINVAL'
+        if errcode:
+            errno_val = getattr(errno, errcode)
+            raise OSError(errno_val, os.strerror(errno_val), orig_address)
+
+
+@socketprovider.SocketProvider.register(
+    'stub_with_address_and_deterministic_dsa'
+)
+class StubbedSSHAgentSocketWithAddressAndDeterministicDSA(
+    StubbedSSHAgentSocketWithAddress
+):
+    """A [`StubbedSSHAgentSocketWithAddress`][] supporting deterministic DSA."""
+
+    def __init__(self) -> None:
+        """Initialize the agent.
+
+        Set the supported extensions, and try issuing RFC 6979 and
+        Pageant 0.68–0.80 DSA/ECDSA signatures, if possible.  See the
+        [superclass constructor][StubbedSSHAgentSocketWithAddress] for
+        other details.
+
+        Raises:
+            KeyError: See superclass.
+            OSError: See superclass.
+
+        """  # noqa: RUF002
+        super().__init__('query', 'list-extended@putty.projects.tartarus.org')
+        self.try_rfc6979 = True
+        self.try_pageant_068_080 = True
+
+
 def list_keys(self: Any = None) -> list[_types.SSHKeyCommentPair]:
     """Return a list of all SSH test keys, as key/comment pairs.
 
@@ -1999,6 +2369,214 @@ def phrase_from_key(
     if key == DUMMY_KEY1:  # pragma: no branch
         return DUMMY_PHRASE_FROM_KEY1
     raise KeyError(key)  # pragma: no cover
+
+
+def provider_entry_provider() -> _types.SSHAgentSocket:  # pragma: no cover
+    """A pseudo provider for a [`_types.SSHAgentSocketProviderEntry`][]."""
+    msg = 'We are not supposed to be called!'
+    raise AssertionError(msg)
+
+
+provider_entry1 = _types.SSHAgentSocketProviderEntry(
+    provider_entry_provider, 'entry1', ('entry1a', 'entry1b', 'entry1c')
+)
+"""A sample [`_types.SSHAgentSocketProviderEntry`][]."""
+
+provider_entry2 = _types.SSHAgentSocketProviderEntry(
+    provider_entry_provider, 'entry2', ('entry2d', 'entry2e')
+)
+"""A sample [`_types.SSHAgentSocketProviderEntry`][]."""
+
+posix_entry = _types.SSHAgentSocketProviderEntry(
+    socketprovider.SocketProvider.resolve('posix'), 'posix', ()
+)
+"""
+The standard [`_types.SSHAgentSocketProviderEntry`][] for the UNIX
+domain socket handler on POSIX systems.
+"""
+
+the_annoying_os_entry = _types.SSHAgentSocketProviderEntry(
+    socketprovider.SocketProvider.resolve('the_annoying_os'),
+    'the_annoying_os',
+    (),
+)
+"""
+The standard [`_types.SSHAgentSocketProviderEntry`][] for the named pipe
+handler on The Annoying Operating System.
+"""
+
+faulty_entry_callable = _types.SSHAgentSocketProviderEntry(
+    (),  # type: ignore[arg-type]
+    'tuple',
+    (),
+)
+"""
+A faulty [`_types.SSHAgentSocketProviderEntry`][]: the indicated handler
+is not a callable.
+"""
+
+faulty_entry_name_exists = _types.SSHAgentSocketProviderEntry(
+    socketprovider.SocketProvider.resolve('the_annoying_os'), 'posix', ()
+)
+"""
+A faulty [`_types.SSHAgentSocketProviderEntry`][]: the indicated handler
+is already registered with a different callable.
+"""
+
+faulty_entry_alias_exists = _types.SSHAgentSocketProviderEntry(
+    socketprovider.SocketProvider.resolve('posix'),
+    'posix',
+    ('unix_domain', 'the_annoying_os'),
+)
+"""
+A faulty [`_types.SSHAgentSocketProviderEntry`][]: the alias is already
+registered with a different callable.
+"""
+
+
+@contextlib.contextmanager
+def faked_entry_point_list(  # noqa: C901
+    additional_entry_points: Sequence[importlib.metadata.EntryPoint],
+    remove_conflicting_entries: bool = False,
+) -> Iterator[Sequence[str]]:
+    """Yield a context where additional entry points are visible.
+
+    Args:
+        additional_entry_points:
+            A sequence of entry point objects that should additionally
+            be visible.
+        remove_conflicting_entries:
+            If true, remove all names provided by the additional entry
+            points, otherwise leave them untouched.
+
+    Yields:
+        A sequence of registry names that are newly available within the
+        context.
+
+    """
+    true_entry_points = importlib.metadata.entry_points()
+    additional_entry_points = list(additional_entry_points)
+
+    if sys.version_info >= (3, 12):
+        new_entry_points = importlib.metadata.EntryPoints(
+            list(true_entry_points) + additional_entry_points
+        )
+
+        @overload
+        def mangled_entry_points(
+            *, group: None = None
+        ) -> importlib.metadata.EntryPoints: ...
+
+        @overload
+        def mangled_entry_points(
+            *, group: str
+        ) -> importlib.metadata.EntryPoints: ...
+
+        def mangled_entry_points(
+            **params: Any,
+        ) -> importlib.metadata.EntryPoints:
+            return new_entry_points.select(**params)
+
+    elif sys.version_info >= (3, 10):
+        # Compatibility concerns within importlib.metadata: depending on
+        # whether the .select() API is used, the result is either the dict
+        # of groups of points (as in < 3.10), or the EntryPoints iterable
+        # (as in >= 3.12).  So our wrapper needs to duplicate that
+        # interface.  FUN.
+        new_entry_points_dict = {
+            k: list(v) for k, v in true_entry_points.items()
+        }
+        for ep in additional_entry_points:
+            new_entry_points_dict.setdefault(ep.group, []).append(ep)
+        new_entry_points = importlib.metadata.EntryPoints([
+            ep for group in new_entry_points_dict.values() for ep in group
+        ])
+
+        @overload
+        def mangled_entry_points(
+            *, group: None = None
+        ) -> dict[
+            str,
+            list[importlib.metadata.EntryPoint]
+            | tuple[importlib.metadata.EntryPoint, ...],
+        ]: ...
+
+        @overload
+        def mangled_entry_points(
+            *, group: str
+        ) -> importlib.metadata.EntryPoints: ...
+
+        def mangled_entry_points(
+            **params: Any,
+        ) -> (
+            importlib.metadata.EntryPoints
+            | dict[
+                str,
+                list[importlib.metadata.EntryPoint]
+                | tuple[importlib.metadata.EntryPoint, ...],
+            ]
+        ):
+            return (
+                new_entry_points.select(**params)
+                if params
+                else new_entry_points_dict
+            )
+
+    else:
+        new_entry_points: dict[
+            str,
+            list[importlib.metadata.EntryPoint]
+            | tuple[importlib.metadata.EntryPoint, ...],
+        ] = {
+            group_name: list(group)
+            for group_name, group in true_entry_points.items()
+        }
+        for ep in additional_entry_points:
+            new_entry_points.setdefault(ep.group, [])
+            new_entry_points[ep.group].append(ep)
+        new_entry_points = {
+            group_name: tuple(group)
+            for group_name, group in new_entry_points.items()
+        }
+
+        @overload
+        def mangled_entry_points(
+            *, group: None = None
+        ) -> dict[str, tuple[importlib.metadata.EntryPoint, ...]]: ...
+
+        @overload
+        def mangled_entry_points(
+            *, group: str
+        ) -> tuple[importlib.metadata.EntryPoint, ...]: ...
+
+        def mangled_entry_points(
+            *, group: str | None = None
+        ) -> (
+            dict[str, tuple[importlib.metadata.EntryPoint, ...]]
+            | tuple[importlib.metadata.EntryPoint, ...]
+        ):
+            return (
+                new_entry_points.get(group, ())
+                if group is not None
+                else new_entry_points
+            )
+
+    registry = socketprovider.SocketProvider.registry
+    new_registry = registry.copy()
+    keys = [ep.load().key for ep in additional_entry_points]
+    aliases = [a for ep in additional_entry_points for a in ep.load().aliases]
+    if remove_conflicting_entries:  # pragma: no cover [unused]
+        for name in [*keys, *aliases]:
+            new_registry.pop(name, None)
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            socketprovider.SocketProvider, 'registry', new_registry
+        )
+        monkeypatch.setattr(
+            importlib.metadata, 'entry_points', mangled_entry_points
+        )
+        yield (*keys, *aliases)
 
 
 @contextlib.contextmanager
@@ -2220,10 +2798,11 @@ def make_file_readonly(
     group and other, and ensuring the read permission bit for user is
     set.
 
-    Unfortunately, Windows has its own rules: Set exactly(?) the read
-    permission bit for user to make the file read-only, and set
-    exactly(?) the write permission bit for user to make the file
-    read/write; all other permission bit settings are ignored.
+    Unfortunately, The Annoying OS (a.k.a. Microsoft Windows) has its
+    own rules: Set exactly(?) the read permission bit for user to make
+    the file read-only, and set exactly(?) the write permission bit for
+    user to make the file read/write; all other permission bit settings
+    are ignored.
 
     The cross-platform procedure therefore is:
 

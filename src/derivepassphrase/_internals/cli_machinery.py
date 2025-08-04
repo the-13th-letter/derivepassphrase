@@ -18,7 +18,6 @@ import collections
 import importlib.metadata
 import inspect
 import logging
-import socket
 import warnings
 from typing import TYPE_CHECKING, Callable, Literal, TextIO, TypeVar
 
@@ -1055,17 +1054,19 @@ def derivepassphrase_version_option_callback(
 ) -> None:
     if value and not ctx.resilient_parsing:
         common_version_output(ctx, param, value)
-        derivation_schemes = dict.fromkeys(_types.DerivationScheme, True)
+        derivation_schemes = set(_types.DerivationScheme)
         supported_subcommands = set(_types.Subcommand)
         click.echo()
         version_info_types: dict[_msg.Label, list[str]] = {
             _msg.Label.SUPPORTED_DERIVATION_SCHEMES: [
-                k for k, v in derivation_schemes.items() if v
+                k for k in derivation_schemes if k.test()
             ],
             _msg.Label.UNAVAILABLE_DERIVATION_SCHEMES: [
-                k for k, v in derivation_schemes.items() if not v
+                k for k in derivation_schemes if not k.test()
             ],
-            _msg.Label.SUPPORTED_SUBCOMMANDS: sorted(supported_subcommands),
+            _msg.Label.SUPPORTED_SUBCOMMANDS: [
+                k for k in supported_subcommands if k.test()
+            ],
         }
         print_version_info_types(version_info_types, ctx=ctx)
         ctx.exit()
@@ -1079,17 +1080,22 @@ def export_version_option_callback(
     if value and not ctx.resilient_parsing:
         common_version_output(ctx, param, value)
         supported_subcommands = set(_types.ExportSubcommand)
-        foreign_configuration_formats = {
-            _types.ForeignConfigurationFormat.VAULT_STOREROOM: False,
-            _types.ForeignConfigurationFormat.VAULT_V02: False,
-            _types.ForeignConfigurationFormat.VAULT_V03: False,
-        }
+        foreign_configuration_formats = [
+            _types.ForeignConfigurationFormat.VAULT_STOREROOM,
+            _types.ForeignConfigurationFormat.VAULT_V02,
+            _types.ForeignConfigurationFormat.VAULT_V03,
+        ]
         click.echo()
         version_info_types: dict[_msg.Label, list[str]] = {
+            # Marked as known-but-unavailable, because they are used by
+            # subcommands of `derivepassphrase export`, not by the
+            # command itself.
             _msg.Label.UNAVAILABLE_FOREIGN_CONFIGURATION_FORMATS: [
-                k for k, v in foreign_configuration_formats.items() if not v
+                k for k in foreign_configuration_formats
             ],
-            _msg.Label.SUPPORTED_SUBCOMMANDS: sorted(supported_subcommands),
+            _msg.Label.SUPPORTED_SUBCOMMANDS: [
+                k for k in supported_subcommands if k.test()
+            ],
         }
         print_version_info_types(version_info_types, ctx=ctx)
         ctx.exit()
@@ -1102,38 +1108,24 @@ def export_vault_version_option_callback(
 ) -> None:
     if value and not ctx.resilient_parsing:
         common_version_output(ctx, param, value)
-        foreign_configuration_formats = {
-            _types.ForeignConfigurationFormat.VAULT_STOREROOM: False,
-            _types.ForeignConfigurationFormat.VAULT_V02: False,
-            _types.ForeignConfigurationFormat.VAULT_V03: False,
-        }
-        known_extras = {
-            _types.PEP508Extra.EXPORT: False,
-        }
-        from derivepassphrase.exporter import storeroom, vault_native  # noqa: I001,PLC0415
-
-        foreign_configuration_formats[
-            _types.ForeignConfigurationFormat.VAULT_STOREROOM
-        ] = not storeroom.STUBBED
-        foreign_configuration_formats[
-            _types.ForeignConfigurationFormat.VAULT_V02
-        ] = not vault_native.STUBBED
-        foreign_configuration_formats[
-            _types.ForeignConfigurationFormat.VAULT_V03
-        ] = not vault_native.STUBBED
-        known_extras[_types.PEP508Extra.EXPORT] = (
-            not storeroom.STUBBED and not vault_native.STUBBED
-        )
+        foreign_configuration_formats = [
+            _types.ForeignConfigurationFormat.VAULT_STOREROOM,
+            _types.ForeignConfigurationFormat.VAULT_V02,
+            _types.ForeignConfigurationFormat.VAULT_V03,
+        ]
+        known_extras = [
+            _types.PEP508Extra.EXPORT,
+        ]
         click.echo()
         version_info_types: dict[_msg.Label, list[str]] = {
             _msg.Label.SUPPORTED_FOREIGN_CONFIGURATION_FORMATS: [
-                k for k, v in foreign_configuration_formats.items() if v
+                k for k in foreign_configuration_formats if k.test()
             ],
             _msg.Label.UNAVAILABLE_FOREIGN_CONFIGURATION_FORMATS: [
-                k for k, v in foreign_configuration_formats.items() if not v
+                k for k in foreign_configuration_formats if not k.test()
             ],
             _msg.Label.ENABLED_PEP508_EXTRAS: [
-                k for k, v in known_extras.items() if v
+                k for k in known_extras if k.test()
             ],
         }
         print_version_info_types(version_info_types, ctx=ctx)
@@ -1147,16 +1139,14 @@ def vault_version_option_callback(
 ) -> None:
     if value and not ctx.resilient_parsing:
         common_version_output(ctx, param, value)
-        features = {
-            _types.Feature.SSH_KEY: hasattr(socket, 'AF_UNIX'),
-        }
+        features = [
+            _types.Feature.SSH_KEY,
+        ]
         click.echo()
         version_info_types: dict[_msg.Label, list[str]] = {
-            _msg.Label.SUPPORTED_FEATURES: [
-                k for k, v in features.items() if v
-            ],
+            _msg.Label.SUPPORTED_FEATURES: [k for k in features if k.test()],
             _msg.Label.UNAVAILABLE_FEATURES: [
-                k for k, v in features.items() if not v
+                k for k in features if not k.test()
             ],
         }
         print_version_info_types(version_info_types, ctx=ctx)

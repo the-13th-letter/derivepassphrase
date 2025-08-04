@@ -1953,6 +1953,22 @@ class WarnMsgTemplate(enum.Enum):
         'aborting mid-edit, and because the notes were actually changed.',
         flags='python-brace-format',
     )
+    NO_AF_UNIX = commented(
+        '',
+    )(
+        'Warning message',
+        'Cannot connect to an SSH agent via UNIX domain sockets '
+        'because this Python version does not support them.',
+    )
+    """"""
+    NO_ANNOYING_OS_NAMED_PIPES = commented(
+        '',
+    )(
+        'Warning message',
+        'Cannot connect to an SSH agent via Windows named pipes '
+        'because this Python version does not support them.',
+    )
+    """"""
     PASSPHRASE_NOT_NORMALIZED = commented(
         'The key is a (vault) configuration key, in JSONPath syntax, '
         'typically "$.global" for the global passphrase or '
@@ -2203,12 +2219,12 @@ class ErrMsgTemplate(enum.Enum):
         flags='python-brace-format',
     )
     """"""
-    NO_AF_UNIX = commented(
+    NO_AGENT_SUPPORT = commented(
         '',
     )(
         'Error message',
         'Cannot connect to an SSH agent because this Python version '
-        'does not support UNIX domain sockets.',
+        'does not support communicating with it.',
     )
     """"""
     NO_KEY_OR_PHRASE = commented(

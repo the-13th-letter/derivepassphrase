@@ -38,7 +38,11 @@ dependencies = [
     "typing_extensions",
     # We read configuration files in JSON and TOML format.  The latter
     # is unavailable in the Python standard library until Python 3.11.
-    'tomli; python_version < "3.11"'
+    'tomli; python_version < "3.11"',
+    # We use PEP 654 Exception Groups.  Because of compatibility with
+    # Python < 3.11, we cannot use the except* syntax, but rather use
+    # a compatibility library.
+    "exceptiongroup",
 ]
 
 [project.optional-dependencies]

@@ -30,18 +30,20 @@ from typing import TYPE_CHECKING, cast
 
 import click
 import click.shell_completion
+import exceptiongroup
 from typing_extensions import Any
 
 from derivepassphrase import _types, ssh_agent, vault
 from derivepassphrase._internals import cli_messages as _msg
+from derivepassphrase.ssh_agent import socketprovider
 
 if sys.version_info >= (3, 11):
     import tomllib
 else:
     import tomli as tomllib
+    from exceptiongroup import BaseExceptionGroup
 
 if TYPE_CHECKING:
-    import socket
     import types
     from collections.abc import (
         Iterator,
@@ -557,7 +559,11 @@ def load_user_config() -> dict[str, Any]:
 
 
 def get_suitable_ssh_keys(
-    conn: ssh_agent.SSHAgentClient | socket.socket | None = None, /
+    conn: ssh_agent.SSHAgentClient
+    | _types.SSHAgentSocket
+    | Sequence[str]
+    | None = None,
+    /,
 ) -> Iterator[_types.SSHKeyCommentPair]:
     """Yield all SSH keys suitable for passphrase derivation.
 
@@ -574,16 +580,26 @@ def get_suitable_ssh_keys(
         derivation.
 
     Raises:
+        derivepassphrase.ssh_agent.socketprovider.NoSuchProviderError:
+            As per
+            [`ssh_agent.SSHAgentClient.__init__`][ssh_agent.SSHAgentClient].
+            Only applicable if agent auto-discovery is used.
         KeyError:
-            `conn` was `None`, and the `SSH_AUTH_SOCK` environment
-            variable was not found.
+            As per
+            [`ssh_agent.SSHAgentClient.__init__`][ssh_agent.SSHAgentClient].
+            Only applicable if agent auto-discovery is used.
         NotImplementedError:
-            `conn` was `None`, and this Python does not support
-            [`socket.AF_UNIX`][], so the SSH agent client cannot be
-            automatically set up.
+            As per
+            [`ssh_agent.SSHAgentClient.__init__`][ssh_agent.SSHAgentClient],
+            including the mulitple raise as an exception group.  Only
+            applicable if agent auto-discovery is used.
         OSError:
-            `conn` was a socket or `None`, and there was an error
-            setting up a socket connection to the agent.
+            If the connection hint was a socket, then there was an error
+            setting up the socket connection to the agent.
+
+            Otherwise, as per
+            [`ssh_agent.SSHAgentClient.__init__`][ssh_agent.SSHAgentClient].
+            Only applicable if agent auto-discovery is used.
         LookupError:
             No keys usable for passphrase derivation are loaded into the
             SSH agent.
@@ -695,17 +711,132 @@ def prompt_for_selection(
     return 0
 
 
+def handle_keyerror(
+    error_callback: Callable[..., NoReturn],
+    warning_callback: Callable[..., None],
+) -> Callable[[BaseExceptionGroup], NoReturn]:
+    """Generate a handler for KeyError in try-except*.
+
+    Returns a function emitting a standard user-facing message.
+
+    """  # noqa: DOC201
+    del warning_callback
+
+    def handle_keyerror(_excgroup: BaseExceptionGroup) -> NoReturn:
+        error_callback(
+            _msg.TranslatedString(_msg.ErrMsgTemplate.NO_SSH_AGENT_FOUND)
+        )
+
+    return handle_keyerror
+
+
+def handle_notimplementederror(
+    error_callback: Callable[..., NoReturn],
+    warning_callback: Callable[..., None],
+) -> Callable[[BaseExceptionGroup], NoReturn]:
+    """Generate a handler for NotImplementedError in try-except*.
+
+    Returns a function emitting a standard user-facing message.
+
+    """  # noqa: DOC201
+
+    def handle_notimplementederror(excgroup: BaseExceptionGroup) -> NoReturn:
+        if excgroup.subgroup(socketprovider.AfUnixNotAvailableError):
+            warning_callback(
+                _msg.TranslatedString(_msg.WarnMsgTemplate.NO_AF_UNIX)
+            )
+        if excgroup.subgroup(
+            socketprovider.TheAnnoyingOsNamedPipesNotAvailableError
+        ):
+            warning_callback(
+                _msg.TranslatedString(
+                    _msg.WarnMsgTemplate.NO_ANNOYING_OS_NAMED_PIPES
+                )
+            )
+        error_callback(
+            _msg.TranslatedString(_msg.ErrMsgTemplate.NO_AGENT_SUPPORT)
+        )
+
+    return handle_notimplementederror
+
+
+def handle_oserror(
+    error_callback: Callable[..., NoReturn],
+    warning_callback: Callable[..., None],
+) -> Callable[[BaseExceptionGroup], NoReturn]:
+    """Generate a handler for OSError in try-except*.
+
+    Returns a function emitting a standard user-facing message.
+
+    """  # noqa: DOC201
+    del warning_callback
+
+    def handle_oserror(excgroup: BaseExceptionGroup) -> NoReturn:
+        for exc in excgroup.exceptions:
+            assert isinstance(exc, OSError)
+            error_callback(
+                _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.CANNOT_CONNECT_TO_AGENT,
+                    error=exc.strerror,
+                    filename=exc.filename,
+                ).maybe_without_filename()
+            )
+        raise AssertionError()
+
+    return handle_oserror
+
+
+def handle_runtimeerror(
+    error_callback: Callable[..., NoReturn],
+    warning_callback: Callable[..., None],
+) -> Callable[[BaseExceptionGroup], NoReturn]:
+    """Generate a handler for RuntimeError in try-except*.
+
+    Returns a function emitting a standard user-facing message.
+
+    """  # noqa: DOC201
+    del warning_callback
+
+    def handle_runtimeerror(excgroup: BaseExceptionGroup) -> NoReturn:
+        for exc in excgroup.exceptions:
+            error_callback(
+                _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.CANNOT_UNDERSTAND_AGENT
+                ),
+                exc_info=exc,
+            )
+        raise AssertionError()
+
+    return handle_runtimeerror
+
+
+def default_error_callback(
+    message: Any,  # noqa: ANN401
+    /,
+    *_args: Any,  # noqa: ANN401
+    **_kwargs: Any,  # noqa: ANN401
+) -> NoReturn:  # pragma: no cover [failsafe]
+    """Calls [`sys.exit`][] on its first argument, ignoring the rest."""
+    sys.exit(message)
+
+
 def select_ssh_key(
-    conn: ssh_agent.SSHAgentClient | socket.socket | None = None,
+    conn: ssh_agent.SSHAgentClient
+    | _types.SSHAgentSocket
+    | Sequence[str]
+    | None = None,
     /,
     *,
     ctx: click.Context | None = None,
+    error_callback: Callable[..., NoReturn] = default_error_callback,
+    warning_callback: Callable[..., None] = lambda *_args: None,
 ) -> bytes | bytearray:
     """Interactively select an SSH key for passphrase derivation.
 
     Suitable SSH keys are queried from the running SSH agent (see
     [`ssh_agent.SSHAgentClient.list_keys`][]), then the user is prompted
-    interactively (see [`click.prompt`][]) for a selection.
+    interactively (see [`click.prompt`][]) for a selection.  If any
+    error occurs, the user receives an appropriate error message.
 
     Args:
         conn:
@@ -714,33 +845,53 @@ def select_ssh_key(
         ctx:
             An `click` context, queried for output device properties and
             color preferences when issuing the prompt.
+        error_callback:
+            A callback function for an error message, if any.  The
+            callback function is responsible for aborting this function
+            call after acknowledging, formatting and/or forwarding the
+            error message; it would typically call [`sys.exit`][] or
+            raise an exception of its own, based on the provided error
+            message.
+        warning_callback:
+            A callback function for a warning message, if any.  The
+            callback function is responsible for formatting the warning
+            message and dispatching it into the warning system, if so
+            desired.
 
     Returns:
         The selected SSH key.
 
-    Raises:
-        KeyError:
-            `conn` was `None`, and the `SSH_AUTH_SOCK` environment
-            variable was not found.
-        NotImplementedError:
-            `conn` was `None`, and this Python does not support
-            [`socket.AF_UNIX`][], so the SSH agent client cannot be
-            automatically set up.
-        OSError:
-            `conn` was a socket or `None`, and there was an error
-            setting up a socket connection to the agent.
-        IndexError:
-            The user made an invalid or empty selection, or requested an
-            abort.
-        LookupError:
-            No keys usable for passphrase derivation are loaded into the
-            SSH agent.
-        RuntimeError:
-            There was an error communicating with the SSH agent.
-        SSHAgentFailedError:
-            The agent failed to supply a list of loaded keys.
     """
-    suitable_keys = list(get_suitable_ssh_keys(conn))
+
+    def handle_lookuperror(_excgroup: BaseExceptionGroup) -> NoReturn:
+        error_callback(
+            _msg.TranslatedString(
+                _msg.ErrMsgTemplate.NO_SUITABLE_SSH_KEYS,
+                PROG_NAME=PROG_NAME,
+            )
+        )
+
+    def handle_sshagentfailederror(excgroup: BaseExceptionGroup) -> NoReturn:
+        for exc in excgroup.exceptions:
+            error_callback(
+                _msg.TranslatedString(
+                    _msg.ErrMsgTemplate.AGENT_REFUSED_LIST_KEYS
+                ),
+                exc_info=exc,
+            )
+        raise AssertionError()
+
+    with exceptiongroup.catch({
+        KeyError: handle_keyerror(error_callback, warning_callback),
+        LookupError: handle_lookuperror,
+        NotImplementedError: handle_notimplementederror(
+            error_callback, warning_callback
+        ),
+        OSError: handle_oserror(error_callback, warning_callback),
+        ssh_agent.SSHAgentFailedError: handle_sshagentfailederror,
+        RuntimeError: handle_runtimeerror(error_callback, warning_callback),
+    }):
+        suitable_keys = list(get_suitable_ssh_keys(conn))
     key_listing: list[str] = []
     unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
     for key, comment in suitable_keys:
@@ -754,12 +905,19 @@ def select_ssh_key(
         )
         comment_str = comment.decode('UTF-8', errors='replace')
         key_listing.append(f'{keytype} {key_extract}  {comment_str}')
-    choice = prompt_for_selection(
-        key_listing,
-        heading='Suitable SSH keys:',
-        single_choice_prompt='Use this key?',
-        ctx=ctx,
-    )
+    try:
+        choice = prompt_for_selection(
+            key_listing,
+            heading='Suitable SSH keys:',
+            single_choice_prompt='Use this key?',
+            ctx=ctx,
+        )
+    except IndexError:
+        error_callback(
+            _msg.TranslatedString(
+                _msg.ErrMsgTemplate.USER_ABORTED_SSH_KEY_SELECTION
+            )
+        )
     return suitable_keys[choice].key
 
 
@@ -906,21 +1064,16 @@ def check_for_misleading_passphrase(
             )
 
 
-def default_error_callback(
-    message: Any,  # noqa: ANN401
-    /,
-    *_args: Any,  # noqa: ANN401
-    **_kwargs: Any,  # noqa: ANN401
-) -> NoReturn:  # pragma: no cover
-    """Calls [`sys.exit`][] on its first argument, ignoring the rest."""
-    sys.exit(message)
-
-
 def key_to_phrase(
     key: str | Buffer,
     /,
     *,
     error_callback: Callable[..., NoReturn] = default_error_callback,
+    warning_callback: Callable[..., None] = lambda *_args: None,
+    conn: ssh_agent.SSHAgentClient
+    | _types.SSHAgentSocket
+    | Sequence[str]
+    | None = None,
 ) -> bytes:
     """Return the equivalent master passphrase, or abort.
 
@@ -931,8 +1084,15 @@ def key_to_phrase(
 
     """
     key = base64.standard_b64decode(key)
-    try:
-        with ssh_agent.SSHAgentClient.ensure_agent_subcontext() as client:
+    with exceptiongroup.catch({  # noqa: SIM117
+        KeyError: handle_keyerror(error_callback, warning_callback),
+        NotImplementedError: handle_notimplementederror(
+            error_callback, warning_callback
+        ),
+        OSError: handle_oserror(error_callback, warning_callback),
+        RuntimeError: handle_runtimeerror(error_callback, warning_callback),
+    }):
+        with ssh_agent.SSHAgentClient.ensure_agent_subcontext(conn) as client:
             try:
                 return vault.Vault.phrase_from_key(key, conn=client)
             except ssh_agent.SSHAgentFailedError as exc:
@@ -957,25 +1117,6 @@ def key_to_phrase(
                     ),
                     exc_info=exc,
                 )
-    except KeyError:
-        error_callback(
-            _msg.TranslatedString(_msg.ErrMsgTemplate.NO_SSH_AGENT_FOUND)
-        )
-    except NotImplementedError:
-        error_callback(_msg.TranslatedString(_msg.ErrMsgTemplate.NO_AF_UNIX))
-    except OSError as exc:
-        error_callback(
-            _msg.TranslatedString(
-                _msg.ErrMsgTemplate.CANNOT_CONNECT_TO_AGENT,
-                error=exc.strerror,
-                filename=exc.filename,
-            ).maybe_without_filename()
-        )
-    except RuntimeError as exc:
-        error_callback(
-            _msg.TranslatedString(_msg.ErrMsgTemplate.CANNOT_UNDERSTAND_AGENT),
-            exc_info=exc,
-        )
 
 
 def print_config_as_sh_script(

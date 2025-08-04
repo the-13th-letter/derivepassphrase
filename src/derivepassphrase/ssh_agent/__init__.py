@@ -8,16 +8,19 @@ from __future__ import annotations
 
 import collections
 import contextlib
-import os
-import socket
-from typing import TYPE_CHECKING, overload
+import sys
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, ClassVar, overload
 
 from typing_extensions import Never, Self, assert_type
 
 from derivepassphrase import _types
 
+if sys.version_info < (3, 11):
+    from exceptiongroup import ExceptionGroup
+
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, Sequence
+    from collections.abc import Iterable, Iterator
     from collections.abc import Set as AbstractSet
     from types import TracebackType
 
@@ -28,8 +31,6 @@ __all__ = ('SSHAgentClient',)
 # In SSH bytestrings, the "length" of the byte string is stored as
 # a 4-byte/32-bit unsigned integer at the beginning.
 HEAD_LEN = 4
-
-_socket = socket
 
 
 class TrailingDataError(RuntimeError):
@@ -78,60 +79,95 @@ class SSHAgentClient:
 
     """
 
-    _connection: socket.socket
+    _connection: _types.SSHAgentSocket
+    SOCKET_PROVIDERS: ClassVar = ('native',)
+    """
+    The default list of SSH agent socket providers.
+    """
 
-    def __init__(
-        self, /, *, socket: socket.socket | None = None, timeout: int = 125
+    def __init__(  # noqa: C901, PLR0912
+        self,
+        /,
+        *,
+        socket: _types.SSHAgentSocket | Sequence[str] | None = None,
     ) -> None:
         """Initialize the client.
 
         Args:
             socket:
-                An optional socket, already connected to the SSH agent.
-                If not given, we query the `SSH_AUTH_SOCK` environment
-                variable to auto-discover the correct socket address.
-
-                [We currently only support connecting via UNIX domain
-                sockets][issue13], and only on platforms with support
-                for [`socket.AF_UNIX`][AF_UNIX].
-
-                [issue13]: https://github.com/the-13th-letter/derivepassphrase/issues/13
-                [AF_UNIX]: https://docs.python.org/3/library/socket.html#socket.AF_UNIX
-            timeout:
-                A connection timeout for the SSH agent.  Only used if
-                the socket is not yet connected.  The default value
-                gives ample time for agent connections forwarded via
-                SSH on high-latency networks (e.g. Tor).
+                An optional socket-like object, already connected to the
+                SSH agent, or a list of names of socket providers to try.
+                If not given, we query platform-specific default
+                addresses, if possible.
 
         Raises:
+            derivepassphrase.ssh_agent.socketprovider.NoSuchProviderError:
+                The list of socket provider names contained an invalid
+                entry.
             KeyError:
-                The `SSH_AUTH_SOCK` environment variable was not found.
+                An expected configuration entry or an expected environment
+                variable is missing.
             NotImplementedError:
-                This Python version does not support UNIX domain
-                sockets, necessary to automatically connect to a running
-                SSH agent via the `SSH_AUTH_SOCK` environment variable.
+                The named socket provider is not functional or not
+                applicable to this `derivepassphrase` installation, e.g.
+                because it is generally not implemented yet, or it requires
+                a specific operating system, or specific system
+                functionality that is not provided by all Python versions,
+                or external packages that are unavailable on this
+                installation.
+
+                This error may be raised multiple times, as an exception
+                group.
             OSError:
                 There was an error setting up a socket connection to the
                 agent.
 
-        """
-        if socket is not None:
+        """  # noqa: DOC501
+        import socket as _socket  # noqa: PLC0415
+
+        from derivepassphrase.ssh_agent import socketprovider  # noqa: PLC0415
+
+        if isinstance(socket, _socket.socket):
             self._connection = socket
             # Test whether the socket is connected.
             self._connection.getpeername()
-        else:
-            if not hasattr(_socket, 'AF_UNIX'):
-                msg = (
-                    'This Python version does not support UNIX domain sockets'
+        elif isinstance(socket, str):
+            self._connection = socketprovider.SocketProvider.resolve(socket)()
+        elif socket is None or isinstance(socket, Sequence):
+            if not socket:
+                socket = self.SOCKET_PROVIDERS
+            assert isinstance(socket, Sequence)  # for the type checker
+            excs: list[NotImplementedError] = []
+            providers: list[_types.SSHAgentSocketProvider] = []
+            for candidate in socket:
+                try:
+                    provider = socketprovider.SocketProvider.resolve(candidate)
+                except NotImplementedError as exc:
+                    excs.append(exc)
+                    continue
+                else:
+                    providers.append(provider)
+            for provider in providers:
+                try:
+                    self._connection = provider()
+                except NotImplementedError as exc:
+                    excs.append(exc)
+                    continue
+                else:
+                    break
+            else:
+                msg = 'No supported SSH agent socket provider found.'
+                raise (
+                    ExceptionGroup(msg, excs)
+                    if excs
+                    else NotImplementedError(msg)
                 )
-                raise NotImplementedError(msg)
-            self._connection = _socket.socket(family=_socket.AF_UNIX)
-            if 'SSH_AUTH_SOCK' not in os.environ:
-                msg = 'SSH_AUTH_SOCK environment variable'
-                raise KeyError(msg)
-            ssh_auth_sock = os.environ['SSH_AUTH_SOCK']
-            self._connection.settimeout(timeout)
-            self._connection.connect(ssh_auth_sock)
+        elif isinstance(socket, _types.SSHAgentSocket):
+            self._connection = socket
+        else:  # pragma: no cover [failsafe]
+            assert_type(socket, Never)
+            msg = f'invalid socket object: {socket!r}'
+            raise TypeError(msg)
 
     def __enter__(self) -> Self:
         """Close socket connection upon context manager completion.
@@ -289,7 +325,10 @@ class SSHAgentClient:
     @contextlib.contextmanager
     def ensure_agent_subcontext(
         cls,
-        conn: SSHAgentClient | socket.socket | None = None,
+        conn: SSHAgentClient
+        | _types.SSHAgentSocket
+        | Sequence[str]
+        | None = None,
     ) -> Iterator[SSHAgentClient]:
         """Return an SSH agent client subcontext.
 
@@ -307,8 +346,9 @@ class SSHAgentClient:
                 exiting the context, the client is destroyed and the
                 socket is closed.
 
-                If `None`, construct a client using agent
-                auto-discovery, then enter a context within this
+                If `None`, or a list of names of socket providers, then
+                construct a client according to those connection hints
+                ("auto-discovery"), and enter a context within this
                 client's scope.  After exiting the context, both the
                 client and its socket are destroyed.
 
@@ -316,16 +356,15 @@ class SSHAgentClient:
             When entering this context, return the SSH agent client.
 
         Raises:
+            derivepassphrase.ssh_agent.socketprovider.NoSuchProviderError:
+                As per [`__init__`][SSHAgentClient].
             KeyError:
-                `conn` was `None`, and the `SSH_AUTH_SOCK` environment
-                variable was not found.
+                As per [`__init__`][SSHAgentClient], including the
+                multiple raise as an exception group.
             NotImplementedError:
-                `conn` was `None`, and this Python does not support
-                [`socket.AF_UNIX`][], so the SSH agent client cannot be
-                automatically set up.
+                As per [`__init__`][SSHAgentClient].
             OSError:
-                `conn` was a socket or `None`, and there was an error
-                setting up a socket connection to the agent.
+                As per [`__init__`][SSHAgentClient].
 
         """  # noqa: DOC501
         # TODO(the-13th-letter): Rewrite using structural pattern matching.
@@ -333,7 +372,10 @@ class SSHAgentClient:
         if isinstance(conn, SSHAgentClient):
             with contextlib.nullcontext():
                 yield conn
-        elif isinstance(conn, socket.socket) or conn is None:
+        elif (
+            isinstance(conn, (_types.SSHAgentSocket, str, Sequence))
+            or conn is None
+        ):
             with SSHAgentClient(socket=conn) as client:
                 yield client
         else:  # pragma: no cover [failsafe]

@@ -11,20 +11,22 @@ import json
 import math
 import string
 import warnings
-from typing import TYPE_CHECKING, Generic, TypeVar, cast
+from typing import TYPE_CHECKING, Generic, Protocol, TypeVar, cast
 
 from typing_extensions import (
     Buffer,
     NamedTuple,
     NotRequired,
+    TypeAlias,
     TypedDict,
     deprecated,
     get_overloads,
     overload,
+    runtime_checkable,
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
+    from collections.abc import Callable, Iterator, Sequence
     from typing import Literal
 
     from typing_extensions import (
@@ -763,6 +765,36 @@ class StoreroomMasterKeys(NamedTuple, Generic[T_Buffer]):
         )
 
 
+class FeatureTestEnum(Protocol):
+    """An [`enum.Enum`][] subclass supporting feature tests.
+
+    Each value of the enum supports the `test` method, which tests
+    whether the feature is enabled or not.  (The specific test function
+    may in general require arguments to actually execute the test,
+    though no function currently does.)
+
+    """
+
+    def test(self, *args: Any, **kwargs: Any) -> bool: ...  # noqa: ANN401
+
+
+def _feature_test_function(f: Callable[..., bool]) -> Callable[..., bool]:
+    """Mark a function as a feature test function.
+
+    This decorator exists purely to hold some shared commentary.
+
+    Test functions may accept arbitrary arguments, dependent on which
+    feature they test for.  They should make sure to raise no
+    exceptions.  They may use delayed imports to avoid the import cost
+    until it is actually warranted.
+
+    Returns:
+        The callable.
+
+    """
+    return f
+
+
 class PEP508Extra(str, enum.Enum):
     """PEP 508 extras supported by `derivepassphrase`.
 
@@ -775,6 +807,20 @@ class PEP508Extra(str, enum.Enum):
 
     EXPORT = 'export'
     """"""
+
+    @_feature_test_function
+    @staticmethod
+    def _test_export() -> bool:
+        """Return true if [`PEP508Extra.EXPORT`][] is currently supported."""
+        import importlib.util  # noqa: PLC0415
+
+        return importlib.util.find_spec('cryptography') is not None
+
+    def test(self, *_args: Any, **_kwargs: Any) -> bool:  # noqa: ANN401
+        """Return true if this extra is enabled."""
+        if self == PEP508Extra.EXPORT:
+            return self._test_export()
+        return False  # pragma: no cover [unused]
 
     __str__ = str.__str__
     __format__ = str.__format__  # type: ignore[assignment]
@@ -797,6 +843,46 @@ class Feature(str, enum.Enum):
     SSH_KEY = 'master SSH key'
     """"""
 
+    @_feature_test_function
+    @staticmethod
+    def _test_ssh_key() -> bool:
+        """Return true if [`_types.Feature.SSH_KEY`][] is currently supported.
+
+        We test this by attempting to construct an SSH agent client,
+        reporting whether this can principally work, or not.
+
+        """
+        import sys  # noqa: PLC0415
+
+        import exceptiongroup  # noqa: PLC0415
+
+        from derivepassphrase import ssh_agent  # noqa: PLC0415
+
+        if sys.version_info < (3, 11):
+            from exceptiongroup import BaseExceptionGroup  # noqa: PLC0415
+
+        ret = True
+
+        def handle_notimplementederror(
+            _exc: BaseExceptionGroup,
+        ) -> None:  # pragma: no cover [unused]
+            nonlocal ret
+            ret = False
+
+        with exceptiongroup.catch({  # noqa: SIM117
+            NotImplementedError: handle_notimplementederror,
+            Exception: lambda _exc: None,
+        }):
+            with ssh_agent.SSHAgentClient.ensure_agent_subcontext():
+                pass
+        return ret
+
+    def test(self, *_args: Any, **_kwargs: Any) -> bool:  # noqa: ANN401
+        """Return true if this feature is enabled."""
+        if self == Feature.SSH_KEY:
+            return self._test_ssh_key()
+        return False  # pragma: no cover [unused]
+
     __str__ = str.__str__
     __format__ = str.__format__  # type: ignore[assignment]
 
@@ -812,6 +898,10 @@ class DerivationScheme(str, enum.Enum):
 
     VAULT = 'vault'
     """"""
+
+    def test(self, *_args: Any, **_kwargs: Any) -> bool:  # noqa: ANN401
+        """Return true if this derivation scheme is enabled."""
+        return self == DerivationScheme.VAULT
 
     __str__ = str.__str__
     __format__ = str.__format__  # type: ignore[assignment]
@@ -835,10 +925,38 @@ class ForeignConfigurationFormat(str, enum.Enum):
 
     VAULT_STOREROOM = 'vault storeroom'
     """"""
+
+    @_feature_test_function
+    @staticmethod
+    def _test_vault_storeroom() -> bool:
+        """Return true if [`ForeignConfigurationFormat.VAULT_STOREROOM`][] is currently supported."""  # noqa: E501
+        from derivepassphrase.exporter import storeroom  # noqa: PLC0415
+
+        return not storeroom.STUBBED
+
     VAULT_V02 = 'vault v0.2'
     """"""
     VAULT_V03 = 'vault v0.3'
     """"""
+
+    @_feature_test_function
+    @staticmethod
+    def _test_vault_v02_v03() -> bool:
+        """Return true if [`ForeignConfigurationFormat.VAULT_V02`][] and [`ForeignConfigurationFormat.VAULT_V03`][] is currently supported."""  # noqa: E501
+        from derivepassphrase.exporter import vault_native  # noqa: PLC0415
+
+        return not vault_native.STUBBED
+
+    def test(self, *_args: Any, **_kwargs: Any) -> bool:  # noqa: ANN401
+        """Return true if this foreign configuration format is enabled."""
+        if self == ForeignConfigurationFormat.VAULT_STOREROOM:
+            return self._test_vault_storeroom()
+        if self in {
+            ForeignConfigurationFormat.VAULT_V02,
+            ForeignConfigurationFormat.VAULT_V03,
+        }:
+            return self._test_vault_v02_v03()
+        return False  # pragma: no cover [unused]
 
     __str__ = str.__str__
     __format__ = str.__format__  # type: ignore[assignment]
@@ -855,6 +973,10 @@ class ExportSubcommand(str, enum.Enum):
 
     VAULT = 'vault'
     """"""
+
+    def test(self, *_args: Any, **_kwargs: Any) -> bool:  # noqa: ANN401
+        """Return true if this `export` subcommand is enabled."""
+        return self == ExportSubcommand.VAULT
 
     __str__ = str.__str__
     __format__ = str.__format__  # type: ignore[assignment]
@@ -876,5 +998,69 @@ class Subcommand(str, enum.Enum):
     VAULT = 'vault'
     """"""
 
+    def test(self, *_args: Any, **_kwargs: Any) -> bool:  # noqa: ANN401
+        """Return true if this subcommand is enabled."""
+        return self in {Subcommand.VAULT, Subcommand.EXPORT}
+
     __str__ = str.__str__
     __format__ = str.__format__  # type: ignore[assignment]
+
+
+@runtime_checkable
+class SSHAgentSocket(Protocol):
+    """An abstract networking socket connected to an SSH agent.
+
+    The abstract socket supports the [`sendall`][socket.socket.sendall]
+    and a [`recv`][socket.socket.recv] operation, with the same
+    signatures and semantics as for "real" sockets.  The abstract socket
+    also supports use as a context manager, for automatically closing
+    the socket upon exiting the context.
+
+    """
+
+    def __enter__(self) -> Any: ...  # noqa: ANN401
+
+    # mypy/typeshed has a *very* lax annotation of
+    # socket.socket.__exit__, which we need to be compatible with.
+    # *sigh*
+    def __exit__(
+        self,
+        *args: object,
+    ) -> bool | None: ...
+
+    def sendall(self, data: Buffer, flags: int = 0, /) -> None: ...
+
+    def recv(self, data: int, flags: int = 0, /) -> bytes: ...
+
+
+SSHAgentSocketProvider: TypeAlias = 'Callable[[], SSHAgentSocket]'
+"""A callable that provides an SSH agent socket."""
+
+
+class SSHAgentSocketProviderEntry(NamedTuple):
+    """Registry information for the table of SSH agent socket providers.
+
+    Third-party developers can register new socket providers for
+    auto-discovery by setting up an entry point named
+    [`derivepassphrase.ssh_agent_socket_providers`][derivepassphrase.ssh_agent.socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME],
+    referencing an instance of this class.  Upon startup of the `vault`
+    subsystem, `derivepassphrase` will then add appropriate entries to
+    the registry.
+
+    Attributes:
+        provider: The callable that provides the socket.
+        key: The table key which this entry is registered as.
+        aliases: Other keys that shall point to this entry's key.
+
+    Note:
+        The socket provider registry table uses the key as the key, and
+        the provider as the value. It does not store this info object
+        directly.
+
+    """
+
+    provider: SSHAgentSocketProvider
+    """"""
+    key: str
+    """"""
+    aliases: tuple[str, ...]
