@@ -105,7 +105,7 @@ def try_key(
 def format_key(key: tests.SSHTestKey) -> str:
     """Return a formatted SSH test key."""
     ascii_printables = range(32, 127)
-    ascii_whitespace = {ord(' '), ord('\n'), ord('\t'), ord('\r'), ord('\f')}
+    ascii_whitespace = {ord(" "), ord("\n"), ord("\t"), ord("\r"), ord("\f")}
 
     def as_raw_string_or_hex(bytestring: bytes) -> str:
         if bytestring.find(b'"""') < 0 and all(
@@ -113,8 +113,8 @@ def format_key(key: tests.SSHTestKey) -> str:
             for byte in bytestring
         ):
             return f'rb"""{bytestring.decode("ascii")}"""'
-        hexstring = bytestring.hex(' ', 1)
-        wrapped_hexstring = '\n'.join(
+        hexstring = bytestring.hex(" ", 1)
+        wrapped_hexstring = "\n".join(
             textwrap.TextWrapper(width=48).wrap(hexstring)
         )
         return f'''bytes.fromhex("""
@@ -124,40 +124,40 @@ def format_key(key: tests.SSHTestKey) -> str:
     f = as_raw_string_or_hex
 
     lines = [
-        'SSHTestKey(\n',
-        '    public_key=' + f(key.public_key) + ',\n',
-        '    public_key_data=' + f(key.public_key_data) + ',\n',
-        '    private_key=' + f(key.private_key) + ',\n',
-        '    private_key_blob=' + f(key.private_key_blob) + ',\n',
+        "SSHTestKey(\n",
+        "    public_key=" + f(key.public_key) + ",\n",
+        "    public_key_data=" + f(key.public_key_data) + ",\n",
+        "    private_key=" + f(key.private_key) + ",\n",
+        "    private_key_blob=" + f(key.private_key_blob) + ",\n",
     ]
     if key.expected_signatures:
         expected_signature_lines = [
-            'expected_signatures={\n',
+            "expected_signatures={\n",
         ]
         for sig in key.expected_signatures.values():
             expected_signature_lines.extend([
-                f'    {sig.signature_class!s}: '
-                'SSHTestKeyDeterministicSignature(\n',
-                '        signature=' + f(sig.signature) + ',\n',
-                '        derived_passphrase='
+                f"    {sig.signature_class!s}: "
+                "SSHTestKeyDeterministicSignature(\n",
+                "        signature=" + f(sig.signature) + ",\n",
+                "        derived_passphrase="
                 + f(sig.derived_passphrase)
-                + ',\n',
+                + ",\n",
             ])
             if (
                 sig.signature_class
                 != tests.SSHTestKeyDeterministicSignatureClass.SPEC
             ):
                 expected_signature_lines.append(
-                    f'        signature_class={sig.signature_class!s},\n'
+                    f"        signature_class={sig.signature_class!s},\n"
                 )
-            expected_signature_lines.append('    ),\n')
-        expected_signature_lines.append('},\n')
-        lines.extend('    ' + x for x in expected_signature_lines)
+            expected_signature_lines.append("    ),\n")
+        expected_signature_lines.append("},\n")
+        lines.extend("    " + x for x in expected_signature_lines)
     else:
-        lines.append('    expected_signatures={},\n')
-    lines.append(')')
+        lines.append("    expected_signatures={},\n")
+    lines.append(")")
 
-    return ''.join(lines)
+    return "".join(lines)
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -165,27 +165,27 @@ def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser()
     group = ap.add_mutually_exclusive_group()
     group.add_argument(
-        '--rfc-6979',
-        action='store_const',
-        dest='deterministic_signature_class',
+        "--rfc-6979",
+        action="store_const",
+        dest="deterministic_signature_class",
         const=tests.SSHTestKeyDeterministicSignatureClass.RFC_6979,
         default=tests.SSHTestKeyDeterministicSignatureClass.RFC_6979,
-        help='assume RFC 6979 signatures for deterministic DSA',
+        help="assume RFC 6979 signatures for deterministic DSA",
     )
     group.add_argument(
-        '--pageant-068-080',
-        action='store_const',
-        dest='deterministic_signature_class',
+        "--pageant-068-080",
+        action="store_const",
+        dest="deterministic_signature_class",
         const=tests.SSHTestKeyDeterministicSignatureClass.Pageant_068_080,
         default=tests.SSHTestKeyDeterministicSignatureClass.RFC_6979,
-        help='assume Pageant 0.68-0.80 signatures for deterministic DSA',
+        help="assume Pageant 0.68-0.80 signatures for deterministic DSA",
     )
     ap.add_argument(
-        'keynames',
-        nargs='*',
-        metavar='KEYNAME',
-        help='query the named test key in the agent '
-        '(multiple use possible; default: all keys)',
+        "keynames",
+        nargs="*",
+        metavar="KEYNAME",
+        help="query the named test key in the agent "
+        "(multiple use possible; default: all keys)",
     )
     args = ap.parse_args(args=argv)
     if not args.keynames:
@@ -198,8 +198,8 @@ def main(argv: list[str] | None = None) -> None:
                 deterministic_signature_class=args.deterministic_signature_class,
             )
             if key is not None:
-                print(f'keys[{keyname!r}] =', format_key(key))
+                print(f"keys[{keyname!r}] =", format_key(key))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

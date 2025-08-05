@@ -69,7 +69,7 @@ def js_nested_strategy(draw: strategies.DrawFn) -> Any:
 
 class Parametrize(types.SimpleNamespace):
     VALID_VAULT_TEST_CONFIGS = pytest.mark.parametrize(
-        'test_config',
+        "test_config",
         [
             conf
             for conf in tests.TEST_CONFIGS
@@ -78,12 +78,12 @@ class Parametrize(types.SimpleNamespace):
         ids=tests._test_config_ids,
     )
     VAULT_TEST_CONFIGS = pytest.mark.parametrize(
-        'test_config', tests.TEST_CONFIGS, ids=tests._test_config_ids
+        "test_config", tests.TEST_CONFIGS, ids=tests._test_config_ids
     )
 
 
 @hypothesis.given(value=js_nested_strategy())
-@hypothesis.example(float('nan'))
+@hypothesis.example(float("nan"))
 def test_100_js_truthiness(value: Any) -> None:
     """Determine the truthiness of a value according to JavaScript.
 
@@ -95,7 +95,7 @@ def test_100_js_truthiness(value: Any) -> None:
         and value != False  # noqa: E712
         and value != 0
         and value != 0.0
-        and value != ''
+        and value != ""
         and not (isinstance(value, float) and math.isnan(value))
     )
     assert _types.js_truthiness(value) == expected
@@ -116,9 +116,9 @@ def test_200_is_vault_config(test_config: tests.VaultTestConfig) -> None:
     obj = copy.deepcopy(obj)
     _types.clean_up_falsy_vault_config_values(obj)
     assert _types.is_vault_config(obj) == (not comment), (
-        'failed to complain about: ' + comment
+        "failed to complain about: " + comment
         if comment
-        else 'failed on valid example'
+        else "failed on valid example"
     )
 
 
@@ -147,12 +147,12 @@ def test_200a_is_vault_config_smudged(
     obj = copy.deepcopy(obj_)
     did_cleanup = _types.clean_up_falsy_vault_config_values(obj)
     assert _types.is_vault_config(obj) == (not comment), (
-        'failed to complain about: ' + comment
+        "failed to complain about: " + comment
         if comment
-        else 'failed on valid example'
+        else "failed on valid example"
     )
     assert did_cleanup is None or bool(did_cleanup) == (obj != obj_), (
-        'mismatched report on cleanup work'
+        "mismatched report on cleanup work"
     )
 
 
@@ -184,7 +184,7 @@ def test_400_validate_vault_config(test_config: tests.VaultTestConfig) -> None:
                 allow_unknown_settings=allow_unknown_settings,
             )
         except (TypeError, ValueError) as exc:  # pragma: no cover
-            assert not exc, 'failed to validate valid example'  # noqa: PT017
+            assert not exc, "failed to validate valid example"  # noqa: PT017
 
 
 @hypothesis.given(
@@ -225,7 +225,7 @@ def test_400a_validate_vault_config_smudged(
                 allow_unknown_settings=allow_unknown_settings,
             )
         except (TypeError, ValueError) as exc:  # pragma: no cover
-            assert not exc, 'failed to validate valid example'  # noqa: PT017
+            assert not exc, "failed to validate valid example"  # noqa: PT017
     assert did_cleanup is None or bool(did_cleanup) == (obj != obj_), (
-        'mismatched report on cleanup work'
+        "mismatched report on cleanup work"
     )

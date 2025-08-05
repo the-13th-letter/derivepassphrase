@@ -29,13 +29,13 @@ import sys
 
 BLOCK_SIZE = 4096
 
-envs = ['3.9', '3.11', '3.13', 'pypy3.10']
-opts = ['-py', ','.join(envs)]
+envs = ["3.9", "3.11", "3.13", "pypy3.10"]
+opts = ["-py", ",".join(envs)]
 
 current_branch = (
-    os.getenv('GIT_CURRENT_BRANCH')
+    os.getenv("GIT_CURRENT_BRANCH")
     or subprocess.run(
-        ['git', 'branch', '--show-current'],
+        ["git", "branch", "--show-current"],
         capture_output=True,
         text=True,
         check=False,
@@ -48,11 +48,11 @@ current_branch = (
 is_stgit_patch = bool(
     subprocess.run(
         [
-            'git',
-            'rev-parse',
-            '--verify',
-            '--end-of-options',
-            f'refs/stacks/{current_branch}',
+            "git",
+            "rev-parse",
+            "--verify",
+            "--end-of-options",
+            f"refs/stacks/{current_branch}",
         ],
         capture_output=True,
         check=False,
@@ -66,17 +66,17 @@ try:
     # violations.  Afterwards, run with normal settings to handle true
     # E501s.
     subprocess.run(
-        ['hatch', 'fmt', '-l', '--', '--ignore=E501,RUF100'], check=True
+        ["hatch", "fmt", "-l", "--", "--ignore=E501,RUF100"], check=True
     )
-    subprocess.run(['hatch', 'fmt', '-f'], check=True)
-    subprocess.run(['hatch', 'fmt', '-l'], check=True)
-    if current_branch == 'master':
+    subprocess.run(["hatch", "fmt", "-f"], check=True)
+    subprocess.run(["hatch", "fmt", "-l"], check=True)
+    if current_branch == "master":
         subprocess.run(
-            ['hatch', 'env', 'run', '-e', 'types', '--', 'check'], check=True
+            ["hatch", "env", "run", "-e", "types", "--", "check"], check=True
         )
         try:
             h = hashlib.sha256(
-                pathlib.Path('po/derivepassphrase.pot').read_bytes(),
+                pathlib.Path("po/derivepassphrase.pot").read_bytes(),
                 usedforsecurity=True,
             )
         except FileNotFoundError:
@@ -85,22 +85,22 @@ try:
             h2 = hashlib.sha256(
                 subprocess.run(
                     [
-                        'hatch',
-                        'run',
-                        'python3',
-                        '-m',
-                        'derivepassphrase._internals.cli_messages',
+                        "hatch",
+                        "run",
+                        "python3",
+                        "-m",
+                        "derivepassphrase._internals.cli_messages",
                     ],
                     check=True,
                     stdout=subprocess.PIPE,
-                    input=b'',
+                    input=b"",
                 ).stdout,
                 usedforsecurity=True,
             )
             if h.digest() != h2.digest():
                 sys.exit(
-                    'ERROR: po/derivepassphrase.pot '
-                    'has unreproducible contents'
+                    "ERROR: po/derivepassphrase.pot "
+                    "has unreproducible contents"
                 )
         # fmt: off
         subprocess.run(
@@ -112,19 +112,19 @@ try:
         )
         # fmt: on
         subprocess.run(
-            ['hatch', 'test', '-acpqr', '--', '--maxfail', '1'],
+            ["hatch", "test", "-acpqr", "--", "--maxfail", "1"],
             check=True,
         )
     elif not is_stgit_patch:
         subprocess.run(
-            ['hatch', 'env', 'run', '-e', 'types', '--', 'check'], check=True
+            ["hatch", "env", "run", "-e", "types", "--", "check"], check=True
         )
         subprocess.run(
-            ['hatch', 'test', '-cpqr', *opts, '--', '--maxfail', '1'],
-            env={**os.environ} | {'HYPOTHESIS_PROFILE': 'dev'},
+            ["hatch", "test", "-cpqr", *opts, "--", "--maxfail", "1"],
+            env={**os.environ} | {"HYPOTHESIS_PROFILE": "dev"},
             check=True,
         )
 except subprocess.CalledProcessError as exc:
-    sys.exit(getattr(exc, 'returncode', 1))
+    sys.exit(getattr(exc, "returncode", 1))
 except KeyboardInterrupt:
     sys.exit(1)

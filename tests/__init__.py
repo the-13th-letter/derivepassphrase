@@ -197,251 +197,251 @@ class VaultTestConfig(NamedTuple):
 
 
 TEST_CONFIGS: list[VaultTestConfig] = [
-    VaultTestConfig(None, 'not a dict', None),
-    VaultTestConfig({}, 'missing required keys', None),
+    VaultTestConfig(None, "not a dict", None),
+    VaultTestConfig({}, "missing required keys", None),
     VaultTestConfig(
-        {'global': None, 'services': {}}, 'bad config value: global', None
+        {"global": None, "services": {}}, "bad config value: global", None
     ),
     VaultTestConfig(
-        {'global': {'key': 123}, 'services': {}},
-        'bad config value: global.key',
+        {"global": {"key": 123}, "services": {}},
+        "bad config value: global.key",
         None,
     ),
     VaultTestConfig(
-        {'global': {'phrase': 'abc', 'key': '...'}, 'services': {}},
-        '',
+        {"global": {"phrase": "abc", "key": "..."}, "services": {}},
+        "",
         None,
     ),
-    VaultTestConfig({'services': None}, 'bad config value: services', None),
+    VaultTestConfig({"services": None}, "bad config value: services", None),
     VaultTestConfig(
-        {'services': {'1': {}, 2: {}}}, 'bad config value: services."2"', None
+        {"services": {"1": {}, 2: {}}}, 'bad config value: services."2"', None
     ),
     VaultTestConfig(
-        {'services': {'1': {}, '2': 2}}, 'bad config value: services."2"', None
+        {"services": {"1": {}, "2": 2}}, 'bad config value: services."2"', None
     ),
     VaultTestConfig(
-        {'services': {'sv': {'notes': ['sentinel', 'list']}}},
-        'bad config value: services.sv.notes',
-        None,
-    ),
-    VaultTestConfig(
-        {'services': {'sv': {'notes': 'blah blah blah'}}}, '', None
-    ),
-    VaultTestConfig(
-        {'services': {'sv': {'length': '200'}}},
-        'bad config value: services.sv.length',
+        {"services": {"sv": {"notes": ["sentinel", "list"]}}},
+        "bad config value: services.sv.notes",
         None,
     ),
     VaultTestConfig(
-        {'services': {'sv': {'length': 0.5}}},
-        'bad config value: services.sv.length',
+        {"services": {"sv": {"notes": "blah blah blah"}}}, "", None
+    ),
+    VaultTestConfig(
+        {"services": {"sv": {"length": "200"}}},
+        "bad config value: services.sv.length",
         None,
     ),
     VaultTestConfig(
-        {'services': {'sv': {'length': ['sentinel', 'list']}}},
-        'bad config value: services.sv.length',
+        {"services": {"sv": {"length": 0.5}}},
+        "bad config value: services.sv.length",
         None,
     ),
     VaultTestConfig(
-        {'services': {'sv': {'length': -10}}},
-        'bad config value: services.sv.length',
+        {"services": {"sv": {"length": ["sentinel", "list"]}}},
+        "bad config value: services.sv.length",
         None,
     ),
     VaultTestConfig(
-        {'services': {'sv': {'lower': '10'}}},
-        'bad config value: services.sv.lower',
+        {"services": {"sv": {"length": -10}}},
+        "bad config value: services.sv.length",
         None,
     ),
     VaultTestConfig(
-        {'services': {'sv': {'upper': -10}}},
-        'bad config value: services.sv.upper',
+        {"services": {"sv": {"lower": "10"}}},
+        "bad config value: services.sv.lower",
         None,
     ),
     VaultTestConfig(
-        {'services': {'sv': {'number': ['sentinel', 'list']}}},
-        'bad config value: services.sv.number',
+        {"services": {"sv": {"upper": -10}}},
+        "bad config value: services.sv.upper",
+        None,
+    ),
+    VaultTestConfig(
+        {"services": {"sv": {"number": ["sentinel", "list"]}}},
+        "bad config value: services.sv.number",
         None,
     ),
     VaultTestConfig(
         {
-            'global': {'phrase': 'my secret phrase'},
-            'services': {'sv': {'length': 10}},
+            "global": {"phrase": "my secret phrase"},
+            "services": {"sv": {"length": 10}},
         },
-        '',
+        "",
         None,
     ),
     VaultTestConfig(
-        {'services': {'sv': {'length': 10, 'phrase': '...'}}}, '', None
+        {"services": {"sv": {"length": 10, "phrase": "..."}}}, "", None
     ),
     VaultTestConfig(
-        {'services': {'sv': {'length': 10, 'key': '...'}}}, '', None
+        {"services": {"sv": {"length": 10, "key": "..."}}}, "", None
     ),
     VaultTestConfig(
-        {'services': {'sv': {'upper': 10, 'key': '...'}}}, '', None
+        {"services": {"sv": {"upper": 10, "key": "..."}}}, "", None
     ),
     VaultTestConfig(
-        {'services': {'sv': {'phrase': 'abc', 'key': '...'}}}, '', None
+        {"services": {"sv": {"phrase": "abc", "key": "..."}}}, "", None
     ),
     VaultTestConfig(
         {
-            'global': {'phrase': 'abc'},
-            'services': {'sv': {'phrase': 'abc', 'length': 10}},
+            "global": {"phrase": "abc"},
+            "services": {"sv": {"phrase": "abc", "length": 10}},
         },
-        '',
+        "",
         None,
     ),
     VaultTestConfig(
         {
-            'global': {'key': '...'},
-            'services': {'sv': {'phrase': 'abc', 'length': 10}},
+            "global": {"key": "..."},
+            "services": {"sv": {"phrase": "abc", "length": 10}},
         },
-        '',
+        "",
         None,
     ),
     VaultTestConfig(
         {
-            'global': {'key': '...'},
-            'services': {'sv': {'phrase': 'abc', 'key': '...', 'length': 10}},
+            "global": {"key": "..."},
+            "services": {"sv": {"phrase": "abc", "key": "...", "length": 10}},
         },
-        '',
+        "",
         None,
     ),
     VaultTestConfig(
         {
-            'global': {'key': '...'},
-            'services': {
-                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
-                'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
+            "global": {"key": "..."},
+            "services": {
+                "sv1": {"phrase": "abc", "length": 10, "upper": 1},
+                "sv2": {"length": 10, "repeat": 1, "lower": 1},
             },
         },
-        '',
+        "",
         None,
     ),
     VaultTestConfig(
         {
-            'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
-            'services': {
-                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
-                'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
+            "global": {"key": "...", "unicode_normalization_form": "NFC"},
+            "services": {
+                "sv1": {"phrase": "abc", "length": 10, "upper": 1},
+                "sv2": {"length": 10, "repeat": 1, "lower": 1},
             },
         },
-        '',
+        "",
         None,
     ),
     VaultTestConfig(
         {
-            'global': {'key': '...', 'unicode_normalization_form': True},
-            'services': {},
+            "global": {"key": "...", "unicode_normalization_form": True},
+            "services": {},
         },
-        'bad config value: global.unicode_normalization_form',
+        "bad config value: global.unicode_normalization_form",
         None,
     ),
     VaultTestConfig(
         {
-            'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
-            'services': {
-                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
-                'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
+            "global": {"key": "...", "unicode_normalization_form": "NFC"},
+            "services": {
+                "sv1": {"phrase": "abc", "length": 10, "upper": 1},
+                "sv2": {"length": 10, "repeat": 1, "lower": 1},
             },
         },
-        '',
+        "",
         ValidationSettings(True),
     ),
     VaultTestConfig(
         {
-            'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
-            'services': {
-                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
-                'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
+            "global": {"key": "...", "unicode_normalization_form": "NFC"},
+            "services": {
+                "sv1": {"phrase": "abc", "length": 10, "upper": 1},
+                "sv2": {"length": 10, "repeat": 1, "lower": 1},
             },
         },
-        'extension/unknown key: .global.unicode_normalization_form',
+        "extension/unknown key: .global.unicode_normalization_form",
         ValidationSettings(False),
     ),
     VaultTestConfig(
         {
-            'global': {'key': '...', 'unknown_key': True},
-            'services': {
-                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
-                'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
+            "global": {"key": "...", "unknown_key": True},
+            "services": {
+                "sv1": {"phrase": "abc", "length": 10, "upper": 1},
+                "sv2": {"length": 10, "repeat": 1, "lower": 1},
             },
         },
-        '',
+        "",
         ValidationSettings(True),
     ),
     VaultTestConfig(
         {
-            'global': {'key': '...', 'unknown_key': True},
-            'services': {
-                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
-                'sv2': {'length': 10, 'repeat': 1, 'lower': 1},
+            "global": {"key": "...", "unknown_key": True},
+            "services": {
+                "sv1": {"phrase": "abc", "length": 10, "upper": 1},
+                "sv2": {"length": 10, "repeat": 1, "lower": 1},
             },
         },
-        'unknown key: .global.unknown_key',
+        "unknown key: .global.unknown_key",
         ValidationSettings(False),
     ),
     VaultTestConfig(
         {
-            'global': {'key': '...'},
-            'services': {
-                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
-                'sv2': {
-                    'length': 10,
-                    'repeat': 1,
-                    'lower': 1,
-                    'unknown_key': True,
+            "global": {"key": "..."},
+            "services": {
+                "sv1": {"phrase": "abc", "length": 10, "upper": 1},
+                "sv2": {
+                    "length": 10,
+                    "repeat": 1,
+                    "lower": 1,
+                    "unknown_key": True,
                 },
             },
         },
-        'unknown key: .services.sv2.unknown_key',
+        "unknown key: .services.sv2.unknown_key",
         ValidationSettings(False),
     ),
     VaultTestConfig(
         {
-            'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
-            'services': {
-                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
-                'sv2': {
-                    'length': 10,
-                    'repeat': 1,
-                    'lower': 1,
-                    'unknown_key': True,
+            "global": {"key": "...", "unicode_normalization_form": "NFC"},
+            "services": {
+                "sv1": {"phrase": "abc", "length": 10, "upper": 1},
+                "sv2": {
+                    "length": 10,
+                    "repeat": 1,
+                    "lower": 1,
+                    "unknown_key": True,
                 },
             },
         },
-        '',
+        "",
         ValidationSettings(True),
     ),
     VaultTestConfig(
         {
-            'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
-            'services': {
-                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
-                'sv2': {
-                    'length': 10,
-                    'repeat': 1,
-                    'lower': 1,
-                    'unknown_key': True,
+            "global": {"key": "...", "unicode_normalization_form": "NFC"},
+            "services": {
+                "sv1": {"phrase": "abc", "length": 10, "upper": 1},
+                "sv2": {
+                    "length": 10,
+                    "repeat": 1,
+                    "lower": 1,
+                    "unknown_key": True,
                 },
             },
         },
-        '',
+        "",
         ValidationSettings(True),
     ),
     VaultTestConfig(
         {
-            'global': {'key': '...', 'unicode_normalization_form': 'NFC'},
-            'services': {
-                'sv1': {'phrase': 'abc', 'length': 10, 'upper': 1},
-                'sv2': {
-                    'length': 10,
-                    'repeat': 1,
-                    'lower': 1,
-                    'unknown_key': True,
+            "global": {"key": "...", "unicode_normalization_form": "NFC"},
+            "services": {
+                "sv1": {"phrase": "abc", "length": 10, "upper": 1},
+                "sv2": {
+                    "length": 10,
+                    "repeat": 1,
+                    "lower": 1,
+                    "unknown_key": True,
                 },
             },
         },
-        '',
+        "",
         ValidationSettings(True),
     ),
 ]
@@ -497,14 +497,14 @@ def vault_full_service_config(draw: strategies.DrawFn) -> dict[str, int]:
     hypothesis.assume(lower + upper + number + space + symbol > 0)
     hypothesis.assume(repeat >= space)
     return {
-        'lower': lower,
-        'upper': upper,
-        'number': number,
-        'space': space,
-        'dash': dash,
-        'symbol': symbol,
-        'repeat': repeat,
-        'length': length,
+        "lower": lower,
+        "upper": upper,
+        "number": number,
+        "space": space,
+        "dash": dash,
+        "symbol": symbol,
+        "repeat": repeat,
+        "length": length,
     }
 
 
@@ -525,10 +525,10 @@ def is_smudgable_vault_test_config(conf: VaultTestConfig) -> bool:
     config = conf.config
     return bool(
         isinstance(config, dict)
-        and ('global' not in config or isinstance(config['global'], dict))
-        and ('services' in config and isinstance(config['services'], dict))
-        and all(isinstance(x, dict) for x in config['services'].values())
-        and (config['services'] or config.get('global'))
+        and ("global" not in config or isinstance(config["global"], dict))
+        and ("services" in config and isinstance(config["services"], dict))
+        and all(isinstance(x, dict) for x in config["services"].values())
+        and (config["services"] or config.get("global"))
     )
 
 
@@ -557,40 +557,40 @@ def smudged_vault_test_config(
 
     """
 
-    falsy = (None, False, 0, 0.0, '', float('nan'))
-    falsy_no_str = (None, False, 0, 0.0, float('nan'))
-    falsy_no_zero = (None, False, '', float('nan'))
+    falsy = (None, False, 0, 0.0, "", float("nan"))
+    falsy_no_str = (None, False, 0, 0.0, float("nan"))
+    falsy_no_zero = (None, False, "", float("nan"))
     conf = draw(config)
     hypothesis.assume(is_smudgable_vault_test_config(conf))
     obj = copy.deepcopy(conf.config)
-    services: list[dict[str, Any]] = list(obj['services'].values())
-    if 'global' in obj:
-        services.append(obj['global'])
+    services: list[dict[str, Any]] = list(obj["services"].values())
+    if "global" in obj:
+        services.append(obj["global"])
     assert all(isinstance(x, dict) for x in services), (
-        'is_smudgable_vault_test_config guard failed to '
-        'ensure each settings dict is a dict'
+        "is_smudgable_vault_test_config guard failed to "
+        "ensure each settings dict is a dict"
     )
     for service in services:
-        for key in ('phrase',):
+        for key in ("phrase",):
             value = service.get(key)
-            if not _types.js_truthiness(value) and value != '':
+            if not _types.js_truthiness(value) and value != "":
                 service[key] = draw(strategies.sampled_from(falsy_no_str))
         for key in (
-            'notes',
-            'key',
-            'length',
-            'repeat',
+            "notes",
+            "key",
+            "length",
+            "repeat",
         ):
             value = service.get(key)
             if not _types.js_truthiness(value):
                 service[key] = draw(strategies.sampled_from(falsy))
         for key in (
-            'lower',
-            'upper',
-            'number',
-            'space',
-            'dash',
-            'symbol',
+            "lower",
+            "upper",
+            "number",
+            "space",
+            "dash",
+            "symbol",
         ):
             value = service.get(key)
             if not _types.js_truthiness(value) and value != 0:
@@ -615,13 +615,13 @@ class KnownSSHAgent(str, enum.Enum):
 
     """
 
-    UNKNOWN = '(unknown)'
+    UNKNOWN = "(unknown)"
     """"""
-    Pageant = 'Pageant'
+    Pageant = "Pageant"
     """"""
-    OpenSSHAgent = 'OpenSSHAgent'
+    OpenSSHAgent = "OpenSSHAgent"
     """"""
-    StubbedSSHAgent = 'StubbedSSHAgent'
+    StubbedSSHAgent = "StubbedSSHAgent"
     """"""
 
 
@@ -678,14 +678,14 @@ class RunningSSHAgentInfo(NamedTuple):
     def require_external_address(self) -> str:  # pragma: no cover
         if not isinstance(self.socket, str):
             pytest.skip(
-                reason='This test requires a real, externally resolvable '
-                'address for the SSH agent socket.'
+                reason="This test requires a real, externally resolvable "
+                "address for the SSH agent socket."
             )
         return self.socket
 
 
 ALL_KEYS: Mapping[str, SSHTestKey] = {
-    'ed25519': SSHTestKey(
+    "ed25519": SSHTestKey(
         private_key=rb"""-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
 QyNTUxOQAAACCBeIFoJtYCSF8P/zJIb+TBMIncHGpFBgnpCQ/7whJpdgAAAKDweO7H8Hju
@@ -731,7 +731,7 @@ idwcakUGCekJD/vCEml2AAAAG3Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQEC
     ),
     # Currently only supported by PuTTY (which is deficient in other
     # niceties of the SSH agent and the agent's client).
-    'ed448': SSHTestKey(
+    "ed448": SSHTestKey(
         private_key=rb"""-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAASgAAAAlz
 c2gtZWQ0NDgAAAA54vZy009Wu8wExjvEb3hqtLz1GO/+d5vmGUbErWQ4AUO9mYLT
@@ -786,7 +786,7 @@ dGhvdXQgcGFzc3BocmFzZQECAwQFBgcICQ==
             ),
         },
     ),
-    'rsa': SSHTestKey(
+    "rsa": SSHTestKey(
         private_key=rb"""-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
 NhAAAAAwEAAQAAAYEAsaHu6Xs4cVsuDSNJlMCqoPVgmDgEviI8TfXmHKqX3JkIqI3LsvV7
@@ -986,7 +986,7 @@ Bgp6142WnSCQAAABt0ZXN0IGtleSB3aXRob3V0IHBhc3NwaHJhc2UB
             ),
         },
     ),
-    'dsa1024': SSHTestKey(
+    "dsa1024": SSHTestKey(
         private_key=rb"""-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABsQAAAAdzc2gtZH
 NzAAAAgQC7KAZXqBGNVLBQPrcMYAoNW54BhD8aIhe7BDWYzJcsaMt72VKSkguZ8+XR7nRa
@@ -1102,7 +1102,7 @@ u7HfrQhdOiKSa+ZO9AAojbURqrLDRfBJa5dXn2AAAAFQDJHfenj4EJ9WkehpdJatPBlqCW
             ),
         },
     ),
-    'ecdsa256': SSHTestKey(
+    "ecdsa256": SSHTestKey(
         private_key=rb"""-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAaAAAABNlY2RzYS
 1zaGEyLW5pc3RwMjU2AAAACG5pc3RwMjU2AAAAQQTLbU0zDwsk2Dvp+VYIrsNVf5gWwz2S
@@ -1173,7 +1173,7 @@ dGhvdXQgcGFzc3BocmFzZQECAwQ=
             ),
         },
     ),
-    'ecdsa384': SSHTestKey(
+    "ecdsa384": SSHTestKey(
         private_key=rb"""-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAiAAAABNlY2RzYS
 1zaGEyLW5pc3RwMzg0AAAACG5pc3RwMzg0AAAAYQSgkOjkAvq7v5vHuj3KBL4/EAWcn5hZ
@@ -1254,7 +1254,7 @@ JAu0J3Q+cypZuKQVAAAAMQD5sTy8p+B1cn/DhOmXquui1BcxvASqzzevkBlbQoBa73y04B
             ),
         },
     ),
-    'ecdsa521': SSHTestKey(
+    "ecdsa521": SSHTestKey(
         private_key=rb"""-----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAArAAAABNlY2RzYS
 1zaGEyLW5pc3RwNTIxAAAACG5pc3RwNTIxAAAAhQQASVOdwDznmlcGqiLvFtYeVtrAEiVz
@@ -1357,74 +1357,74 @@ UNSUITABLE_KEYS: Mapping[str, SSHTestKey] = {
 }
 """The subset of SSH test keys not suitable for use with vault."""
 
-DUMMY_SERVICE = 'service1'
+DUMMY_SERVICE = "service1"
 """A standard/sample service name."""
-DUMMY_PASSPHRASE = 'my secret passphrase'
+DUMMY_PASSPHRASE = "my secret passphrase"
 """A standard/sample passphrase."""
-DUMMY_KEY1 = SUPPORTED_KEYS['ed25519'].public_key_data
+DUMMY_KEY1 = SUPPORTED_KEYS["ed25519"].public_key_data
 """A sample universally supported SSH test key (in wire format)."""
-DUMMY_KEY1_B64 = base64.standard_b64encode(DUMMY_KEY1).decode('ASCII')
+DUMMY_KEY1_B64 = base64.standard_b64encode(DUMMY_KEY1).decode("ASCII")
 """
 A sample universally supported SSH test key (in `authorized_keys` format).
 """
-DUMMY_KEY2 = SUPPORTED_KEYS['rsa'].public_key_data
+DUMMY_KEY2 = SUPPORTED_KEYS["rsa"].public_key_data
 """A second supported SSH test key (in wire format)."""
-DUMMY_KEY2_B64 = base64.standard_b64encode(DUMMY_KEY2).decode('ASCII')
+DUMMY_KEY2_B64 = base64.standard_b64encode(DUMMY_KEY2).decode("ASCII")
 """A second supported SSH test key (in `authorized_keys` format)."""
-DUMMY_KEY3 = SUPPORTED_KEYS['ed448'].public_key_data
+DUMMY_KEY3 = SUPPORTED_KEYS["ed448"].public_key_data
 """A third supported SSH test key (in wire format)."""
-DUMMY_KEY3_B64 = base64.standard_b64encode(DUMMY_KEY3).decode('ASCII')
+DUMMY_KEY3_B64 = base64.standard_b64encode(DUMMY_KEY3).decode("ASCII")
 """A third supported SSH test key (in `authorized_keys` format)."""
 DUMMY_CONFIG_SETTINGS = {
-    'length': 10,
-    'upper': 1,
-    'lower': 1,
-    'repeat': 5,
-    'number': 1,
-    'space': 1,
-    'dash': 1,
-    'symbol': 1,
+    "length": 10,
+    "upper": 1,
+    "lower": 1,
+    "repeat": 5,
+    "number": 1,
+    "space": 1,
+    "dash": 1,
+    "symbol": 1,
 }
 """Sample vault settings."""
-DUMMY_RESULT_PASSPHRASE = b'.2V_QJkd o'
+DUMMY_RESULT_PASSPHRASE = b".2V_QJkd o"
 """
 The passphrase derived from [`DUMMY_SERVICE`][] using [`DUMMY_PASSPHRASE`][].
 """
-DUMMY_RESULT_KEY1 = b'E<b<{ -7iG'
+DUMMY_RESULT_KEY1 = b"E<b<{ -7iG"
 """
 The passphrase derived from [`DUMMY_SERVICE`][] using [`DUMMY_KEY1`][].
 """
 DUMMY_PHRASE_FROM_KEY1_RAW = (
-    b'\x00\x00\x00\x0bssh-ed25519'
-    b'\x00\x00\x00@\xf0\x98\x19\x80l\x1a\x97\xd5&\x03n'
-    b'\xcc\xe3e\x8f\x86f\x07\x13\x19\x13\t!33\xf9\xe46S'
-    b'\x1d\xaf\xfd\r\x08\x1f\xec\xf8s\x9b\x8c_U9\x16|ST,'
-    b'\x1eR\xbb0\xed\x7f\x89\xe2/iQU\xd8\x9e\xa6\x02'
+    b"\x00\x00\x00\x0bssh-ed25519"
+    b"\x00\x00\x00@\xf0\x98\x19\x80l\x1a\x97\xd5&\x03n"
+    b"\xcc\xe3e\x8f\x86f\x07\x13\x19\x13\t!33\xf9\xe46S"
+    b"\x1d\xaf\xfd\r\x08\x1f\xec\xf8s\x9b\x8c_U9\x16|ST,"
+    b"\x1eR\xbb0\xed\x7f\x89\xe2/iQU\xd8\x9e\xa6\x02"
 )
 """
 The "equivalent master passphrase" derived from [`DUMMY_KEY1`][] (raw format).
 """
-DUMMY_PHRASE_FROM_KEY1 = b'8JgZgGwal9UmA27M42WPhmYHExkTCSEzM/nkNlMdr/0NCB/s+HObjF9VORZ8U1QsHlK7MO1/ieIvaVFV2J6mAg=='
+DUMMY_PHRASE_FROM_KEY1 = b"8JgZgGwal9UmA27M42WPhmYHExkTCSEzM/nkNlMdr/0NCB/s+HObjF9VORZ8U1QsHlK7MO1/ieIvaVFV2J6mAg=="
 """
 The "equivalent master passphrase" derived from [`DUMMY_KEY1`][] (in base64).
 """
 
-VAULT_MASTER_KEY = 'vault key'
+VAULT_MASTER_KEY = "vault key"
 """
 The storage passphrase used to encrypt all sample vault native configurations.
 """
-VAULT_V02_CONFIG = 'P7xeh5y4jmjpJ2pFq4KUcTVoaE9ZOEkwWmpVTURSSWQxbGt6emN4aFE4eFM3anVPbDRNTGpOLzY3eDF5aE1YTm5LNWh5Q1BwWTMwM3M5S083MWRWRFlmOXNqSFJNcStGMWFOS3c2emhiOUNNenZYTmNNMnZxaUErdlRoOGF2ZHdGT1ZLNTNLOVJQcU9jWmJrR3g5N09VcVBRZ0ZnSFNUQy9HdFVWWnFteVhRVkY3MHNBdnF2ZWFEbFBseWRGelE1c3BFTnVUckRQdWJSL29wNjFxd2Y2ZVpob3VyVzRod3FKTElTenJ1WTZacTJFOFBtK3BnVzh0QWVxcWtyWFdXOXYyenNQeFNZbWt1MDU2Vm1kVGtISWIxWTBpcWRFbyswUVJudVVhZkVlNVpGWDA4WUQ2Q2JTWW81SnlhQ2Zxa3cxNmZoQjJES0Uyd29rNXpSck5iWVBrVmEwOXFya1NpMi9saU5LL3F0M3N3MjZKekNCem9ER2svWkZ0SUJLdmlHRno0VlQzQ3pqZTBWcTM3YmRiNmJjTkhqUHZoQ0NxMW1ldW1XOFVVK3pQMEtUMkRMVGNvNHFlOG40ck5KcGhsYXg1b1VzZ1NYU1B2T3RXdEkwYzg4NWE3YWUzOWI1MDI0MThhMWZjODQ3MDA2OTJmNDQ0MDkxNGFiNmRlMGQ2YjZiNjI5NGMwN2IwMmI4MGZi'
+VAULT_V02_CONFIG = "P7xeh5y4jmjpJ2pFq4KUcTVoaE9ZOEkwWmpVTURSSWQxbGt6emN4aFE4eFM3anVPbDRNTGpOLzY3eDF5aE1YTm5LNWh5Q1BwWTMwM3M5S083MWRWRFlmOXNqSFJNcStGMWFOS3c2emhiOUNNenZYTmNNMnZxaUErdlRoOGF2ZHdGT1ZLNTNLOVJQcU9jWmJrR3g5N09VcVBRZ0ZnSFNUQy9HdFVWWnFteVhRVkY3MHNBdnF2ZWFEbFBseWRGelE1c3BFTnVUckRQdWJSL29wNjFxd2Y2ZVpob3VyVzRod3FKTElTenJ1WTZacTJFOFBtK3BnVzh0QWVxcWtyWFdXOXYyenNQeFNZbWt1MDU2Vm1kVGtISWIxWTBpcWRFbyswUVJudVVhZkVlNVpGWDA4WUQ2Q2JTWW81SnlhQ2Zxa3cxNmZoQjJES0Uyd29rNXpSck5iWVBrVmEwOXFya1NpMi9saU5LL3F0M3N3MjZKekNCem9ER2svWkZ0SUJLdmlHRno0VlQzQ3pqZTBWcTM3YmRiNmJjTkhqUHZoQ0NxMW1ldW1XOFVVK3pQMEtUMkRMVGNvNHFlOG40ck5KcGhsYXg1b1VzZ1NYU1B2T3RXdEkwYzg4NWE3YWUzOWI1MDI0MThhMWZjODQ3MDA2OTJmNDQ0MDkxNGFiNmRlMGQ2YjZiNjI5NGMwN2IwMmI4MGZi"
 """
 A sample vault native configuration, in v0.2 format, encoded in base64
 and encrypted with [`VAULT_MASTER_KEY`][].
 """
 VAULT_V02_CONFIG_DATA = {
-    'global': {
-        'phrase': DUMMY_PASSPHRASE.rstrip('\n'),
+    "global": {
+        "phrase": DUMMY_PASSPHRASE.rstrip("\n"),
     },
-    'services': {
-        '(meta)': {
-            'notes': 'This config was originally in v0.2 format.',
+    "services": {
+        "(meta)": {
+            "notes": "This config was originally in v0.2 format.",
         },
         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
     },
@@ -1433,18 +1433,18 @@ VAULT_V02_CONFIG_DATA = {
 The plaintext contents (a vault native configuration) stored in
 [`VAULT_V02_CONFIG`][].
 """
-VAULT_V03_CONFIG = 'sBPBrr8BFHPxSJkV/A53zk9zwDQHFxLe6UIusCVvzFQre103pcj5xxmE11lMTA0U2QTYjkhRXKkH5WegSmYpAnzReuRsYZlWWp6N4kkubf+twZ9C3EeggPm7as2Af4TICHVbX4uXpIHeQJf9y1OtqrO+SRBrgPBzgItoxsIxebxVKgyvh1CZQOSkn7BIzt9xKhDng3ubS4hQ91fB0QCumlldTbUl8tj4Xs5JbvsSlUMxRlVzZ0OgAOrSsoWELXmsp6zXFa9K6wIuZa4wQuMLQFHiA64JO1CR3I+rviWCeMlbTOuJNx6vMB5zotKJqA2hIUpN467TQ9vI4g/QTo40m5LT2EQKbIdTvBQAzcV4lOcpr5Lqt4LHED5mKvm/4YfpuuT3I3XCdWfdG5SB7ciiB4Go+xQdddy3zZMiwm1fEwIB8XjFf2cxoJdccLQ2yxf+9diedBP04EsMHrvxKDhQ7/vHl7xF2MMFTDKl3WFd23vvcjpR1JgNAKYprG/e1p/7'
+VAULT_V03_CONFIG = "sBPBrr8BFHPxSJkV/A53zk9zwDQHFxLe6UIusCVvzFQre103pcj5xxmE11lMTA0U2QTYjkhRXKkH5WegSmYpAnzReuRsYZlWWp6N4kkubf+twZ9C3EeggPm7as2Af4TICHVbX4uXpIHeQJf9y1OtqrO+SRBrgPBzgItoxsIxebxVKgyvh1CZQOSkn7BIzt9xKhDng3ubS4hQ91fB0QCumlldTbUl8tj4Xs5JbvsSlUMxRlVzZ0OgAOrSsoWELXmsp6zXFa9K6wIuZa4wQuMLQFHiA64JO1CR3I+rviWCeMlbTOuJNx6vMB5zotKJqA2hIUpN467TQ9vI4g/QTo40m5LT2EQKbIdTvBQAzcV4lOcpr5Lqt4LHED5mKvm/4YfpuuT3I3XCdWfdG5SB7ciiB4Go+xQdddy3zZMiwm1fEwIB8XjFf2cxoJdccLQ2yxf+9diedBP04EsMHrvxKDhQ7/vHl7xF2MMFTDKl3WFd23vvcjpR1JgNAKYprG/e1p/7"
 """
 A sample vault native configuration, in v0.3 format, encoded in base64
 and encrypted with [`VAULT_MASTER_KEY`][].
 """
 VAULT_V03_CONFIG_DATA = {
-    'global': {
-        'phrase': DUMMY_PASSPHRASE.rstrip('\n'),
+    "global": {
+        "phrase": DUMMY_PASSPHRASE.rstrip("\n"),
     },
-    'services': {
-        '(meta)': {
-            'notes': 'This config was originally in v0.3 format.',
+    "services": {
+        "(meta)": {
+            "notes": "This config was originally in v0.3 format.",
         },
         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
     },
@@ -1511,12 +1511,12 @@ A sample vault native configuration, in storeroom format, encrypted with
 and then encoded in base64.
 """
 VAULT_STOREROOM_CONFIG_DATA = {
-    'global': {
-        'phrase': DUMMY_PASSPHRASE.rstrip('\n'),
+    "global": {
+        "phrase": DUMMY_PASSPHRASE.rstrip("\n"),
     },
-    'services': {
-        '(meta)': {
-            'notes': 'This config was originally in storeroom format.',
+    "services": {
+        "(meta)": {
+            "notes": "This config was originally in storeroom format.",
         },
         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
     },
@@ -1790,7 +1790,7 @@ subcommands.
 """
 
 skip_if_cryptography_support = pytest.mark.skipif(
-    importlib.util.find_spec('cryptography') is not None,
+    importlib.util.find_spec("cryptography") is not None,
     reason='cryptography support available; cannot test "no support" scenario',
 )
 """
@@ -1800,7 +1800,7 @@ available.  Usually this means that the test targets
 whenever the primary functionality is.
 """
 skip_if_no_cryptography_support = pytest.mark.skipif(
-    importlib.util.find_spec('cryptography') is None,
+    importlib.util.find_spec("cryptography") is None,
     reason='no "cryptography" support',
 )
 """
@@ -1810,8 +1810,8 @@ available.  Usually this means that the test targets the
 on cryptography support being available.
 """
 skip_if_on_the_annoying_os = pytest.mark.skipif(
-    sys.platform == 'win32',
-    reason='The Annoying OS behaves differently.',
+    sys.platform == "win32",
+    reason="The Annoying OS behaves differently.",
 )
 """
 A cached pytest mark to skip this test if running on The Annoying
@@ -1825,7 +1825,7 @@ See also:
 
 """
 skip_if_no_multiprocessing_support = pytest.mark.skipif(
-    importlib.util.find_spec('multiprocessing') is None,
+    importlib.util.find_spec("multiprocessing") is None,
     reason='no "multiprocessing" support',
 )
 """
@@ -1857,7 +1857,7 @@ def get_concurrency_limit() -> int:
         result = os.process_cpu_count()
     else:
         with contextlib.suppress(KeyError, ValueError):
-            result = result or int(os.environ['PYTHON_CPU_COUNT'], 10)
+            result = result or int(os.environ["PYTHON_CPU_COUNT"], 10)
         with contextlib.suppress(AttributeError):
             result = result or len(os.sched_getaffinity(os.getpid()))
     return max(result if result is not None else 0, MIN_CONCURRENCY)
@@ -1887,7 +1887,7 @@ def xfail_on_the_annoying_os(
     f: Callable | None = None,
     /,
     *,
-    reason: str = '',
+    reason: str = "",
 ) -> pytest.MarkDecorator | Any:  # pragma: no cover
     """Annotate a test which fails on The Annoying OS.
 
@@ -1912,10 +1912,10 @@ def xfail_on_the_annoying_os(
         empty, will follow.
 
     """
-    base_reason = 'The Annoying OS behaves differently.'
-    full_reason = base_reason if not reason else f'{base_reason}  {reason}'
+    base_reason = "The Annoying OS behaves differently."
+    full_reason = base_reason if not reason else f"{base_reason}  {reason}"
     mark = pytest.mark.xfail(
-        sys.platform == 'win32',
+        sys.platform == "win32",
         reason=full_reason,
         raises=(AssertionError, hypothesis.errors.FailedHealthCheck),
         strict=True,
@@ -1923,22 +1923,22 @@ def xfail_on_the_annoying_os(
     return mark if f is None else mark(f)
 
 
-@socketprovider.SocketProvider.register('stub_agent')
+@socketprovider.SocketProvider.register("stub_agent")
 class StubbedSSHAgentSocket:
     """A stubbed SSH agent presenting an [`_types.SSHAgentSocket`][]."""
 
-    _SOCKET_IS_CLOSED = 'Socket is closed.'
-    _NO_FLAG_SUPPORT = 'This stubbed SSH agent socket does not support flags.'
-    _PROTOCOL_VIOLATION = 'SSH agent protocol violation.'
-    _INVALID_REQUEST = 'Invalid request.'
-    _UNSUPPORTED_REQUEST = 'Unsupported request.'
+    _SOCKET_IS_CLOSED = "Socket is closed."
+    _NO_FLAG_SUPPORT = "This stubbed SSH agent socket does not support flags."
+    _PROTOCOL_VIOLATION = "SSH agent protocol violation."
+    _INVALID_REQUEST = "Invalid request."
+    _UNSUPPORTED_REQUEST = "Unsupported request."
 
     HEADER_SIZE = 4
     CODE_SIZE = 1
 
     KNOWN_EXTENSIONS = frozenset({
-        'query',
-        'list-extended@putty.projects.tartarus.org',
+        "query",
+        "list-extended@putty.projects.tartarus.org",
     })
     """Known and implemented protocol extensions."""
 
@@ -2005,8 +2005,8 @@ class StubbedSSHAgentSocket:
         try:
             self.parse_client_request_and_dispatch()
         except ValueError:
-            payload = int.to_bytes(_types.SSH_AGENT.FAILURE.value, 1, 'big')
-            self.send_to_client.extend(int.to_bytes(len(payload), 4, 'big'))
+            payload = int.to_bytes(_types.SSH_AGENT.FAILURE.value, 1, "big")
+            self.send_to_client.extend(int.to_bytes(len(payload), 4, "big"))
             self.send_to_client.extend(payload)
         finally:
             self.receive_from_client.clear()
@@ -2073,7 +2073,7 @@ class StubbedSSHAgentSocket:
                 self.receive_from_client[
                     self.HEADER_SIZE : self.HEADER_SIZE + self.CODE_SIZE
                 ],
-                'big',
+                "big",
             )
         )
 
@@ -2084,7 +2084,7 @@ class StubbedSSHAgentSocket:
             ):
                 return False
             string = ssh_agent.SSHAgentClient.string
-            extension_marker = b'\x1b' + string(extension.encode('ascii'))
+            extension_marker = b"\x1b" + string(extension.encode("ascii"))
             return self.receive_from_client.startswith(extension_marker, 4)
 
         result: Buffer | Iterator[int]
@@ -2092,9 +2092,9 @@ class StubbedSSHAgentSocket:
             result = self.request_identities(list_extended=False)
         elif code == _types.SSH_AGENTC.SIGN_REQUEST:
             result = self.sign()
-        elif is_enabled_extension('query'):
+        elif is_enabled_extension("query"):
             result = self.query_extensions()
-        elif is_enabled_extension('list-extended@putty.projects.tartarus.org'):
+        elif is_enabled_extension("list-extended@putty.projects.tartarus.org"):
             result = self.request_identities(list_extended=True)
         else:
             raise ValueError(self._UNSUPPORTED_REQUEST)
@@ -2112,10 +2112,10 @@ class StubbedSSHAgentSocket:
 
         """
         yield _types.SSH_AGENT.EXTENSION_RESPONSE.value
-        yield from ssh_agent.SSHAgentClient.string(b'query')
+        yield from ssh_agent.SSHAgentClient.string(b"query")
         extension_answers = [
-            b'query',
-            b'list-extended@putty.projects.tartarus.org',
+            b"query",
+            b"list-extended@putty.projects.tartarus.org",
         ]
         for a in extension_answers:
             yield from ssh_agent.SSHAgentClient.string(a)
@@ -2146,7 +2146,7 @@ class StubbedSSHAgentSocket:
             SSHTestKeyDeterministicSignatureClass.SPEC,
         ]
         if (
-            'list-extended@putty.projects.tartarus.org'
+            "list-extended@putty.projects.tartarus.org"
             in self.enabled_extensions
         ):
             signature_classes.append(
@@ -2161,7 +2161,7 @@ class StubbedSSHAgentSocket:
         for key in keys:
             yield from ssh_agent.SSHAgentClient.string(key.public_key_data)
             yield from ssh_agent.SSHAgentClient.string(
-                b'test key without passphrase'
+                b"test key without passphrase"
             )
             if list_extended:
                 yield from ssh_agent.SSHAgentClient.string(
@@ -2177,7 +2177,7 @@ class StubbedSSHAgentSocket:
 
         """
         try_rfc6979 = (
-            'list-extended@putty.projects.tartarus.org'
+            "list-extended@putty.projects.tartarus.org"
             in self.enabled_extensions
         )
         spec = SSHTestKeyDeterministicSignatureClass.SPEC
@@ -2188,7 +2188,7 @@ class StubbedSSHAgentSocket:
         sign_data, rest = ssh_agent.SSHAgentClient.unstring_prefix(rest)
         if len(rest) != 4:
             raise ValueError(self._INVALID_REQUEST)
-        flags = int.from_bytes(rest, 'big')
+        flags = int.from_bytes(rest, "big")
         if flags:
             raise ValueError(self._UNSUPPORTED_REQUEST)
         if sign_data != vault.Vault.UUID:
@@ -2197,13 +2197,13 @@ class StubbedSSHAgentSocket:
             if key.public_key_data == key_blob:
                 if spec in key.expected_signatures:
                     return int.to_bytes(
-                        _types.SSH_AGENT.SIGN_RESPONSE.value, 1, 'big'
+                        _types.SSH_AGENT.SIGN_RESPONSE.value, 1, "big"
                     ) + ssh_agent.SSHAgentClient.string(
                         key.expected_signatures[spec].signature
                     )
                 if try_rfc6979 and rfc6979 in key.expected_signatures:
                     return int.to_bytes(
-                        _types.SSH_AGENT.SIGN_RESPONSE.value, 1, 'big'
+                        _types.SSH_AGENT.SIGN_RESPONSE.value, 1, "big"
                     ) + ssh_agent.SSHAgentClient.string(
                         key.expected_signatures[rfc6979].signature
                     )
@@ -2211,11 +2211,11 @@ class StubbedSSHAgentSocket:
         raise ValueError(self._UNSUPPORTED_REQUEST)
 
 
-@socketprovider.SocketProvider.register('stub_with_address')
+@socketprovider.SocketProvider.register("stub_with_address")
 class StubbedSSHAgentSocketWithAddress(StubbedSSHAgentSocket):
     """A [`StubbedSSHAgentSocket`][] requiring a specific address."""
 
-    ADDRESS = 'stub-ssh-agent:'
+    ADDRESS = "stub-ssh-agent:"
     """The correct address for connecting to this stubbed agent."""
 
     def __init__(self, *extensions: str) -> None:
@@ -2235,25 +2235,25 @@ class StubbedSSHAgentSocketWithAddress(StubbedSSHAgentSocket):
         """
         super().__init__(*extensions)
         try:
-            orig_address = os.environ['SSH_AUTH_SOCK']
+            orig_address = os.environ["SSH_AUTH_SOCK"]
         except KeyError as exc:
-            msg = 'SSH_AUTH_SOCK environment variable'
+            msg = "SSH_AUTH_SOCK environment variable"
             raise KeyError(msg) from exc
         address = orig_address
         if not address.startswith(self.ADDRESS):
-            address = self.ADDRESS + 'ENOENT'
+            address = self.ADDRESS + "ENOENT"
         errcode = address.removeprefix(self.ADDRESS)
         if errcode and not (
-            errcode.startswith('E') and hasattr(errno, errcode)
+            errcode.startswith("E") and hasattr(errno, errcode)
         ):
-            errcode = 'EINVAL'
+            errcode = "EINVAL"
         if errcode:
             errno_val = getattr(errno, errcode)
             raise OSError(errno_val, os.strerror(errno_val), orig_address)
 
 
 @socketprovider.SocketProvider.register(
-    'stub_with_address_and_deterministic_dsa'
+    "stub_with_address_and_deterministic_dsa"
 )
 class StubbedSSHAgentSocketWithAddressAndDeterministicDSA(
     StubbedSSHAgentSocketWithAddress
@@ -2273,7 +2273,7 @@ class StubbedSSHAgentSocketWithAddressAndDeterministicDSA(
             OSError: See superclass.
 
         """  # noqa: RUF002
-        super().__init__('query', 'list-extended@putty.projects.tartarus.org')
+        super().__init__("query", "list-extended@putty.projects.tartarus.org")
         self.try_rfc6979 = True
         self.try_pageant_068_080 = True
 
@@ -2288,7 +2288,7 @@ def list_keys(self: Any = None) -> list[_types.SSHKeyCommentPair]:
     del self  # Unused.
     Pair = _types.SSHKeyCommentPair  # noqa: N806
     return [
-        Pair(value.public_key_data, f'{key} test key'.encode('ASCII'))
+        Pair(value.public_key_data, f"{key} test key".encode("ASCII"))
         for key, value in ALL_KEYS.items()
     ]
 
@@ -2327,7 +2327,7 @@ def list_keys_singleton(self: Any = None) -> list[_types.SSHKeyCommentPair]:
     del self  # Unused.
     Pair = _types.SSHKeyCommentPair  # noqa: N806
     list1 = [
-        Pair(value.public_key_data, f'{key} test key'.encode('ASCII'))
+        Pair(value.public_key_data, f"{key} test key".encode("ASCII"))
         for key, value in SUPPORTED_KEYS.items()
     ]
     return list1[:1]
@@ -2345,8 +2345,8 @@ def suitable_ssh_keys(conn: Any) -> Iterator[_types.SSHKeyCommentPair]:
     del conn  # Unused.
     Pair = _types.SSHKeyCommentPair  # noqa: N806
     yield from [
-        Pair(DUMMY_KEY1, b'no comment'),
-        Pair(DUMMY_KEY2, b'a comment'),
+        Pair(DUMMY_KEY1, b"no comment"),
+        Pair(DUMMY_KEY2, b"a comment"),
     ]
 
 
@@ -2373,22 +2373,22 @@ def phrase_from_key(
 
 def provider_entry_provider() -> _types.SSHAgentSocket:  # pragma: no cover
     """A pseudo provider for a [`_types.SSHAgentSocketProviderEntry`][]."""
-    msg = 'We are not supposed to be called!'
+    msg = "We are not supposed to be called!"
     raise AssertionError(msg)
 
 
 provider_entry1 = _types.SSHAgentSocketProviderEntry(
-    provider_entry_provider, 'entry1', ('entry1a', 'entry1b', 'entry1c')
+    provider_entry_provider, "entry1", ("entry1a", "entry1b", "entry1c")
 )
 """A sample [`_types.SSHAgentSocketProviderEntry`][]."""
 
 provider_entry2 = _types.SSHAgentSocketProviderEntry(
-    provider_entry_provider, 'entry2', ('entry2d', 'entry2e')
+    provider_entry_provider, "entry2", ("entry2d", "entry2e")
 )
 """A sample [`_types.SSHAgentSocketProviderEntry`][]."""
 
 posix_entry = _types.SSHAgentSocketProviderEntry(
-    socketprovider.SocketProvider.resolve('posix'), 'posix', ()
+    socketprovider.SocketProvider.resolve("posix"), "posix", ()
 )
 """
 The standard [`_types.SSHAgentSocketProviderEntry`][] for the UNIX
@@ -2396,8 +2396,8 @@ domain socket handler on POSIX systems.
 """
 
 the_annoying_os_entry = _types.SSHAgentSocketProviderEntry(
-    socketprovider.SocketProvider.resolve('the_annoying_os'),
-    'the_annoying_os',
+    socketprovider.SocketProvider.resolve("the_annoying_os"),
+    "the_annoying_os",
     (),
 )
 """
@@ -2407,7 +2407,7 @@ handler on The Annoying Operating System.
 
 faulty_entry_callable = _types.SSHAgentSocketProviderEntry(
     (),  # type: ignore[arg-type]
-    'tuple',
+    "tuple",
     (),
 )
 """
@@ -2416,7 +2416,7 @@ is not a callable.
 """
 
 faulty_entry_name_exists = _types.SSHAgentSocketProviderEntry(
-    socketprovider.SocketProvider.resolve('the_annoying_os'), 'posix', ()
+    socketprovider.SocketProvider.resolve("the_annoying_os"), "posix", ()
 )
 """
 A faulty [`_types.SSHAgentSocketProviderEntry`][]: the indicated handler
@@ -2424,9 +2424,9 @@ is already registered with a different callable.
 """
 
 faulty_entry_alias_exists = _types.SSHAgentSocketProviderEntry(
-    socketprovider.SocketProvider.resolve('posix'),
-    'posix',
-    ('unix_domain', 'the_annoying_os'),
+    socketprovider.SocketProvider.resolve("posix"),
+    "posix",
+    ("unix_domain", "the_annoying_os"),
 )
 """
 A faulty [`_types.SSHAgentSocketProviderEntry`][]: the alias is already
@@ -2571,10 +2571,10 @@ def faked_entry_point_list(  # noqa: C901
 
     with pytest.MonkeyPatch.context() as monkeypatch:
         monkeypatch.setattr(
-            socketprovider.SocketProvider, 'registry', new_registry
+            socketprovider.SocketProvider, "registry", new_registry
         )
         monkeypatch.setattr(
-            importlib.metadata, 'entry_points', mangled_entry_points
+            importlib.metadata, "entry_points", mangled_entry_points
         )
         yield (*keys, *aliases)
 
@@ -2608,7 +2608,7 @@ def isolated_config(
 
     """
     prog_name = cli_helpers.PROG_NAME
-    env_name = prog_name.replace(' ', '_').upper() + '_PATH'
+    env_name = prog_name.replace(" ", "_").upper() + "_PATH"
     # TODO(the-13th-letter): Rewrite using parenthesized with-statements.
     # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
     with contextlib.ExitStack() as stack:
@@ -2620,20 +2620,20 @@ def isolated_config(
             cli_machinery.StandardCLILogging.ensure_standard_warnings_logging()
         )
         cwd = str(pathlib.Path.cwd().resolve())
-        monkeypatch.setenv('HOME', cwd)
-        monkeypatch.setenv('APPDATA', cwd)
-        monkeypatch.setenv('LOCALAPPDATA', cwd)
+        monkeypatch.setenv("HOME", cwd)
+        monkeypatch.setenv("APPDATA", cwd)
+        monkeypatch.setenv("LOCALAPPDATA", cwd)
         monkeypatch.delenv(env_name, raising=False)
         config_dir = cli_helpers.config_filename(subsystem=None)
         config_dir.mkdir(parents=True, exist_ok=True)
         if isinstance(main_config_str, str):
-            cli_helpers.config_filename('user configuration').write_text(
-                main_config_str, encoding='UTF-8'
+            cli_helpers.config_filename("user configuration").write_text(
+                main_config_str, encoding="UTF-8"
             )
         try:
             yield
         finally:
-            cli_helpers.config_filename('write lock').unlink(missing_ok=True)
+            cli_helpers.config_filename("write lock").unlink(missing_ok=True)
 
 
 @contextlib.contextmanager
@@ -2668,8 +2668,8 @@ def isolated_vault_config(
     with isolated_config(
         monkeypatch=monkeypatch, runner=runner, main_config_str=main_config_str
     ):
-        config_filename = cli_helpers.config_filename(subsystem='vault')
-        with config_filename.open('w', encoding='UTF-8') as outfile:
+        config_filename = cli_helpers.config_filename(subsystem="vault")
+        with config_filename.open("w", encoding="UTF-8") as outfile:
             json.dump(vault_config, outfile)
         yield
 
@@ -2730,24 +2730,24 @@ def isolated_vault_exporter_config(
 
     with runner.isolated_filesystem():
         cwd = str(pathlib.Path.cwd().resolve())
-        monkeypatch.setenv('HOME', cwd)
-        monkeypatch.setenv('USERPROFILE', cwd)
+        monkeypatch.setenv("HOME", cwd)
+        monkeypatch.setenv("USERPROFILE", cwd)
         monkeypatch.delenv(
-            cli_helpers.PROG_NAME.replace(' ', '_').upper() + '_PATH',
+            cli_helpers.PROG_NAME.replace(" ", "_").upper() + "_PATH",
             raising=False,
         )
-        monkeypatch.delenv('VAULT_PATH', raising=False)
-        monkeypatch.delenv('VAULT_KEY', raising=False)
-        monkeypatch.delenv('LOGNAME', raising=False)
-        monkeypatch.delenv('USER', raising=False)
-        monkeypatch.delenv('USERNAME', raising=False)
+        monkeypatch.delenv("VAULT_PATH", raising=False)
+        monkeypatch.delenv("VAULT_KEY", raising=False)
+        monkeypatch.delenv("LOGNAME", raising=False)
+        monkeypatch.delenv("USER", raising=False)
+        monkeypatch.delenv("USERNAME", raising=False)
         if vault_key is not None:
-            monkeypatch.setenv('VAULT_KEY', vault_key)
-        vault_config_path = pathlib.Path('.vault').resolve()
+            monkeypatch.setenv("VAULT_KEY", vault_key)
+        vault_config_path = pathlib.Path(".vault").resolve()
         # TODO(the-13th-letter): Rewrite using structural pattern matching.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         if isinstance(vault_config, str):
-            vault_config_path.write_text(f'{vault_config}\n', encoding='UTF-8')
+            vault_config_path.write_text(f"{vault_config}\n", encoding="UTF-8")
         elif isinstance(vault_config, bytes):
             vault_config_path.mkdir(parents=True, mode=0o700, exist_ok=True)
             # TODO(the-13th-letter): Rewrite using parenthesized
@@ -2756,7 +2756,7 @@ def isolated_vault_exporter_config(
             with contextlib.ExitStack() as stack:
                 stack.enter_context(chdir(vault_config_path))
                 tmpzipfile = stack.enter_context(
-                    tempfile.NamedTemporaryFile(suffix='.zip')
+                    tempfile.NamedTemporaryFile(suffix=".zip")
                 )
                 for line in vault_config.splitlines():
                     tmpzipfile.write(base64.standard_b64decode(line))
@@ -2771,7 +2771,7 @@ def isolated_vault_exporter_config(
         try:
             yield
         finally:
-            cli_helpers.config_filename('write lock').unlink(missing_ok=True)
+            cli_helpers.config_filename("write lock").unlink(missing_ok=True)
 
 
 def auto_prompt(*args: Any, **kwargs: Any) -> str:
@@ -2824,8 +2824,8 @@ def make_file_readonly(
         fname = os.open(
             pathname,
             os.O_RDWR
-            | getattr(os, 'O_CLOEXEC', 0)
-            | getattr(os, 'O_NOCTTY', 0),
+            | getattr(os, "O_CLOEXEC", 0)
+            | getattr(os, "O_NOCTTY", 0),
         )
     else:
         fname = pathname
@@ -2851,7 +2851,7 @@ class ReadableResult(NamedTuple):
     stderr: str
 
     def clean_exit(
-        self, *, output: str = '', empty_stderr: bool = False
+        self, *, output: str = "", empty_stderr: bool = False
     ) -> bool:
         """Return whether the invocation exited cleanly.
 
@@ -2924,7 +2924,7 @@ class CliRunner:
 
     """
 
-    _SUPPORTS_MIX_STDERR_ATTRIBUTE = not hasattr(click.testing, 'StreamMixer')
+    _SUPPORTS_MIX_STDERR_ATTRIBUTE = not hasattr(click.testing, "StreamMixer")
     """
     True if and only if [`click.testing.CliRunner`][] supports the
     `mix_stderr` attribute.  It was removed in 8.2.0 in favor of the
@@ -2947,7 +2947,7 @@ class CliRunner:
             mix_stderr: NotRequired[bool]
 
         mix_stderr_args: MixStderrAttribute = (
-            {'mix_stderr': mix_stderr}
+            {"mix_stderr": mix_stderr}
             if self._SUPPORTS_MIX_STDERR_ATTRIBUTE
             else {}
         )
@@ -2986,8 +2986,8 @@ class CliRunner:
             raw_result.exception,
             raw_result.exit_code,
             (raw_result.stdout if not self.mix_stderr else raw_result.output)
-            or '',
-            stderr or '',
+            or "",
+            stderr or "",
         )
         return ReadableResult.parse(raw_result)
 
@@ -3024,26 +3024,26 @@ def parse_sh_export_line(line: str, *, env_name: str) -> str:
             perhaps it is malformed.
 
     """
-    line = line.rstrip('\r\n')
+    line = line.rstrip("\r\n")
     shlex_parser = shlex.shlex(
         instream=line, posix=True, punctuation_chars=True
     )
-    shlex_parser.whitespace = ' \t'
+    shlex_parser.whitespace = " \t"
     tokens = list(shlex_parser)
     orig_tokens = tokens.copy()
-    if tokens[-1] == ';':
+    if tokens[-1] == ";":
         tokens.pop()
-    if tokens[-3:] == [';', 'export', env_name]:
+    if tokens[-3:] == [";", "export", env_name]:
         tokens[-3:] = []
-        tokens[:0] = ['export']
+        tokens[:0] = ["export"]
     if not (
         len(tokens) == 2
-        and tokens[0] == 'export'
-        and tokens[1].startswith(f'{env_name}=')
+        and tokens[0] == "export"
+        and tokens[1].startswith(f"{env_name}=")
     ):
-        msg = f'Cannot parse sh line: {orig_tokens!r} -> {tokens!r}'
+        msg = f"Cannot parse sh line: {orig_tokens!r} -> {tokens!r}"
         raise ValueError(msg)
-    return tokens[1].split('=', 1)[1]
+    return tokens[1].split("=", 1)[1]
 
 
 def message_emitted_factory(
@@ -3087,35 +3087,35 @@ def message_emitted_factory(
 info_emitted = message_emitted_factory(logging.INFO)
 warning_emitted = message_emitted_factory(logging.WARNING)
 deprecation_warning_emitted = message_emitted_factory(
-    logging.WARNING, logger_name=f'{cli.PROG_NAME}.deprecation'
+    logging.WARNING, logger_name=f"{cli.PROG_NAME}.deprecation"
 )
 deprecation_info_emitted = message_emitted_factory(
-    logging.INFO, logger_name=f'{cli.PROG_NAME}.deprecation'
+    logging.INFO, logger_name=f"{cli.PROG_NAME}.deprecation"
 )
 error_emitted = message_emitted_factory(logging.ERROR)
 
 
 class Parametrize(types.SimpleNamespace):
     VAULT_CONFIG_FORMATS_DATA = pytest.mark.parametrize(
-        ['config', 'format', 'config_data'],
+        ["config", "format", "config_data"],
         [
             pytest.param(
                 VAULT_V02_CONFIG,
-                'v0.2',
+                "v0.2",
                 VAULT_V02_CONFIG_DATA,
-                id='0.2',
+                id="0.2",
             ),
             pytest.param(
                 VAULT_V03_CONFIG,
-                'v0.3',
+                "v0.3",
                 VAULT_V03_CONFIG_DATA,
-                id='0.3',
+                id="0.3",
             ),
             pytest.param(
                 VAULT_STOREROOM_CONFIG_ZIPPED,
-                'storeroom',
+                "storeroom",
                 VAULT_STOREROOM_CONFIG_DATA,
-                id='storeroom',
+                id="storeroom",
             ),
         ],
     )

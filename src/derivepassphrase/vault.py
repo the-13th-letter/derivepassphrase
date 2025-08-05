@@ -46,49 +46,49 @@ class Vault:
 
     """
 
-    UUID: Final = b'e87eb0f4-34cb-46b9-93ad-766c5ab063e7'
+    UUID: Final = b"e87eb0f4-34cb-46b9-93ad-766c5ab063e7"
     """A tag used by vault in the bit stream generation."""
     CHARSETS: Final = types.MappingProxyType(
         collections.OrderedDict([
-            ('lower', b'abcdefghijklmnopqrstuvwxyz'),
-            ('upper', b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
+            ("lower", b"abcdefghijklmnopqrstuvwxyz"),
+            ("upper", b"ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
             (
-                'alpha',
+                "alpha",
                 (
                     # CHARSETS['lower']
-                    b'abcdefghijklmnopqrstuvwxyz'
+                    b"abcdefghijklmnopqrstuvwxyz"
                     # CHARSETS['upper']
-                    b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                    b"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                 ),
             ),
-            ('number', b'0123456789'),
+            ("number", b"0123456789"),
             (
-                'alphanum',
+                "alphanum",
                 (
                     # CHARSETS['lower']
-                    b'abcdefghijklmnopqrstuvwxyz'
+                    b"abcdefghijklmnopqrstuvwxyz"
                     # CHARSETS['upper']
-                    b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                    b"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                     # CHARSETS['number']
-                    b'0123456789'
+                    b"0123456789"
                 ),
             ),
-            ('space', b' '),
-            ('dash', b'-_'),
-            ('symbol', b'!"#$%&\'()*+,./:;<=>?@[\\]^{|}~-_'),
+            ("space", b" "),
+            ("dash", b"-_"),
+            ("symbol", b"!\"#$%&'()*+,./:;<=>?@[\\]^{|}~-_"),
             (
-                'all',
+                "all",
                 (
                     # CHARSETS['lower']
-                    b'abcdefghijklmnopqrstuvwxyz'
+                    b"abcdefghijklmnopqrstuvwxyz"
                     # CHARSETS['upper']
-                    b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                    b"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                     # CHARSETS['number']
-                    b'0123456789'
+                    b"0123456789"
                     # CHARSETS['space']
-                    b' '
+                    b" "
                     # CHARSETS['symbol']
-                    b'!"#$%&\'()*+,./:;<=>?@[\\]^{|}~-_'
+                    b"!\"#$%&'()*+,./:;<=>?@[\\]^{|}~-_"
                 ),
             ),
         ])
@@ -103,7 +103,7 @@ class Vault:
     def __init__(  # noqa: PLR0913
         self,
         *,
-        phrase: Buffer | str = b'',
+        phrase: Buffer | str = b"",
         length: int = 20,
         repeat: int = 0,
         lower: int | None = None,
@@ -158,7 +158,7 @@ class Vault:
         self._phrase = self._get_binary_string(phrase)
         self._length = length
         self._repeat = repeat
-        self._allowed = bytearray(self.CHARSETS['all'])
+        self._allowed = bytearray(self.CHARSETS["all"])
         self._required: list[bytes] = []
 
         def subtract_or_require(
@@ -172,17 +172,17 @@ class Vault:
                 for _ in range(count):
                     self._required.append(characters)
 
-        subtract_or_require(lower, self.CHARSETS['lower'])
-        subtract_or_require(upper, self.CHARSETS['upper'])
-        subtract_or_require(number, self.CHARSETS['number'])
-        subtract_or_require(space, self.CHARSETS['space'])
-        subtract_or_require(dash, self.CHARSETS['dash'])
-        subtract_or_require(symbol, self.CHARSETS['symbol'])
+        subtract_or_require(lower, self.CHARSETS["lower"])
+        subtract_or_require(upper, self.CHARSETS["upper"])
+        subtract_or_require(number, self.CHARSETS["number"])
+        subtract_or_require(space, self.CHARSETS["space"])
+        subtract_or_require(dash, self.CHARSETS["dash"])
+        subtract_or_require(symbol, self.CHARSETS["symbol"])
         if len(self._required) > self._length:
-            msg = 'requested passphrase length too short'
+            msg = "requested passphrase length too short"
             raise ValueError(msg)
         if not self._allowed:
-            msg = 'no allowed characters left'
+            msg = "no allowed characters left"
             raise ValueError(msg)
         for _ in range(len(self._required), self._length):
             self._required.append(bytes(self._allowed))
@@ -210,7 +210,7 @@ class Vault:
         """
         factors: list[int] = []
         if not self._required or any(not x for x in self._required):
-            return float('-inf')
+            return float("-inf")
         for i, charset in enumerate(self._required):
             factors.extend([i + 1, len(charset)])
         factors.sort()
@@ -247,10 +247,10 @@ class Vault:
         try:
             safety_factor = float(safety_factor)
         except TypeError as e:
-            msg = f'invalid safety factor: not a float: {safety_factor!r}'
+            msg = f"invalid safety factor: not a float: {safety_factor!r}"
             raise TypeError(msg) from e
         if not math.isfinite(safety_factor) or safety_factor < 1.0:
-            msg = f'invalid safety factor {safety_factor!r}'
+            msg = f"invalid safety factor {safety_factor!r}"
             raise ValueError(msg)
         # Ensure the bound is strictly positive.
         entropy_bound = max(1, self._entropy())
@@ -271,7 +271,7 @@ class Vault:
 
         """
         if isinstance(s, str):
-            return s.encode('UTF-8')
+            return s.encode("UTF-8")
         return bytes(s)
 
     @classmethod
@@ -323,11 +323,11 @@ class Vault:
             ... 0d 08 1f ec f8 73 9b 8c 5f 55 39 16 7c 53 54 2c
             ... 1e 52 bb 30 ed 7f 89 e2 2f 69 51 55 d8 9e a6 02
             ... ''')
-            >>> Vault.create_hash(phrase, 'some_service', length=4)
+            >>> Vault.create_hash(phrase, "some_service", length=4)
             b'M\xb1<S'
-            >>> Vault.create_hash(phrase, b'some_service', length=16)
+            >>> Vault.create_hash(phrase, b"some_service", length=16)
             b'M\xb1<S\x827E\xd1M\xaf\xf8~\xc8n\x10\xcc'
-            >>> Vault.create_hash(phrase, b'NOSUCHSERVICE', length=16)
+            >>> Vault.create_hash(phrase, b"NOSUCHSERVICE", length=16)
             b'\x1c\xc3\x9c\xd9\xb6\x1a\x99CS\x07\xc41\xf4\x85#s'
 
         """
@@ -335,7 +335,7 @@ class Vault:
         assert isinstance(phrase, bytes)
         salt = cls._get_binary_string(service) + cls.UUID
         return hashlib.pbkdf2_hmac(
-            hash_name='sha1',
+            hash_name="sha1",
             password=phrase,
             salt=salt,
             iterations=8,
@@ -347,7 +347,7 @@ class Vault:
         service_name: Buffer | str,
         /,
         *,
-        phrase: Buffer | str = b'',
+        phrase: Buffer | str = b"",
     ) -> bytes:
         r"""Generate a service passphrase.
 
@@ -369,12 +369,12 @@ class Vault:
                 characters, or increase the desired passphrase length.
 
         Examples:
-            >>> phrase = b'She cells C shells bye the sea shoars'
+            >>> phrase = b"She cells C shells bye the sea shoars"
             >>> # Using default options in constructor.
-            >>> Vault(phrase=phrase).generate(b'google')
+            >>> Vault(phrase=phrase).generate(b"google")
             b': 4TVH#5:aZl8LueOT\\{'
             >>> # Also possible:
-            >>> Vault().generate(b'google', phrase=phrase)
+            >>> Vault().generate(b"google", phrase=phrase)
             b': 4TVH#5:aZl8LueOT\\{'
 
             Conflicting constraints are sometimes only found during
@@ -393,7 +393,7 @@ class Vault:
             ... )
             >>> # ... but here.
             >>> v.generate(
-            ...     '0', phrase=b'\x00'
+            ...     "0", phrase=b"\x00"
             ... )  # doctest: +IGNORE_EXCEPTION_DETAIL
             Traceback (most recent call last):
                 ...
@@ -443,7 +443,7 @@ class Vault:
                     pos = seq.generate(len(charset))
                     result.extend(charset[pos : pos + 1])
             except ValueError as exc:
-                msg = 'no allowed characters left'
+                msg = "no allowed characters left"
                 raise ValueError(msg) from exc
             except sequin.SequinExhaustedError:
                 hash_length *= 2
@@ -478,25 +478,25 @@ class Vault:
 
         """
         key = bytes(key)
-        TestFunc: TypeAlias = 'Callable[[bytes | bytearray], bool]'
+        TestFunc: TypeAlias = "Callable[[bytes | bytearray], bool]"
         deterministic_signature_types: dict[str, TestFunc]
         deterministic_signature_types = {
-            'ssh-ed25519': lambda k: k.startswith(
-                b'\x00\x00\x00\x0bssh-ed25519'
+            "ssh-ed25519": lambda k: k.startswith(
+                b"\x00\x00\x00\x0bssh-ed25519"
             ),
-            'ssh-ed448': lambda k: k.startswith(b'\x00\x00\x00\x09ssh-ed448'),
-            'ssh-rsa': lambda k: k.startswith(b'\x00\x00\x00\x07ssh-rsa'),
+            "ssh-ed448": lambda k: k.startswith(b"\x00\x00\x00\x09ssh-ed448"),
+            "ssh-rsa": lambda k: k.startswith(b"\x00\x00\x00\x07ssh-rsa"),
         }
         dsa_signature_types = {
-            'ssh-dss': lambda k: k.startswith(b'\x00\x00\x00\x07ssh-dss'),
-            'ecdsa-sha2-nistp256': lambda k: k.startswith(
-                b'\x00\x00\x00\x13ecdsa-sha2-nistp256'
+            "ssh-dss": lambda k: k.startswith(b"\x00\x00\x00\x07ssh-dss"),
+            "ecdsa-sha2-nistp256": lambda k: k.startswith(
+                b"\x00\x00\x00\x13ecdsa-sha2-nistp256"
             ),
-            'ecdsa-sha2-nistp384': lambda k: k.startswith(
-                b'\x00\x00\x00\x13ecdsa-sha2-nistp384'
+            "ecdsa-sha2-nistp384": lambda k: k.startswith(
+                b"\x00\x00\x00\x13ecdsa-sha2-nistp384"
             ),
-            'ecdsa-sha2-nistp521': lambda k: k.startswith(
-                b'\x00\x00\x00\x13ecdsa-sha2-nistp521'
+            "ecdsa-sha2-nistp521": lambda k: k.startswith(
+                b"\x00\x00\x00\x13ecdsa-sha2-nistp521"
             ),
         }
         criteria = [
@@ -595,8 +595,8 @@ class Vault:
         with ssh_agent.SSHAgentClient.ensure_agent_subcontext(conn) as client:
             if not cls.is_suitable_ssh_key(key, client=client):
                 msg = (
-                    'unsuitable SSH key: bad key, or '
-                    'signature not deterministic under this agent'
+                    "unsuitable SSH key: bad key, or "
+                    "signature not deterministic under this agent"
                 )
                 raise ValueError(msg)
             raw_sig = client.sign(key, cls.UUID)
@@ -679,7 +679,7 @@ class Vault:
                 key[i] = byte
             return bytes(key)
         except IndexError:
-            return h.digest() + b'\x00' * (h.block_size - h.digest_size)
+            return h.digest() + b"\x00" * (h.block_size - h.digest_size)
 
     @staticmethod
     def _subtract(
@@ -710,9 +710,9 @@ class Vault:
             allowed if isinstance(allowed, bytearray) else bytearray(allowed)
         )
         assert_type(allowed, bytearray)
-        charset = memoryview(charset).toreadonly().cast('c')
-        assert_type(charset, 'memoryview[bytes]')
-        msg_dup_characters = 'duplicate characters in set'
+        charset = memoryview(charset).toreadonly().cast("c")
+        assert_type(charset, "memoryview[bytes]")
+        msg_dup_characters = "duplicate characters in set"
         if len(frozenset(allowed)) != len(allowed):
             raise ValueError(msg_dup_characters)
         if len(frozenset(charset)) != len(charset):

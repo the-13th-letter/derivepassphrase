@@ -11,13 +11,13 @@ import pytest
 import tests
 from derivepassphrase import ssh_agent
 
-OPENSSH_MAGIC = b'openssh-key-v1\x00'
+OPENSSH_MAGIC = b"openssh-key-v1\x00"
 OPENSSH_HEADER = (
     OPENSSH_MAGIC  # magic
-    + b'\x00\x00\x00\x04none'  # ciphername
-    + b'\x00\x00\x00\x04none'  # kdfname
-    + b'\x00\x00\x00\x00'  # kdfoptions
-    + b'\x00\x00\x00\x01'  # number of keys
+    + b"\x00\x00\x00\x04none"  # ciphername
+    + b"\x00\x00\x00\x04none"  # kdfname
+    + b"\x00\x00\x00\x00"  # kdfoptions
+    + b"\x00\x00\x00\x01"  # number of keys
 )
 
 
@@ -107,13 +107,13 @@ def minimize_openssh_keyfile_padding(
     # (This scheme needs updating if ever a different data type needs to
     # be parsed.)
     num_mpints = {
-        b'ssh-ed25519': 2,
-        b'ssh-ed448': 2,
-        b'ssh-rsa': 6,
-        b'ssh-dss': 5,
-        b'ecdsa-sha2-nistp256': 3,
-        b'ecdsa-sha2-nistp384': 3,
-        b'ecdsa-sha2-nistp521': 3,
+        b"ssh-ed25519": 2,
+        b"ssh-ed448": 2,
+        b"ssh-rsa": 6,
+        b"ssh-dss": 5,
+        b"ecdsa-sha2-nistp256": 3,
+        b"ecdsa-sha2-nistp384": 3,
+        b"ecdsa-sha2-nistp521": 3,
     }
     for _ in range(num_mpints[key_type]):
         _, remainder = unstring_prefix(remainder)
@@ -127,7 +127,7 @@ def minimize_openssh_keyfile_padding(
         expected_padding.append(i & 0xFF)
     assert padding == expected_padding
     while len(padding) >= 8:
-        padding[-8:] = b''
+        padding[-8:] = b""
 
     new_private_block.extend(padding)
     result.extend(string(new_private_block))
@@ -138,7 +138,7 @@ class Parametrize:
     """Common test parametrizations."""
 
     TEST_KEYS = pytest.mark.parametrize(
-        ['keyname', 'key'], tests.ALL_KEYS.items(), ids=tests.ALL_KEYS.keys()
+        ["keyname", "key"], tests.ALL_KEYS.items(), ids=tests.ALL_KEYS.keys()
     )
 
 
@@ -152,7 +152,7 @@ def test_100_test_keys_public_keys_are_internally_consistent(
     string = ssh_agent.SSHAgentClient.string
     public_key_lines = key.public_key.splitlines(keepends=False)
     assert len(public_key_lines) == 1
-    line_parts = public_key_lines[0].strip(b'\r\n').split(None, 2)
+    line_parts = public_key_lines[0].strip(b"\r\n").split(None, 2)
     key_type_name, public_key_b64 = line_parts[:2]
     assert base64.standard_b64encode(key.public_key_data) == public_key_b64
     assert key.public_key_data.startswith(string(key_type_name))
@@ -167,7 +167,7 @@ def test_101_test_keys_private_keys_are_consistent_with_public_keys(
     del keyname
     string = ssh_agent.SSHAgentClient.string
 
-    if key.public_key_data.startswith(string(b'ssh-rsa')):
+    if key.public_key_data.startswith(string(b"ssh-rsa")):
         # RSA public keys are *not* prefixes of the corresponding private
         # key in OpenSSH format! RSA public keys consist of an exponent
         # e and a modulus n, which in the public key are in the order (e,
@@ -204,10 +204,10 @@ def test_102_test_keys_private_keys_are_internally_consistent(
     private_key_lines = [
         line
         for line in key.private_key.splitlines(keepends=False)
-        if line and not line.startswith((b'-----BEGIN', b'-----END'))
+        if line and not line.startswith((b"-----BEGIN", b"-----END"))
     ]
     private_key_from_openssh = base64.standard_b64decode(
-        b''.join(private_key_lines)
+        b"".join(private_key_lines)
     )
     wrapped_public_key = string(key.public_key_data)
     assert (
@@ -221,7 +221,7 @@ def test_102_test_keys_private_keys_are_internally_consistent(
     # of the private keys section.
     offset = len(OPENSSH_HEADER) + len(wrapped_public_key) + 4
     checkint = int.from_bytes(
-        private_key_from_openssh[offset : offset + 4], 'big'
+        private_key_from_openssh[offset : offset + 4], "big"
     )
     assert minimize_openssh_keyfile_padding(
         private_key_from_openssh

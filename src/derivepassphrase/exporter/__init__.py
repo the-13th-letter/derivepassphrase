@@ -21,7 +21,7 @@ __all__ = ()
 
 
 INVALID_VAULT_NATIVE_CONFIGURATION_FORMAT = (
-    'Invalid vault native configuration format: {fmt!r}'
+    "Invalid vault native configuration format: {fmt!r}"
 )
 
 
@@ -39,11 +39,11 @@ class NotAVaultConfigError(ValueError):
     def __str__(self) -> str:  # pragma: no cover [failsafe]
         """"""  # noqa: D419
         formatted_format = (
-            f'vault {self.format} configuration'
+            f"vault {self.format} configuration"
             if self.format
-            else 'vault configuration'
+            else "vault configuration"
         )
-        return f'Not a {formatted_format}: {self.path!r}'
+        return f"Not a {formatted_format}: {self.path!r}"
 
 
 def get_vault_key() -> bytes:
@@ -66,22 +66,22 @@ def get_vault_key() -> bytes:
     """
 
     def getenv_environb(env_var: str) -> bytes:  # pragma: no cover [external]
-        return os.environb.get(env_var.encode('UTF-8'), b'')  # type: ignore[attr-defined]
+        return os.environb.get(env_var.encode("UTF-8"), b"")  # type: ignore[attr-defined]
 
     def getenv_environ(env_var: str) -> bytes:  # pragma: no cover [external]
-        return os.environ.get(env_var, '').encode('UTF-8')
+        return os.environ.get(env_var, "").encode("UTF-8")
 
     getenv: Callable[[str], bytes] = (
         getenv_environb if os.supports_bytes_environ else getenv_environ
     )
     username = (
-        getenv('VAULT_KEY')
-        or getenv('LOGNAME')
-        or getenv('USER')
-        or getenv('USERNAME')
+        getenv("VAULT_KEY")
+        or getenv("LOGNAME")
+        or getenv("USER")
+        or getenv("USERNAME")
     )
     if not username:
-        env_var = 'VAULT_KEY'
+        env_var = "VAULT_KEY"
         raise KeyError(env_var)
     return username
 
@@ -104,7 +104,7 @@ def get_vault_path() -> pathlib.Path:
 
     """
     return pathlib.Path(
-        '~', os.environ.get('VAULT_PATH', '.vault')
+        "~", os.environ.get("VAULT_PATH", ".vault")
     ).expanduser()
 
 
@@ -181,10 +181,10 @@ def register_export_vault_config_data_handler(
     *names: str,
 ) -> Callable[[ExportVaultConfigDataFunction], ExportVaultConfigDataFunction]:
     if not names:
-        msg = 'No names given to export_data handler registry'
+        msg = "No names given to export_data handler registry"
         raise ValueError(msg)
-    if '' in names:
-        msg = 'Cannot register export_data handler under an empty name'
+    if "" in names:
+        msg = "Cannot register export_data handler under an empty name"
         raise ValueError(msg)
 
     def wrapper(
@@ -192,7 +192,7 @@ def register_export_vault_config_data_handler(
     ) -> ExportVaultConfigDataFunction:
         for name in names:
             if name in _export_vault_config_data_registry:
-                msg = f'export_data handler already registered: {name!r}'
+                msg = f"export_data handler already registered: {name!r}"
                 raise ValueError(msg)
             _export_vault_config_data_registry[name] = f
         return f
@@ -214,8 +214,8 @@ def find_vault_config_data_handlers() -> None:
     # imports.  The modules themselves contain function definitions that
     # register themselves automatically with
     # `_export_vault_config_data_registry`.
-    importlib.import_module('derivepassphrase.exporter.storeroom')
-    importlib.import_module('derivepassphrase.exporter.vault_native')
+    importlib.import_module("derivepassphrase.exporter.storeroom")
+    importlib.import_module("derivepassphrase.exporter.vault_native")
 
 
 def export_vault_config_data(

@@ -25,26 +25,26 @@ if TYPE_CHECKING:
 
 class Parametrize(types.SimpleNamespace):
     EXPECTED_VAULT_PATH = pytest.mark.parametrize(
-        ['expected', 'path'],
+        ["expected", "path"],
         [
-            (pathlib.Path('/tmp'), pathlib.Path('/tmp')),
-            (pathlib.Path('~'), pathlib.Path()),
-            (pathlib.Path('~/.vault'), None),
+            (pathlib.Path("/tmp"), pathlib.Path("/tmp")),
+            (pathlib.Path("~"), pathlib.Path()),
+            (pathlib.Path("~/.vault"), None),
         ],
     )
     EXPORT_VAULT_CONFIG_DATA_HANDLER_NAMELISTS = pytest.mark.parametrize(
-        ['namelist', 'err_pat'],
+        ["namelist", "err_pat"],
         [
-            pytest.param((), '[Nn]o names given', id='empty'),
+            pytest.param((), "[Nn]o names given", id="empty"),
             pytest.param(
-                ('name1', '', 'name2'),
-                '[Uu]nder an empty name',
-                id='empty-string',
+                ("name1", "", "name2"),
+                "[Uu]nder an empty name",
+                id="empty-string",
             ),
             pytest.param(
-                ('dummy', 'name1', 'name2'),
-                '[Aa]lready registered',
-                id='existing',
+                ("dummy", "name1", "name2"),
+                "[Aa]lready registered",
+                id="existing",
             ),
         ],
     )
@@ -100,7 +100,7 @@ class Test001ExporterUtils:
             num_fields = sum(
                 1
                 for f in Test001ExporterUtils.VaultKeyEnvironment._fields
-                if f != 'expected'
+                if f != "expected"
             )
             env_vars: list[str | None] = draw(
                 strategies.builds(
@@ -128,60 +128,60 @@ class Test001ExporterUtils:
             )
 
     @hypothesis.example(
-        VaultKeyEnvironment('4username', None, None, None, '4username')
-    ).via('manual, pre-hypothesis parametrization value')
+        VaultKeyEnvironment("4username", None, None, None, "4username")
+    ).via("manual, pre-hypothesis parametrization value")
     @hypothesis.example(
-        VaultKeyEnvironment('3user', None, None, '3user', None)
-    ).via('manual, pre-hypothesis parametrization value')
+        VaultKeyEnvironment("3user", None, None, "3user", None)
+    ).via("manual, pre-hypothesis parametrization value")
     @hypothesis.example(
-        VaultKeyEnvironment('3user', None, None, '3user', '4username')
-    ).via('manual, pre-hypothesis parametrization value')
+        VaultKeyEnvironment("3user", None, None, "3user", "4username")
+    ).via("manual, pre-hypothesis parametrization value")
     @hypothesis.example(
-        VaultKeyEnvironment('2logname', None, '2logname', None, None)
-    ).via('manual, pre-hypothesis parametrization value')
+        VaultKeyEnvironment("2logname", None, "2logname", None, None)
+    ).via("manual, pre-hypothesis parametrization value")
     @hypothesis.example(
-        VaultKeyEnvironment('2logname', None, '2logname', None, '4username')
-    ).via('manual, pre-hypothesis parametrization value')
+        VaultKeyEnvironment("2logname", None, "2logname", None, "4username")
+    ).via("manual, pre-hypothesis parametrization value")
     @hypothesis.example(
-        VaultKeyEnvironment('2logname', None, '2logname', '3user', None)
-    ).via('manual, pre-hypothesis parametrization value')
+        VaultKeyEnvironment("2logname", None, "2logname", "3user", None)
+    ).via("manual, pre-hypothesis parametrization value")
     @hypothesis.example(
-        VaultKeyEnvironment('2logname', None, '2logname', '3user', '4username')
-    ).via('manual, pre-hypothesis parametrization value')
+        VaultKeyEnvironment("2logname", None, "2logname", "3user", "4username")
+    ).via("manual, pre-hypothesis parametrization value")
     @hypothesis.example(
-        VaultKeyEnvironment('1vault_key', '1vault_key', None, None, None)
-    ).via('manual, pre-hypothesis parametrization value')
-    @hypothesis.example(
-        VaultKeyEnvironment(
-            '1vault_key', '1vault_key', None, None, '4username'
-        )
-    ).via('manual, pre-hypothesis parametrization value')
-    @hypothesis.example(
-        VaultKeyEnvironment('1vault_key', '1vault_key', None, '3user', None)
-    ).via('manual, pre-hypothesis parametrization value')
+        VaultKeyEnvironment("1vault_key", "1vault_key", None, None, None)
+    ).via("manual, pre-hypothesis parametrization value")
     @hypothesis.example(
         VaultKeyEnvironment(
-            '1vault_key', '1vault_key', None, '3user', '4username'
+            "1vault_key", "1vault_key", None, None, "4username"
         )
-    ).via('manual, pre-hypothesis parametrization value')
+    ).via("manual, pre-hypothesis parametrization value")
     @hypothesis.example(
-        VaultKeyEnvironment('1vault_key', '1vault_key', '2logname', None, None)
-    ).via('manual, pre-hypothesis parametrization value')
-    @hypothesis.example(
-        VaultKeyEnvironment(
-            '1vault_key', '1vault_key', '2logname', None, '4username'
-        )
-    ).via('manual, pre-hypothesis parametrization value')
+        VaultKeyEnvironment("1vault_key", "1vault_key", None, "3user", None)
+    ).via("manual, pre-hypothesis parametrization value")
     @hypothesis.example(
         VaultKeyEnvironment(
-            '1vault_key', '1vault_key', '2logname', '3user', None
+            "1vault_key", "1vault_key", None, "3user", "4username"
         )
-    ).via('manual, pre-hypothesis parametrization value')
+    ).via("manual, pre-hypothesis parametrization value")
+    @hypothesis.example(
+        VaultKeyEnvironment("1vault_key", "1vault_key", "2logname", None, None)
+    ).via("manual, pre-hypothesis parametrization value")
     @hypothesis.example(
         VaultKeyEnvironment(
-            '1vault_key', '1vault_key', '2logname', '3user', '4username'
+            "1vault_key", "1vault_key", "2logname", None, "4username"
         )
-    ).via('manual, pre-hypothesis parametrization value')
+    ).via("manual, pre-hypothesis parametrization value")
+    @hypothesis.example(
+        VaultKeyEnvironment(
+            "1vault_key", "1vault_key", "2logname", "3user", None
+        )
+    ).via("manual, pre-hypothesis parametrization value")
+    @hypothesis.example(
+        VaultKeyEnvironment(
+            "1vault_key", "1vault_key", "2logname", "3user", "4username"
+        )
+    ).via("manual, pre-hypothesis parametrization value")
     @hypothesis.given(
         vault_key_env=VaultKeyEnvironment.strategy().filter(
             lambda env: bool(env.expected)
@@ -200,10 +200,10 @@ class Test001ExporterUtils:
         expected, vault_key, logname, user, username = vault_key_env
         assert expected is not None
         priority_list = [
-            ('VAULT_KEY', vault_key),
-            ('LOGNAME', logname),
-            ('USER', user),
-            ('USERNAME', username),
+            ("VAULT_KEY", vault_key),
+            ("LOGNAME", logname),
+            ("USER", user),
+            ("USERNAME", username),
         ]
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
@@ -245,7 +245,7 @@ class Test001ExporterUtils:
             )
             if path:
                 monkeypatch.setenv(
-                    'VAULT_PATH', os.fspath(path) if path is not None else None
+                    "VAULT_PATH", os.fspath(path) if path is not None else None
                 )
             assert (
                 exporter.get_vault_path().resolve()
@@ -263,7 +263,7 @@ class Test001ExporterUtils:
                     operator.add,
                     strategies.sampled_from(string.ascii_letters),
                     strategies.text(
-                        string.ascii_letters + string.digits + '_-',
+                        string.ascii_letters + string.digits + "_-",
                         max_size=23,
                     ),
                 ),
@@ -294,7 +294,7 @@ class Test001ExporterUtils:
         with pytest.MonkeyPatch.context() as monkeypatch:
             registry = dict.fromkeys(names1, handler)
             monkeypatch.setattr(
-                exporter, '_export_vault_config_data_registry', registry
+                exporter, "_export_vault_config_data_registry", registry
             )
             dec = exporter.register_export_vault_config_data_handler(*names2)
             assert dec(handler) == handler
@@ -303,24 +303,24 @@ class Test001ExporterUtils:
     def test_300_get_vault_key_without_envs(self) -> None:
         """Fail to look up the vault key in the empty environment."""
         with pytest.MonkeyPatch.context() as monkeypatch:
-            monkeypatch.delenv('VAULT_KEY', raising=False)
-            monkeypatch.delenv('LOGNAME', raising=False)
-            monkeypatch.delenv('USER', raising=False)
-            monkeypatch.delenv('USERNAME', raising=False)
-            with pytest.raises(KeyError, match='VAULT_KEY'):
+            monkeypatch.delenv("VAULT_KEY", raising=False)
+            monkeypatch.delenv("LOGNAME", raising=False)
+            monkeypatch.delenv("USER", raising=False)
+            monkeypatch.delenv("USERNAME", raising=False)
+            with pytest.raises(KeyError, match="VAULT_KEY"):
                 exporter.get_vault_key()
 
     def test_310_get_vault_path_without_home(self) -> None:
         """Fail to look up the vault path without `HOME`."""
 
         def raiser(*_args: Any, **_kwargs: Any) -> Any:
-            raise RuntimeError('Cannot determine home directory.')  # noqa: EM101,TRY003
+            raise RuntimeError("Cannot determine home directory.")  # noqa: EM101,TRY003
 
         with pytest.MonkeyPatch.context() as monkeypatch:
-            monkeypatch.setattr(pathlib.Path, 'expanduser', raiser)
-            monkeypatch.setattr(os.path, 'expanduser', raiser)
+            monkeypatch.setattr(pathlib.Path, "expanduser", raiser)
+            monkeypatch.setattr(os.path, "expanduser", raiser)
             with pytest.raises(
-                RuntimeError, match=r'[Cc]annot determine home directory'
+                RuntimeError, match=r"[Cc]annot determine home directory"
             ):
                 exporter.get_vault_path()
 
@@ -347,9 +347,9 @@ class Test001ExporterUtils:
             raise ValueError(format)
 
         with pytest.MonkeyPatch.context() as monkeypatch:
-            registry = {'dummy': handler}
+            registry = {"dummy": handler}
             monkeypatch.setattr(
-                exporter, '_export_vault_config_data_registry', registry
+                exporter, "_export_vault_config_data_registry", registry
             )
             with pytest.raises(ValueError, match=err_pat):
                 exporter.register_export_vault_config_data_handler(*namelist)(
@@ -360,16 +360,16 @@ class Test001ExporterUtils:
         """Fail to export vault config data without known handlers."""
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setattr(
-                exporter, '_export_vault_config_data_registry', {}
+                exporter, "_export_vault_config_data_registry", {}
             )
             monkeypatch.setattr(
-                exporter, 'find_vault_config_data_handlers', lambda: None
+                exporter, "find_vault_config_data_handlers", lambda: None
             )
             with pytest.raises(
                 ValueError,
-                match=r'Invalid vault native configuration format',
+                match=r"Invalid vault native configuration format",
             ):
-                exporter.export_vault_config_data(format='v0.3')
+                exporter.export_vault_config_data(format="v0.3")
 
 
 class Test002CLI:
@@ -393,12 +393,12 @@ class Test002CLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase_export_vault,
-                ['-f', 'INVALID', 'VAULT_PATH'],
+                ["-f", "INVALID", "VAULT_PATH"],
                 catch_exceptions=False,
             )
-        for snippet in ('Invalid value for', '-f', '--format', 'INVALID'):
+        for snippet in ("Invalid value for", "-f", "--format", "INVALID"):
             assert result.error_exit(error=snippet), (
-                'expected error exit and known error message'
+                "expected error exit and known error message"
             )
 
     @tests.skip_if_cryptography_support
@@ -428,10 +428,10 @@ class Test002CLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase_export_vault,
-                ['-f', format, 'VAULT_PATH'],
+                ["-f", format, "VAULT_PATH"],
                 catch_exceptions=False,
             )
         assert result.error_exit(
             error=tests.CANNOT_LOAD_CRYPTOGRAPHY,
             record_tuples=caplog.record_tuples,
-        ), 'expected error exit and known error message'
+        ), "expected error exit and known error message"

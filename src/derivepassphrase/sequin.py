@@ -31,7 +31,7 @@ from typing_extensions import assert_type
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
 
-__all__ = ('Sequin', 'SequinExhaustedError')
+__all__ = ("Sequin", "SequinExhaustedError")
 
 
 class Sequin:
@@ -85,7 +85,7 @@ class Sequin:
                 range.
 
         """
-        msg = 'sequence item out of range'
+        msg = "sequence item out of range"
 
         def uint8_to_bits(value: int) -> Iterator[int]:
             """Yield individual bits of an 8-bit number, MSB first."""
@@ -94,7 +94,7 @@ class Sequin:
 
         if isinstance(sequence, str):
             try:
-                sequence = tuple(sequence.encode('iso-8859-1'))
+                sequence = tuple(sequence.encode("iso-8859-1"))
             except UnicodeError as e:
                 raise ValueError(msg) from e
         else:
@@ -204,7 +204,7 @@ class Sequin:
 
         """  # noqa: DOC501
         if base < 2:  # noqa: PLR2004
-            msg = f'invalid base: {base!r}'
+            msg = f"invalid base: {base!r}"
             raise ValueError(msg)
         ret = 0
         allowed_range = range(base)
@@ -213,10 +213,10 @@ class Sequin:
             i2 = (n - 1) - i
             x = digits[i]
             if not isinstance(x, int):
-                msg = f'not an integer: {x!r}'
+                msg = f"not an integer: {x!r}"
                 raise TypeError(msg)
             if x not in allowed_range:
-                msg = f'invalid base {base!r} digit: {x!r}'
+                msg = f"invalid base {base!r} digit: {x!r}"
                 raise ValueError(msg)
             ret += (base**i2) * x
         return ret
@@ -355,10 +355,10 @@ class Sequin:
 
         """
         if n < 1:
-            msg = 'invalid target range'
+            msg = "invalid target range"
             raise ValueError(msg)
         if base < 2:  # noqa: PLR2004
-            msg = f'invalid base: {base!r}'
+            msg = f"invalid base: {base!r}"
             raise ValueError(msg)
         # p = base ** k, where k is the smallest integer such that
         # p >= n.  We determine p and k inductively.
@@ -413,4 +413,4 @@ class SequinExhaustedError(Exception):
     """
 
     def __init__(self) -> None:  # noqa: D107
-        super().__init__('Sequin is exhausted')
+        super().__init__("Sequin is exhausted")

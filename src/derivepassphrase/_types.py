@@ -36,11 +36,11 @@ if TYPE_CHECKING:
     )
 
 __all__ = (
-    'SSH_AGENT',
-    'SSH_AGENTC',
-    'SSHKeyCommentPair',
-    'VaultConfig',
-    'is_vault_config',
+    "SSH_AGENT",
+    "SSH_AGENTC",
+    "SSHKeyCommentPair",
+    "VaultConfig",
+    "is_vault_config",
 )
 
 
@@ -49,7 +49,7 @@ class _Omitted:
         return False
 
     def __repr__(self) -> str:
-        return '...'
+        return "..."
 
 
 class VaultConfigGlobalSettings(TypedDict, total=False):
@@ -95,7 +95,7 @@ class VaultConfigGlobalSettings(TypedDict, total=False):
     phrase: NotRequired[str]
     """"""
     unicode_normalization_form: NotRequired[
-        Literal['NFC', 'NFD', 'NFKC', 'NFKD']
+        Literal["NFC", "NFD", "NFKC", "NFKD"]
     ]
     """"""
     length: NotRequired[int]
@@ -153,8 +153,8 @@ class VaultConfigServicesSettings(VaultConfigGlobalSettings, total=False):
 
 
 _VaultConfig = TypedDict(
-    '_VaultConfig',
-    {'global': NotRequired[VaultConfigGlobalSettings]},
+    "_VaultConfig",
+    {"global": NotRequired[VaultConfigGlobalSettings]},
     total=False,
 )
 
@@ -193,15 +193,15 @@ def json_path(path: Sequence[str | int], /) -> str:
         JSON value.
 
     Examples:
-        >>> json_path(['global', 'phrase'])
+        >>> json_path(["global", "phrase"])
         '$.global.phrase'
-        >>> json_path(['services', 'service name with spaces', 'length'])
+        >>> json_path(["services", "service name with spaces", "length"])
         '$.services["service name with spaces"].length'
-        >>> json_path(['services', 'special\u000acharacters', 'notes'])
+        >>> json_path(["services", "special\u000acharacters", "notes"])
         '$.services["special\\ncharacters"].notes'
-        >>> print(json_path(['services', 'special\u000acharacters', 'notes']))
+        >>> print(json_path(["services", "special\u000acharacters", "notes"]))
         $.services["special\ncharacters"].notes
-        >>> json_path(['custom_array', 2, 0])
+        >>> json_path(["custom_array", 2, 0])
         '$.custom_array[2][0]'
 
     """
@@ -210,7 +210,7 @@ def json_path(path: Sequence[str | int], /) -> str:
         initial = (
             frozenset(string.ascii_lowercase)
             | frozenset(string.ascii_uppercase)
-            | frozenset('_')
+            | frozenset("_")
         )
         chars = initial | frozenset(string.digits)
         return not (
@@ -220,15 +220,15 @@ def json_path(path: Sequence[str | int], /) -> str:
             and x[:1] in initial
         )
 
-    chunks = ['$']
+    chunks = ["$"]
     chunks.extend(
-        f'[{json.dumps(x)}]' if needs_longhand(x) else f'.{x}' for x in path
+        f"[{json.dumps(x)}]" if needs_longhand(x) else f".{x}" for x in path
     )
-    return ''.join(chunks)
+    return "".join(chunks)
 
 
 class _VaultConfigValidator:
-    INVALID_CONFIG_ERROR = 'vault config is invalid'
+    INVALID_CONFIG_ERROR = "vault config is invalid"
 
     def __init__(self, maybe_config: Any) -> None:  # noqa: ANN401
         self.maybe_config = maybe_config
@@ -242,86 +242,86 @@ class _VaultConfigValidator:
     def walk_subconfigs(
         self,
     ) -> Iterator[tuple[tuple[str] | tuple[str, str], str, Any]]:
-        obj = cast('dict[str, dict[str, Any]]', self.maybe_config)
-        if isinstance(obj.get('global', False), dict):
-            for k, v in list(obj['global'].items()):
-                yield ('global',), k, v
-        for sv_name, sv_obj in list(obj['services'].items()):
+        obj = cast("dict[str, dict[str, Any]]", self.maybe_config)
+        if isinstance(obj.get("global", False), dict):
+            for k, v in list(obj["global"].items()):
+                yield ("global",), k, v
+        for sv_name, sv_obj in list(obj["services"].items()):
             for k, v in list(sv_obj.items()):
-                yield ('services', sv_name), k, v
+                yield ("services", sv_name), k, v
 
     def validate(  # noqa: C901,PLR0912
         self,
         *,
         allow_unknown_settings: bool = False,
     ) -> None:
-        err_obj_not_a_dict = 'vault config is not a dict'
+        err_obj_not_a_dict = "vault config is not a dict"
         err_non_str_service_name = (
-            'vault config contains non-string service name {sv_name!r}'
+            "vault config contains non-string service name {sv_name!r}"
         )
-        err_not_a_dict = 'vault config entry {json_path_str} is not a dict'
-        err_not_a_string = 'vault config entry {json_path_str} is not a string'
-        err_not_an_int = 'vault config entry {json_path_str} is not an integer'
+        err_not_a_dict = "vault config entry {json_path_str} is not a dict"
+        err_not_a_string = "vault config entry {json_path_str} is not a string"
+        err_not_an_int = "vault config entry {json_path_str} is not an integer"
         err_unknown_setting = (
-            'vault config entry {json_path_str} uses unknown setting {key!r}'
+            "vault config entry {json_path_str} uses unknown setting {key!r}"
         )
-        err_bad_number0 = 'vault config entry {json_path_str} is negative'
-        err_bad_number1 = 'vault config entry {json_path_str} is not positive'
+        err_bad_number0 = "vault config entry {json_path_str} is negative"
+        err_bad_number1 = "vault config entry {json_path_str} is not positive"
 
         kwargs: dict[str, Any] = {
-            'allow_unknown_settings': allow_unknown_settings,
+            "allow_unknown_settings": allow_unknown_settings,
         }
         if not isinstance(self.maybe_config, dict):
             raise TypeError(err_obj_not_a_dict.format(**kwargs))
-        if 'global' in self.maybe_config:
-            o_global = self.maybe_config['global']
+        if "global" in self.maybe_config:
+            o_global = self.maybe_config["global"]
             if not isinstance(o_global, dict):
-                kwargs['json_path_str'] = json_path(['global'])
+                kwargs["json_path_str"] = json_path(["global"])
                 raise TypeError(err_not_a_dict.format(**kwargs))
-        if not isinstance(self.maybe_config.get('services'), dict):
-            kwargs['json_path_str'] = json_path(['services'])
+        if not isinstance(self.maybe_config.get("services"), dict):
+            kwargs["json_path_str"] = json_path(["services"])
             raise TypeError(err_not_a_dict.format(**kwargs))
-        for sv_name, service in self.maybe_config['services'].items():
+        for sv_name, service in self.maybe_config["services"].items():
             if not isinstance(sv_name, str):
-                kwargs['sv_name'] = sv_name
+                kwargs["sv_name"] = sv_name
                 raise TypeError(err_non_str_service_name.format(**kwargs))
             if not isinstance(service, dict):
-                kwargs['json_path_str'] = json_path(['services', sv_name])
+                kwargs["json_path_str"] = json_path(["services", sv_name])
                 raise TypeError(err_not_a_dict.format(**kwargs))
         for path, key, value in self.walk_subconfigs():
-            kwargs['path'] = path
-            kwargs['key'] = key
-            kwargs['value'] = value
-            kwargs['json_path_str'] = json_path([*path, key])
+            kwargs["path"] = path
+            kwargs["key"] = key
+            kwargs["value"] = value
+            kwargs["json_path_str"] = json_path([*path, key])
             # TODO(the-13th-letter): Rewrite using structural pattern
             # matching.
             # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-            if key in {'key', 'phrase'}:
+            if key in {"key", "phrase"}:
                 if not isinstance(value, str):
                     raise TypeError(err_not_a_string.format(**kwargs))
-            elif key == 'unicode_normalization_form' and path == ('global',):
+            elif key == "unicode_normalization_form" and path == ("global",):
                 if not isinstance(value, str):
                     raise TypeError(err_not_a_string.format(**kwargs))
                 if not allow_unknown_settings:
                     raise ValueError(err_unknown_setting.format(**kwargs))
-            elif key == 'notes' and path != ('global',):
+            elif key == "notes" and path != ("global",):
                 if not isinstance(value, str):
                     raise TypeError(err_not_a_string.format(**kwargs))
             elif key in {
-                'length',
-                'repeat',
-                'lower',
-                'upper',
-                'number',
-                'space',
-                'dash',
-                'symbol',
+                "length",
+                "repeat",
+                "lower",
+                "upper",
+                "number",
+                "space",
+                "dash",
+                "symbol",
             }:
                 if not isinstance(value, int):
                     raise TypeError(err_not_an_int.format(**kwargs))
-                if key == 'length' and value < 1:
+                if key == "length" and value < 1:
                     raise ValueError(err_bad_number1.format(**kwargs))
-                if key != 'length' and value < 0:
+                if key != "length" and value < 0:
                     raise ValueError(err_bad_number0.format(**kwargs))
             elif not allow_unknown_settings:
                 raise ValueError(err_unknown_setting.format(**kwargs))
@@ -330,19 +330,19 @@ class _VaultConfigValidator:
         obj = self.maybe_config
         if (
             not isinstance(obj, dict)
-            or 'services' not in obj
-            or not isinstance(obj['services'], dict)
+            or "services" not in obj
+            or not isinstance(obj["services"], dict)
         ):
             raise ValueError(
                 self.INVALID_CONFIG_ERROR
             )  # pragma: no cover [failsafe]
-        if 'global' in obj and not isinstance(obj['global'], dict):
+        if "global" in obj and not isinstance(obj["global"], dict):
             raise ValueError(
                 self.INVALID_CONFIG_ERROR
             )  # pragma: no cover [failsafe]
         if not all(
             isinstance(service_obj, dict)
-            for service_obj in obj['services'].values()
+            for service_obj in obj["services"].values()
         ):
             raise ValueError(
                 self.INVALID_CONFIG_ERROR
@@ -357,60 +357,60 @@ class _VaultConfigValidator:
             )
 
         def falsy_but_not_string(value: Any) -> bool:  # noqa: ANN401
-            return not js_truthiness(value) and value != ''  # noqa: PLC1901
+            return not js_truthiness(value) and value != ""  # noqa: PLC1901
 
         for path, key, value in self.walk_subconfigs():
             service_obj = self.traverse_path(path)
             # TODO(the-13th-letter): Rewrite using structural pattern
             # matching.
             # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-            if key == 'phrase' and falsy_but_not_string(value):
+            if key == "phrase" and falsy_but_not_string(value):
                 yield CleanupStep(
-                    (*path, key), service_obj[key], 'replace', ''
+                    (*path, key), service_obj[key], "replace", ""
                 )
-                service_obj[key] = ''
-            elif key == 'notes' and falsy(value):
+                service_obj[key] = ""
+            elif key == "notes" and falsy(value):
                 yield CleanupStep(
-                    (*path, key), service_obj[key], 'remove', None
+                    (*path, key), service_obj[key], "remove", None
                 )
                 service_obj.pop(key)
-            elif key == 'key' and falsy(value):
-                if path == ('global',):
+            elif key == "key" and falsy(value):
+                if path == ("global",):
                     yield CleanupStep(
-                        (*path, key), service_obj[key], 'remove', None
+                        (*path, key), service_obj[key], "remove", None
                     )
                     service_obj.pop(key)
                 else:
                     yield CleanupStep(
-                        (*path, key), service_obj[key], 'replace', ''
+                        (*path, key), service_obj[key], "replace", ""
                     )
-                    service_obj[key] = ''
-            elif key == 'length' and falsy(value):
+                    service_obj[key] = ""
+            elif key == "length" and falsy(value):
                 yield CleanupStep(
-                    (*path, key), service_obj[key], 'replace', 20
+                    (*path, key), service_obj[key], "replace", 20
                 )
                 service_obj[key] = 20
-            elif key == 'repeat' and falsy_but_not_zero(value):
-                yield CleanupStep((*path, key), service_obj[key], 'replace', 0)
+            elif key == "repeat" and falsy_but_not_zero(value):
+                yield CleanupStep((*path, key), service_obj[key], "replace", 0)
                 service_obj[key] = 0
             elif key in {
-                'lower',
-                'upper',
-                'number',
-                'space',
-                'dash',
-                'symbol',
+                "lower",
+                "upper",
+                "number",
+                "space",
+                "dash",
+                "symbol",
             } and falsy_but_not_zero(value):
                 yield CleanupStep(
-                    (*path, key), service_obj[key], 'remove', None
+                    (*path, key), service_obj[key], "remove", None
                 )
                 service_obj.pop(key)
 
 
 @overload
 @deprecated(
-    'allow_derivepassphrase_extensions argument is deprecated since v0.4.0, '
-    'to be removed in v1.0: no extensions are defined'
+    "allow_derivepassphrase_extensions argument is deprecated since v0.4.0, "
+    "to be removed in v1.0: no extensions are defined"
 )
 def validate_vault_config(
     obj: Any,  # noqa: ANN401
@@ -496,7 +496,7 @@ def is_vault_config(obj: Any) -> TypeIs[VaultConfig]:  # noqa: ANN401
             allow_unknown_settings=True,
         )
     except (TypeError, ValueError) as exc:
-        if 'vault config ' not in str(exc):  # pragma: no cover [failsafe]
+        if "vault config " not in str(exc):  # pragma: no cover [failsafe]
             raise
         return False
     return True
@@ -532,7 +532,7 @@ def js_truthiness(value: Any, /) -> bool:  # noqa: ANN401
 
     """  # noqa: RUF002
     try:
-        if value in {None, False, 0, 0.0, ''}:  # noqa: B033
+        if value in {None, False, 0, 0.0, ""}:  # noqa: B033
             return False
     except TypeError:
         # All falsy values are hashable, so this can't be falsy.
@@ -561,7 +561,7 @@ class CleanupStep(NamedTuple):
     """"""
     old_value: Any
     """"""
-    action: Literal['replace', 'remove']
+    action: Literal["replace", "remove"]
     """"""
     new_value: Any
     """"""
@@ -605,7 +605,7 @@ def clean_up_falsy_vault_config_values(
 
 # TODO(the-13th-letter): Use type variables local to each class.
 # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.11
-T_Buffer = TypeVar('T_Buffer', bound=Buffer)
+T_Buffer = TypeVar("T_Buffer", bound=Buffer)
 """
 A [`TypeVar`][] for classes implementing the [`Buffer`][] interface.
 
@@ -805,7 +805,7 @@ class PEP508Extra(str, enum.Enum):
 
     """
 
-    EXPORT = 'export'
+    EXPORT = "export"
     """"""
 
     @_feature_test_function
@@ -814,7 +814,7 @@ class PEP508Extra(str, enum.Enum):
         """Return true if [`PEP508Extra.EXPORT`][] is currently supported."""
         import importlib.util  # noqa: PLC0415
 
-        return importlib.util.find_spec('cryptography') is not None
+        return importlib.util.find_spec("cryptography") is not None
 
     def test(self, *_args: Any, **_kwargs: Any) -> bool:  # noqa: ANN401
         """Return true if this extra is enabled."""
@@ -840,7 +840,7 @@ class Feature(str, enum.Enum):
 
     """
 
-    SSH_KEY = 'master SSH key'
+    SSH_KEY = "master SSH key"
     """"""
 
     @_feature_test_function
@@ -896,7 +896,7 @@ class DerivationScheme(str, enum.Enum):
 
     """
 
-    VAULT = 'vault'
+    VAULT = "vault"
     """"""
 
     def test(self, *_args: Any, **_kwargs: Any) -> bool:  # noqa: ANN401
@@ -923,7 +923,7 @@ class ForeignConfigurationFormat(str, enum.Enum):
 
     """
 
-    VAULT_STOREROOM = 'vault storeroom'
+    VAULT_STOREROOM = "vault storeroom"
     """"""
 
     @_feature_test_function
@@ -934,9 +934,9 @@ class ForeignConfigurationFormat(str, enum.Enum):
 
         return not storeroom.STUBBED
 
-    VAULT_V02 = 'vault v0.2'
+    VAULT_V02 = "vault v0.2"
     """"""
-    VAULT_V03 = 'vault v0.3'
+    VAULT_V03 = "vault v0.3"
     """"""
 
     @_feature_test_function
@@ -971,7 +971,7 @@ class ExportSubcommand(str, enum.Enum):
 
     """
 
-    VAULT = 'vault'
+    VAULT = "vault"
     """"""
 
     def test(self, *_args: Any, **_kwargs: Any) -> bool:  # noqa: ANN401
@@ -993,9 +993,9 @@ class Subcommand(str, enum.Enum):
 
     """
 
-    EXPORT = 'export'
+    EXPORT = "export"
     """"""
-    VAULT = 'vault'
+    VAULT = "vault"
     """"""
 
     def test(self, *_args: Any, **_kwargs: Any) -> bool:  # noqa: ANN401
@@ -1033,7 +1033,7 @@ class SSHAgentSocket(Protocol):
     def recv(self, data: int, flags: int = 0, /) -> bytes: ...
 
 
-SSHAgentSocketProvider: TypeAlias = 'Callable[[], SSHAgentSocket]'
+SSHAgentSocketProvider: TypeAlias = "Callable[[], SSHAgentSocket]"
 """A callable that provides an SSH agent socket."""
 
 

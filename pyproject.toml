@@ -187,8 +187,8 @@ first_value = '1'
 
 [[tool.bumpversion.files]]
 filename = 'src/derivepassphrase/__init__.py'
-search = "^ *__version__ *= *'{current_version}'"
-replace = "__version__ = '{new_version}'"
+search = '^ *__version__ *= *"{current_version}"'
+replace = '__version__ = "{new_version}"'
 regex = true
 
 [[tool.bumpversion.files]]
@@ -425,7 +425,7 @@ src = ["src"]
 docstring-code-format = true
 docstring-code-line-length = "dynamic"
 preview = true
-quote-style = 'single'
+quote-style = "double"
 
 [tool.ruff.lint]
 ignore = [

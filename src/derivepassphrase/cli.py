@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from collections.abc import Set as AbstractSet
     from contextlib import AbstractContextManager
 
-__all__ = ('derivepassphrase',)
+__all__ = ("derivepassphrase",)
 
 PROG_NAME = _internals.PROG_NAME
 VERSION = _internals.VERSION
@@ -46,9 +46,9 @@ VERSION = _internals.VERSION
 
 @click.group(
     context_settings={
-        'help_option_names': ['-h', '--help'],
-        'ignore_unknown_options': True,
-        'allow_interspersed_args': False,
+        "help_option_names": ["-h", "--help"],
+        "ignore_unknown_options": True,
+        "allow_interspersed_args": False,
     },
     epilog=_msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_EPILOG_01),
     invoke_without_command=True,
@@ -79,18 +79,18 @@ def derivepassphrase(ctx: click.Context, /) -> None:
     """
     # TODO(the-13th-letter): Turn this callback into a no-op in v1.0.
     # https://the13thletter.info/derivepassphrase/latest/upgrade-notes/#v1.0-implied-subcommands
-    deprecation = logging.getLogger(f'{PROG_NAME}.deprecation')
+    deprecation = logging.getLogger(f"{PROG_NAME}.deprecation")
     if ctx.invoked_subcommand is None:
         deprecation.warning(
             _msg.TranslatedString(
                 _msg.WarnMsgTemplate.V10_SUBCOMMAND_REQUIRED
             ),
-            extra={'color': ctx.color},
+            extra={"color": ctx.color},
         )
         # See definition of click.Group.invoke, non-chained case.
         with ctx:
             sub_ctx = derivepassphrase_vault.make_context(
-                'vault', ctx.args, parent=ctx
+                "vault", ctx.args, parent=ctx
             )
             with sub_ctx:
                 return derivepassphrase_vault.invoke(sub_ctx)
@@ -102,11 +102,11 @@ def derivepassphrase(ctx: click.Context, /) -> None:
 
 
 @derivepassphrase.group(
-    'export',
+    "export",
     context_settings={
-        'help_option_names': ['-h', '--help'],
-        'ignore_unknown_options': True,
-        'allow_interspersed_args': False,
+        "help_option_names": ["-h", "--help"],
+        "ignore_unknown_options": True,
+        "allow_interspersed_args": False,
     },
     invoke_without_command=True,
     cls=cli_machinery.DefaultToVaultGroup,
@@ -134,18 +134,18 @@ def derivepassphrase_export(ctx: click.Context, /) -> None:
     """
     # TODO(the-13th-letter): Turn this callback into a no-op in v1.0.
     # https://the13thletter.info/derivepassphrase/latest/upgrade-notes/#v1.0-implied-subcommands
-    deprecation = logging.getLogger(f'{PROG_NAME}.deprecation')
+    deprecation = logging.getLogger(f"{PROG_NAME}.deprecation")
     if ctx.invoked_subcommand is None:
         deprecation.warning(
             _msg.TranslatedString(
                 _msg.WarnMsgTemplate.V10_SUBCOMMAND_REQUIRED
             ),
-            extra={'color': ctx.color},
+            extra={"color": ctx.color},
         )
         # See definition of click.Group.invoke, non-chained case.
         with ctx:
             sub_ctx = derivepassphrase_export_vault.make_context(
-                'vault', ctx.args, parent=ctx
+                "vault", ctx.args, parent=ctx
             )
             # Constructing the subcontext above will usually already
             # lead to a click.UsageError, so this block typically won't
@@ -156,8 +156,8 @@ def derivepassphrase_export(ctx: click.Context, /) -> None:
 
 
 @derivepassphrase_export.command(
-    'vault',
-    context_settings={'help_option_names': ['-h', '--help']},
+    "vault",
+    context_settings={"help_option_names": ["-h", "--help"]},
     cls=cli_machinery.CommandWithHelpGroups,
     help=(
         _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_EXPORT_VAULT_01),
@@ -176,13 +176,13 @@ def derivepassphrase_export(ctx: click.Context, /) -> None:
     ),
 )
 @click.option(
-    '-f',
-    '--format',
-    'formats',
+    "-f",
+    "--format",
+    "formats",
     metavar=_msg.TranslatedString(_msg.Label.EXPORT_VAULT_FORMAT_METAVAR_FMT),
     multiple=True,
-    default=('v0.3', 'v0.2', 'storeroom'),
-    type=click.Choice(['v0.2', 'v0.3', 'storeroom']),
+    default=("v0.3", "v0.2", "storeroom"),
+    type=click.Choice(["v0.2", "v0.3", "storeroom"]),
     help=_msg.TranslatedString(
         _msg.Label.EXPORT_VAULT_FORMAT_HELP_TEXT,
         defaults_hint=_msg.TranslatedString(
@@ -195,8 +195,8 @@ def derivepassphrase_export(ctx: click.Context, /) -> None:
     cls=cli_machinery.StandardOption,
 )
 @click.option(
-    '-k',
-    '--key',
+    "-k",
+    "--key",
     metavar=_msg.TranslatedString(_msg.Label.EXPORT_VAULT_KEY_METAVAR_K),
     help=_msg.TranslatedString(
         _msg.Label.EXPORT_VAULT_KEY_HELP_TEXT,
@@ -213,7 +213,7 @@ def derivepassphrase_export(ctx: click.Context, /) -> None:
 @cli_machinery.color_forcing_pseudo_option
 @cli_machinery.standard_logging_options
 @click.argument(
-    'path',
+    "path",
     metavar=_msg.TranslatedString(_msg.Label.EXPORT_VAULT_METAVAR_PATH),
     required=True,
     shell_complete=cli_helpers.shell_complete_path,
@@ -224,7 +224,7 @@ def derivepassphrase_export_vault(
     /,
     *,
     path: str | bytes | os.PathLike[str] | None,
-    formats: Sequence[Literal['v0.2', 'v0.3', 'storeroom']] = (),
+    formats: Sequence[Literal["v0.2", "v0.3", "storeroom"]] = (),
     key: str | bytes | None = None,
 ) -> None:
     """Export a vault-native configuration to standard output.
@@ -239,10 +239,10 @@ def derivepassphrase_export_vault(
 
     """
     logger = logging.getLogger(PROG_NAME)
-    if path in {'VAULT_PATH', b'VAULT_PATH'}:
+    if path in {"VAULT_PATH", b"VAULT_PATH"}:
         path = None
     if isinstance(key, str):  # pragma: no branch
-        key = key.encode('utf-8')
+        key = key.encode("utf-8")
     for fmt in formats:
         try:
             config = exporter.export_vault_config_data(path, key, format=fmt)
@@ -258,7 +258,7 @@ def derivepassphrase_export_vault(
                     path=path or exporter.get_vault_path(),
                     fmt=fmt,
                 ),
-                extra={'color': ctx.color},
+                extra={"color": ctx.color},
             )
             continue
         except OSError as exc:
@@ -269,23 +269,23 @@ def derivepassphrase_export_vault(
                     error=exc.strerror,
                     filename=exc.filename,
                 ).maybe_without_filename(),
-                extra={'color': ctx.color},
+                extra={"color": ctx.color},
             )
             ctx.exit(1)
         except ModuleNotFoundError:
             logger.error(
                 _msg.TranslatedString(
                     _msg.ErrMsgTemplate.MISSING_MODULE,
-                    module='cryptography',
+                    module="cryptography",
                 ),
-                extra={'color': ctx.color},
+                extra={"color": ctx.color},
             )
             logger.info(
                 _msg.TranslatedString(
                     _msg.InfoMsgTemplate.PIP_INSTALL_EXTRA,
-                    extra_name='export',
+                    extra_name="export",
                 ),
-                extra={'color': ctx.color},
+                extra={"color": ctx.color},
             )
             ctx.exit(1)
         else:
@@ -295,7 +295,7 @@ def derivepassphrase_export_vault(
                         _msg.ErrMsgTemplate.INVALID_VAULT_CONFIG,
                         config=config,
                     ),
-                    extra={'color': ctx.color},
+                    extra={"color": ctx.color},
                 )
                 ctx.exit(1)
             click.echo(
@@ -311,7 +311,7 @@ def derivepassphrase_export_vault(
                 _msg.ErrMsgTemplate.CANNOT_PARSE_AS_VAULT_CONFIG,
                 path=path,
             ).maybe_without_filename(),
-            extra={'color': ctx.color},
+            extra={"color": ctx.color},
         )
         ctx.exit(1)
 
@@ -355,26 +355,26 @@ class _VaultContext:  # noqa: PLR0904
 
     logger: Final = logging.getLogger(PROG_NAME)
     """"""
-    deprecation: Final = logging.getLogger(PROG_NAME + '.deprecation')
+    deprecation: Final = logging.getLogger(PROG_NAME + ".deprecation")
     """"""
     ctx: Final[click.Context]
     """"""
     all_ops: tuple[str, ...] = (
-        'delete_service_settings',
-        'delete_globals',
-        'clear_all_settings',
-        'import_settings',
-        'export_settings',
-        'store_config_only',
+        "delete_service_settings",
+        "delete_globals",
+        "clear_all_settings",
+        "import_settings",
+        "export_settings",
+        "store_config_only",
         # The default op "derive_passphrase" must be last!
-        'derive_passphrase',
+        "derive_passphrase",
     )
     readwrite_ops: AbstractSet[str] = frozenset({
-        'delete_service_settings',
-        'delete_globals',
-        'clear_all_settings',
-        'import_settings',
-        'store_config_only',
+        "delete_service_settings",
+        "delete_globals",
+        "clear_all_settings",
+        "import_settings",
+        "store_config_only",
     })
     options_in_group: dict[type[click.Option], list[click.Option]]
     params_by_str: dict[str, click.Parameter]
@@ -408,7 +408,7 @@ class _VaultContext:  # noqa: PLR0904
                             group = class_
                             break
                     else:  # pragma: no cover [failsafe]
-                        assert False, f'Unknown option group for {param!r}'  # noqa: B011,PT015
+                        assert False, f"Unknown option group for {param!r}"  # noqa: B011,PT015
                 else:
                     group = click.Option
                 self.options_in_group.setdefault(group, []).append(param)
@@ -439,7 +439,7 @@ class _VaultContext:  # noqa: PLR0904
         """
         param = self.params_by_str[param] if isinstance(param, str) else param
         names = [param.human_readable_name, *param.opts, *param.secondary_opts]
-        option_names = [n for n in names if n.startswith('--')]
+        option_names = [n for n in names if n.startswith("--")]
         return min(option_names, key=len)
 
     def check_incompatible_options(
@@ -486,10 +486,10 @@ class _VaultContext:  # noqa: PLR0904
         is logged.
 
         """
-        stacklevel = kwargs.pop('stacklevel', 1)
+        stacklevel = kwargs.pop("stacklevel", 1)
         stacklevel += 1
-        extra = kwargs.pop('extra', {})
-        extra.setdefault('color', self.ctx.color)
+        extra = kwargs.pop("extra", {})
+        extra.setdefault("color", self.ctx.color)
         self.logger.error(msg, stacklevel=stacklevel, extra=extra, **kwargs)
         self.ctx.exit(1)
 
@@ -500,10 +500,10 @@ class _VaultContext:  # noqa: PLR0904
         warning is logged.
 
         """
-        stacklevel = kwargs.pop('stacklevel', 1)
+        stacklevel = kwargs.pop("stacklevel", 1)
         stacklevel += 1
-        extra = kwargs.pop('extra', {})
-        extra.setdefault('color', self.ctx.color)
+        extra = kwargs.pop("extra", {})
+        extra.setdefault("color", self.ctx.color)
         self.logger.warning(msg, stacklevel=stacklevel, extra=extra, **kwargs)
 
     def deprecation_warning(self, msg: Any, /, **kwargs: Any) -> None:  # noqa: ANN401
@@ -513,10 +513,10 @@ class _VaultContext:  # noqa: PLR0904
         warning is logged.
 
         """
-        stacklevel = kwargs.pop('stacklevel', 1)
+        stacklevel = kwargs.pop("stacklevel", 1)
         stacklevel += 1
-        extra = kwargs.pop('extra', {})
-        extra.setdefault('color', self.ctx.color)
+        extra = kwargs.pop("extra", {})
+        extra.setdefault("color", self.ctx.color)
         self.deprecation.warning(
             msg, stacklevel=stacklevel, extra=extra, **kwargs
         )
@@ -528,10 +528,10 @@ class _VaultContext:  # noqa: PLR0904
         warning is logged.
 
         """
-        stacklevel = kwargs.pop('stacklevel', 1)
+        stacklevel = kwargs.pop("stacklevel", 1)
         stacklevel += 1
-        extra = kwargs.pop('extra', {})
-        extra.setdefault('color', self.ctx.color)
+        extra = kwargs.pop("extra", {})
+        extra.setdefault("color", self.ctx.color)
         self.deprecation.info(
             msg, stacklevel=stacklevel, extra=extra, **kwargs
         )
@@ -554,11 +554,11 @@ class _VaultContext:  # noqa: PLR0904
             try:
                 backup_config, exc = cli_helpers.migrate_and_load_old_config()
             except FileNotFoundError:
-                return {'services': {}}
+                return {"services": {}}
             old_name = cli_helpers.config_filename(
-                subsystem='old settings.json'
+                subsystem="old settings.json"
             ).name
-            new_name = cli_helpers.config_filename(subsystem='vault').name
+            new_name = cli_helpers.config_filename(subsystem="vault").name
             self.deprecation_warning(
                 _msg.TranslatedString(
                     _msg.WarnMsgTemplate.V01_STYLE_CONFIG,
@@ -662,15 +662,15 @@ class _VaultContext:  # noqa: PLR0904
 
         """
         param: click.Parameter
-        self.check_incompatible_options('--phrase', '--key')
+        self.check_incompatible_options("--phrase", "--key")
         for group in (
             cli_machinery.ConfigurationOption,
             cli_machinery.StorageManagementOption,
         ):
             for opt in self.options_in_group[group]:
                 if opt not in {
-                    self.params_by_str['--config'],
-                    self.params_by_str['--notes'],
+                    self.params_by_str["--config"],
+                    self.params_by_str["--notes"],
                 }:
                     for other_opt in self.options_in_group[
                         cli_machinery.PassphraseGenerationOption
@@ -686,15 +686,15 @@ class _VaultContext:  # noqa: PLR0904
                     cli_machinery.ConfigurationOption
                 ]:
                     if {opt, other_opt} != {
-                        self.params_by_str['--config'],
-                        self.params_by_str['--notes'],
+                        self.params_by_str["--config"],
+                        self.params_by_str["--notes"],
                     }:
                         self.check_incompatible_options(opt, other_opt)
                 for other_opt in self.options_in_group[
                     cli_machinery.StorageManagementOption
                 ]:
                     self.check_incompatible_options(opt, other_opt)
-        service: str | None = self.ctx.params['service']
+        service: str | None = self.ctx.params["service"]
         service_metavar = _msg.TranslatedString(
             _msg.Label.VAULT_METAVAR_SERVICE
         )
@@ -704,7 +704,7 @@ class _VaultContext:  # noqa: PLR0904
         for param in sv_or_global_options:
             if self.is_param_set(param) and not (
                 service is not None
-                or self.is_param_set(self.params_by_str['--config'])
+                or self.is_param_set(self.params_by_str["--config"])
             ):
                 err_msg = _msg.TranslatedString(
                     _msg.ErrMsgTemplate.PARAMS_NEEDS_SERVICE_OR_CONFIG,
@@ -713,8 +713,8 @@ class _VaultContext:  # noqa: PLR0904
                 )
                 raise click.UsageError(str(err_msg))
         sv_options = [
-            self.params_by_str['--notes'],
-            self.params_by_str['--delete'],
+            self.params_by_str["--notes"],
+            self.params_by_str["--delete"],
         ]
         for param in sv_options:
             if self.is_param_set(param) and not service is not None:
@@ -725,8 +725,8 @@ class _VaultContext:  # noqa: PLR0904
                 )
                 raise click.UsageError(str(err_msg))
         no_sv_options = [
-            self.params_by_str['--delete-globals'],
-            self.params_by_str['--clear'],
+            self.params_by_str["--delete-globals"],
+            self.params_by_str["--clear"],
             *self.options_in_group[cli_machinery.StorageManagementOption],
         ]
         for param in no_sv_options:
@@ -771,15 +771,15 @@ class _VaultContext:  # noqa: PLR0904
         service_metavar = _msg.TranslatedString(
             _msg.Label.VAULT_METAVAR_SERVICE
         )
-        if self.ctx.params['service'] == '':  # noqa: PLC1901
+        if self.ctx.params["service"] == "":  # noqa: PLC1901
             self.warning(
                 _msg.TranslatedString(
                     _msg.WarnMsgTemplate.EMPTY_SERVICE_NOT_SUPPORTED,
                     service_metavar=service_metavar,
                 ),
             )
-        if self.ctx.params.get('edit_notes') and not self.ctx.params.get(
-            'store_config_only'
+        if self.ctx.params.get("edit_notes") and not self.ctx.params.get(
+            "store_config_only"
         ):
             self.warning(
                 _msg.TranslatedString(
@@ -795,28 +795,28 @@ class _VaultContext:  # noqa: PLR0904
         else:
             op = self.all_ops[-1]
         with self.get_mutex(op):
-            op_func = getattr(self, 'run_op_' + op)
+            op_func = getattr(self, "run_op_" + op)
             return op_func()
 
     def run_op_delete_service_settings(self) -> None:
         """Delete settings for a specific service."""
-        service = self.ctx.params['service']
+        service = self.ctx.params["service"]
         assert service is not None
         configuration = self.get_config()
-        if service in configuration['services']:
-            del configuration['services'][service]
+        if service in configuration["services"]:
+            del configuration["services"][service]
             self.put_config(configuration)
 
     def run_op_delete_globals(self) -> None:
         """Delete the global settings."""
         configuration = self.get_config()
-        if 'global' in configuration:
-            del configuration['global']
+        if "global" in configuration:
+            del configuration["global"]
             self.put_config(configuration)
 
     def run_op_clear_all_settings(self) -> None:
         """Clear all settings."""
-        self.put_config({'services': {}})
+        self.put_config({"services": {}})
 
     def run_op_import_settings(self) -> None:  # noqa: C901,PLR0912
         """Import settings from a given file.
@@ -832,17 +832,17 @@ class _VaultContext:  # noqa: PLR0904
             _msg.Label.VAULT_METAVAR_SERVICE
         )
         user_config = self.get_user_config()
-        import_settings = self.ctx.params['import_settings']
-        overwrite_config = self.ctx.params['overwrite_config']
+        import_settings = self.ctx.params["import_settings"]
+        overwrite_config = self.ctx.params["overwrite_config"]
         try:
             # TODO(the-13th-letter): keep track of auto-close; try
             # os.dup if feasible
             infile = cast(
-                'TextIO',
+                "TextIO",
                 (
                     import_settings
-                    if hasattr(import_settings, 'close')
-                    else click.open_file(os.fspath(import_settings), 'rt')
+                    if hasattr(import_settings, "close")
+                    else click.open_file(os.fspath(import_settings), "rt")
                 ),
             )
             # Don't specifically catch TypeError or ValueError here if
@@ -884,7 +884,7 @@ class _VaultContext:  # noqa: PLR0904
             # These are never fatal errors, because the semantics of
             # vault upon encountering these settings are ill-specified,
             # but not ill-defined.
-            if step.action == 'replace':
+            if step.action == "replace":
                 self.warning(
                     _msg.TranslatedString(
                         _msg.WarnMsgTemplate.STEP_REPLACE_INVALID_VALUE,
@@ -901,7 +901,7 @@ class _VaultContext:  # noqa: PLR0904
                         old=json.dumps(step.old_value),
                     ),
                 )
-        if '' in maybe_config['services']:
+        if "" in maybe_config["services"]:
             self.warning(
                 _msg.TranslatedString(
                     _msg.WarnMsgTemplate.EMPTY_SERVICE_SETTINGS_INACCESSIBLE,
@@ -909,7 +909,7 @@ class _VaultContext:  # noqa: PLR0904
                     PROG_NAME=PROG_NAME,
                 ),
             )
-        for service_name in sorted(maybe_config['services'].keys()):
+        for service_name in sorted(maybe_config["services"].keys()):
             if not cli_helpers.is_completable_item(service_name):
                 self.warning(
                     _msg.TranslatedString(
@@ -919,15 +919,15 @@ class _VaultContext:  # noqa: PLR0904
                 )
         try:
             cli_helpers.check_for_misleading_passphrase(
-                ('global',),
-                cast('dict[str, Any]', maybe_config.get('global', {})),
+                ("global",),
+                cast("dict[str, Any]", maybe_config.get("global", {})),
                 main_config=user_config,
                 ctx=self.ctx,
             )
-            for key, value in maybe_config['services'].items():
+            for key, value in maybe_config["services"].items():
                 cli_helpers.check_for_misleading_passphrase(
-                    ('services', key),
-                    cast('dict[str, Any]', value),
+                    ("services", key),
+                    cast("dict[str, Any]", value),
                     main_config=user_config,
                     ctx=self.ctx,
                 )
@@ -939,22 +939,22 @@ class _VaultContext:  # noqa: PLR0904
                     filename=None,
                 ).maybe_without_filename(),
             )
-        global_obj = maybe_config.get('global', {})
-        has_key = _types.js_truthiness(global_obj.get('key'))
-        has_phrase = _types.js_truthiness(global_obj.get('phrase'))
+        global_obj = maybe_config.get("global", {})
+        has_key = _types.js_truthiness(global_obj.get("key"))
+        has_phrase = _types.js_truthiness(global_obj.get("phrase"))
         if has_key and has_phrase:
             self.warning(
                 _msg.TranslatedString(
                     _msg.WarnMsgTemplate.GLOBAL_PASSPHRASE_INEFFECTIVE,
                 ),
             )
-        for service_name, service_obj in maybe_config['services'].items():
+        for service_name, service_obj in maybe_config["services"].items():
             has_key = _types.js_truthiness(
-                service_obj.get('key')
-            ) or _types.js_truthiness(global_obj.get('key'))
+                service_obj.get("key")
+            ) or _types.js_truthiness(global_obj.get("key"))
             has_phrase = _types.js_truthiness(
-                service_obj.get('phrase')
-            ) or _types.js_truthiness(global_obj.get('phrase'))
+                service_obj.get("phrase")
+            ) or _types.js_truthiness(global_obj.get("phrase"))
             if has_key and has_phrase:
                 self.warning(
                     _msg.TranslatedString(
@@ -969,16 +969,16 @@ class _VaultContext:  # noqa: PLR0904
             merged_config: collections.ChainMap[str, Any] = (
                 collections.ChainMap(
                     {
-                        'services': collections.ChainMap(
-                            maybe_config['services'],
-                            configuration['services'],
+                        "services": collections.ChainMap(
+                            maybe_config["services"],
+                            configuration["services"],
                         ),
                     },
-                    {'global': maybe_config['global']}
-                    if 'global' in maybe_config
+                    {"global": maybe_config["global"]}
+                    if "global" in maybe_config
                     else {},
-                    {'global': configuration['global']}
-                    if 'global' in configuration
+                    {"global": configuration["global"]}
+                    if "global" in configuration
                     else {},
                 )
             )
@@ -996,18 +996,18 @@ class _VaultContext:  # noqa: PLR0904
         configuration to the file.
 
         """
-        export_settings = self.ctx.params['export_settings']
-        export_as = self.ctx.params['export_as']
+        export_settings = self.ctx.params["export_settings"]
+        export_as = self.ctx.params["export_as"]
         configuration = self.get_config()
         try:
             # TODO(the-13th-letter): keep track of auto-close; try
             # os.dup if feasible
             outfile = cast(
-                'TextIO',
+                "TextIO",
                 (
                     export_settings
-                    if hasattr(export_settings, 'close')
-                    else click.open_file(os.fspath(export_settings), 'wt')
+                    if hasattr(export_settings, "close")
+                    else click.open_file(os.fspath(export_settings), "wt")
                 ),
             )
             # Don't specifically catch TypeError or ValueError here if
@@ -1016,10 +1016,10 @@ class _VaultContext:  # noqa: PLR0904
             # and for programmatic use, our caller may want accurate
             # error information.
             with outfile:
-                if export_as == 'sh':
+                if export_as == "sh":
                     this_ctx = self.ctx
                     prog_name_pieces = collections.deque([
-                        this_ctx.info_name or 'vault',
+                        this_ctx.info_name or "vault",
                     ])
                     while (
                         this_ctx.parent is not None
@@ -1094,20 +1094,20 @@ class _VaultContext:  # noqa: PLR0904
             entered master passphrase for Unicode normalization issues.
 
         """
-        service = self.ctx.params['service']
-        use_key = self.ctx.params['use_key']
-        use_phrase = self.ctx.params['use_phrase']
+        service = self.ctx.params["service"]
+        use_key = self.ctx.params["use_key"]
+        use_phrase = self.ctx.params["use_phrase"]
         if configuration is None:
             configuration = self.get_config()
         service_keys_on_commandline = {
-            'length',
-            'repeat',
-            'lower',
-            'upper',
-            'number',
-            'space',
-            'dash',
-            'symbol',
+            "length",
+            "repeat",
+            "lower",
+            "upper",
+            "number",
+            "space",
+            "dash",
+            "symbol",
         }
         settings: collections.ChainMap[str, Any] = collections.ChainMap(
             {
@@ -1116,10 +1116,10 @@ class _VaultContext:  # noqa: PLR0904
                 if (v := self.ctx.params.get(k)) is not None
             },
             cast(
-                'dict[str, Any]',
-                configuration['services'].get(service, {}) if service else {},
+                "dict[str, Any]",
+                configuration["services"].get(service, {}) if service else {},
             ),
-            cast('dict[str, Any]', configuration.get('global', {})),
+            cast("dict[str, Any]", configuration.get("global", {})),
         )
         if not service and not empty_service_permitted:
             err_msg = _msg.TranslatedString(
@@ -1130,13 +1130,13 @@ class _VaultContext:  # noqa: PLR0904
             )
             raise click.UsageError(str(err_msg))
         if use_key:
-            settings.maps[0]['key'] = base64.standard_b64encode(
+            settings.maps[0]["key"] = base64.standard_b64encode(
                 cli_helpers.select_ssh_key(
                     ctx=self.ctx,
                     error_callback=self.err,
                     warning_callback=self.warning,
                 )
-            ).decode('ASCII')
+            ).decode("ASCII")
         elif use_phrase:
             maybe_phrase = cli_helpers.prompt_for_passphrase()
             if not maybe_phrase:
@@ -1146,7 +1146,7 @@ class _VaultContext:  # noqa: PLR0904
                     )
                 )
             else:
-                settings.maps[0]['phrase'] = maybe_phrase
+                settings.maps[0]["phrase"] = maybe_phrase
         return settings
 
     def run_op_store_config_only(self) -> None:  # noqa: C901,PLR0912,PLR0914,PLR0915
@@ -1173,13 +1173,13 @@ class _VaultContext:  # noqa: PLR0904
                 and set.
 
         """
-        service = self.ctx.params['service']
-        use_key = self.ctx.params['use_key']
-        use_phrase = self.ctx.params['use_phrase']
-        unset_settings = self.ctx.params['unset_settings']
-        overwrite_config = self.ctx.params['overwrite_config']
-        edit_notes = self.ctx.params['edit_notes']
-        modern_editor_interface = self.ctx.params['modern_editor_interface']
+        service = self.ctx.params["service"]
+        use_key = self.ctx.params["use_key"]
+        use_phrase = self.ctx.params["use_phrase"]
+        unset_settings = self.ctx.params["unset_settings"]
+        overwrite_config = self.ctx.params["overwrite_config"]
+        edit_notes = self.ctx.params["edit_notes"]
+        modern_editor_interface = self.ctx.params["modern_editor_interface"]
         configuration = self.get_config()
         user_config = self.get_user_config()
         settings = self.run_subop_query_phrase_or_key_change(
@@ -1193,12 +1193,12 @@ class _VaultContext:  # noqa: PLR0904
             else collections.ChainMap(settings.maps[0], settings.maps[2])
         )
         if use_key:
-            view['key'] = overrides['key']
+            view["key"] = overrides["key"]
         elif use_phrase:
-            view['phrase'] = overrides['phrase']
+            view["phrase"] = overrides["phrase"]
             try:
                 cli_helpers.check_for_misleading_passphrase(
-                    ('services', service) if service else ('global',),
+                    ("services", service) if service else ("global",),
                     overrides,
                     main_config=user_config,
                     ctx=self.ctx,
@@ -1211,7 +1211,7 @@ class _VaultContext:  # noqa: PLR0904
                         filename=None,
                     ).maybe_without_filename(),
                 )
-            if 'key' in settings:
+            if "key" in settings:
                 if service:
                     w_msg = _msg.TranslatedString(
                         _msg.WarnMsgTemplate.SERVICE_PASSPHRASE_INEFFECTIVE,
@@ -1247,9 +1247,9 @@ class _VaultContext:  # noqa: PLR0904
                 ),
             )
         subtree: dict[str, Any] = (
-            configuration['services'].setdefault(service, {})  # type: ignore[assignment]
+            configuration["services"].setdefault(service, {})  # type: ignore[assignment]
             if service
-            else configuration.setdefault('global', {})
+            else configuration.setdefault("global", {})
         )
         if overwrite_config:
             subtree.clear()
@@ -1258,7 +1258,7 @@ class _VaultContext:  # noqa: PLR0904
                 subtree.pop(setting, None)
         subtree.update(view)
         assert _types.is_vault_config(configuration), (
-            f'Invalid vault configuration: {configuration!r}'
+            f"Invalid vault configuration: {configuration!r}"
         )
         if edit_notes:
             assert service is not None
@@ -1271,9 +1271,9 @@ class _VaultContext:  # noqa: PLR0904
             notes_legacy_instructions = _msg.TranslatedString(
                 _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_LEGACY_INSTRUCTION_TEXT
             )
-            old_notes_value = subtree.get('notes', '')
+            old_notes_value = subtree.get("notes", "")
             if modern_editor_interface:
-                text = '\n'.join([
+                text = "\n".join([
                     str(notes_instructions),
                     str(notes_marker),
                     old_notes_value,
@@ -1287,16 +1287,16 @@ class _VaultContext:  # noqa: PLR0904
                 and notes_value.strip() != old_notes_value.strip()
             ):
                 backup_file = cli_helpers.config_filename(
-                    subsystem='notes backup'
+                    subsystem="notes backup"
                 )
-                backup_file.write_text(old_notes_value, encoding='UTF-8')
+                backup_file.write_text(old_notes_value, encoding="UTF-8")
                 self.warning(
                     _msg.TranslatedString(
                         _msg.WarnMsgTemplate.LEGACY_EDITOR_INTERFACE_NOTES_BACKUP,
                         filename=str(backup_file),
                     ),
                 )
-                subtree['notes'] = notes_value.strip()
+                subtree["notes"] = notes_value.strip()
             elif (
                 modern_editor_interface and notes_value.strip() != text.strip()
             ):
@@ -1306,7 +1306,7 @@ class _VaultContext:  # noqa: PLR0904
                 while notes_lines:
                     line = notes_lines.popleft()
                     if line.startswith(str(notes_marker)):
-                        notes_value = ''.join(notes_lines)
+                        notes_value = "".join(notes_lines)
                         break
                 else:
                     if not notes_value.strip():
@@ -1315,7 +1315,7 @@ class _VaultContext:  # noqa: PLR0904
                                 _msg.ErrMsgTemplate.USER_ABORTED_EDIT
                             )
                         )
-                subtree['notes'] = notes_value.strip()
+                subtree["notes"] = notes_value.strip()
         self.put_config(configuration)
 
     def run_op_derive_passphrase(self) -> None:
@@ -1338,10 +1338,10 @@ class _VaultContext:  # noqa: PLR0904
                 No master passphrase or master SSH key was given on both
                 the command-line and in the vault configuration on disk.
         """
-        service = self.ctx.params['service']
-        use_key = self.ctx.params['use_key']
-        use_phrase = self.ctx.params['use_phrase']
-        print_notes_before = self.ctx.params['print_notes_before']
+        service = self.ctx.params["service"]
+        use_key = self.ctx.params["use_key"]
+        use_phrase = self.ctx.params["use_phrase"]
+        print_notes_before = self.ctx.params["print_notes_before"]
         user_config = self.get_user_config()
         settings = self.run_subop_query_phrase_or_key_change(
             empty_service_permitted=False
@@ -1350,7 +1350,7 @@ class _VaultContext:  # noqa: PLR0904
             try:
                 cli_helpers.check_for_misleading_passphrase(
                     cli_helpers.ORIGIN.INTERACTIVE,
-                    {'phrase': settings['phrase']},
+                    {"phrase": settings["phrase"]},
                     main_config=user_config,
                     ctx=self.ctx,
                 )
@@ -1363,7 +1363,7 @@ class _VaultContext:  # noqa: PLR0904
                     ).maybe_without_filename(),
                 )
         phrase: str | bytes
-        overrides = cast('dict[str, int | str]', settings.maps[0])
+        overrides = cast("dict[str, int | str]", settings.maps[0])
         # If either --key or --phrase are given, use that setting.
         # Otherwise, if both key and phrase are set in the config,
         # use the key.  Otherwise, if only one of key and phrase is
@@ -1372,53 +1372,53 @@ class _VaultContext:  # noqa: PLR0904
         # a key is given.  Finally, if nothing is set, error out.
         if use_key:
             phrase = cli_helpers.key_to_phrase(
-                cast('str', overrides['key']),
+                cast("str", overrides["key"]),
                 error_callback=self.err,
                 warning_callback=self.warning,
             )
         elif use_phrase:
-            phrase = cast('str', overrides['phrase'])
-        elif settings.get('key'):
+            phrase = cast("str", overrides["phrase"])
+        elif settings.get("key"):
             phrase = cli_helpers.key_to_phrase(
-                cast('str', settings['key']), error_callback=self.err
+                cast("str", settings["key"]), error_callback=self.err
             )
-        elif settings.get('phrase'):
-            phrase = cast('str', settings['phrase'])
+        elif settings.get("phrase"):
+            phrase = cast("str", settings["phrase"])
         else:
             err_msg = _msg.TranslatedString(
                 _msg.ErrMsgTemplate.NO_KEY_OR_PHRASE
             )
             raise click.UsageError(str(err_msg))
-        overrides.pop('key', '')
-        overrides.pop('phrase', '')
+        overrides.pop("key", "")
+        overrides.pop("phrase", "")
         assert service is not None
         vault_service_keys = {
-            'length',
-            'repeat',
-            'lower',
-            'upper',
-            'number',
-            'space',
-            'dash',
-            'symbol',
+            "length",
+            "repeat",
+            "lower",
+            "upper",
+            "number",
+            "space",
+            "dash",
+            "symbol",
         }
         kwargs = {
-            cast('str', k): cast('int', settings[k])
+            cast("str", k): cast("int", settings[k])
             for k in vault_service_keys
             if k in settings
         }
         result = vault.Vault(phrase=phrase, **kwargs).generate(service)
-        service_notes = cast('str', settings.get('notes', '')).strip()
+        service_notes = cast("str", settings.get("notes", "")).strip()
         if print_notes_before and service_notes.strip():
-            click.echo(f'{service_notes}\n', err=True, color=self.ctx.color)
-        click.echo(result.decode('ASCII'), color=self.ctx.color)
+            click.echo(f"{service_notes}\n", err=True, color=self.ctx.color)
+        click.echo(result.decode("ASCII"), color=self.ctx.color)
         if not print_notes_before and service_notes.strip():
-            click.echo(f'\n{service_notes}\n', err=True, color=self.ctx.color)
+            click.echo(f"\n{service_notes}\n", err=True, color=self.ctx.color)
 
 
 @derivepassphrase.command(
-    'vault',
-    context_settings={'help_option_names': ['-h', '--help']},
+    "vault",
+    context_settings={"help_option_names": ["-h", "--help"]},
     cls=cli_machinery.CommandWithHelpGroups,
     help=(
         _msg.TranslatedString(_msg.Label.DERIVEPASSPHRASE_VAULT_01),
@@ -1435,9 +1435,9 @@ class _VaultContext:  # noqa: PLR0904
     ),
 )
 @click.option(
-    '-p',
-    '--phrase',
-    'use_phrase',
+    "-p",
+    "--phrase",
+    "use_phrase",
     is_flag=True,
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_PHRASE_HELP_TEXT
@@ -1445,9 +1445,9 @@ class _VaultContext:  # noqa: PLR0904
     cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
-    '-k',
-    '--key',
-    'use_key',
+    "-k",
+    "--key",
+    "use_key",
     is_flag=True,
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_KEY_HELP_TEXT
@@ -1455,8 +1455,8 @@ class _VaultContext:  # noqa: PLR0904
     cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
-    '-l',
-    '--length',
+    "-l",
+    "--length",
     metavar=_msg.TranslatedString(
         _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
     ),
@@ -1470,8 +1470,8 @@ class _VaultContext:  # noqa: PLR0904
     cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
-    '-r',
-    '--repeat',
+    "-r",
+    "--repeat",
     metavar=_msg.TranslatedString(
         _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
     ),
@@ -1485,7 +1485,7 @@ class _VaultContext:  # noqa: PLR0904
     cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
-    '--lower',
+    "--lower",
     metavar=_msg.TranslatedString(
         _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
     ),
@@ -1499,7 +1499,7 @@ class _VaultContext:  # noqa: PLR0904
     cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
-    '--upper',
+    "--upper",
     metavar=_msg.TranslatedString(
         _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
     ),
@@ -1513,7 +1513,7 @@ class _VaultContext:  # noqa: PLR0904
     cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
-    '--number',
+    "--number",
     metavar=_msg.TranslatedString(
         _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
     ),
@@ -1527,7 +1527,7 @@ class _VaultContext:  # noqa: PLR0904
     cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
-    '--space',
+    "--space",
     metavar=_msg.TranslatedString(
         _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
     ),
@@ -1541,7 +1541,7 @@ class _VaultContext:  # noqa: PLR0904
     cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
-    '--dash',
+    "--dash",
     metavar=_msg.TranslatedString(
         _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
     ),
@@ -1555,7 +1555,7 @@ class _VaultContext:  # noqa: PLR0904
     cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
-    '--symbol',
+    "--symbol",
     metavar=_msg.TranslatedString(
         _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
     ),
@@ -1569,9 +1569,9 @@ class _VaultContext:  # noqa: PLR0904
     cls=cli_machinery.PassphraseGenerationOption,
 )
 @click.option(
-    '-n',
-    '--notes',
-    'edit_notes',
+    "-n",
+    "--notes",
+    "edit_notes",
     is_flag=True,
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_HELP_TEXT,
@@ -1582,9 +1582,9 @@ class _VaultContext:  # noqa: PLR0904
     cls=cli_machinery.ConfigurationOption,
 )
 @click.option(
-    '-c',
-    '--config',
-    'store_config_only',
+    "-c",
+    "--config",
+    "store_config_only",
     is_flag=True,
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_CONFIG_HELP_TEXT,
@@ -1595,9 +1595,9 @@ class _VaultContext:  # noqa: PLR0904
     cls=cli_machinery.ConfigurationOption,
 )
 @click.option(
-    '-x',
-    '--delete',
-    'delete_service_settings',
+    "-x",
+    "--delete",
+    "delete_service_settings",
     is_flag=True,
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_DELETE_HELP_TEXT,
@@ -1608,7 +1608,7 @@ class _VaultContext:  # noqa: PLR0904
     cls=cli_machinery.ConfigurationOption,
 )
 @click.option(
-    '--delete-globals',
+    "--delete-globals",
     is_flag=True,
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_DELETE_GLOBALS_HELP_TEXT,
@@ -1616,9 +1616,9 @@ class _VaultContext:  # noqa: PLR0904
     cls=cli_machinery.ConfigurationOption,
 )
 @click.option(
-    '-X',
-    '--clear',
-    'clear_all_settings',
+    "-X",
+    "--clear",
+    "clear_all_settings",
     is_flag=True,
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_DELETE_ALL_HELP_TEXT,
@@ -1626,9 +1626,9 @@ class _VaultContext:  # noqa: PLR0904
     cls=cli_machinery.ConfigurationOption,
 )
 @click.option(
-    '-e',
-    '--export',
-    'export_settings',
+    "-e",
+    "--export",
+    "export_settings",
     metavar=_msg.TranslatedString(
         _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
     ),
@@ -1642,9 +1642,9 @@ class _VaultContext:  # noqa: PLR0904
     shell_complete=cli_helpers.shell_complete_path,
 )
 @click.option(
-    '-i',
-    '--import',
-    'import_settings',
+    "-i",
+    "--import",
+    "import_settings",
     metavar=_msg.TranslatedString(
         _msg.Label.PASSPHRASE_GENERATION_METAVAR_NUMBER
     ),
@@ -1658,8 +1658,8 @@ class _VaultContext:  # noqa: PLR0904
     shell_complete=cli_helpers.shell_complete_path,
 )
 @click.option(
-    '--overwrite-existing/--merge-existing',
-    'overwrite_config',
+    "--overwrite-existing/--merge-existing",
+    "overwrite_config",
     default=False,
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_OVERWRITE_HELP_TEXT
@@ -1667,21 +1667,21 @@ class _VaultContext:  # noqa: PLR0904
     cls=cli_machinery.CompatibilityOption,
 )
 @click.option(
-    '--unset',
-    'unset_settings',
+    "--unset",
+    "unset_settings",
     multiple=True,
     type=click.Choice([
-        'phrase',
-        'key',
-        'length',
-        'repeat',
-        'lower',
-        'upper',
-        'number',
-        'space',
-        'dash',
-        'symbol',
-        'notes',
+        "phrase",
+        "key",
+        "length",
+        "repeat",
+        "lower",
+        "upper",
+        "number",
+        "space",
+        "dash",
+        "symbol",
+        "notes",
     ]),
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_UNSET_HELP_TEXT
@@ -1689,17 +1689,17 @@ class _VaultContext:  # noqa: PLR0904
     cls=cli_machinery.CompatibilityOption,
 )
 @click.option(
-    '--export-as',
-    type=click.Choice(['json', 'sh']),
-    default='json',
+    "--export-as",
+    type=click.Choice(["json", "sh"]),
+    default="json",
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_EXPORT_AS_HELP_TEXT
     ),
     cls=cli_machinery.CompatibilityOption,
 )
 @click.option(
-    '--modern-editor-interface/--vault-legacy-editor-interface',
-    'modern_editor_interface',
+    "--modern-editor-interface/--vault-legacy-editor-interface",
+    "modern_editor_interface",
     default=False,
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_EDITOR_INTERFACE_HELP_TEXT
@@ -1707,8 +1707,8 @@ class _VaultContext:  # noqa: PLR0904
     cls=cli_machinery.CompatibilityOption,
 )
 @click.option(
-    '--print-notes-before/--print-notes-after',
-    'print_notes_before',
+    "--print-notes-before/--print-notes-after",
+    "print_notes_before",
     default=False,
     help=_msg.TranslatedString(
         _msg.Label.DERIVEPASSPHRASE_VAULT_PRINT_NOTES_BEFORE_HELP_TEXT,
@@ -1722,7 +1722,7 @@ class _VaultContext:  # noqa: PLR0904
 @cli_machinery.color_forcing_pseudo_option
 @cli_machinery.standard_logging_options
 @click.argument(
-    'service',
+    "service",
     metavar=_msg.TranslatedString(_msg.Label.VAULT_METAVAR_SERVICE),
     required=False,
     default=None,
@@ -1843,5 +1843,5 @@ def derivepassphrase_vault(
     vault_context.dispatch_op()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     derivepassphrase()

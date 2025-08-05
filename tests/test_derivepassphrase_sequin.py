@@ -36,7 +36,7 @@ def bits(num: int, /, byte_width: int | None = None) -> list[int]:
 
     """
     if num < 0:  # pragma: no cover
-        err_msg = 'Negative numbers are unsupported'
+        err_msg = "Negative numbers are unsupported"
         raise NotImplementedError(err_msg)
     if byte_width is None:
         byte_width = math.ceil(math.log2(num) / 8) if num else 1
@@ -57,23 +57,23 @@ def bitseq(string: str) -> list[int]:
 
 class Parametrize(types.SimpleNamespace):
     BIG_ENDIAN_NUMBER_EXCEPTIONS = pytest.mark.parametrize(
-        ['exc_type', 'exc_pattern', 'sequence', 'base'],
+        ["exc_type", "exc_pattern", "sequence", "base"],
         [
-            (ValueError, 'invalid base 3 digit:', [-1], 3),
-            (ValueError, 'invalid base:', [0], 1),
-            (TypeError, 'not an integer:', [0.0, 1.0, 0.0, 1.0], 2),
+            (ValueError, "invalid base 3 digit:", [-1], 3),
+            (ValueError, "invalid base:", [0], 1),
+            (TypeError, "not an integer:", [0.0, 1.0, 0.0, 1.0], 2),
         ],
     )
     INVALID_SEQUIN_INPUTS = pytest.mark.parametrize(
-        ['sequence', 'is_bitstring', 'exc_type', 'exc_pattern'],
+        ["sequence", "is_bitstring", "exc_type", "exc_pattern"],
         [
             (
                 [0, 1, 2, 3, 4, 5, 6, 7],
                 True,
                 ValueError,
-                'sequence item out of range',
+                "sequence item out of range",
             ),
-            ('こんにちは。', False, ValueError, 'sequence item out of range'),
+            ("こんにちは。", False, ValueError, "sequence item out of range"),
         ],
     )
 
@@ -93,21 +93,21 @@ class TestStaticFunctionality:
         assert m == 64
         assert seq2[-n:] == seq1
         assert seq2[: m - n] == [0] * (m - n)
-        text1 = ''.join(str(bit) for bit in seq1)
-        text2 = ''.join(str(bit) for bit in seq2)
-        assert text1.lstrip('0') == (f'{num:b}' if num else '')
-        assert text2 == f'{num:064b}'
+        text1 = "".join(str(bit) for bit in seq1)
+        text2 = "".join(str(bit) for bit in seq2)
+        assert text1.lstrip("0") == (f"{num:b}" if num else "")
+        assert text2 == f"{num:064b}"
 
     @hypothesis.given(
         num=strategies.integers(min_value=0, max_value=0xFFFFFFFFFFFFFFFF),
     )
     def test_101_bits(self, num: int) -> None:
         """Extract the bits from a number in big-endian format."""
-        text1 = f'{num:064b}'
+        text1 = f"{num:064b}"
         seq1 = bitseq(text1)
         seq2 = bits(num, byte_width=8)
         assert seq1 == seq2
-        text2 = ''.join(str(bit) for bit in seq1)
+        text2 = "".join(str(bit) for bit in seq1)
         assert int(text2, 2) == num
 
     class BigEndianNumberTest(NamedTuple):
@@ -173,18 +173,18 @@ class TestStaticFunctionality:
     @hypothesis.given(test_case=BigEndianNumberTest.strategy())
     @hypothesis.example(
         BigEndianNumberTest([1, 2, 3, 4, 5, 6], 10, 123456)
-    ).via('manual decimal example')
+    ).via("manual decimal example")
     @hypothesis.example(
         BigEndianNumberTest([1, 2, 3, 4, 5, 6], 100, 10203040506)
-    ).via('manual decimal example in different base')
+    ).via("manual decimal example in different base")
     @hypothesis.example(BigEndianNumberTest([0, 0, 1, 4, 9, 7], 10, 1497)).via(
-        'manual example with leading zeroes'
+        "manual example with leading zeroes"
     )
     @hypothesis.example(
         BigEndianNumberTest([1, 0, 0, 1, 0, 0, 0, 0], 2, 144)
-    ).via('manual binary example')
+    ).via("manual binary example")
     @hypothesis.example(BigEndianNumberTest([1, 7, 5, 5], 8, 0o1755)).via(
-        'manual octal example'
+        "manual octal example"
     )
     def test_200_big_endian_number(
         self, test_case: BigEndianNumberTest
@@ -280,18 +280,18 @@ class TestSequin:
                 bytecount = max_entropy // 8
                 raw_sequence = draw(strategies.binary(max_size=bytecount))
                 sequence_format = draw(strategies.randoms()).choice([
-                    'bytes',
-                    'ints',
-                    'text',
+                    "bytes",
+                    "ints",
+                    "text",
                 ])
-                if sequence_format == 'bytes':
+                if sequence_format == "bytes":
                     sequence = raw_sequence
-                elif sequence_format == 'ints':
+                elif sequence_format == "ints":
                     sequence = list(raw_sequence)
                 else:
-                    sequence = raw_sequence.decode('latin1')
+                    sequence = raw_sequence.decode("latin1")
                 bytestring = (
-                    sequence.encode('latin1')
+                    sequence.encode("latin1")
                     if isinstance(sequence, str)
                     else bytes(sequence)
                 )
@@ -305,20 +305,20 @@ class TestSequin:
     @hypothesis.given(test_case=ConstructorTestCase.strategy())
     @hypothesis.example(
         ConstructorTestCase([1, 0, 0, 1, 0, 1], True, [1, 0, 0, 1, 0, 1])
-    ).via('manual example bitstring')
+    ).via("manual example bitstring")
     @hypothesis.example(
         ConstructorTestCase(
             [1, 0, 0, 1, 0, 1],
             False,
-            bitseq('000000010000000000000000000000010000000000000001'),
+            bitseq("000000010000000000000000000000010000000000000001"),
         )
-    ).via('manual example bitstring as byte string')
+    ).via("manual example bitstring as byte string")
     @hypothesis.example(
-        ConstructorTestCase(b'OK', False, bitseq('0100111101001011'))
-    ).via('manual example true byte string')
+        ConstructorTestCase(b"OK", False, bitseq("0100111101001011"))
+    ).via("manual example true byte string")
     @hypothesis.example(
-        ConstructorTestCase('OK', False, bitseq('0100111101001011'))
-    ).via('manual example latin1 text')
+        ConstructorTestCase("OK", False, bitseq("0100111101001011"))
+    ).via("manual example latin1 text")
     def test_200_constructor(
         self,
         test_case: ConstructorTestCase,
@@ -353,7 +353,7 @@ class TestSequin:
             # Signal that there is only one value.
             draw(strategies.just(None))
             return TestSequin.GenerationSequence(
-                bitseq('110101011111001'),
+                bitseq("110101011111001"),
                 [
                     (1, 0),
                     (5, 3),
@@ -366,7 +366,7 @@ class TestSequin:
 
     @hypothesis.example(
         GenerationSequence(
-            bitseq('110101011111001'),
+            bitseq("110101011111001"),
             [
                 (1, 0),
                 (5, 3),
@@ -376,7 +376,7 @@ class TestSequin:
                 (1, sequin.SequinExhaustedError),
             ],
         )
-    ).via('manual, pre-hypothesis parametrization value')
+    ).via("manual, pre-hypothesis parametrization value")
     @hypothesis.given(sequence=GenerationSequence.strategy())
     def test_201_generating(self, sequence: GenerationSequence) -> None:
         """The sequin generates deterministic sequences."""
@@ -384,7 +384,7 @@ class TestSequin:
         for i, (num, result) in enumerate(sequence.steps, start=1):
             if isinstance(result, int):
                 assert seq.generate(num) == result, (
-                    f'Failed to generate {result:d} in step {i}'
+                    f"Failed to generate {result:d} in step {i}"
                 )
             else:
                 # Can't use pytest.raises here, because the assertion error
@@ -393,8 +393,8 @@ class TestSequin:
                 with contextlib.suppress(sequin.SequinExhaustedError):
                     result2 = seq.generate(num)
                     pytest.fail(
-                        f'Expected to be exhausted in step {i}, '
-                        f'but generated {result2:d} instead'
+                        f"Expected to be exhausted in step {i}, "
+                        f"but generated {result2:d} instead"
                     )
 
     def test_201a_generating_errors(self) -> None:
@@ -402,12 +402,12 @@ class TestSequin:
         seq = sequin.Sequin(
             [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1], is_bitstring=True
         )
-        with pytest.raises(ValueError, match='invalid target range'):
+        with pytest.raises(ValueError, match="invalid target range"):
             seq.generate(0)
 
     @hypothesis.example(
         GenerationSequence(
-            bitseq('110101011111001'),
+            bitseq("110101011111001"),
             [
                 (1, 0),
                 (5, 3),
@@ -417,7 +417,7 @@ class TestSequin:
                 (1, sequin.SequinExhaustedError),
             ],
         )
-    ).via('manual, pre-hypothesis parametrization value')
+    ).via("manual, pre-hypothesis parametrization value")
     @hypothesis.given(sequence=GenerationSequence.strategy())
     def test_210_internal_generating(
         self, sequence: GenerationSequence
@@ -427,17 +427,17 @@ class TestSequin:
         for i, (num, result) in enumerate(sequence.steps, start=1):
             if num == 1:
                 assert seq._generate_inner(num) == 0, (
-                    f'Failed to generate {result:d} in step {i}'
+                    f"Failed to generate {result:d} in step {i}"
                 )
             elif isinstance(result, int):
                 assert seq._generate_inner(num) == result, (
-                    f'Failed to generate {result:d} in step {i}'
+                    f"Failed to generate {result:d} in step {i}"
                 )
             else:
                 result2 = seq._generate_inner(num)
                 assert result2 == num, (
-                    f'Expected to be exhausted in step {i}, '
-                    f'but generated {result2:d} instead'
+                    f"Expected to be exhausted in step {i}, "
+                    f"but generated {result2:d} instead"
                 )
 
     def test_210a_internal_generating_errors(self) -> None:
@@ -445,9 +445,9 @@ class TestSequin:
         seq = sequin.Sequin(
             [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1], is_bitstring=True
         )
-        with pytest.raises(ValueError, match='invalid target range'):
+        with pytest.raises(ValueError, match="invalid target range"):
             seq._generate_inner(0)
-        with pytest.raises(ValueError, match='invalid base:'):
+        with pytest.raises(ValueError, match="invalid base:"):
             seq._generate_inner(16, base=1)
 
     class ShiftSequence(NamedTuple):
@@ -507,12 +507,12 @@ class TestSequin:
     @hypothesis.given(sequence=ShiftSequence.strategy())
     @hypothesis.example(
         ShiftSequence(
-            bitseq('1010010001'),
+            bitseq("1010010001"),
             [
-                (3, bitseq('101'), bitseq('0010001')),
-                (3, bitseq('001'), bitseq('0001')),
-                (5, bitseq(''), bitseq('0001')),
-                (4, bitseq('0001'), bitseq('')),
+                (3, bitseq("101"), bitseq("0010001")),
+                (3, bitseq("001"), bitseq("0001")),
+                (5, bitseq(""), bitseq("0001")),
+                (4, bitseq("0001"), bitseq("")),
             ],
         )
     )
@@ -530,15 +530,15 @@ class TestSequin:
         ):
             actual_result = seq._all_or_nothing_shift(count)
             assert actual_result == tuple(result), (
-                f'At step {i}, the shifting result differs'
+                f"At step {i}, the shifting result differs"
             )
             if remaining:
                 assert seq.bases[2] == collections.deque(remaining), (
-                    f'After step {i}, the remaining bit sequence differs'
+                    f"After step {i}, the remaining bit sequence differs"
                 )
             else:
                 assert 2 not in seq.bases, (
-                    f'After step {i}, the bit sequence is not exhausted yet'
+                    f"After step {i}, the bit sequence is not exhausted yet"
                 )
 
     @Parametrize.INVALID_SEQUIN_INPUTS

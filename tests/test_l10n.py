@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
 class Parametrize(types.SimpleNamespace):
     MAYBE_FORMAT_STRINGS = pytest.mark.parametrize(
-        's', ['{spam}', '{spam}abc', '{', '}', '{{{']
+        "s", ["{spam}", "{spam}abc", "{", "}", "{{{"]
     )
 
 
@@ -37,23 +37,23 @@ all_translatable_strings_dict: dict[
 ] = {}
 for enum_class in msg.MSG_TEMPLATE_CLASSES:
     all_translatable_strings_dict.update({
-        cast('msg.TranslatableString', v.value): v for v in enum_class
+        cast("msg.TranslatableString", v.value): v for v in enum_class
     })
 
 all_translatable_strings_enum_values = tuple(
     sorted(all_translatable_strings_dict.values(), key=str)
 )
 all_translatable_strings = [
-    cast('msg.TranslatableString', v.value)
+    cast("msg.TranslatableString", v.value)
     for v in all_translatable_strings_enum_values
 ]
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope="class")
 def use_debug_translations() -> Iterator[None]:
     """Force the use of debug translations (pytest class fixture)."""
     with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setattr(msg, 'translation', msg.DebugTranslations())
+        monkeypatch.setattr(msg, "translation", msg.DebugTranslations())
         yield
 
 
@@ -61,11 +61,11 @@ def use_debug_translations() -> Iterator[None]:
 def monkeypatched_null_translations() -> Iterator[None]:
     """Force the use of no-op translations in this context."""
     with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setattr(msg, 'translation', gettext.NullTranslations())
+        monkeypatch.setattr(msg, "translation", gettext.NullTranslations())
         yield
 
 
-@pytest.mark.usefixtures('use_debug_translations')
+@pytest.mark.usefixtures("use_debug_translations")
 class TestL10nMachineryWithDebugTranslations:
     """Test the localization machinery together with debug translations."""
 
@@ -76,7 +76,7 @@ class TestL10nMachineryWithDebugTranslations:
     known_fields_error_messages = tuple(
         e
         for e in sorted(msg.ErrMsgTemplate, key=str)
-        if e.value.fields() == ['error', 'filename']
+        if e.value.fields() == ["error", "filename"]
     )
     """
     A cache of known error messages that contain both `error` and
@@ -88,7 +88,7 @@ class TestL10nMachineryWithDebugTranslations:
     """A cache of known messages that don't contain replacement fields."""
 
     @hypothesis.given(value=strategies.text(max_size=100))
-    @hypothesis.example('{')
+    @hypothesis.example("{")
     def test_100_debug_translation_get_str(self, value: str) -> None:
         """Translating a raw string object does nothing."""
         translated = msg.translation.gettext(value)
@@ -106,7 +106,7 @@ class TestL10nMachineryWithDebugTranslations:
         translated = msg.translation.pgettext(context, singular)
         assert translated.startswith(ts_name)
         suffix = translated.removeprefix(ts_name)
-        assert not suffix or suffix.startswith('(')
+        assert not suffix or suffix.startswith("(")
 
     @hypothesis.given(
         value=strategies.sampled_from(all_translatable_strings_enum_values)
@@ -117,16 +117,16 @@ class TestL10nMachineryWithDebugTranslations:
     ) -> None:
         """Translating a MsgTemplate operates on the enum value."""
         ts_name = str(value)
-        inner_value = cast('msg.TranslatableString', value.value)
+        inner_value = cast("msg.TranslatableString", value.value)
         context = inner_value.l10n_context
         singular = inner_value.singular
         translated = msg.translation.pgettext(context, singular)
         assert translated.startswith(ts_name)
         suffix = translated.removeprefix(ts_name)
-        assert not suffix or suffix.startswith('(')
+        assert not suffix or suffix.startswith("(")
 
     @hypothesis.given(value=strategies.text(max_size=100))
-    @hypothesis.example('{')
+    @hypothesis.example("{")
     def test_100c_debug_translation_get_ts_str(self, value: str) -> None:
         """Translating a constant TranslatableString does nothing."""
         translated = msg.TranslatedString.constant(value)
@@ -227,11 +227,11 @@ class TestL10nMachineryWithDebugTranslations:
         """
         with monkeypatched_null_translations():
             ts1 = msg.TranslatedString(s)
-            ts2 = msg.TranslatedString(s, spam='eggs')
-            if '{spam}' in s:
-                with pytest.raises(KeyError, match=r'spam'):
+            ts2 = msg.TranslatedString(s, spam="eggs")
+            if "{spam}" in s:
+                with pytest.raises(KeyError, match=r"spam"):
                     str(ts1)
-                assert str(ts2) == s.replace('{spam}', 'eggs')
+                assert str(ts2) == s.replace("{spam}", "eggs")
             else:
                 # Known error message variations:
                 #
@@ -251,7 +251,7 @@ class TestL10nMachineryWithDebugTranslations:
 
     @hypothesis.given(
         s=strategies.text(
-            strategies.sampled_from(string.ascii_lowercase + '{}'),
+            strategies.sampled_from(string.ascii_lowercase + "{}"),
             min_size=1,
             max_size=20,
         )
@@ -268,12 +268,12 @@ class TestL10nMachineryWithDebugTranslations:
             except ValueError as exc:  # pragma: no cover
                 # Not a test error (= test author's fault), but
                 # a regression (= code under test is at fault).
-                err_msg = 'Interpolation attempted'
+                err_msg = "Interpolation attempted"
                 raise AssertionError(err_msg) from exc
 
     @hypothesis.given(
         s=strategies.text(
-            strategies.sampled_from(string.ascii_lowercase + '{}'),
+            strategies.sampled_from(string.ascii_lowercase + "{}"),
             min_size=1,
             max_size=20,
         )
@@ -285,15 +285,15 @@ class TestL10nMachineryWithDebugTranslations:
         """Non-format TranslatedStrings don't interpolate fields."""
         with monkeypatched_null_translations():
             ts_inner = msg.TranslatableString(
-                '',
-                '{spam}' + s,
-                flags=frozenset({'no-python-brace-format'}),
+                "",
+                "{spam}" + s,
+                flags=frozenset({"no-python-brace-format"}),
             )
-            ts = msg.TranslatedString(ts_inner, spam='eggs')
+            ts = msg.TranslatedString(ts_inner, spam="eggs")
             try:
-                assert str(ts) == '{spam}' + s
+                assert str(ts) == "{spam}" + s
             except ValueError as exc:  # pragma: no cover
                 # Not a test error (= test author's fault), but
                 # a regression (= code under test is at fault).
-                err_msg = 'Interpolation attempted'
+                err_msg = "Interpolation attempted"
                 raise AssertionError(err_msg) from exc

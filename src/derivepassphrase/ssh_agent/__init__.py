@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
     from typing_extensions import Buffer
 
-__all__ = ('SSHAgentClient',)
+__all__ = ("SSHAgentClient",)
 
 # In SSH bytestrings, the "length" of the byte string is stored as
 # a 4-byte/32-bit unsigned integer at the beginning.
@@ -37,7 +37,7 @@ class TrailingDataError(RuntimeError):
     """The result contained trailing data."""
 
     def __init__(self) -> None:
-        super().__init__('Overlong response from SSH agent')
+        super().__init__("Overlong response from SSH agent")
 
 
 class SSHAgentFailedError(RuntimeError):
@@ -48,19 +48,19 @@ class SSHAgentFailedError(RuntimeError):
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         if self.args == (  # pragma: no branch
             _types.SSH_AGENT.FAILURE.value,
-            b'',
+            b"",
         ):
-            return 'The SSH agent failed to complete the request'
+            return "The SSH agent failed to complete the request"
         elif self.args[1]:  # noqa: RET505  # pragma: no cover [failsafe]
             code = self.args[0]
-            msg = self.args[1].decode('utf-8', 'surrogateescape')
-            return f'[Code {code:d}] {msg:s}'
+            msg = self.args[1].decode("utf-8", "surrogateescape")
+            return f"[Code {code:d}] {msg:s}"
         else:  # pragma: no cover [failsafe]
             return repr(self)
 
     def __repr__(self) -> str:  # pragma: no cover [debug]
         """"""  # noqa: D419
-        return f'{self.__class__.__name__}{self.args!r}'
+        return f"{self.__class__.__name__}{self.args!r}"
 
 
 class SSHAgentClient:
@@ -80,7 +80,7 @@ class SSHAgentClient:
     """
 
     _connection: _types.SSHAgentSocket
-    SOCKET_PROVIDERS: ClassVar = ('native',)
+    SOCKET_PROVIDERS: ClassVar = ("native",)
     """
     The default list of SSH agent socket providers.
     """
@@ -156,7 +156,7 @@ class SSHAgentClient:
                 else:
                     break
             else:
-                msg = 'No supported SSH agent socket provider found.'
+                msg = "No supported SSH agent socket provider found."
                 raise (
                     ExceptionGroup(msg, excs)
                     if excs
@@ -166,7 +166,7 @@ class SSHAgentClient:
             self._connection = socket
         else:  # pragma: no cover [failsafe]
             assert_type(socket, Never)
-            msg = f'invalid socket object: {socket!r}'
+            msg = f"invalid socket object: {socket!r}"
             raise TypeError(msg)
 
     def __enter__(self) -> Self:
@@ -221,7 +221,7 @@ class SSHAgentClient:
             b'\x01\x00\x00\x00'
 
         """
-        return int.to_bytes(num, 4, 'big', signed=False)
+        return int.to_bytes(num, 4, "big", signed=False)
 
     @classmethod
     def string(cls, payload: Buffer, /) -> bytes:
@@ -235,14 +235,14 @@ class SSHAgentClient:
             as a bytes object.
 
         Examples:
-            >>> SSHAgentClient.string(b'ssh-rsa')
+            >>> SSHAgentClient.string(b"ssh-rsa")
             b'\x00\x00\x00\x07ssh-rsa'
 
         """  # noqa: DOC501
         try:
             payload = memoryview(payload)
         except TypeError as e:
-            msg = 'invalid payload type'
+            msg = "invalid payload type"
             raise TypeError(msg) from e
         ret = bytearray()
         ret.extend(cls.uint32(len(payload)))
@@ -264,17 +264,17 @@ class SSHAgentClient:
                 The byte string is not an SSH string.
 
         Examples:
-            >>> SSHAgentClient.unstring(b'\x00\x00\x00\x07ssh-rsa')
+            >>> SSHAgentClient.unstring(b"\x00\x00\x00\x07ssh-rsa")
             b'ssh-rsa'
-            >>> SSHAgentClient.unstring(SSHAgentClient.string(b'ssh-ed25519'))
+            >>> SSHAgentClient.unstring(SSHAgentClient.string(b"ssh-ed25519"))
             b'ssh-ed25519'
 
         """
         bytestring = memoryview(bytestring)
         n = len(bytestring)
-        msg = 'malformed SSH byte string'
+        msg = "malformed SSH byte string"
         if n < HEAD_LEN or n != HEAD_LEN + int.from_bytes(
-            bytestring[:HEAD_LEN], 'big', signed=False
+            bytestring[:HEAD_LEN], "big", signed=False
         ):
             raise ValueError(msg)
         return bytes(bytestring[HEAD_LEN:])
@@ -299,21 +299,21 @@ class SSHAgentClient:
 
         Examples:
             >>> SSHAgentClient.unstring_prefix(
-            ...     b'\x00\x00\x00\x07ssh-rsa____trailing data'
+            ...     b"\x00\x00\x00\x07ssh-rsa____trailing data"
             ... )
             (b'ssh-rsa', b'____trailing data')
             >>> SSHAgentClient.unstring_prefix(
-            ...     SSHAgentClient.string(b'ssh-ed25519')
+            ...     SSHAgentClient.string(b"ssh-ed25519")
             ... )
             (b'ssh-ed25519', b'')
 
         """
         bytestring = memoryview(bytestring).toreadonly()
         n = len(bytestring)
-        msg = 'malformed SSH byte string'
+        msg = "malformed SSH byte string"
         if n < HEAD_LEN:
             raise ValueError(msg)
-        m = int.from_bytes(bytestring[:HEAD_LEN], 'big', signed=False)
+        m = int.from_bytes(bytestring[:HEAD_LEN], "big", signed=False)
         if m + HEAD_LEN > n:
             raise ValueError(msg)
         return (
@@ -380,7 +380,7 @@ class SSHAgentClient:
                 yield client
         else:  # pragma: no cover [failsafe]
             assert_type(conn, Never)
-            msg = f'invalid connection hint: {conn!r}'
+            msg = f"invalid connection hint: {conn!r}"
             raise TypeError(msg)
 
     def _agent_is_pageant(self) -> bool:
@@ -391,7 +391,7 @@ class SSHAgentClient:
 
         """
         return (
-            b'list-extended@putty.projects.tartarus.org'
+            b"list-extended@putty.projects.tartarus.org"
             in self.query_extensions()
         )
 
@@ -416,7 +416,7 @@ class SSHAgentClient:
 
         """  # noqa: E501
         known_good_agents = {
-            'Pageant': self._agent_is_pageant,
+            "Pageant": self._agent_is_pageant,
         }
         return any(  # pragma: no branch
             v() for v in known_good_agents.values()
@@ -515,12 +515,12 @@ class SSHAgentClient:
         self._connection.sendall(self.string(request_message))
         chunk = self._connection.recv(HEAD_LEN)
         if len(chunk) < HEAD_LEN:
-            msg = 'cannot read response length'
+            msg = "cannot read response length"
             raise EOFError(msg)
-        response_length = int.from_bytes(chunk, 'big', signed=False)
+        response_length = int.from_bytes(chunk, "big", signed=False)
         response = self._connection.recv(response_length)
         if len(response) < response_length:
-            msg = 'truncated response from SSH agent'
+            msg = "truncated response from SSH agent"
             raise EOFError(msg)
         if not response_code:  # pragma: no cover [failsafe]
             return response[0], response[1:]
@@ -547,30 +547,30 @@ class SSHAgentClient:
         """
         response = self.request(
             _types.SSH_AGENTC.REQUEST_IDENTITIES.value,
-            b'',
+            b"",
             response_code=_types.SSH_AGENT.IDENTITIES_ANSWER,
         )
         response_stream = collections.deque(response)
 
         def shift(num: int) -> bytes:
-            buf = collections.deque(b'')
+            buf = collections.deque(b"")
             for _ in range(num):
                 try:
                     val = response_stream.popleft()
                 except IndexError:
                     response_stream.extendleft(reversed(buf))
-                    msg = 'truncated response from SSH agent'
+                    msg = "truncated response from SSH agent"
                     raise EOFError(msg) from None
                 buf.append(val)
             return bytes(buf)
 
-        key_count = int.from_bytes(shift(4), 'big')
+        key_count = int.from_bytes(shift(4), "big")
         keys: collections.deque[_types.SSHKeyCommentPair]
         keys = collections.deque()
         for _ in range(key_count):
-            key_size = int.from_bytes(shift(4), 'big')
+            key_size = int.from_bytes(shift(4), "big")
             key = shift(key_size)
-            comment_size = int.from_bytes(shift(4), 'big')
+            comment_size = int.from_bytes(shift(4), "big")
             comment = shift(comment_size)
             # Both `key` and `comment` are not wrapped as SSH strings.
             keys.append(_types.SSHKeyCommentPair(key, comment))
@@ -629,7 +629,7 @@ class SSHAgentClient:
         if check_if_key_loaded:
             loaded_keys = frozenset({pair.key for pair in self.list_keys()})
             if bytes(key) not in loaded_keys:
-                msg = 'target SSH key not loaded into agent'
+                msg = "target SSH key not loaded into agent"
                 raise KeyError(msg)
         request_data = bytearray(self.string(key))
         request_data.extend(self.string(payload))
@@ -671,7 +671,7 @@ class SSHAgentClient:
         try:
             response_data = self.request(
                 _types.SSH_AGENTC.EXTENSION,
-                self.string(b'query'),
+                self.string(b"query"),
                 response_code={
                     _types.SSH_AGENT.EXTENSION_RESPONSE,
                     _types.SSH_AGENT.SUCCESS,
@@ -682,13 +682,13 @@ class SSHAgentClient:
             # This isn't necessarily true, e.g. for OpenSSH's ssh-agent.
             return frozenset()
         extensions: set[bytes] = set()
-        msg = 'Malformed response from SSH agent'
-        msg2 = 'Extension response message does not match request'
+        msg = "Malformed response from SSH agent"
+        msg2 = "Extension response message does not match request"
         try:
             query, response_data = self.unstring_prefix(response_data)
         except ValueError as e:
             raise RuntimeError(msg) from e
-        if bytes(query) != b'query':
+        if bytes(query) != b"query":
             raise RuntimeError(msg2)
         while response_data:
             try:

@@ -54,7 +54,7 @@ if TYPE_CHECKING:
     STUBBED = False
 else:
     try:
-        importlib.import_module('cryptography')
+        importlib.import_module("cryptography")
     except ModuleNotFoundError as exc:
 
         class _DummyModule:
@@ -85,12 +85,12 @@ else:
 
         STUBBED = False
 
-__all__ = ('export_vault_native_data',)
+__all__ = ("export_vault_native_data",)
 
 logger = logging.getLogger(__name__)
 
 
-@exporter.register_export_vault_config_data_handler('v0.2', 'v0.3')
+@exporter.register_export_vault_config_data_handler("v0.2", "v0.3")
 def export_vault_native_data(  # noqa: D417
     path: str | bytes | os.PathLike | None = None,
     key: str | Buffer | None = None,
@@ -108,18 +108,18 @@ def export_vault_native_data(  # noqa: D417
 
     """  # noqa: DOC201,DOC501
     # Trigger import errors if necessary.
-    importlib.import_module('cryptography')
+    importlib.import_module("cryptography")
     if path is None:
         path = exporter.get_vault_path()
     else:
         path = pathlib.Path(os.fsdecode(path))
-    with path.open('rb') as infile:
+    with path.open("rb") as infile:
         contents = base64.standard_b64decode(infile.read())
     if key is None:
         key = exporter.get_vault_key()
     parser_class: type[VaultNativeConfigParser] | None = {
-        'v0.2': VaultNativeV02ConfigParser,
-        'v0.3': VaultNativeV03ConfigParser,
+        "v0.2": VaultNativeV02ConfigParser,
+        "v0.3": VaultNativeV03ConfigParser,
     }.get(format)
     if parser_class is None:  # pragma: no cover [failsafe]
         msg = exporter.INVALID_VAULT_NATIVE_CONFIGURATION_FORMAT.format(
@@ -133,7 +133,7 @@ def export_vault_native_data(  # noqa: D417
 
 
 def _h(bs: Buffer) -> str:
-    return '<{}>'.format(memoryview(bs).hex(' '))
+    return "<{}>".format(memoryview(bs).hex(" "))
 
 
 class VaultNativeConfigParser(abc.ABC):
@@ -175,20 +175,20 @@ class VaultNativeConfigParser(abc.ABC):
 
         """
         if not password:
-            msg = 'Password must not be empty'
+            msg = "Password must not be empty"
             raise ValueError(msg)
         self._consistency_lock = threading.RLock()
         self._contents = bytes(contents)
         self._iv_size = 0
         self._mac_size = 0
-        self._encryption_key = b''
+        self._encryption_key = b""
         self._encryption_key_size = 0
-        self._signing_key = b''
+        self._signing_key = b""
         self._signing_key_size = 0
-        self._message = b''
-        self._message_tag = b''
-        self._iv = b''
-        self._payload = b''
+        self._message = b""
+        self._message_tag = b""
+        self._iv = b""
+        self._payload = b""
         self._password = password
         self._sentinel: object = object()
         self._data: Any = self._sentinel
@@ -247,14 +247,14 @@ class VaultNativeConfigParser(abc.ABC):
 
         """
         if isinstance(password, str):
-            password = password.encode('utf-8')
+            password = password.encode("utf-8")
         raw_key = pbkdf2.PBKDF2HMAC(
             algorithm=hashes.SHA1(),
             length=key_size // 2,
             salt=vault.Vault.UUID,
             iterations=iterations,
         ).derive(bytes(password))
-        result_key = raw_key.hex().lower().encode('ASCII')
+        result_key = raw_key.hex().lower().encode("ASCII")
         logger.debug(
             _msg.TranslatedString(
                 _msg.DebugMsgTemplate.VAULT_NATIVE_PBKDF2_CALL,
@@ -262,9 +262,9 @@ class VaultNativeConfigParser(abc.ABC):
                 salt=vault.Vault.UUID,
                 iterations=iterations,
                 key_size=key_size // 2,
-                algorithm='sha1',
+                algorithm="sha1",
                 raw_result=raw_key,
-                result_key=result_key.decode('ASCII'),
+                result_key=result_key.decode("ASCII"),
             ),
         )
         return result_key
@@ -295,7 +295,7 @@ class VaultNativeConfigParser(abc.ABC):
             mac_size = self._mac_size
 
             if len(contents) < iv_size + 16 + mac_size:
-                msg = 'Invalid vault configuration file: file is truncated'
+                msg = "Invalid vault configuration file: file is truncated"
                 raise ValueError(msg)
 
             cutpos1 = len(contents) - mac_size
@@ -333,10 +333,10 @@ class VaultNativeConfigParser(abc.ABC):
         with self._consistency_lock:
             self._generate_keys()
             assert len(self._encryption_key) == self._encryption_key_size, (
-                'Derived encryption key is invalid'
+                "Derived encryption key is invalid"
             )
             assert len(self._signing_key) == self._signing_key_size, (
-                'Derived signing key is invalid'
+                "Derived signing key is invalid"
             )
 
     @abc.abstractmethod
@@ -384,7 +384,7 @@ class VaultNativeConfigParser(abc.ABC):
         try:
             mac.verify(mac_expected)
         except crypt_exceptions.InvalidSignature:
-            msg = 'File does not contain a valid signature'
+            msg = "File does not contain a valid signature"
             raise ValueError(msg) from None
 
     @abc.abstractmethod
@@ -513,7 +513,7 @@ class VaultNativeV03ConfigParser(VaultNativeConfigParser):
         This includes hexadecimal encoding of the message payload.
 
         """
-        return self._message.hex().lower().encode('ASCII')
+        return self._message.hex().lower().encode("ASCII")
 
     def _make_decryptor(self) -> ciphers.CipherContext:
         """Return the cipher context object used for decryption.
@@ -575,7 +575,7 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
             super()._parse_contents()
             payload = self._payload = base64.standard_b64decode(self._payload)
             message_tag = self._message_tag = bytes.fromhex(
-                self._message_tag.decode('ASCII')
+                self._message_tag.decode("ASCII")
             )
         logger.debug(
             _msg.TranslatedString(
@@ -647,7 +647,7 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
             value (if any):
 
             ~~~~ python
-            data = block_input = b''.join([previous_block, input_string, salt])
+            data = block_input = b"".join([previous_block, input_string, salt])
             for i in range(iteration_count):
                 data = message_digest(data)
             block = data
@@ -683,8 +683,8 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
         """
         total_size = key_size + iv_size
         buffer = bytearray()
-        last_block = b''
-        salt = b''
+        last_block = b""
+        salt = b""
         logger.debug(
             _msg.TranslatedString(
                 _msg.DebugMsgTemplate.VAULT_NATIVE_EVP_BYTESTOKEY_INIT,
@@ -699,7 +699,7 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
         while len(buffer) < total_size:
             with warnings.catch_warnings():
                 warnings.simplefilter(
-                    'ignore', crypt_utils.CryptographyDeprecationWarning
+                    "ignore", crypt_utils.CryptographyDeprecationWarning
                 )
                 block = hashes.Hash(hashes.MD5())
             block.update(last_block)
@@ -753,11 +753,11 @@ class VaultNativeV02ConfigParser(VaultNativeConfigParser):
         ).decryptor()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import os
 
-    logging.basicConfig(level=('DEBUG' if os.getenv('DEBUG') else 'WARNING'))
-    with exporter.get_vault_path().open('rb') as infile:
+    logging.basicConfig(level=("DEBUG" if os.getenv("DEBUG") else "WARNING"))
+    with exporter.get_vault_path().open("rb") as infile:
         contents = base64.standard_b64decode(infile.read())
     password = exporter.get_vault_key()
     try:

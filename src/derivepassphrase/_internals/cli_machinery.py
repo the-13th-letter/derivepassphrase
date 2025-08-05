@@ -41,9 +41,9 @@ VERSION = _internals.VERSION
 VERSION_OUTPUT_WRAPPING_WIDTH = 72
 
 # Error messages
-NOT_AN_INTEGER = 'not an integer'
-NOT_A_NONNEGATIVE_INTEGER = 'not a non-negative integer'
-NOT_A_POSITIVE_INTEGER = 'not a positive integer'
+NOT_AN_INTEGER = "not an integer"
+NOT_A_NONNEGATIVE_INTEGER = "not a non-negative integer"
+NOT_A_POSITIVE_INTEGER = "not a positive integer"
 
 
 # Logging
@@ -67,7 +67,7 @@ class ClickEchoStderrHandler(logging.Handler):
         click.echo(
             self.format(record),
             err=True,
-            color=getattr(record, 'color', None),
+            color=getattr(record, "color", None),
         )
 
 
@@ -103,7 +103,7 @@ class CLIofPackageFormatter(logging.Formatter):
         self.package_name = (
             package_name
             if package_name is not None
-            else prog_name.lower().replace(' ', '_').replace('-', '_')
+            else prog_name.lower().replace(" ", "_").replace("-", "_")
         )
 
     def format(self, record: logging.LogRecord) -> str:
@@ -142,38 +142,38 @@ class CLIofPackageFormatter(logging.Formatter):
 
         """
         preliminary_result = record.getMessage()
-        prefix = f'{self.prog_name}: '
-        if record.levelname == 'DEBUG':  # pragma: no cover [unused]
-            level_indicator = 'Debug: '
-        elif record.levelname == 'INFO':
-            level_indicator = ''
-        elif record.levelname == 'WARNING':
+        prefix = f"{self.prog_name}: "
+        if record.levelname == "DEBUG":  # pragma: no cover [unused]
+            level_indicator = "Debug: "
+        elif record.levelname == "INFO":
+            level_indicator = ""
+        elif record.levelname == "WARNING":
             level_indicator = (
-                f'{click.style("Deprecation warning", bold=True)}: '
-                if record.name.endswith('.deprecation')
-                else f'{click.style("Warning", bold=True)}: '
+                f"{click.style('Deprecation warning', bold=True)}: "
+                if record.name.endswith(".deprecation")
+                else f"{click.style('Warning', bold=True)}: "
             )
-        elif record.levelname in {'ERROR', 'CRITICAL'}:
-            level_indicator = ''
+        elif record.levelname in {"ERROR", "CRITICAL"}:
+            level_indicator = ""
         else:  # pragma: no cover [failsafe]
-            msg = f'Unsupported logging level: {record.levelname}'
+            msg = f"Unsupported logging level: {record.levelname}"
             raise AssertionError(msg)
         parts = [
-            ''.join(
+            "".join(
                 prefix + level_indicator + line
                 for line in preliminary_result.splitlines(True)  # noqa: FBT003
             )
         ]
         if record.exc_info:
-            parts.append(self.formatException(record.exc_info) + '\n')
-        return ''.join(parts)
+            parts.append(self.formatException(record.exc_info) + "\n")
+        return "".join(parts)
 
 
 class StandardCLILogging:
     """Set up CLI logging handlers upon instantiation."""
 
     prog_name = PROG_NAME
-    package_name = PROG_NAME.lower().replace(' ', '_').replace('-', '_')
+    package_name = PROG_NAME.lower().replace(" ", "_").replace("-", "_")
     cli_formatter = CLIofPackageFormatter(
         prog_name=prog_name, package_name=package_name
     )
@@ -182,7 +182,7 @@ class StandardCLILogging:
     cli_handler.setFormatter(cli_formatter)
     cli_handler.setLevel(logging.WARNING)
     warnings_handler = ClickEchoStderrHandler()
-    warnings_handler.addFilter(logging.Filter(name='py.warnings'))
+    warnings_handler.addFilter(logging.Filter(name="py.warnings"))
     warnings_handler.setFormatter(cli_formatter)
     warnings_handler.setLevel(logging.WARNING)
 
@@ -264,7 +264,7 @@ class StandardWarningsLoggingContextManager(StandardLoggingContextManager):
         self,
         handler: logging.Handler,
     ) -> None:
-        super().__init__(handler=handler, root_logger='py.warnings')
+        super().__init__(handler=handler, root_logger="py.warnings")
         self.stack: MutableSequence[
             tuple[
                 Callable[
@@ -303,7 +303,7 @@ class StandardWarningsLoggingContextManager(StandardLoggingContextManager):
                     message, category, filename, lineno, file, line
                 )
             else:
-                logging.getLogger('py.warnings').warning(
+                logging.getLogger("py.warnings").warning(
                     str(
                         warnings.formatwarning(
                             message, category, filename, lineno, line
@@ -330,8 +330,8 @@ class StandardWarningsLoggingContextManager(StandardLoggingContextManager):
         return ret
 
 
-P = ParamSpec('P')
-R = TypeVar('R')
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 def adjust_logging_level(
@@ -375,9 +375,9 @@ class OptionGroupOption(click.Option):
 
     """
 
-    option_group_name: object = ''
+    option_group_name: object = ""
     """"""
-    epilog: object = ''
+    epilog: object = ""
     """"""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
@@ -390,7 +390,7 @@ class OptionGroupOption(click.Option):
         # help text from the constructor arguments and re-adding it,
         # unprocessed, after constructor finishes.
         unset = object()
-        help = kwargs.pop('help', unset)  # noqa: A001
+        help = kwargs.pop("help", unset)  # noqa: A001
         super().__init__(*args, **kwargs)
         if help is not unset:  # pragma: no branch
             self.help = help
@@ -458,7 +458,7 @@ class CommandWithHelpGroups(click.Command):
     @staticmethod
     def _text(text: object, /) -> str:
         if isinstance(text, (list, tuple)):
-            return '\n\n'.join(str(x) for x in text)
+            return "\n\n".join(str(x) for x in text)
         return str(text)
 
     # This method is based on click 8.1; see the comment above the class
@@ -542,7 +542,7 @@ class CommandWithHelpGroups(click.Command):
                 self._text(self.help), limit
             )
         else:  # pragma: no cover [external-api]
-            text = ''
+            text = ""
         if self.deprecated:  # pragma: no cover [external-api]
             # Modification against click 8.1: The translated string is
             # looked up in the derivepassphrase message domain, not the
@@ -574,9 +574,9 @@ class CommandWithHelpGroups(click.Command):
         # Used to implement translatable strings, as objects that
         # stringify to the translation.
         text = (
-            inspect.cleandoc(self._text(self.help).partition('\f')[0])
+            inspect.cleandoc(self._text(self.help).partition("\f")[0])
             if self.help is not None
-            else ''
+            else ""
         )
         if self.deprecated:  # pragma: no cover [external-api]
             # Modification against click 8.1: The translated string is
@@ -623,7 +623,7 @@ class CommandWithHelpGroups(click.Command):
                 The formatter for the `--help` listing.
 
         """
-        default_group_name = ''
+        default_group_name = ""
         help_records: dict[str, list[tuple[str, str]]] = {}
         epilogs: dict[str, str] = {}
         params = self.params[:]
@@ -656,7 +656,7 @@ class CommandWithHelpGroups(click.Command):
         for group_name, records in help_records.items():
             with formatter.section(group_name):
                 formatter.write_dl(records)
-            epilog = inspect.cleandoc(epilogs.get(group_name, ''))
+            epilog = inspect.cleandoc(epilogs.get(group_name, ""))
             if epilog:
                 formatter.write_paragraph()
                 with formatter.indentation():
@@ -697,7 +697,7 @@ class CommandWithHelpGroups(click.Command):
             limit = formatter.width - 6 - len(longest_command)
             rows: list[tuple[str, str]] = []
             for subcommand, cmd in commands:
-                help_str = self._text(cmd.get_short_help_str(limit) or '')
+                help_str = self._text(cmd.get_short_help_str(limit) or "")
                 rows.append((subcommand, help_str))
             if rows:  # pragma: no branch
                 commands_label = self._text(
@@ -822,20 +822,20 @@ class DefaultToVaultGroup(CommandWithHelpGroups, click.Group):
             #
             # END modifications for derivepassphrase
             ####
-            if cmd_name.startswith('-'):
+            if cmd_name.startswith("-"):
                 self.parse_args(ctx, ctx.args)
             ####
             # BEGIN modifications for derivepassphrase
             #
             # Instead of calling ctx.fail here, default to "vault", and
             # issue a deprecation warning.
-            deprecation = logging.getLogger(f'{PROG_NAME}.deprecation')
+            deprecation = logging.getLogger(f"{PROG_NAME}.deprecation")
             deprecation.warning(
                 _msg.TranslatedString(
                     _msg.WarnMsgTemplate.V10_SUBCOMMAND_REQUIRED
                 )
             )
-            cmd_name = 'vault'
+            cmd_name = "vault"
             cmd = self.get_command(ctx, cmd_name)
             assert cmd is not None, 'Mandatory subcommand "vault" missing!'
             args = [cmd_name, *args]
@@ -984,15 +984,15 @@ def common_version_output(
     del param, value
     major_dependencies: list[str] = []
     try:
-        cryptography_version = importlib.metadata.version('cryptography')
+        cryptography_version = importlib.metadata.version("cryptography")
     except ModuleNotFoundError:
         pass
     else:
-        major_dependencies.append(f'cryptography {cryptography_version}')
-    major_dependencies.append(f'click {importlib.metadata.version("click")}')
+        major_dependencies.append(f"cryptography {cryptography_version}")
+    major_dependencies.append(f"click {importlib.metadata.version('click')}")
 
     click.echo(
-        ' '.join([
+        " ".join([
             click.style(PROG_NAME, bold=True),
             VERSION,
         ]),
@@ -1022,26 +1022,26 @@ def print_version_info_types(
             formatted_item_list_pieces: list[str] = []
             n = len(item_list)
             for i, item in enumerate(item_list, start=1):
-                space = ' '
-                punctuation = '.' if i == n else ','
+                space = " "
+                punctuation = "." if i == n else ","
                 if (
                     current_length + len(space) + len(item) + len(punctuation)
                     <= VERSION_OUTPUT_WRAPPING_WIDTH
                 ):
                     current_length += len(space) + len(item) + len(punctuation)
-                    piece = f'{space}{item}{punctuation}'
+                    piece = f"{space}{item}{punctuation}"
                 else:
-                    space = '    '
+                    space = "    "
                     current_length = len(space) + len(item) + len(punctuation)
-                    piece = f'\n{space}{item}{punctuation}'
+                    piece = f"\n{space}{item}{punctuation}"
                 formatted_item_list_pieces.append(piece)
             click.echo(
-                ''.join([
+                "".join([
                     click.style(
                         str(_msg.TranslatedString(message_label)),
                         bold=True,
                     ),
-                    ''.join(formatted_item_list_pieces),
+                    "".join(formatted_item_list_pieces),
                 ]),
                 color=ctx.color,
             )
@@ -1159,7 +1159,7 @@ def version_option(
     ],
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     return click.option(
-        '--version',
+        "--version",
         is_flag=True,
         is_eager=True,
         expose_value=False,
@@ -1170,14 +1170,14 @@ def version_option(
 
 
 color_forcing_pseudo_option = click.option(
-    '--_pseudo-option-color-forcing',
-    '_color_forcing',
+    "--_pseudo-option-color-forcing",
+    "_color_forcing",
     is_flag=True,
     is_eager=True,
     expose_value=False,
     hidden=True,
     callback=color_forcing_callback,
-    help='(pseudo-option)',
+    help="(pseudo-option)",
 )
 
 
@@ -1228,12 +1228,12 @@ class LoggingOption(OptionGroupOption):
     """Logging options for the CLI."""
 
     option_group_name = _msg.TranslatedString(_msg.Label.LOGGING_LABEL)
-    epilog = ''
+    epilog = ""
 
 
 debug_option = click.option(
-    '--debug',
-    'logging_level',
+    "--debug",
+    "logging_level",
     is_flag=True,
     flag_value=logging.DEBUG,
     expose_value=False,
@@ -1242,9 +1242,9 @@ debug_option = click.option(
     cls=LoggingOption,
 )
 verbose_option = click.option(
-    '-v',
-    '--verbose',
-    'logging_level',
+    "-v",
+    "--verbose",
+    "logging_level",
     is_flag=True,
     flag_value=logging.INFO,
     expose_value=False,
@@ -1253,9 +1253,9 @@ verbose_option = click.option(
     cls=LoggingOption,
 )
 quiet_option = click.option(
-    '-q',
-    '--quiet',
-    'logging_level',
+    "-q",
+    "--quiet",
+    "logging_level",
     is_flag=True,
     flag_value=logging.ERROR,
     expose_value=False,
@@ -1324,9 +1324,9 @@ class ZshComplete(click.shell_completion.ZshComplete):
         non-degenerate.
 
         """
-        help_ = item.help or '_'
-        value = item.value.replace(':', r'\:' if help_ != '_' else ':')
-        return f'{item.type}\n{value}\n{help_}'
+        help_ = item.help or "_"
+        value = item.value.replace(":", r"\:" if help_ != "_" else ":")
+        return f"{item.type}\n{value}\n{help_}"
 
 
 # Our ZshComplete class depends crucially on the exact shape of the Zsh

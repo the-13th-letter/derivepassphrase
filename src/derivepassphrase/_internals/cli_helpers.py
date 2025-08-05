@@ -65,10 +65,10 @@ PROG_NAME = _msg.PROG_NAME
 KEY_DISPLAY_LENGTH = 50
 
 # Error messages
-INVALID_VAULT_CONFIG = 'Invalid vault config'
-AGENT_COMMUNICATION_ERROR = 'Error communicating with the SSH agent'
-NO_SUITABLE_KEYS = 'No suitable SSH keys were found'
-EMPTY_SELECTION = 'Empty selection'
+INVALID_VAULT_CONFIG = "Invalid vault config"
+AGENT_COMMUNICATION_ERROR = "Error communicating with the SSH agent"
+NO_SUITABLE_KEYS = "No suitable SSH keys were found"
+EMPTY_SELECTION = "Empty selection"
 
 
 # Shell completion
@@ -92,7 +92,7 @@ def shell_complete_path(
 ) -> list[str | click.shell_completion.CompletionItem]:
     """Request standard path completion for the `path` argument."""  # noqa: DOC201
     del ctx, parameter, value
-    return [click.shell_completion.CompletionItem('', type='file')]
+    return [click.shell_completion.CompletionItem("", type="file")]
 
 
 # The standard `click` shell completion scripts serialize the completion
@@ -128,7 +128,7 @@ def is_completable_item(obj: object) -> bool:
 
     """
     obj = str(obj)
-    forbidden = frozenset(chr(i) for i in range(32)) | {'\x7f'}
+    forbidden = frozenset(chr(i) for i in range(32)) | {"\x7f"}
     return not any(f in obj for f in forbidden)
 
 
@@ -150,7 +150,7 @@ def shell_complete_service(
         config = load_config()
         return sorted(
             sv
-            for sv in config['services']
+            for sv in config["services"]
             if sv.startswith(value) and is_completable_item(sv)
         )
     except FileNotFoundError:
@@ -158,7 +158,7 @@ def shell_complete_service(
             config, _exc = migrate_and_load_old_config()
             return sorted(
                 sv
-                for sv in config['services']
+                for sv in config["services"]
                 if sv.startswith(value) and is_completable_item(sv)
             )
         except FileNotFoundError:
@@ -171,14 +171,14 @@ def shell_complete_service(
 # =====
 
 config_filename_table = {
-    None: '.',
-    'write lock': '',
-    'vault': 'vault.json',
-    'user configuration': 'config.toml',
+    None: ".",
+    "write lock": "",
+    "vault": "vault.json",
+    "user configuration": "config.toml",
     # TODO(the-13th-letter): Remove the old settings.json file.
     # https://the13thletter.info/derivepassphrase/latest/upgrade-notes.html#v1.0-old-settings-file
-    'old settings.json': 'settings.json',
-    'notes backup': 'old-notes.txt',
+    "old settings.json": "settings.json",
+    "notes backup": "old-notes.txt",
 }
 
 LOCK_SIZE = 4096
@@ -243,7 +243,7 @@ class ConfigurationMutex:
 
     def __init__(self) -> None:
         """Initialize self."""
-        if sys.platform == 'win32':  # pragma: unless the-annoying-os no cover
+        if sys.platform == "win32":  # pragma: unless the-annoying-os no cover
             import msvcrt  # noqa: PLC0415
 
             locking = msvcrt.locking
@@ -276,14 +276,14 @@ class ConfigurationMutex:
                 )
                 self.write_lock_condition.notify()
                 self.write_lock_file.touch()
-                self.write_lock_fileobj = self.write_lock_file.open('wb')
+                self.write_lock_fileobj = self.write_lock_file.open("wb")
                 lock_fd(self.write_lock_fileobj.fileno())
 
         def unlock_func() -> None:
             with self.write_lock_condition:
                 assert self.write_lock_fileobj is not None, (
-                    'We lost track of the configuration write lock '
-                    'file object, so we cannot unlock it anymore!'
+                    "We lost track of the configuration write lock "
+                    "file object, so we cannot unlock it anymore!"
                 )
                 unlock_fd(self.write_lock_fileobj.fileno())
                 self.write_lock_fileobj.close()
@@ -292,7 +292,7 @@ class ConfigurationMutex:
         self.lock = lock_func
         self.unlock = unlock_func
         self.write_lock_fileobj = None
-        self.write_lock_file = config_filename('write lock')
+        self.write_lock_file = config_filename("write lock")
         self.write_lock_condition = threading.Condition(threading.Lock())
 
     def __enter__(self) -> Self:
@@ -364,28 +364,28 @@ def get_tempdir() -> pathlib.Path:
     """
     paths_to_try: list[pathlib.PurePath] = []
     env_paths_to_try = [
-        os.getenv('TMPDIR'),
-        os.getenv('TEMP'),
-        os.getenv('TMP'),
+        os.getenv("TMPDIR"),
+        os.getenv("TEMP"),
+        os.getenv("TMP"),
     ]
     paths_to_try.extend(
         pathlib.PurePath(p) for p in env_paths_to_try if p is not None
     )
     posix_paths_to_try = [
-        pathlib.PurePosixPath('/tmp'),  # noqa: S108
-        pathlib.PurePosixPath('/var/tmp'),  # noqa: S108
-        pathlib.PurePosixPath('/usr/tmp'),
+        pathlib.PurePosixPath("/tmp"),  # noqa: S108
+        pathlib.PurePosixPath("/var/tmp"),  # noqa: S108
+        pathlib.PurePosixPath("/usr/tmp"),
     ]
     windows_paths_to_try = [
-        pathlib.PureWindowsPath(r'~\AppData\Local\Temp'),
-        pathlib.PureWindowsPath(os.path.expandvars(r'%SYSTEMROOT%\Temp')),
-        pathlib.PureWindowsPath(r'C:\TEMP'),
-        pathlib.PureWindowsPath(r'C:\TMP'),
-        pathlib.PureWindowsPath(r'\TEMP'),
-        pathlib.PureWindowsPath(r'\TMP'),
+        pathlib.PureWindowsPath(r"~\AppData\Local\Temp"),
+        pathlib.PureWindowsPath(os.path.expandvars(r"%SYSTEMROOT%\Temp")),
+        pathlib.PureWindowsPath(r"C:\TEMP"),
+        pathlib.PureWindowsPath(r"C:\TMP"),
+        pathlib.PureWindowsPath(r"\TEMP"),
+        pathlib.PureWindowsPath(r"\TMP"),
     ]
     paths_to_try.extend(
-        windows_paths_to_try if sys.platform == 'win32' else posix_paths_to_try
+        windows_paths_to_try if sys.platform == "win32" else posix_paths_to_try
     )
     for p in paths_to_try:
         path = pathlib.Path(p).expanduser()
@@ -400,7 +400,7 @@ def get_tempdir() -> pathlib.Path:
 
 
 def config_filename(
-    subsystem: str | None = 'old settings.json',
+    subsystem: str | None = "old settings.json",
 ) -> pathlib.Path:
     """Return the filename of the configuration file for the subsystem.
 
@@ -429,21 +429,21 @@ def config_filename(
 
     """
     path = pathlib.Path(
-        os.getenv(PROG_NAME.upper() + '_PATH')
+        os.getenv(PROG_NAME.upper() + "_PATH")
         or click.get_app_dir(PROG_NAME, force_posix=True)
     )
-    if subsystem == 'write lock':
+    if subsystem == "write lock":
         path_hash = base64.b32encode(
             hashlib.sha256(os.fsencode(path.resolve())).digest()
         )
-        path_hash_text = path_hash[:12].lower().decode('ASCII')
+        path_hash_text = path_hash[:12].lower().decode("ASCII")
         temp_path = get_tempdir()
-        filename_ = f'derivepassphrase-lock-{path_hash_text}.txt'
+        filename_ = f"derivepassphrase-lock-{path_hash_text}.txt"
         return temp_path / filename_
     try:
         filename = config_filename_table[subsystem]
     except (KeyError, TypeError):  # pragma: no cover [failsafe]
-        msg = f'Unknown configuration subsystem: {subsystem!r}'
+        msg = f"Unknown configuration subsystem: {subsystem!r}"
         raise AssertionError(msg) from None
     return path / filename
 
@@ -465,8 +465,8 @@ def load_config() -> _types.VaultConfig:
             config.
 
     """
-    filename = config_filename(subsystem='vault')
-    with filename.open('rb') as fileobj:
+    filename = config_filename(subsystem="vault")
+    with filename.open("rb") as fileobj:
         data = json.load(fileobj)
     if not _types.is_vault_config(data):
         raise ValueError(INVALID_VAULT_CONFIG)
@@ -495,9 +495,9 @@ def migrate_and_load_old_config() -> tuple[_types.VaultConfig, OSError | None]:
             config.
 
     """
-    new_filename = config_filename(subsystem='vault')
-    old_filename = config_filename(subsystem='old settings.json')
-    with old_filename.open('rb') as fileobj:
+    new_filename = config_filename(subsystem="vault")
+    old_filename = config_filename(subsystem="old settings.json")
+    with old_filename.open("rb") as fileobj:
         data = json.load(fileobj)
     if not _types.is_vault_config(data):
         raise ValueError(INVALID_VAULT_CONFIG)
@@ -528,10 +528,10 @@ def save_config(config: _types.VaultConfig, /) -> None:
     """
     if not _types.is_vault_config(config):
         raise ValueError(INVALID_VAULT_CONFIG)
-    filename = config_filename(subsystem='vault')
+    filename = config_filename(subsystem="vault")
     filedir = filename.resolve().parent
     filedir.mkdir(parents=True, exist_ok=True)
-    with filename.open('w', encoding='UTF-8') as fileobj:
+    with filename.open("w", encoding="UTF-8") as fileobj:
         json.dump(
             config, fileobj, ensure_ascii=False, indent=2, sort_keys=True
         )
@@ -553,8 +553,8 @@ def load_user_config() -> dict[str, Any]:
             file.
 
     """
-    filename = config_filename(subsystem='user configuration')
-    with filename.open('rb') as fileobj:
+    filename = config_filename(subsystem="user configuration")
+    with filename.open("rb") as fileobj:
         return tomllib.load(fileobj)
 
 
@@ -625,8 +625,8 @@ def get_suitable_ssh_keys(
 
 def prompt_for_selection(
     items: Sequence[str | bytes],
-    heading: str = 'Possible choices:',
-    single_choice_prompt: str = 'Confirm this choice?',
+    heading: str = "Possible choices:",
+    single_choice_prompt: str = "Confirm this choice?",
     ctx: click.Context | None = None,
 ) -> int:
     """Prompt user for a choice among the given items.
@@ -667,20 +667,20 @@ def prompt_for_selection(
         click.echo(click.style(heading, bold=True), err=True, color=color)
     for i, x in enumerate(items, start=1):
         click.echo(
-            click.style(f'[{i}]', bold=True), nl=False, err=True, color=color
+            click.style(f"[{i}]", bold=True), nl=False, err=True, color=color
         )
-        click.echo(' ', nl=False, err=True, color=color)
+        click.echo(" ", nl=False, err=True, color=color)
         click.echo(x, err=True, color=color)
     if n > 1:
-        choices = click.Choice([''] + [str(i) for i in range(1, n + 1)])
+        choices = click.Choice([""] + [str(i) for i in range(1, n + 1)])
         try:
             choice = click.prompt(
-                f'Your selection? (1-{n}, leave empty to abort)',
+                f"Your selection? (1-{n}, leave empty to abort)",
                 err=True,
                 type=choices,
                 show_choices=False,
                 show_default=False,
-                default='',
+                default="",
             )
         except click.Abort:  # pragma: no cover [external]
             # This branch will not be triggered during testing on
@@ -690,12 +690,12 @@ def prompt_for_selection(
             # coverage.
             #
             # https://github.com/pallets/click/issues/2934
-            choice = ''
+            choice = ""
         if not choice:
             raise IndexError(EMPTY_SELECTION)
         return int(choice) - 1
     prompt_suffix = (
-        ' ' if single_choice_prompt.endswith(tuple('?.!')) else ': '
+        " " if single_choice_prompt.endswith(tuple("?.!")) else ": "
     )
     try:
         click.confirm(
@@ -895,21 +895,21 @@ def select_ssh_key(
     key_listing: list[str] = []
     unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
     for key, comment in suitable_keys:
-        keytype = unstring_prefix(key)[0].decode('ASCII')
-        key_str = base64.standard_b64encode(key).decode('ASCII')
+        keytype = unstring_prefix(key)[0].decode("ASCII")
+        key_str = base64.standard_b64encode(key).decode("ASCII")
         remaining_key_display_length = KEY_DISPLAY_LENGTH - 1 - len(keytype)
         key_extract = min(
             key_str,
-            '...' + key_str[-remaining_key_display_length:],
+            "..." + key_str[-remaining_key_display_length:],
             key=len,
         )
-        comment_str = comment.decode('UTF-8', errors='replace')
-        key_listing.append(f'{keytype} {key_extract}  {comment_str}')
+        comment_str = comment.decode("UTF-8", errors="replace")
+        key_listing.append(f"{keytype} {key_extract}  {comment_str}")
     try:
         choice = prompt_for_selection(
             key_listing,
-            heading='Suitable SSH keys:',
-            single_choice_prompt='Use this key?',
+            heading="Suitable SSH keys:",
+            single_choice_prompt="Use this key?",
             ctx=ctx,
         )
     except IndexError:
@@ -933,10 +933,10 @@ def prompt_for_passphrase() -> str:
     """
     try:
         return cast(
-            'str',
+            "str",
             click.prompt(
-                'Passphrase',
-                default='',
+                "Passphrase",
+                default="",
                 hide_input=True,
                 show_default=False,
                 err=True,
@@ -949,7 +949,7 @@ def prompt_for_passphrase() -> str:
         # of nondeterminism, exclude it from coverage.
         #
         # https://github.com/pallets/click/issues/2934
-        return ''
+        return ""
 
 
 def toml_key(*parts: str) -> str:
@@ -957,29 +957,29 @@ def toml_key(*parts: str) -> str:
 
     def escape(string: str) -> str:
         translated = string.translate({
-            0: r'\u0000',
-            1: r'\u0001',
-            2: r'\u0002',
-            3: r'\u0003',
-            4: r'\u0004',
-            5: r'\u0005',
-            6: r'\u0006',
-            7: r'\u0007',
-            8: r'\b',
-            9: r'\t',
-            10: r'\n',
-            11: r'\u000B',
-            12: r'\f',
-            13: r'\r',
-            14: r'\u000E',
-            15: r'\u000F',
-            ord('"'): r'\"',
-            ord('\\'): r'\\',
-            127: r'\u007F',
+            0: r"\u0000",
+            1: r"\u0001",
+            2: r"\u0002",
+            3: r"\u0003",
+            4: r"\u0004",
+            5: r"\u0005",
+            6: r"\u0006",
+            7: r"\u0007",
+            8: r"\b",
+            9: r"\t",
+            10: r"\n",
+            11: r"\u000B",
+            12: r"\f",
+            13: r"\r",
+            14: r"\u000E",
+            15: r"\u000F",
+            ord('"'): r"\"",
+            ord("\\"): r"\\",
+            127: r"\u007F",
         })
         return f'"{translated}"' if translated != string else string
 
-    return '.'.join(map(escape, parts))
+    return ".".join(map(escape, parts))
 
 
 class ORIGIN(enum.Enum):
@@ -1026,23 +1026,23 @@ def check_for_misleading_passphrase(
             The main user configuration is invalid.
 
     """
-    form_key = 'unicode-normalization-form'
-    default_form: str = main_config.get('vault', {}).get(
-        f'default-{form_key}', 'NFC'
+    form_key = "unicode-normalization-form"
+    default_form: str = main_config.get("vault", {}).get(
+        f"default-{form_key}", "NFC"
     )
-    form_dict: dict[str, dict] = main_config.get('vault', {}).get(form_key, {})
+    form_dict: dict[str, dict] = main_config.get("vault", {}).get(form_key, {})
     form: Any = (
         default_form
-        if isinstance(key, ORIGIN) or key == ('global',)
+        if isinstance(key, ORIGIN) or key == ("global",)
         else form_dict.get(key[1], default_form)
     )
     config_key = (
-        toml_key('vault', key[1], form_key)
+        toml_key("vault", key[1], form_key)
         if isinstance(key, tuple) and len(key) > 1 and key[1] in form_dict
-        else f'vault.default-{form_key}'
+        else f"vault.default-{form_key}"
     )
-    if form not in {'NFC', 'NFD', 'NFKC', 'NFKD'}:
-        msg = f'Invalid value {form!r} for config key {config_key}'
+    if form not in {"NFC", "NFD", "NFKC", "NFKD"}:
+        msg = f"Invalid value {form!r} for config key {config_key}"
         raise AssertionError(msg)
     logger = logging.getLogger(PROG_NAME)
     formatted_key = (
@@ -1050,8 +1050,8 @@ def check_for_misleading_passphrase(
         if isinstance(key, ORIGIN)
         else _types.json_path(key)
     )
-    if 'phrase' in value:
-        phrase = value['phrase']
+    if "phrase" in value:
+        phrase = value["phrase"]
         if not unicodedata.is_normalized(form, phrase):
             logger.warning(
                 _msg.TranslatedString(
@@ -1060,7 +1060,7 @@ def check_for_misleading_passphrase(
                     form=form,
                 ),
                 stacklevel=2,
-                extra={'color': ctx.color if ctx is not None else None},
+                extra={"color": ctx.color if ctx is not None else None},
             )
 
 
@@ -1141,27 +1141,27 @@ def print_config_as_sh_script(
 
     """
     service_keys = (
-        'length',
-        'repeat',
-        'lower',
-        'upper',
-        'number',
-        'space',
-        'dash',
-        'symbol',
+        "length",
+        "repeat",
+        "lower",
+        "upper",
+        "number",
+        "space",
+        "dash",
+        "symbol",
     )
-    print('#!/bin/sh -e', file=outfile)
+    print("#!/bin/sh -e", file=outfile)
     print(file=outfile)
-    print(shlex.join([*prog_name_list, '--clear']), file=outfile)
+    print(shlex.join([*prog_name_list, "--clear"]), file=outfile)
     sv_obj_pairs: list[
         tuple[
             str | None,
             _types.VaultConfigGlobalSettings
             | _types.VaultConfigServicesSettings,
         ],
-    ] = list(config['services'].items())
-    if config.get('global', {}):
-        sv_obj_pairs.insert(0, (None, config['global']))
+    ] = list(config["services"].items())
+    if config.get("global", {}):
+        sv_obj_pairs.insert(0, (None, config["global"]))
     for sv, sv_obj in sv_obj_pairs:
         this_service_keys = tuple(k for k in service_keys if k in sv_obj)
         this_other_keys = tuple(k for k in sv_obj if k not in service_keys)
@@ -1169,37 +1169,37 @@ def print_config_as_sh_script(
             other_sv_obj = {k: sv_obj[k] for k in this_other_keys}  # type: ignore[literal-required]
             dumped_config = json.dumps(
                 (
-                    {'services': {sv: other_sv_obj}}
+                    {"services": {sv: other_sv_obj}}
                     if sv is not None
-                    else {'global': other_sv_obj, 'services': {}}
+                    else {"global": other_sv_obj, "services": {}}
                 ),
                 ensure_ascii=False,
                 indent=None,
             )
             print(
-                shlex.join([*prog_name_list, '--import', '-']) + " <<'HERE'",
+                shlex.join([*prog_name_list, "--import", "-"]) + " <<'HERE'",
                 dumped_config,
-                'HERE',
-                sep='\n',
+                "HERE",
+                sep="\n",
                 file=outfile,
             )
         if not this_service_keys and not this_other_keys and sv:
             dumped_config = json.dumps(
-                {'services': {sv: {}}},
+                {"services": {sv: {}}},
                 ensure_ascii=False,
                 indent=None,
             )
             print(
-                shlex.join([*prog_name_list, '--import', '-']) + " <<'HERE'",
+                shlex.join([*prog_name_list, "--import", "-"]) + " <<'HERE'",
                 dumped_config,
-                'HERE',
-                sep='\n',
+                "HERE",
+                sep="\n",
                 file=outfile,
             )
         elif this_service_keys:
-            tokens = [*prog_name_list, '--config']
+            tokens = [*prog_name_list, "--config"]
             for key in this_service_keys:
-                tokens.extend([f'--{key}', str(sv_obj[key])])  # type: ignore[literal-required]
+                tokens.extend([f"--{key}", str(sv_obj[key])])  # type: ignore[literal-required]
             if sv is not None:
-                tokens.extend(['--', sv])
+                tokens.extend(["--", sv])
             print(shlex.join(tokens), file=outfile)

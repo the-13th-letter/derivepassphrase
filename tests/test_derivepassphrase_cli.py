@@ -99,129 +99,129 @@ class VersionOutputData(NamedTuple):
 
 class KnownLineType(str, enum.Enum):
     SUPPORTED_FOREIGN_CONFS = cli_messages.Label.SUPPORTED_FOREIGN_CONFIGURATION_FORMATS.value.singular.rstrip(
-        ':'
+        ":"
     )
     UNAVAILABLE_FOREIGN_CONFS = cli_messages.Label.UNAVAILABLE_FOREIGN_CONFIGURATION_FORMATS.value.singular.rstrip(
-        ':'
+        ":"
     )
     SUPPORTED_SCHEMES = (
         cli_messages.Label.SUPPORTED_DERIVATION_SCHEMES.value.singular.rstrip(
-            ':'
+            ":"
         )
     )
     UNAVAILABLE_SCHEMES = cli_messages.Label.UNAVAILABLE_DERIVATION_SCHEMES.value.singular.rstrip(
-        ':'
+        ":"
     )
     SUPPORTED_SUBCOMMANDS = (
-        cli_messages.Label.SUPPORTED_SUBCOMMANDS.value.singular.rstrip(':')
+        cli_messages.Label.SUPPORTED_SUBCOMMANDS.value.singular.rstrip(":")
     )
     SUPPORTED_FEATURES = (
-        cli_messages.Label.SUPPORTED_FEATURES.value.singular.rstrip(':')
+        cli_messages.Label.SUPPORTED_FEATURES.value.singular.rstrip(":")
     )
     UNAVAILABLE_FEATURES = (
-        cli_messages.Label.UNAVAILABLE_FEATURES.value.singular.rstrip(':')
+        cli_messages.Label.UNAVAILABLE_FEATURES.value.singular.rstrip(":")
     )
     ENABLED_EXTRAS = (
-        cli_messages.Label.ENABLED_PEP508_EXTRAS.value.singular.rstrip(':')
+        cli_messages.Label.ENABLED_PEP508_EXTRAS.value.singular.rstrip(":")
     )
 
 
 PASSPHRASE_GENERATION_OPTIONS: list[tuple[str, ...]] = [
-    ('--phrase',),
-    ('--key',),
-    ('--length', '20'),
-    ('--repeat', '20'),
-    ('--lower', '1'),
-    ('--upper', '1'),
-    ('--number', '1'),
-    ('--space', '1'),
-    ('--dash', '1'),
-    ('--symbol', '1'),
+    ("--phrase",),
+    ("--key",),
+    ("--length", "20"),
+    ("--repeat", "20"),
+    ("--lower", "1"),
+    ("--upper", "1"),
+    ("--number", "1"),
+    ("--space", "1"),
+    ("--dash", "1"),
+    ("--symbol", "1"),
 ]
 CONFIGURATION_OPTIONS: list[tuple[str, ...]] = [
-    ('--notes',),
-    ('--config',),
-    ('--delete',),
-    ('--delete-globals',),
-    ('--clear',),
+    ("--notes",),
+    ("--config",),
+    ("--delete",),
+    ("--delete-globals",),
+    ("--clear",),
 ]
 CONFIGURATION_COMMANDS: list[tuple[str, ...]] = [
-    ('--delete',),
-    ('--delete-globals',),
-    ('--clear',),
+    ("--delete",),
+    ("--delete-globals",),
+    ("--clear",),
 ]
-STORAGE_OPTIONS: list[tuple[str, ...]] = [('--export', '-'), ('--import', '-')]
+STORAGE_OPTIONS: list[tuple[str, ...]] = [("--export", "-"), ("--import", "-")]
 INCOMPATIBLE: dict[tuple[str, ...], IncompatibleConfiguration] = {
-    ('--phrase',): IncompatibleConfiguration(
-        [('--key',), *CONFIGURATION_COMMANDS, *STORAGE_OPTIONS],
+    ("--phrase",): IncompatibleConfiguration(
+        [("--key",), *CONFIGURATION_COMMANDS, *STORAGE_OPTIONS],
         True,
         DUMMY_PASSPHRASE,
     ),
-    ('--key',): IncompatibleConfiguration(
+    ("--key",): IncompatibleConfiguration(
         CONFIGURATION_COMMANDS + STORAGE_OPTIONS, True, DUMMY_PASSPHRASE
     ),
-    ('--length', '20'): IncompatibleConfiguration(
+    ("--length", "20"): IncompatibleConfiguration(
         CONFIGURATION_COMMANDS + STORAGE_OPTIONS, True, DUMMY_PASSPHRASE
     ),
-    ('--repeat', '20'): IncompatibleConfiguration(
+    ("--repeat", "20"): IncompatibleConfiguration(
         CONFIGURATION_COMMANDS + STORAGE_OPTIONS, True, DUMMY_PASSPHRASE
     ),
-    ('--lower', '1'): IncompatibleConfiguration(
+    ("--lower", "1"): IncompatibleConfiguration(
         CONFIGURATION_COMMANDS + STORAGE_OPTIONS, True, DUMMY_PASSPHRASE
     ),
-    ('--upper', '1'): IncompatibleConfiguration(
+    ("--upper", "1"): IncompatibleConfiguration(
         CONFIGURATION_COMMANDS + STORAGE_OPTIONS, True, DUMMY_PASSPHRASE
     ),
-    ('--number', '1'): IncompatibleConfiguration(
+    ("--number", "1"): IncompatibleConfiguration(
         CONFIGURATION_COMMANDS + STORAGE_OPTIONS, True, DUMMY_PASSPHRASE
     ),
-    ('--space', '1'): IncompatibleConfiguration(
+    ("--space", "1"): IncompatibleConfiguration(
         CONFIGURATION_COMMANDS + STORAGE_OPTIONS, True, DUMMY_PASSPHRASE
     ),
-    ('--dash', '1'): IncompatibleConfiguration(
+    ("--dash", "1"): IncompatibleConfiguration(
         CONFIGURATION_COMMANDS + STORAGE_OPTIONS, True, DUMMY_PASSPHRASE
     ),
-    ('--symbol', '1'): IncompatibleConfiguration(
+    ("--symbol", "1"): IncompatibleConfiguration(
         CONFIGURATION_COMMANDS + STORAGE_OPTIONS, True, DUMMY_PASSPHRASE
     ),
-    ('--notes',): IncompatibleConfiguration(
+    ("--notes",): IncompatibleConfiguration(
         CONFIGURATION_COMMANDS + STORAGE_OPTIONS, True, None
     ),
-    ('--config', '-p'): IncompatibleConfiguration(
-        [('--delete',), ('--delete-globals',), ('--clear',), *STORAGE_OPTIONS],
+    ("--config", "-p"): IncompatibleConfiguration(
+        [("--delete",), ("--delete-globals",), ("--clear",), *STORAGE_OPTIONS],
         None,
         DUMMY_PASSPHRASE,
     ),
-    ('--delete',): IncompatibleConfiguration(
-        [('--delete-globals',), ('--clear',), *STORAGE_OPTIONS], True, None
+    ("--delete",): IncompatibleConfiguration(
+        [("--delete-globals",), ("--clear",), *STORAGE_OPTIONS], True, None
     ),
-    ('--delete-globals',): IncompatibleConfiguration(
-        [('--clear',), *STORAGE_OPTIONS], False, None
+    ("--delete-globals",): IncompatibleConfiguration(
+        [("--clear",), *STORAGE_OPTIONS], False, None
     ),
-    ('--clear',): IncompatibleConfiguration(STORAGE_OPTIONS, False, None),
-    ('--export', '-'): IncompatibleConfiguration(
-        [('--import', '-')], False, None
+    ("--clear",): IncompatibleConfiguration(STORAGE_OPTIONS, False, None),
+    ("--export", "-"): IncompatibleConfiguration(
+        [("--import", "-")], False, None
     ),
-    ('--import', '-'): IncompatibleConfiguration([], False, None),
+    ("--import", "-"): IncompatibleConfiguration([], False, None),
 }
 SINGLES: dict[tuple[str, ...], SingleConfiguration] = {
-    ('--phrase',): SingleConfiguration(True, DUMMY_PASSPHRASE, True),
-    ('--key',): SingleConfiguration(True, None, False),
-    ('--length', '20'): SingleConfiguration(True, DUMMY_PASSPHRASE, True),
-    ('--repeat', '20'): SingleConfiguration(True, DUMMY_PASSPHRASE, True),
-    ('--lower', '1'): SingleConfiguration(True, DUMMY_PASSPHRASE, True),
-    ('--upper', '1'): SingleConfiguration(True, DUMMY_PASSPHRASE, True),
-    ('--number', '1'): SingleConfiguration(True, DUMMY_PASSPHRASE, True),
-    ('--space', '1'): SingleConfiguration(True, DUMMY_PASSPHRASE, True),
-    ('--dash', '1'): SingleConfiguration(True, DUMMY_PASSPHRASE, True),
-    ('--symbol', '1'): SingleConfiguration(True, DUMMY_PASSPHRASE, True),
-    ('--notes',): SingleConfiguration(True, None, False),
-    ('--config', '-p'): SingleConfiguration(None, DUMMY_PASSPHRASE, False),
-    ('--delete',): SingleConfiguration(True, None, False),
-    ('--delete-globals',): SingleConfiguration(False, None, True),
-    ('--clear',): SingleConfiguration(False, None, True),
-    ('--export', '-'): SingleConfiguration(False, None, True),
-    ('--import', '-'): SingleConfiguration(False, '{"services": {}}', True),
+    ("--phrase",): SingleConfiguration(True, DUMMY_PASSPHRASE, True),
+    ("--key",): SingleConfiguration(True, None, False),
+    ("--length", "20"): SingleConfiguration(True, DUMMY_PASSPHRASE, True),
+    ("--repeat", "20"): SingleConfiguration(True, DUMMY_PASSPHRASE, True),
+    ("--lower", "1"): SingleConfiguration(True, DUMMY_PASSPHRASE, True),
+    ("--upper", "1"): SingleConfiguration(True, DUMMY_PASSPHRASE, True),
+    ("--number", "1"): SingleConfiguration(True, DUMMY_PASSPHRASE, True),
+    ("--space", "1"): SingleConfiguration(True, DUMMY_PASSPHRASE, True),
+    ("--dash", "1"): SingleConfiguration(True, DUMMY_PASSPHRASE, True),
+    ("--symbol", "1"): SingleConfiguration(True, DUMMY_PASSPHRASE, True),
+    ("--notes",): SingleConfiguration(True, None, False),
+    ("--config", "-p"): SingleConfiguration(None, DUMMY_PASSPHRASE, False),
+    ("--delete",): SingleConfiguration(True, None, False),
+    ("--delete-globals",): SingleConfiguration(False, None, True),
+    ("--clear",): SingleConfiguration(False, None, True),
+    ("--export", "-"): SingleConfiguration(False, None, True),
+    ("--import", "-"): SingleConfiguration(False, '{"services": {}}', True),
 }
 INTERESTING_OPTION_COMBINATIONS: list[OptionCombination] = []
 config: IncompatibleConfiguration | SingleConfiguration
@@ -257,21 +257,21 @@ for opt, config in SINGLES.items():
 
 def is_warning_line(line: str) -> bool:
     """Return true if the line is a warning line."""
-    return ' Warning: ' in line or ' Deprecation warning: ' in line
+    return " Warning: " in line or " Deprecation warning: " in line
 
 
 def is_harmless_config_import_warning(record: tuple[str, int, str]) -> bool:
     """Return true if the warning is harmless, during config import."""
     possible_warnings = [
-        'Replacing invalid value ',
-        'Removing ineffective setting ',
+        "Replacing invalid value ",
+        "Removing ineffective setting ",
         (
-            'Setting a global passphrase is ineffective '
-            'because a key is also set.'
+            "Setting a global passphrase is ineffective "
+            "because a key is also set."
         ),
         (
-            'Setting a service passphrase is ineffective '
-            'because a key is also set:'
+            "Setting a service passphrase is ineffective "
+            "because a key is also set:"
         ),
     ]
     return any(tests.warning_emitted(w, [record]) for w in possible_warnings)
@@ -306,13 +306,13 @@ def assert_vault_config_is_indented_and_line_broken(
 
     """
     known_indented_lines = {
-        '}',
-        '},',
+        "}",
+        "},",
         '"services": {}',
         '"services": {},',
     }
     assert any([
-        line.strip() in known_indented_lines and line.startswith((' ', '\t'))
+        line.strip() in known_indented_lines and line.startswith((" ", "\t"))
         for line in config_txt.splitlines()
     ])
 
@@ -337,7 +337,7 @@ def vault_config_exporter_shell_interpreter(  # noqa: C901
     if isinstance(script, str):  # pragma: no cover
         script = script.splitlines(False)
     if prog_name_list is None:  # pragma: no cover
-        prog_name_list = ['derivepassphrase', 'vault']
+        prog_name_list = ["derivepassphrase", "vault"]
     if command is None:  # pragma: no cover
         command = cli.derivepassphrase_vault
     if runner is None:  # pragma: no cover
@@ -355,16 +355,16 @@ def vault_config_exporter_shell_interpreter(  # noqa: C901
         if line[:n] != prog_name_list:
             continue
         line[:n] = []
-        if line and line[-1] == '<<HERE':
+        if line and line[-1] == "<<HERE":
             # naive HERE document support
             while True:
                 try:
                     raw_line = next(it)
                 except StopIteration as exc:  # pragma: no cover
-                    msg = 'incomplete here document'
+                    msg = "incomplete here document"
                     raise EOFError(msg) from exc
                 else:
-                    if raw_line == 'HERE':
+                    if raw_line == "HERE":
                         break
                     input_buffer.append(raw_line)
             line.pop()
@@ -372,7 +372,7 @@ def vault_config_exporter_shell_interpreter(  # noqa: C901
             command,
             line,
             catch_exceptions=False,
-            input=(''.join(x + '\n' for x in input_buffer) or None),
+            input=("".join(x + "\n" for x in input_buffer) or None),
         )
 
 
@@ -422,22 +422,22 @@ def parse_version_output(  # noqa: C901
                 paragraphs.append(paragraph.copy())
             paragraph.clear()
         elif paragraph and line.lstrip() != line:
-            paragraph[-1] = f'{paragraph[-1]} {line.lstrip()}'
+            paragraph[-1] = f"{paragraph[-1]} {line.lstrip()}"
         else:
             paragraph.append(line)
     if paragraph:  # pragma: no branch
         paragraphs.append(paragraph.copy())
         paragraph.clear()
     assert paragraphs, (
-        f'expected at least one paragraph of version output: {paragraphs!r}'
+        f"expected at least one paragraph of version output: {paragraphs!r}"
     )
     assert prog_name is None or prog_name in paragraphs[0][0], (
-        f'first version output line should mention '
-        f'{prog_name}: {paragraphs[0][0]!r}'
+        f"first version output line should mention "
+        f"{prog_name}: {paragraphs[0][0]!r}"
     )
     assert version is None or version in paragraphs[0][0], (
-        f'first version output line should mention the version number '
-        f'{version}: {paragraphs[0][0]!r}'
+        f"first version output line should mention the version number "
+        f"{version}: {paragraphs[0][0]!r}"
     )
     schemes: dict[str, bool] = {}
     formats: dict[str, bool] = {}
@@ -453,10 +453,10 @@ def parse_version_output(  # noqa: C901
             features=features,
         )
     for line in paragraphs[1]:
-        line_type, _, value = line.partition(':')
+        line_type, _, value = line.partition(":")
         if line_type == line:
             continue
-        for item_ in re.split(r'(?:, *|.$)', value):
+        for item_ in re.split(r"(?:, *|.$)", value):
             item = item_.strip()
             if not item:
                 continue
@@ -478,7 +478,7 @@ def parse_version_output(  # noqa: C901
                 features[item] = False
             else:
                 raise AssertionError(  # noqa: TRY003
-                    f'Unknown version info line type: {line_type!r}'  # noqa: EM102
+                    f"Unknown version info line type: {line_type!r}"  # noqa: EM102
                 )
     return VersionOutputData(
         derivation_schemes=schemes,
@@ -499,7 +499,7 @@ def bash_format(item: click.shell_completion.CompletionItem) -> str:
         item.type,
         item.value,
     )
-    return f'{type},{value}'
+    return f"{type},{value}"
 
 
 def fish_format(item: click.shell_completion.CompletionItem) -> str:
@@ -513,7 +513,7 @@ def fish_format(item: click.shell_completion.CompletionItem) -> str:
         item.value,
         item.help,
     )
-    return f'{type},{value}\t{help}' if help else f'{type},{value}'
+    return f"{type},{value}\t{help}" if help else f"{type},{value}"
 
 
 def zsh_format(item: click.shell_completion.CompletionItem) -> str:
@@ -531,13 +531,13 @@ def zsh_format(item: click.shell_completion.CompletionItem) -> str:
     [PR2846]: https://github.com/pallets/click/pull/2846
 
     """
-    empty_help = '_'
+    empty_help = "_"
     help_, value = (
-        (item.help, item.value.replace(':', r'\:'))
+        (item.help, item.value.replace(":", r"\:"))
         if item.help and item.help == empty_help
         else (empty_help, item.value)
     )
-    return f'{item.type}\n{value}\n{help_}'
+    return f"{item.type}\n{value}\n{help_}"
 
 
 class ListKeysAction(str, enum.Enum):
@@ -566,7 +566,7 @@ class ListKeysAction(str, enum.Enum):
             return []
         if self == self.FAIL:
             raise ssh_agent.SSHAgentFailedError(
-                _types.SSH_AGENT.FAILURE.value, b''
+                _types.SSH_AGENT.FAILURE.value, b""
             )
         if self == self.FAIL_RUNTIME:
             raise ssh_agent.TrailingDataError()
@@ -594,7 +594,7 @@ class SignAction(str, enum.Enum):
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         if self == self.FAIL:
             raise ssh_agent.SSHAgentFailedError(
-                _types.SSH_AGENT.FAILURE.value, b''
+                _types.SSH_AGENT.FAILURE.value, b""
             )
         if self == self.FAIL_RUNTIME:
             raise ssh_agent.TrailingDataError()
@@ -641,10 +641,10 @@ class SocketAddressAction(str, enum.Enum):
             pass
         elif self == self.MANGLE_SSH_AUTH_SOCK:
             monkeypatch.setenv(
-                'SSH_AUTH_SOCK', os.environ['SSH_AUTH_SOCK'] + '~'
+                "SSH_AUTH_SOCK", os.environ["SSH_AUTH_SOCK"] + "~"
             )
         elif self == self.UNSET_SSH_AUTH_SOCK:
-            monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
+            monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
         else:
             raise AssertionError()
 
@@ -702,32 +702,32 @@ class SystemSupportAction(str, enum.Enum):
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         if self == self.UNSET_PROVIDER_LIST:
             monkeypatch.setattr(
-                ssh_agent.SSHAgentClient, 'SOCKET_PROVIDERS', []
+                ssh_agent.SSHAgentClient, "SOCKET_PROVIDERS", []
             )
         elif self in {self.UNSET_NATIVE, self.UNSET_NATIVE_AND_ENSURE_USE}:
             self.check_or_ensure_use(
-                'native',
+                "native",
                 monkeypatch=monkeypatch,
                 ensure_use=(self == self.UNSET_NATIVE_AND_ENSURE_USE),
             )
-            monkeypatch.delattr(socket, 'AF_UNIX', raising=False)
-            monkeypatch.delattr(ctypes, 'WinDLL', raising=False)
-            monkeypatch.delattr(ctypes, 'windll', raising=False)
+            monkeypatch.delattr(socket, "AF_UNIX", raising=False)
+            monkeypatch.delattr(ctypes, "WinDLL", raising=False)
+            monkeypatch.delattr(ctypes, "windll", raising=False)
         elif self in {self.UNSET_AF_UNIX, self.UNSET_AF_UNIX_AND_ENSURE_USE}:
             self.check_or_ensure_use(
-                'posix',
+                "posix",
                 monkeypatch=monkeypatch,
                 ensure_use=(self == self.UNSET_AF_UNIX_AND_ENSURE_USE),
             )
-            monkeypatch.delattr(socket, 'AF_UNIX', raising=False)
+            monkeypatch.delattr(socket, "AF_UNIX", raising=False)
         elif self in {self.UNSET_WINDLL, self.UNSET_WINDLL_AND_ENSURE_USE}:
             self.check_or_ensure_use(
-                'the_annoying_os',
+                "the_annoying_os",
                 monkeypatch=monkeypatch,
                 ensure_use=(self == self.UNSET_WINDLL_AND_ENSURE_USE),
             )
-            monkeypatch.delattr(ctypes, 'WinDLL', raising=False)
-            monkeypatch.delattr(ctypes, 'windll', raising=False)
+            monkeypatch.delattr(ctypes, "WinDLL", raising=False)
+            monkeypatch.delattr(ctypes, "windll", raising=False)
         else:
             raise AssertionError()
 
@@ -754,7 +754,7 @@ class SystemSupportAction(str, enum.Enum):
         """
         if ensure_use:
             monkeypatch.setattr(
-                ssh_agent.SSHAgentClient, 'SOCKET_PROVIDERS', [provider]
+                ssh_agent.SSHAgentClient, "SOCKET_PROVIDERS", [provider]
             )
         else:  # pragma: no cover [external]
             # This branch operates completely on instrumented or on
@@ -785,8 +785,8 @@ class SystemSupportAction(str, enum.Enum):
                 actual = None
             if intended != actual:
                 pytest.skip(
-                    f'{provider!r} SSH agent socket provider '
-                    f'is not currently in use'
+                    f"{provider!r} SSH agent socket provider "
+                    f"is not currently in use"
                 )
 
 
@@ -794,427 +794,427 @@ class Parametrize(types.SimpleNamespace):
     """Common test parametrizations."""
 
     EAGER_ARGUMENTS = pytest.mark.parametrize(
-        'arguments',
-        [['--help'], ['--version']],
-        ids=['help', 'version'],
+        "arguments",
+        [["--help"], ["--version"]],
+        ids=["help", "version"],
     )
     CHARSET_NAME = pytest.mark.parametrize(
-        'charset_name', ['lower', 'upper', 'number', 'space', 'dash', 'symbol']
+        "charset_name", ["lower", "upper", "number", "space", "dash", "symbol"]
     )
     COMMAND_NON_EAGER_ARGUMENTS = pytest.mark.parametrize(
-        ['command', 'non_eager_arguments'],
+        ["command", "non_eager_arguments"],
         [
             pytest.param(
                 [],
                 [],
-                id='top-nothing',
+                id="top-nothing",
             ),
             pytest.param(
                 [],
-                ['export'],
-                id='top-export',
+                ["export"],
+                id="top-export",
             ),
             pytest.param(
-                ['export'],
+                ["export"],
                 [],
-                id='export-nothing',
+                id="export-nothing",
             ),
             pytest.param(
-                ['export'],
-                ['vault'],
-                id='export-vault',
+                ["export"],
+                ["vault"],
+                id="export-vault",
             ),
             pytest.param(
-                ['export', 'vault'],
+                ["export", "vault"],
                 [],
-                id='export-vault-nothing',
+                id="export-vault-nothing",
             ),
             pytest.param(
-                ['export', 'vault'],
-                ['--format', 'this-format-doesnt-exist'],
-                id='export-vault-args',
+                ["export", "vault"],
+                ["--format", "this-format-doesnt-exist"],
+                id="export-vault-args",
             ),
             pytest.param(
-                ['vault'],
+                ["vault"],
                 [],
-                id='vault-nothing',
+                id="vault-nothing",
             ),
             pytest.param(
-                ['vault'],
-                ['--export', './'],
-                id='vault-args',
+                ["vault"],
+                ["--export", "./"],
+                id="vault-args",
             ),
         ],
     )
     UNICODE_NORMALIZATION_COMMAND_LINES = pytest.mark.parametrize(
-        'command_line',
+        "command_line",
         [
             pytest.param(
-                ['--config', '--phrase'],
-                id='configure global passphrase',
+                ["--config", "--phrase"],
+                id="configure global passphrase",
             ),
             pytest.param(
-                ['--config', '--phrase', '--', 'DUMMY_SERVICE'],
-                id='configure service passphrase',
+                ["--config", "--phrase", "--", "DUMMY_SERVICE"],
+                id="configure service passphrase",
             ),
             pytest.param(
-                ['--phrase', '--', DUMMY_SERVICE],
-                id='interactive passphrase',
+                ["--phrase", "--", DUMMY_SERVICE],
+                id="interactive passphrase",
             ),
         ],
     )
     DELETE_CONFIG_INPUT = pytest.mark.parametrize(
-        ['command_line', 'config', 'result_config'],
+        ["command_line", "config", "result_config"],
         [
             pytest.param(
-                ['--delete-globals'],
-                {'global': {'phrase': 'abc'}, 'services': {}},
-                {'services': {}},
-                id='globals',
+                ["--delete-globals"],
+                {"global": {"phrase": "abc"}, "services": {}},
+                {"services": {}},
+                id="globals",
             ),
             pytest.param(
-                ['--delete', '--', DUMMY_SERVICE],
+                ["--delete", "--", DUMMY_SERVICE],
                 {
-                    'global': {'phrase': 'abc'},
-                    'services': {DUMMY_SERVICE: {'notes': '...'}},
+                    "global": {"phrase": "abc"},
+                    "services": {DUMMY_SERVICE: {"notes": "..."}},
                 },
-                {'global': {'phrase': 'abc'}, 'services': {}},
-                id='service',
+                {"global": {"phrase": "abc"}, "services": {}},
+                id="service",
             ),
             pytest.param(
-                ['--clear'],
+                ["--clear"],
                 {
-                    'global': {'phrase': 'abc'},
-                    'services': {DUMMY_SERVICE: {'notes': '...'}},
+                    "global": {"phrase": "abc"},
+                    "services": {DUMMY_SERVICE: {"notes": "..."}},
                 },
-                {'services': {}},
-                id='all',
+                {"services": {}},
+                id="all",
             ),
         ],
     )
     COLORFUL_COMMAND_INPUT = pytest.mark.parametrize(
-        ['command_line', 'input'],
+        ["command_line", "input"],
         [
             (
-                ['vault', '--import', '-'],
+                ["vault", "--import", "-"],
                 '{"services": {"": {"length": 20}}}',
             ),
         ],
-        ids=['cmd'],
+        ids=["cmd"],
     )
     CONFIG_EDITING_VIA_CONFIG_FLAG_FAILURES = pytest.mark.parametrize(
-        ['command_line', 'input', 'err_text'],
+        ["command_line", "input", "err_text"],
         [
             pytest.param(
                 [],
-                '',
-                'Cannot update the global settings without any given settings',
-                id='None',
+                "",
+                "Cannot update the global settings without any given settings",
+                id="None",
             ),
             pytest.param(
-                ['--', 'sv'],
-                '',
-                'Cannot update the service-specific settings without any given settings',
-                id='None-sv',
+                ["--", "sv"],
+                "",
+                "Cannot update the service-specific settings without any given settings",
+                id="None-sv",
             ),
             pytest.param(
-                ['--phrase', '--', 'sv'],
-                '\n',
-                'No passphrase was given',
-                id='phrase-sv',
+                ["--phrase", "--", "sv"],
+                "\n",
+                "No passphrase was given",
+                id="phrase-sv",
             ),
             pytest.param(
-                ['--phrase', '--', 'sv'],
-                '',
-                'No passphrase was given',
-                id='phrase-sv-eof',
+                ["--phrase", "--", "sv"],
+                "",
+                "No passphrase was given",
+                id="phrase-sv-eof",
             ),
             pytest.param(
-                ['--key'],
-                '\n',
-                'No SSH key was selected',
-                id='key-sv',
+                ["--key"],
+                "\n",
+                "No SSH key was selected",
+                id="key-sv",
             ),
             pytest.param(
-                ['--key'],
-                '',
-                'No SSH key was selected',
-                id='key-sv-eof',
+                ["--key"],
+                "",
+                "No SSH key was selected",
+                id="key-sv-eof",
             ),
         ],
     )
     CONFIG_EDITING_VIA_CONFIG_FLAG = pytest.mark.parametrize(
-        ['command_line', 'input', 'result_config'],
+        ["command_line", "input", "result_config"],
         [
             pytest.param(
-                ['--phrase'],
-                'my passphrase\n',
-                {'global': {'phrase': 'my passphrase'}, 'services': {}},
-                id='phrase',
+                ["--phrase"],
+                "my passphrase\n",
+                {"global": {"phrase": "my passphrase"}, "services": {}},
+                id="phrase",
             ),
             pytest.param(
-                ['--key'],
-                '1\n',
+                ["--key"],
+                "1\n",
                 {
-                    'global': {'key': DUMMY_KEY1_B64, 'phrase': 'abc'},
-                    'services': {},
+                    "global": {"key": DUMMY_KEY1_B64, "phrase": "abc"},
+                    "services": {},
                 },
-                id='key',
+                id="key",
             ),
             pytest.param(
-                ['--phrase', '--', 'sv'],
-                'my passphrase\n',
+                ["--phrase", "--", "sv"],
+                "my passphrase\n",
                 {
-                    'global': {'phrase': 'abc'},
-                    'services': {'sv': {'phrase': 'my passphrase'}},
+                    "global": {"phrase": "abc"},
+                    "services": {"sv": {"phrase": "my passphrase"}},
                 },
-                id='phrase-sv',
+                id="phrase-sv",
             ),
             pytest.param(
-                ['--key', '--', 'sv'],
-                '1\n',
+                ["--key", "--", "sv"],
+                "1\n",
                 {
-                    'global': {'phrase': 'abc'},
-                    'services': {'sv': {'key': DUMMY_KEY1_B64}},
+                    "global": {"phrase": "abc"},
+                    "services": {"sv": {"key": DUMMY_KEY1_B64}},
                 },
-                id='key-sv',
+                id="key-sv",
             ),
             pytest.param(
-                ['--key', '--length', '15', '--', 'sv'],
-                '1\n',
+                ["--key", "--length", "15", "--", "sv"],
+                "1\n",
                 {
-                    'global': {'phrase': 'abc'},
-                    'services': {'sv': {'key': DUMMY_KEY1_B64, 'length': 15}},
+                    "global": {"phrase": "abc"},
+                    "services": {"sv": {"key": DUMMY_KEY1_B64, "length": 15}},
                 },
-                id='key-length-sv',
+                id="key-length-sv",
             ),
         ],
     )
     COMPLETABLE_PATH_ARGUMENT = pytest.mark.parametrize(
-        'command_prefix',
+        "command_prefix",
         [
             pytest.param(
-                ('export', 'vault'),
-                id='derivepassphrase-export-vault',
+                ("export", "vault"),
+                id="derivepassphrase-export-vault",
             ),
             pytest.param(
-                ('vault', '--export'),
-                id='derivepassphrase-vault--export',
+                ("vault", "--export"),
+                id="derivepassphrase-vault--export",
             ),
             pytest.param(
-                ('vault', '--import'),
-                id='derivepassphrase-vault--import',
+                ("vault", "--import"),
+                id="derivepassphrase-vault--import",
             ),
         ],
     )
     COMPLETABLE_OPTIONS = pytest.mark.parametrize(
-        ['command_prefix', 'incomplete', 'completions'],
+        ["command_prefix", "incomplete", "completions"],
         [
             pytest.param(
                 (),
-                '-',
+                "-",
                 frozenset({
-                    '--help',
-                    '-h',
-                    '--version',
-                    '--debug',
-                    '--verbose',
-                    '-v',
-                    '--quiet',
-                    '-q',
+                    "--help",
+                    "-h",
+                    "--version",
+                    "--debug",
+                    "--verbose",
+                    "-v",
+                    "--quiet",
+                    "-q",
                 }),
-                id='derivepassphrase',
+                id="derivepassphrase",
             ),
             pytest.param(
-                ('export',),
-                '-',
+                ("export",),
+                "-",
                 frozenset({
-                    '--help',
-                    '-h',
-                    '--version',
-                    '--debug',
-                    '--verbose',
-                    '-v',
-                    '--quiet',
-                    '-q',
+                    "--help",
+                    "-h",
+                    "--version",
+                    "--debug",
+                    "--verbose",
+                    "-v",
+                    "--quiet",
+                    "-q",
                 }),
-                id='derivepassphrase-export',
+                id="derivepassphrase-export",
             ),
             pytest.param(
-                ('export', 'vault'),
-                '-',
+                ("export", "vault"),
+                "-",
                 frozenset({
-                    '--help',
-                    '-h',
-                    '--version',
-                    '--debug',
-                    '--verbose',
-                    '-v',
-                    '--quiet',
-                    '-q',
-                    '--format',
-                    '-f',
-                    '--key',
-                    '-k',
+                    "--help",
+                    "-h",
+                    "--version",
+                    "--debug",
+                    "--verbose",
+                    "-v",
+                    "--quiet",
+                    "-q",
+                    "--format",
+                    "-f",
+                    "--key",
+                    "-k",
                 }),
-                id='derivepassphrase-export-vault',
+                id="derivepassphrase-export-vault",
             ),
             pytest.param(
-                ('vault',),
-                '-',
+                ("vault",),
+                "-",
                 frozenset({
-                    '--help',
-                    '-h',
-                    '--version',
-                    '--debug',
-                    '--verbose',
-                    '-v',
-                    '--quiet',
-                    '-q',
-                    '--phrase',
-                    '-p',
-                    '--key',
-                    '-k',
-                    '--length',
-                    '-l',
-                    '--repeat',
-                    '-r',
-                    '--upper',
-                    '--lower',
-                    '--number',
-                    '--space',
-                    '--dash',
-                    '--symbol',
-                    '--config',
-                    '-c',
-                    '--notes',
-                    '-n',
-                    '--delete',
-                    '-x',
-                    '--delete-globals',
-                    '--clear',
-                    '-X',
-                    '--export',
-                    '-e',
-                    '--import',
-                    '-i',
-                    '--overwrite-existing',
-                    '--merge-existing',
-                    '--unset',
-                    '--export-as',
-                    '--modern-editor-interface',
-                    '--vault-legacy-editor-interface',
-                    '--print-notes-before',
-                    '--print-notes-after',
+                    "--help",
+                    "-h",
+                    "--version",
+                    "--debug",
+                    "--verbose",
+                    "-v",
+                    "--quiet",
+                    "-q",
+                    "--phrase",
+                    "-p",
+                    "--key",
+                    "-k",
+                    "--length",
+                    "-l",
+                    "--repeat",
+                    "-r",
+                    "--upper",
+                    "--lower",
+                    "--number",
+                    "--space",
+                    "--dash",
+                    "--symbol",
+                    "--config",
+                    "-c",
+                    "--notes",
+                    "-n",
+                    "--delete",
+                    "-x",
+                    "--delete-globals",
+                    "--clear",
+                    "-X",
+                    "--export",
+                    "-e",
+                    "--import",
+                    "-i",
+                    "--overwrite-existing",
+                    "--merge-existing",
+                    "--unset",
+                    "--export-as",
+                    "--modern-editor-interface",
+                    "--vault-legacy-editor-interface",
+                    "--print-notes-before",
+                    "--print-notes-after",
                 }),
-                id='derivepassphrase-vault',
+                id="derivepassphrase-vault",
             ),
         ],
     )
     COMPLETABLE_SUBCOMMANDS = pytest.mark.parametrize(
-        ['command_prefix', 'incomplete', 'completions'],
+        ["command_prefix", "incomplete", "completions"],
         [
             pytest.param(
                 (),
-                '',
-                frozenset({'export', 'vault'}),
-                id='derivepassphrase',
+                "",
+                frozenset({"export", "vault"}),
+                id="derivepassphrase",
             ),
             pytest.param(
-                ('export',),
-                '',
-                frozenset({'vault'}),
-                id='derivepassphrase-export',
+                ("export",),
+                "",
+                frozenset({"vault"}),
+                id="derivepassphrase-export",
             ),
         ],
     )
     BAD_CONFIGS = pytest.mark.parametrize(
-        'config',
+        "config",
         [
-            {'global': '', 'services': {}},
-            {'global': 0, 'services': {}},
+            {"global": "", "services": {}},
+            {"global": 0, "services": {}},
             {
-                'global': {'phrase': 'abc'},
-                'services': False,
+                "global": {"phrase": "abc"},
+                "services": False,
             },
             {
-                'global': {'phrase': 'abc'},
-                'services': True,
+                "global": {"phrase": "abc"},
+                "services": True,
             },
             {
-                'global': {'phrase': 'abc'},
-                'services': None,
+                "global": {"phrase": "abc"},
+                "services": None,
             },
         ],
     )
     BASE_CONFIG_VARIATIONS = pytest.mark.parametrize(
-        'config',
+        "config",
         [
-            {'global': {'phrase': 'my passphrase'}, 'services': {}},
-            {'global': {'key': DUMMY_KEY1_B64}, 'services': {}},
+            {"global": {"phrase": "my passphrase"}, "services": {}},
+            {"global": {"key": DUMMY_KEY1_B64}, "services": {}},
             {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'phrase': 'my passphrase'}},
+                "global": {"phrase": "abc"},
+                "services": {"sv": {"phrase": "my passphrase"}},
             },
             {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'key': DUMMY_KEY1_B64}},
+                "global": {"phrase": "abc"},
+                "services": {"sv": {"key": DUMMY_KEY1_B64}},
             },
             {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'key': DUMMY_KEY1_B64, 'length': 15}},
+                "global": {"phrase": "abc"},
+                "services": {"sv": {"key": DUMMY_KEY1_B64, "length": 15}},
             },
         ],
     )
     BASE_CONFIG_WITH_KEY_VARIATIONS = pytest.mark.parametrize(
-        'config',
+        "config",
         [
             pytest.param(
                 {
-                    'global': {'key': DUMMY_KEY1_B64},
-                    'services': {DUMMY_SERVICE: {}},
+                    "global": {"key": DUMMY_KEY1_B64},
+                    "services": {DUMMY_SERVICE: {}},
                 },
-                id='global_config',
+                id="global_config",
             ),
             pytest.param(
-                {'services': {DUMMY_SERVICE: {'key': DUMMY_KEY2_B64}}},
-                id='service_config',
+                {"services": {DUMMY_SERVICE: {"key": DUMMY_KEY2_B64}}},
+                id="service_config",
             ),
             pytest.param(
                 {
-                    'global': {'key': DUMMY_KEY1_B64},
-                    'services': {DUMMY_SERVICE: {'key': DUMMY_KEY2_B64}},
+                    "global": {"key": DUMMY_KEY1_B64},
+                    "services": {DUMMY_SERVICE: {"key": DUMMY_KEY2_B64}},
                 },
-                id='full_config',
+                id="full_config",
             ),
         ],
     )
     CONFIG_WITH_KEY = pytest.mark.parametrize(
-        'config',
+        "config",
         [
             pytest.param(
                 {
-                    'global': {'key': DUMMY_KEY1_B64},
-                    'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS},
+                    "global": {"key": DUMMY_KEY1_B64},
+                    "services": {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS},
                 },
-                id='global',
+                id="global",
             ),
             pytest.param(
                 {
-                    'global': {'phrase': DUMMY_PASSPHRASE.rstrip('\n')},
-                    'services': {
+                    "global": {"phrase": DUMMY_PASSPHRASE.rstrip("\n")},
+                    "services": {
                         DUMMY_SERVICE: {
-                            'key': DUMMY_KEY1_B64,
+                            "key": DUMMY_KEY1_B64,
                             **DUMMY_CONFIG_SETTINGS,
                         }
                     },
                 },
-                id='service',
+                id="service",
             ),
         ],
     )
     VALID_TEST_CONFIGS = pytest.mark.parametrize(
-        'config',
+        "config",
         [
             conf.config
             for conf in TEST_CONFIGS
@@ -1222,352 +1222,352 @@ class Parametrize(types.SimpleNamespace):
         ],
     )
     KEY_OVERRIDING_IN_CONFIG = pytest.mark.parametrize(
-        ['config', 'command_line'],
+        ["config", "command_line"],
         [
             pytest.param(
                 {
-                    'global': {'key': DUMMY_KEY1_B64},
-                    'services': {},
+                    "global": {"key": DUMMY_KEY1_B64},
+                    "services": {},
                 },
-                ['--config', '-p'],
-                id='global',
+                ["--config", "-p"],
+                id="global",
             ),
             pytest.param(
                 {
-                    'services': {
+                    "services": {
                         DUMMY_SERVICE: {
-                            'key': DUMMY_KEY1_B64,
+                            "key": DUMMY_KEY1_B64,
                             **DUMMY_CONFIG_SETTINGS,
                         },
                     },
                 },
-                ['--config', '-p', '--', DUMMY_SERVICE],
-                id='service',
+                ["--config", "-p", "--", DUMMY_SERVICE],
+                id="service",
             ),
             pytest.param(
                 {
-                    'global': {'key': DUMMY_KEY1_B64},
-                    'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()},
+                    "global": {"key": DUMMY_KEY1_B64},
+                    "services": {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()},
                 },
-                ['--config', '-p', '--', DUMMY_SERVICE],
-                id='service-over-global',
+                ["--config", "-p", "--", DUMMY_SERVICE],
+                id="service-over-global",
             ),
         ],
     )
     COMPLETION_FUNCTION_INPUTS = pytest.mark.parametrize(
-        ['config', 'comp_func', 'args', 'incomplete', 'results'],
+        ["config", "comp_func", "args", "incomplete", "results"],
         [
             pytest.param(
-                {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}},
+                {"services": {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}},
                 cli_helpers.shell_complete_service,
-                ['vault'],
-                '',
+                ["vault"],
+                "",
                 [DUMMY_SERVICE],
-                id='base_config-service',
+                id="base_config-service",
             ),
             pytest.param(
-                {'services': {}},
+                {"services": {}},
                 cli_helpers.shell_complete_service,
-                ['vault'],
-                '',
+                ["vault"],
+                "",
                 [],
-                id='empty_config-service',
+                id="empty_config-service",
             ),
             pytest.param(
                 {
-                    'services': {
+                    "services": {
                         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        'newline\nin\nname': DUMMY_CONFIG_SETTINGS.copy(),
+                        "newline\nin\nname": DUMMY_CONFIG_SETTINGS.copy(),
                     }
                 },
                 cli_helpers.shell_complete_service,
-                ['vault'],
-                '',
+                ["vault"],
+                "",
                 [DUMMY_SERVICE],
-                id='incompletable_newline_config-service',
+                id="incompletable_newline_config-service",
             ),
             pytest.param(
                 {
-                    'services': {
+                    "services": {
                         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        'backspace\bin\bname': DUMMY_CONFIG_SETTINGS.copy(),
+                        "backspace\bin\bname": DUMMY_CONFIG_SETTINGS.copy(),
                     }
                 },
                 cli_helpers.shell_complete_service,
-                ['vault'],
-                '',
+                ["vault"],
+                "",
                 [DUMMY_SERVICE],
-                id='incompletable_backspace_config-service',
+                id="incompletable_backspace_config-service",
             ),
             pytest.param(
                 {
-                    'services': {
+                    "services": {
                         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        'colon:in:name': DUMMY_CONFIG_SETTINGS.copy(),
+                        "colon:in:name": DUMMY_CONFIG_SETTINGS.copy(),
                     }
                 },
                 cli_helpers.shell_complete_service,
-                ['vault'],
-                '',
-                sorted([DUMMY_SERVICE, 'colon:in:name']),
-                id='brittle_colon_config-service',
+                ["vault"],
+                "",
+                sorted([DUMMY_SERVICE, "colon:in:name"]),
+                id="brittle_colon_config-service",
             ),
             pytest.param(
                 {
-                    'services': {
+                    "services": {
                         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        'colon:in:name': DUMMY_CONFIG_SETTINGS.copy(),
-                        'newline\nin\nname': DUMMY_CONFIG_SETTINGS.copy(),
-                        'backspace\bin\bname': DUMMY_CONFIG_SETTINGS.copy(),
-                        'nul\x00in\x00name': DUMMY_CONFIG_SETTINGS.copy(),
-                        'del\x7fin\x7fname': DUMMY_CONFIG_SETTINGS.copy(),
+                        "colon:in:name": DUMMY_CONFIG_SETTINGS.copy(),
+                        "newline\nin\nname": DUMMY_CONFIG_SETTINGS.copy(),
+                        "backspace\bin\bname": DUMMY_CONFIG_SETTINGS.copy(),
+                        "nul\x00in\x00name": DUMMY_CONFIG_SETTINGS.copy(),
+                        "del\x7fin\x7fname": DUMMY_CONFIG_SETTINGS.copy(),
                     }
                 },
                 cli_helpers.shell_complete_service,
-                ['vault'],
-                '',
-                sorted([DUMMY_SERVICE, 'colon:in:name']),
-                id='brittle_incompletable_multi_config-service',
+                ["vault"],
+                "",
+                sorted([DUMMY_SERVICE, "colon:in:name"]),
+                id="brittle_incompletable_multi_config-service",
             ),
             pytest.param(
-                {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}},
+                {"services": {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}},
                 cli_helpers.shell_complete_path,
-                ['vault', '--import'],
-                '',
-                [click.shell_completion.CompletionItem('', type='file')],
-                id='base_config-path',
+                ["vault", "--import"],
+                "",
+                [click.shell_completion.CompletionItem("", type="file")],
+                id="base_config-path",
             ),
             pytest.param(
-                {'services': {}},
+                {"services": {}},
                 cli_helpers.shell_complete_path,
-                ['vault', '--import'],
-                '',
-                [click.shell_completion.CompletionItem('', type='file')],
-                id='empty_config-path',
+                ["vault", "--import"],
+                "",
+                [click.shell_completion.CompletionItem("", type="file")],
+                id="empty_config-path",
             ),
         ],
     )
     COMPLETABLE_SERVICE_NAMES = pytest.mark.parametrize(
-        ['config', 'incomplete', 'completions'],
+        ["config", "incomplete", "completions"],
         [
             pytest.param(
-                {'services': {}},
-                '',
+                {"services": {}},
+                "",
                 frozenset(),
-                id='no_services',
+                id="no_services",
             ),
             pytest.param(
-                {'services': {}},
-                'partial',
+                {"services": {}},
+                "partial",
                 frozenset(),
-                id='no_services_partial',
+                id="no_services_partial",
             ),
             pytest.param(
-                {'services': {DUMMY_SERVICE: {'length': 10}}},
-                '',
+                {"services": {DUMMY_SERVICE: {"length": 10}}},
+                "",
                 frozenset({DUMMY_SERVICE}),
-                id='one_service',
+                id="one_service",
             ),
             pytest.param(
-                {'services': {DUMMY_SERVICE: {'length': 10}}},
+                {"services": {DUMMY_SERVICE: {"length": 10}}},
                 DUMMY_SERVICE[:4],
                 frozenset({DUMMY_SERVICE}),
-                id='one_service_partial',
+                id="one_service_partial",
             ),
             pytest.param(
-                {'services': {DUMMY_SERVICE: {'length': 10}}},
+                {"services": {DUMMY_SERVICE: {"length": 10}}},
                 DUMMY_SERVICE[-4:],
                 frozenset(),
-                id='one_service_partial_miss',
+                id="one_service_partial_miss",
             ),
         ],
     )
     SERVICE_NAME_COMPLETION_INPUTS = pytest.mark.parametrize(
-        ['config', 'key', 'incomplete', 'completions'],
+        ["config", "key", "incomplete", "completions"],
         [
             pytest.param(
                 {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'newline\nin\nname': {'length': 10},
+                    "services": {
+                        DUMMY_SERVICE: {"length": 10},
+                        "newline\nin\nname": {"length": 10},
                     },
                 },
-                'newline\nin\nname',
-                '',
+                "newline\nin\nname",
+                "",
                 frozenset({DUMMY_SERVICE}),
-                id='newline',
+                id="newline",
             ),
             pytest.param(
                 {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'newline\nin\nname': {'length': 10},
+                    "services": {
+                        DUMMY_SERVICE: {"length": 10},
+                        "newline\nin\nname": {"length": 10},
                     },
                 },
-                'newline\nin\nname',
-                'serv',
+                "newline\nin\nname",
+                "serv",
                 frozenset({DUMMY_SERVICE}),
-                id='newline_partial_other',
+                id="newline_partial_other",
             ),
             pytest.param(
                 {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'newline\nin\nname': {'length': 10},
+                    "services": {
+                        DUMMY_SERVICE: {"length": 10},
+                        "newline\nin\nname": {"length": 10},
                     },
                 },
-                'newline\nin\nname',
-                'newline',
+                "newline\nin\nname",
+                "newline",
                 frozenset({}),
-                id='newline_partial_specific',
+                id="newline_partial_specific",
             ),
             pytest.param(
                 {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'nul\x00in\x00name': {'length': 10},
+                    "services": {
+                        DUMMY_SERVICE: {"length": 10},
+                        "nul\x00in\x00name": {"length": 10},
                     },
                 },
-                'nul\x00in\x00name',
-                '',
+                "nul\x00in\x00name",
+                "",
                 frozenset({DUMMY_SERVICE}),
-                id='nul',
+                id="nul",
             ),
             pytest.param(
                 {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'nul\x00in\x00name': {'length': 10},
+                    "services": {
+                        DUMMY_SERVICE: {"length": 10},
+                        "nul\x00in\x00name": {"length": 10},
                     },
                 },
-                'nul\x00in\x00name',
-                'serv',
+                "nul\x00in\x00name",
+                "serv",
                 frozenset({DUMMY_SERVICE}),
-                id='nul_partial_other',
+                id="nul_partial_other",
             ),
             pytest.param(
                 {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'nul\x00in\x00name': {'length': 10},
+                    "services": {
+                        DUMMY_SERVICE: {"length": 10},
+                        "nul\x00in\x00name": {"length": 10},
                     },
                 },
-                'nul\x00in\x00name',
-                'nul',
+                "nul\x00in\x00name",
+                "nul",
                 frozenset({}),
-                id='nul_partial_specific',
+                id="nul_partial_specific",
             ),
             pytest.param(
                 {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'backspace\bin\bname': {'length': 10},
+                    "services": {
+                        DUMMY_SERVICE: {"length": 10},
+                        "backspace\bin\bname": {"length": 10},
                     },
                 },
-                'backspace\bin\bname',
-                '',
+                "backspace\bin\bname",
+                "",
                 frozenset({DUMMY_SERVICE}),
-                id='backspace',
+                id="backspace",
             ),
             pytest.param(
                 {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'backspace\bin\bname': {'length': 10},
+                    "services": {
+                        DUMMY_SERVICE: {"length": 10},
+                        "backspace\bin\bname": {"length": 10},
                     },
                 },
-                'backspace\bin\bname',
-                'serv',
+                "backspace\bin\bname",
+                "serv",
                 frozenset({DUMMY_SERVICE}),
-                id='backspace_partial_other',
+                id="backspace_partial_other",
             ),
             pytest.param(
                 {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'backspace\bin\bname': {'length': 10},
+                    "services": {
+                        DUMMY_SERVICE: {"length": 10},
+                        "backspace\bin\bname": {"length": 10},
                     },
                 },
-                'backspace\bin\bname',
-                'back',
+                "backspace\bin\bname",
+                "back",
                 frozenset({}),
-                id='backspace_partial_specific',
+                id="backspace_partial_specific",
             ),
             pytest.param(
                 {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'del\x7fin\x7fname': {'length': 10},
+                    "services": {
+                        DUMMY_SERVICE: {"length": 10},
+                        "del\x7fin\x7fname": {"length": 10},
                     },
                 },
-                'del\x7fin\x7fname',
-                '',
+                "del\x7fin\x7fname",
+                "",
                 frozenset({DUMMY_SERVICE}),
-                id='del',
+                id="del",
             ),
             pytest.param(
                 {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'del\x7fin\x7fname': {'length': 10},
+                    "services": {
+                        DUMMY_SERVICE: {"length": 10},
+                        "del\x7fin\x7fname": {"length": 10},
                     },
                 },
-                'del\x7fin\x7fname',
-                'serv',
+                "del\x7fin\x7fname",
+                "serv",
                 frozenset({DUMMY_SERVICE}),
-                id='del_partial_other',
+                id="del_partial_other",
             ),
             pytest.param(
                 {
-                    'services': {
-                        DUMMY_SERVICE: {'length': 10},
-                        'del\x7fin\x7fname': {'length': 10},
+                    "services": {
+                        DUMMY_SERVICE: {"length": 10},
+                        "del\x7fin\x7fname": {"length": 10},
                     },
                 },
-                'del\x7fin\x7fname',
-                'del',
+                "del\x7fin\x7fname",
+                "del",
                 frozenset({}),
-                id='del_partial_specific',
+                id="del_partial_specific",
             ),
         ],
     )
     CONNECTION_HINTS = pytest.mark.parametrize(
-        'conn_hint', ['none', 'socket', 'client']
+        "conn_hint", ["none", "socket", "client"]
     )
     NOOP_EDIT_FUNCS = pytest.mark.parametrize(
-        ['edit_func_name', 'modern_editor_interface'],
+        ["edit_func_name", "modern_editor_interface"],
         [
-            pytest.param('empty', True, id='empty'),
-            pytest.param('space', False, id='space-legacy'),
-            pytest.param('space', True, id='space-modern'),
+            pytest.param("empty", True, id="empty"),
+            pytest.param("space", False, id="space-legacy"),
+            pytest.param("space", True, id="space-modern"),
         ],
     )
     SERVICE_NAME_EXCEPTIONS = pytest.mark.parametrize(
-        'exc_type', [RuntimeError, KeyError, ValueError]
+        "exc_type", [RuntimeError, KeyError, ValueError]
     )
     EXPORT_FORMAT_OPTIONS = pytest.mark.parametrize(
-        'export_options',
+        "export_options",
         [
             [],
-            ['--export-as=sh'],
+            ["--export-as=sh"],
         ],
     )
-    INCOMPLETE = pytest.mark.parametrize('incomplete', ['', 'partial'])
+    INCOMPLETE = pytest.mark.parametrize("incomplete", ["", "partial"])
     ISATTY = pytest.mark.parametrize(
-        'isatty',
+        "isatty",
         [False, True],
-        ids=['notty', 'tty'],
+        ids=["notty", "tty"],
     )
     KEY_INDEX = pytest.mark.parametrize(
-        'key_index', [1, 2, 3], ids=lambda i: f'index{i}'
+        "key_index", [1, 2, 3], ids=lambda i: f"index{i}"
     )
     KEY_TO_PHRASE_SETTINGS = pytest.mark.parametrize(
         [
-            'list_keys_action',
-            'address_action',
-            'system_support_action',
-            'sign_action',
-            'pattern',
+            "list_keys_action",
+            "address_action",
+            "system_support_action",
+            "sign_action",
+            "pattern",
         ],
         [
             pytest.param(
@@ -1575,298 +1575,298 @@ class Parametrize(types.SimpleNamespace):
                 None,
                 None,
                 SignAction.FAIL,
-                'not loaded into the agent',
-                id='key-not-loaded',
+                "not loaded into the agent",
+                id="key-not-loaded",
             ),
             pytest.param(
                 ListKeysAction.FAIL,
                 None,
                 None,
                 SignAction.FAIL,
-                'SSH agent failed to or refused to',
-                id='list-keys-refused',
+                "SSH agent failed to or refused to",
+                id="list-keys-refused",
             ),
             pytest.param(
                 ListKeysAction.FAIL_RUNTIME,
                 None,
                 None,
                 SignAction.FAIL,
-                'SSH agent failed to or refused to',
-                id='list-keys-protocol-error',
+                "SSH agent failed to or refused to",
+                id="list-keys-protocol-error",
             ),
             pytest.param(
                 None,
                 SocketAddressAction.UNSET_SSH_AUTH_SOCK,
                 None,
                 SignAction.FAIL,
-                'Cannot find any running SSH agent',
-                id='agent-address-missing',
+                "Cannot find any running SSH agent",
+                id="agent-address-missing",
             ),
             pytest.param(
                 None,
                 SocketAddressAction.MANGLE_SSH_AUTH_SOCK,
                 None,
                 SignAction.FAIL,
-                'Cannot connect to the SSH agent',
-                id='agent-address-mangled',
+                "Cannot connect to the SSH agent",
+                id="agent-address-mangled",
             ),
             pytest.param(
                 None,
                 None,
                 SystemSupportAction.UNSET_NATIVE,
                 SignAction.FAIL,
-                'does not support communicating with it',
-                id='no-agent-support',
+                "does not support communicating with it",
+                id="no-agent-support",
             ),
             pytest.param(
                 None,
                 None,
                 SystemSupportAction.UNSET_PROVIDER_LIST,
                 SignAction.FAIL,
-                'does not support communicating with it',
-                id='no-agent-support',
+                "does not support communicating with it",
+                id="no-agent-support",
             ),
             pytest.param(
                 None,
                 None,
                 SystemSupportAction.UNSET_AF_UNIX_AND_ENSURE_USE,
                 SignAction.FAIL,
-                'does not support communicating with it',
-                id='no-agent-support',
+                "does not support communicating with it",
+                id="no-agent-support",
             ),
             pytest.param(
                 None,
                 None,
                 SystemSupportAction.UNSET_WINDLL_AND_ENSURE_USE,
                 SignAction.FAIL,
-                'does not support communicating with it',
-                id='no-agent-support',
+                "does not support communicating with it",
+                id="no-agent-support",
             ),
             pytest.param(
                 None,
                 None,
                 None,
                 SignAction.FAIL_RUNTIME,
-                'violates the communication protocol',
-                id='sign-violates-protocol',
+                "violates the communication protocol",
+                id="sign-violates-protocol",
             ),
         ],
     )
     UNICODE_NORMALIZATION_ERROR_INPUTS = pytest.mark.parametrize(
-        ['main_config', 'command_line', 'input', 'error_message'],
+        ["main_config", "command_line", "input", "error_message"],
         [
             pytest.param(
                 textwrap.dedent(r"""
                 [vault]
                 default-unicode-normalization-form = 'XXX'
                 """),
-                ['--import', '-'],
+                ["--import", "-"],
                 json.dumps({
-                    'services': {
+                    "services": {
                         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        'with_normalization': {'phrase': 'D\u00fcsseldorf'},
+                        "with_normalization": {"phrase": "D\u00fcsseldorf"},
                     },
                 }),
                 (
                     "Invalid value 'XXX' for config key "
-                    'vault.default-unicode-normalization-form'
+                    "vault.default-unicode-normalization-form"
                 ),
-                id='global',
+                id="global",
             ),
             pytest.param(
                 textwrap.dedent(r"""
                 [vault.unicode-normalization-form]
                 with_normalization = 'XXX'
                 """),
-                ['--import', '-'],
+                ["--import", "-"],
                 json.dumps({
-                    'services': {
+                    "services": {
                         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        'with_normalization': {'phrase': 'D\u00fcsseldorf'},
+                        "with_normalization": {"phrase": "D\u00fcsseldorf"},
                     },
                 }),
                 (
                     "Invalid value 'XXX' for config key "
-                    'vault.with_normalization.unicode-normalization-form'
+                    "vault.with_normalization.unicode-normalization-form"
                 ),
-                id='service',
+                id="service",
             ),
         ],
     )
     UNICODE_NORMALIZATION_WARNING_INPUTS = pytest.mark.parametrize(
-        ['main_config', 'command_line', 'input', 'warning_message'],
+        ["main_config", "command_line", "input", "warning_message"],
         [
             pytest.param(
-                '',
-                ['--import', '-'],
+                "",
+                ["--import", "-"],
                 json.dumps({
-                    'global': {'phrase': 'Du\u0308sseldorf'},
-                    'services': {},
+                    "global": {"phrase": "Du\u0308sseldorf"},
+                    "services": {},
                 }),
-                'The $.global passphrase is not NFC-normalized',
-                id='global-NFC',
+                "The $.global passphrase is not NFC-normalized",
+                id="global-NFC",
             ),
             pytest.param(
-                '',
-                ['--import', '-'],
+                "",
+                ["--import", "-"],
                 json.dumps({
-                    'services': {
+                    "services": {
                         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        'weird entry name': {'phrase': 'Du\u0308sseldorf'},
+                        "weird entry name": {"phrase": "Du\u0308sseldorf"},
                     }
                 }),
                 (
                     'The $.services["weird entry name"] passphrase '
-                    'is not NFC-normalized'
+                    "is not NFC-normalized"
                 ),
-                id='service-weird-name-NFC',
+                id="service-weird-name-NFC",
             ),
             pytest.param(
-                '',
-                ['--config', '-p', '--', DUMMY_SERVICE],
-                'Du\u0308sseldorf',
+                "",
+                ["--config", "-p", "--", DUMMY_SERVICE],
+                "Du\u0308sseldorf",
                 (
-                    f'The $.services.{DUMMY_SERVICE} passphrase '
-                    f'is not NFC-normalized'
+                    f"The $.services.{DUMMY_SERVICE} passphrase "
+                    f"is not NFC-normalized"
                 ),
-                id='config-NFC',
+                id="config-NFC",
             ),
             pytest.param(
-                '',
-                ['-p', '--', DUMMY_SERVICE],
-                'Du\u0308sseldorf',
-                'The interactive input passphrase is not NFC-normalized',
-                id='direct-input-NFC',
+                "",
+                ["-p", "--", DUMMY_SERVICE],
+                "Du\u0308sseldorf",
+                "The interactive input passphrase is not NFC-normalized",
+                id="direct-input-NFC",
             ),
             pytest.param(
                 textwrap.dedent(r"""
                 [vault]
                 default-unicode-normalization-form = 'NFD'
                 """),
-                ['--import', '-'],
+                ["--import", "-"],
                 json.dumps({
-                    'global': {
-                        'phrase': 'D\u00fcsseldorf',
+                    "global": {
+                        "phrase": "D\u00fcsseldorf",
                     },
-                    'services': {},
+                    "services": {},
                 }),
-                'The $.global passphrase is not NFD-normalized',
-                id='global-NFD',
+                "The $.global passphrase is not NFD-normalized",
+                id="global-NFD",
             ),
             pytest.param(
                 textwrap.dedent(r"""
                 [vault]
                 default-unicode-normalization-form = 'NFD'
                 """),
-                ['--import', '-'],
+                ["--import", "-"],
                 json.dumps({
-                    'services': {
+                    "services": {
                         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        'weird entry name': {'phrase': 'D\u00fcsseldorf'},
+                        "weird entry name": {"phrase": "D\u00fcsseldorf"},
                     },
                 }),
                 (
                     'The $.services["weird entry name"] passphrase '
-                    'is not NFD-normalized'
+                    "is not NFD-normalized"
                 ),
-                id='service-weird-name-NFD',
+                id="service-weird-name-NFD",
             ),
             pytest.param(
                 textwrap.dedent(r"""
                 [vault.unicode-normalization-form]
                 'weird entry name 2' = 'NFKD'
                 """),
-                ['--import', '-'],
+                ["--import", "-"],
                 json.dumps({
-                    'services': {
+                    "services": {
                         DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
-                        'weird entry name 1': {'phrase': 'D\u00fcsseldorf'},
-                        'weird entry name 2': {'phrase': 'D\u00fcsseldorf'},
+                        "weird entry name 1": {"phrase": "D\u00fcsseldorf"},
+                        "weird entry name 2": {"phrase": "D\u00fcsseldorf"},
                     },
                 }),
                 (
                     'The $.services["weird entry name 2"] passphrase '
-                    'is not NFKD-normalized'
+                    "is not NFKD-normalized"
                 ),
-                id='service-weird-name-2-NFKD',
+                id="service-weird-name-2-NFKD",
             ),
         ],
     )
-    MASK_PROG_NAME = pytest.mark.parametrize('mask_prog_name', [False, True])
-    MASK_VERSION = pytest.mark.parametrize('mask_version', [False, True])
-    CONFIG_SETTING_MODE = pytest.mark.parametrize('mode', ['config', 'import'])
+    MASK_PROG_NAME = pytest.mark.parametrize("mask_prog_name", [False, True])
+    MASK_VERSION = pytest.mark.parametrize("mask_version", [False, True])
+    CONFIG_SETTING_MODE = pytest.mark.parametrize("mode", ["config", "import"])
     MODERN_EDITOR_INTERFACE = pytest.mark.parametrize(
-        'modern_editor_interface', [False, True], ids=['legacy', 'modern']
+        "modern_editor_interface", [False, True], ids=["legacy", "modern"]
     )
     NOTES_PLACEMENT = pytest.mark.parametrize(
-        ['notes_placement', 'placement_args'],
+        ["notes_placement", "placement_args"],
         [
-            pytest.param('after', ['--print-notes-after'], id='after'),
-            pytest.param('before', ['--print-notes-before'], id='before'),
+            pytest.param("after", ["--print-notes-after"], id="after"),
+            pytest.param("before", ["--print-notes-before"], id="before"),
         ],
     )
     VAULT_CHARSET_OPTION = pytest.mark.parametrize(
-        'option',
+        "option",
         [
-            '--lower',
-            '--upper',
-            '--number',
-            '--space',
-            '--dash',
-            '--symbol',
-            '--repeat',
-            '--length',
+            "--lower",
+            "--upper",
+            "--number",
+            "--space",
+            "--dash",
+            "--symbol",
+            "--repeat",
+            "--length",
         ],
     )
     OPTION_COMBINATIONS_INCOMPATIBLE = pytest.mark.parametrize(
-        ['options', 'service'],
+        ["options", "service"],
         [
-            pytest.param(o.options, o.needs_service, id=' '.join(o.options))
+            pytest.param(o.options, o.needs_service, id=" ".join(o.options))
             for o in INTERESTING_OPTION_COMBINATIONS
             if o.incompatible
         ],
     )
     OPTION_COMBINATIONS_SERVICE_NEEDED = pytest.mark.parametrize(
-        ['options', 'service', 'input', 'check_success'],
+        ["options", "service", "input", "check_success"],
         [
             pytest.param(
                 o.options,
                 o.needs_service,
                 o.input,
                 o.check_success,
-                id=' '.join(o.options),
+                id=" ".join(o.options),
             )
             for o in INTERESTING_OPTION_COMBINATIONS
             if not o.incompatible
         ],
     )
     COMPLETABLE_ITEMS = pytest.mark.parametrize(
-        ['partial', 'is_completable'],
+        ["partial", "is_completable"],
         [
-            ('', True),
+            ("", True),
             (DUMMY_SERVICE, True),
-            ('a\bn', False),
-            ('\b', False),
-            ('\x00', False),
-            ('\x20', True),
-            ('\x7f', False),
-            ('service with spaces', True),
-            ('service\nwith\nnewlines', False),
+            ("a\bn", False),
+            ("\b", False),
+            ("\x00", False),
+            ("\x20", True),
+            ("\x7f", False),
+            ("service with spaces", True),
+            ("service\nwith\nnewlines", False),
         ],
     )
     SHELL_FORMATTER = pytest.mark.parametrize(
-        ['shell', 'format_func'],
+        ["shell", "format_func"],
         [
-            pytest.param('bash', bash_format, id='bash'),
-            pytest.param('fish', fish_format, id='fish'),
-            pytest.param('zsh', zsh_format, id='zsh'),
+            pytest.param("bash", bash_format, id="bash"),
+            pytest.param("fish", fish_format, id="fish"),
+            pytest.param("zsh", zsh_format, id="zsh"),
         ],
     )
     TRY_RACE_FREE_IMPLEMENTATION = pytest.mark.parametrize(
-        'try_race_free_implementation', [True, False]
+        "try_race_free_implementation", [True, False]
     )
     VERSION_OUTPUT_DATA = pytest.mark.parametrize(
-        ['version_output', 'prog_name', 'version', 'expected_parse'],
+        ["version_output", "prog_name", "version", "expected_parse"],
         [
             pytest.param(
                 """\
@@ -1877,20 +1877,20 @@ Supported foreign configuration formats: vault storeroom, vault v0.2,
     vault v0.3.
 PEP 508 extras: export.
 """,
-                'derivepassphrase',
-                '0.4.0',
+                "derivepassphrase",
+                "0.4.0",
                 VersionOutputData(
                     derivation_schemes={},
                     foreign_configuration_formats={
-                        'vault storeroom': True,
-                        'vault v0.2': True,
-                        'vault v0.3': True,
+                        "vault storeroom": True,
+                        "vault v0.2": True,
+                        "vault v0.3": True,
                     },
                     subcommands=frozenset(),
                     features={},
-                    extras=frozenset({'export'}),
+                    extras=frozenset({"export"}),
                 ),
-                id='derivepassphrase-0.4.0-export',
+                id="derivepassphrase-0.4.0-export",
             ),
             pytest.param(
                 """\
@@ -1901,20 +1901,20 @@ Known foreign configuration formats: vault storeroom, vault v0.2, vault v0.3.
 Supported subcommands: export, vault.
 No PEP 508 extras are active.
 """,
-                'derivepassphrase',
-                '0.5',
+                "derivepassphrase",
+                "0.5",
                 VersionOutputData(
-                    derivation_schemes={'vault': True},
+                    derivation_schemes={"vault": True},
                     foreign_configuration_formats={
-                        'vault storeroom': False,
-                        'vault v0.2': False,
-                        'vault v0.3': False,
+                        "vault storeroom": False,
+                        "vault v0.2": False,
+                        "vault v0.3": False,
                     },
-                    subcommands=frozenset({'export', 'vault'}),
+                    subcommands=frozenset({"export", "vault"}),
                     features={},
                     extras=frozenset({}),
                 ),
-                id='derivepassphrase-0.5-plain',
+                id="derivepassphrase-0.5-plain",
             ),
             pytest.param(
                 """\
@@ -1941,40 +1941,40 @@ PEP 508 extras: annoying-popups, delete-all-files,
 
 
 """,
-                'inventpassphrase',
-                '-1.3',
+                "inventpassphrase",
+                "-1.3",
                 VersionOutputData(
                     derivation_schemes={
-                        'nonsense': True,
-                        'divination': False,
-                        '/dev/random': False,
-                        'geiger counter': False,
-                        'crossword solver': False,
+                        "nonsense": True,
+                        "divination": False,
+                        "/dev/random": False,
+                        "geiger counter": False,
+                        "crossword solver": False,
                     },
                     foreign_configuration_formats={
-                        'derivepassphrase': True,
-                        'nonsense': True,
-                        'divination v3.141592': False,
-                        '/dev/random': False,
+                        "derivepassphrase": True,
+                        "nonsense": True,
+                        "divination v3.141592": False,
+                        "/dev/random": False,
                     },
-                    subcommands=frozenset({'delete-all-files', 'dump-core'}),
+                    subcommands=frozenset({"delete-all-files", "dump-core"}),
                     features={
-                        'delete-while-open': True,
-                        'backups-are-nice-to-have': False,
+                        "delete-while-open": True,
+                        "backups-are-nice-to-have": False,
                     },
                     extras=frozenset({
-                        'annoying-popups',
-                        'delete-all-files',
-                        'dump-core-depending-on-the-phase-of-the-moon',
+                        "annoying-popups",
+                        "delete-all-files",
+                        "dump-core-depending-on-the-phase-of-the-moon",
                     }),
                 ),
-                id='inventpassphrase',
+                id="inventpassphrase",
             ),
         ],
     )
     """Sample data for [`parse_version_output`][]."""
     VALIDATION_FUNCTION_INPUT = pytest.mark.parametrize(
-        ['vfunc', 'input'],
+        ["vfunc", "input"],
         [
             (cli_machinery.validate_occurrence_constraint, 20),
             (cli_machinery.validate_length, 20),
@@ -2028,11 +2028,11 @@ class TestAllCLI:
                 )
             )
             result = runner.invoke(
-                cli.derivepassphrase, ['--help'], catch_exceptions=False
+                cli.derivepassphrase, ["--help"], catch_exceptions=False
             )
         assert result.clean_exit(
-            empty_stderr=True, output='currently implemented subcommands'
-        ), 'expected clean exit, and known help text'
+            empty_stderr=True, output="currently implemented subcommands"
+        ), "expected clean exit, and known help text"
 
     # TODO(the-13th-letter): Do we actually need this?  What should we
     # check for?
@@ -2058,12 +2058,12 @@ class TestAllCLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase,
-                ['export', '--help'],
+                ["export", "--help"],
                 catch_exceptions=False,
             )
         assert result.clean_exit(
-            empty_stderr=True, output='only available subcommand'
-        ), 'expected clean exit, and known help text'
+            empty_stderr=True, output="only available subcommand"
+        ), "expected clean exit, and known help text"
 
     # TODO(the-13th-letter): Do we actually need this?  What should we
     # check for?
@@ -2089,12 +2089,12 @@ class TestAllCLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase,
-                ['export', 'vault', '--help'],
+                ["export", "vault", "--help"],
                 catch_exceptions=False,
             )
         assert result.clean_exit(
-            empty_stderr=True, output='Export a vault-native configuration'
-        ), 'expected clean exit, and known help text'
+            empty_stderr=True, output="Export a vault-native configuration"
+        ), "expected clean exit, and known help text"
 
     # TODO(the-13th-letter): Do we actually need this?  What should we
     # check for?
@@ -2120,15 +2120,15 @@ class TestAllCLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase,
-                ['vault', '--help'],
+                ["vault", "--help"],
                 catch_exceptions=False,
             )
         assert result.clean_exit(
-            empty_stderr=True, output='Passphrase generation:\n'
-        ), 'expected clean exit, and option groups in help text'
+            empty_stderr=True, output="Passphrase generation:\n"
+        ), "expected clean exit, and option groups in help text"
         assert result.clean_exit(
-            empty_stderr=True, output='Use $VISUAL or $EDITOR to configure'
-        ), 'expected clean exit, and option group epilog in help text'
+            empty_stderr=True, output="Use $VISUAL or $EDITOR to configure"
+        ), "expected clean exit, and option group epilog in help text"
 
     @Parametrize.COMMAND_NON_EAGER_ARGUMENTS
     @Parametrize.EAGER_ARGUMENTS
@@ -2156,7 +2156,7 @@ class TestAllCLI:
                 [*command, *arguments, *non_eager_arguments],
                 catch_exceptions=False,
             )
-        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+        assert result.clean_exit(empty_stderr=True), "expected clean exit"
 
     @Parametrize.ISATTY
     @Parametrize.COLORFUL_COMMAND_INPUT
@@ -2195,11 +2195,11 @@ class TestAllCLI:
             )
         assert (
             not color
-            or '\x1b[0m' in result.stderr
-            or '\x1b[m' in result.stderr
-        ), 'Expected color, but found no ANSI reset sequence'
-        assert color or '\x1b[' not in result.stderr, (
-            'Expected no color, but found an ANSI control sequence'
+            or "\x1b[0m" in result.stderr
+            or "\x1b[m" in result.stderr
+        ), "Expected color, but found no ANSI reset sequence"
+        assert color or "\x1b[" not in result.stderr, (
+            "Expected no color, but found an ANSI control sequence"
         )
 
     def test_202a_derivepassphrase_version_option_output(
@@ -2229,11 +2229,11 @@ class TestAllCLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase,
-                ['--version'],
+                ["--version"],
                 catch_exceptions=False,
             )
-        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
-        assert result.stdout.strip(), 'expected version output'
+        assert result.clean_exit(empty_stderr=True), "expected clean exit"
+        assert result.stdout.strip(), "expected version output"
         version_data = parse_version_output(result.stdout)
         actually_known_schemes = dict.fromkeys(_types.DerivationScheme, True)
         subcommands = set(_types.Subcommand)
@@ -2270,11 +2270,11 @@ class TestAllCLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase,
-                ['export', '--version'],
+                ["export", "--version"],
                 catch_exceptions=False,
             )
-        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
-        assert result.stdout.strip(), 'expected version output'
+        assert result.clean_exit(empty_stderr=True), "expected clean exit"
+        assert result.stdout.strip(), "expected version output"
         version_data = parse_version_output(result.stdout)
         actually_known_formats: dict[str, bool] = {
             _types.ForeignConfigurationFormat.VAULT_STOREROOM: False,
@@ -2318,11 +2318,11 @@ class TestAllCLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase,
-                ['export', 'vault', '--version'],
+                ["export", "vault", "--version"],
                 catch_exceptions=False,
             )
-        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
-        assert result.stdout.strip(), 'expected version output'
+        assert result.clean_exit(empty_stderr=True), "expected clean exit"
+        assert result.stdout.strip(), "expected version output"
         version_data = parse_version_output(result.stdout)
         actually_known_formats: dict[str, bool] = {}
         actually_enabled_extras: set[str] = set()
@@ -2373,11 +2373,11 @@ class TestAllCLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase,
-                ['vault', '--version'],
+                ["vault", "--version"],
                 catch_exceptions=False,
             )
-        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
-        assert result.stdout.strip(), 'expected version output'
+        assert result.clean_exit(empty_stderr=True), "expected clean exit"
+        assert result.stdout.strip(), "expected version output"
         version_data = parse_version_output(result.stdout)
 
         ssh_key_supported = True
@@ -2425,15 +2425,15 @@ class TestCLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--help'],
+                ["--help"],
                 catch_exceptions=False,
             )
         assert result.clean_exit(
-            empty_stderr=True, output='Passphrase generation:\n'
-        ), 'expected clean exit, and option groups in help text'
+            empty_stderr=True, output="Passphrase generation:\n"
+        ), "expected clean exit, and option groups in help text"
         assert result.clean_exit(
-            empty_stderr=True, output='Use $VISUAL or $EDITOR to configure'
-        ), 'expected clean exit, and option group epilog in help text'
+            empty_stderr=True, output="Use $VISUAL or $EDITOR to configure"
+        ), "expected clean exit, and option group epilog in help text"
 
     # TODO(the-13th-letter): Remove this test once
     # TestAllCLI.test_202_version_option_output no longer xfails.
@@ -2455,14 +2455,14 @@ class TestCLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--version'],
+                ["--version"],
                 catch_exceptions=False,
             )
         assert result.clean_exit(empty_stderr=True, output=cli.PROG_NAME), (
-            'expected clean exit, and program name in version text'
+            "expected clean exit, and program name in version text"
         )
         assert result.clean_exit(empty_stderr=True, output=cli.VERSION), (
-            'expected clean exit, and version in help text'
+            "expected clean exit, and version in help text"
         )
 
     @Parametrize.CHARSET_NAME
@@ -2471,8 +2471,8 @@ class TestCLI:
         charset_name: str,
     ) -> None:
         """Named character classes can be disabled on the command-line."""
-        option = f'--{charset_name}'
-        charset = vault.Vault.CHARSETS[charset_name].decode('ascii')
+        option = f"--{charset_name}"
+        charset = vault.Vault.CHARSETS[charset_name].decode("ascii")
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -2486,18 +2486,18 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                cli_helpers, 'prompt_for_passphrase', tests.auto_prompt
+                cli_helpers, "prompt_for_passphrase", tests.auto_prompt
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                [option, '0', '-p', '--', DUMMY_SERVICE],
+                [option, "0", "-p", "--", DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-        assert result.clean_exit(empty_stderr=True), 'expected clean exit:'
+        assert result.clean_exit(empty_stderr=True), "expected clean exit:"
         for c in charset:
             assert c not in result.stdout, (
-                f'derived password contains forbidden character {c!r}'
+                f"derived password contains forbidden character {c!r}"
             )
 
     def test_202_disable_repetition(
@@ -2517,22 +2517,22 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                cli_helpers, 'prompt_for_passphrase', tests.auto_prompt
+                cli_helpers, "prompt_for_passphrase", tests.auto_prompt
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--repeat', '0', '-p', '--', DUMMY_SERVICE],
+                ["--repeat", "0", "-p", "--", DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
         assert result.clean_exit(empty_stderr=True), (
-            'expected clean exit and empty stderr'
+            "expected clean exit and empty stderr"
         )
-        passphrase = result.stdout.rstrip('\r\n')
+        passphrase = result.stdout.rstrip("\r\n")
         for i in range(len(passphrase) - 1):
             assert passphrase[i : i + 1] != passphrase[i + 1 : i + 2], (
-                f'derived password contains repeated character '
-                f'at position {i}: {result.stdout!r}'
+                f"derived password contains repeated character "
+                f"at position {i}: {result.stdout!r}"
             )
 
     @Parametrize.CONFIG_WITH_KEY
@@ -2557,24 +2557,24 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                vault.Vault, 'phrase_from_key', tests.phrase_from_key
+                vault.Vault, "phrase_from_key", tests.phrase_from_key
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--', DUMMY_SERVICE],
+                ["--", DUMMY_SERVICE],
                 catch_exceptions=False,
             )
         assert result.clean_exit(empty_stderr=True), (
-            'expected clean exit and empty stderr'
+            "expected clean exit and empty stderr"
         )
         assert result.stdout
         assert (
-            result.stdout.rstrip('\n').encode('UTF-8')
+            result.stdout.rstrip("\n").encode("UTF-8")
             != DUMMY_RESULT_PASSPHRASE
-        ), 'known false output: phrase-based instead of key-based'
+        ), "known false output: phrase-based instead of key-based"
         assert (
-            result.stdout.rstrip('\n').encode('UTF-8') == DUMMY_RESULT_KEY1
-        ), 'expected known output'
+            result.stdout.rstrip("\n").encode("UTF-8") == DUMMY_RESULT_KEY1
+        ), "expected known output"
 
     def test_204b_key_from_command_line(
         self,
@@ -2593,30 +2593,30 @@ class TestCLI:
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config={
-                        'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}
+                        "services": {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}
                     },
                 )
             )
             monkeypatch.setattr(
-                cli_helpers, 'get_suitable_ssh_keys', tests.suitable_ssh_keys
+                cli_helpers, "get_suitable_ssh_keys", tests.suitable_ssh_keys
             )
             monkeypatch.setattr(
-                vault.Vault, 'phrase_from_key', tests.phrase_from_key
+                vault.Vault, "phrase_from_key", tests.phrase_from_key
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['-k', '--', DUMMY_SERVICE],
-                input='1\n',
+                ["-k", "--", DUMMY_SERVICE],
+                input="1\n",
                 catch_exceptions=False,
             )
-        assert result.clean_exit(), 'expected clean exit'
-        assert result.stdout, 'expected program output'
+        assert result.clean_exit(), "expected clean exit"
+        assert result.stdout, "expected program output"
         last_line = result.stdout.splitlines(True)[-1]
         assert (
-            last_line.rstrip('\n').encode('UTF-8') != DUMMY_RESULT_PASSPHRASE
-        ), 'known false output: phrase-based instead of key-based'
-        assert last_line.rstrip('\n').encode('UTF-8') == DUMMY_RESULT_KEY1, (
-            'expected known output'
+            last_line.rstrip("\n").encode("UTF-8") != DUMMY_RESULT_PASSPHRASE
+        ), "known false output: phrase-based instead of key-based"
+        assert last_line.rstrip("\n").encode("UTF-8") == DUMMY_RESULT_KEY1, (
+            "expected known output"
         )
 
     @Parametrize.BASE_CONFIG_WITH_KEY_VARIATIONS
@@ -2643,19 +2643,19 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
+                ssh_agent.SSHAgentClient, "list_keys", tests.list_keys
             )
-            monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', tests.sign)
+            monkeypatch.setattr(ssh_agent.SSHAgentClient, "sign", tests.sign)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['-k', '--', DUMMY_SERVICE],
-                input=f'{key_index}\n',
+                ["-k", "--", DUMMY_SERVICE],
+                input=f"{key_index}\n",
             )
-        assert result.clean_exit(), 'expected clean exit'
-        assert result.stdout, 'expected program output'
-        assert result.stderr, 'expected stderr'
-        assert 'Error:' not in result.stderr, (
-            'expected no error messages on stderr'
+        assert result.clean_exit(), "expected clean exit"
+        assert result.stdout, "expected program output"
+        assert result.stderr, "expected stderr"
+        assert "Error:" not in result.stderr, (
+            "expected no error messages on stderr"
         )
 
     def test_205_service_phrase_if_key_in_global_config(
@@ -2675,10 +2675,10 @@ class TestCLI:
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config={
-                        'global': {'key': DUMMY_KEY1_B64},
-                        'services': {
+                        "global": {"key": DUMMY_KEY1_B64},
+                        "services": {
                             DUMMY_SERVICE: {
-                                'phrase': DUMMY_PASSPHRASE.rstrip('\n'),
+                                "phrase": DUMMY_PASSPHRASE.rstrip("\n"),
                                 **DUMMY_CONFIG_SETTINGS,
                             }
                         },
@@ -2686,22 +2686,22 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
+                ssh_agent.SSHAgentClient, "list_keys", tests.list_keys
             )
-            monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', tests.sign)
+            monkeypatch.setattr(ssh_agent.SSHAgentClient, "sign", tests.sign)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--', DUMMY_SERVICE],
+                ["--", DUMMY_SERVICE],
                 catch_exceptions=False,
             )
-        assert result.clean_exit(), 'expected clean exit'
-        assert result.stdout, 'expected program output'
+        assert result.clean_exit(), "expected clean exit"
+        assert result.stdout, "expected program output"
         last_line = result.stdout.splitlines(True)[-1]
         assert (
-            last_line.rstrip('\n').encode('UTF-8') != DUMMY_RESULT_PASSPHRASE
-        ), 'known false output: phrase-based instead of key-based'
-        assert last_line.rstrip('\n').encode('UTF-8') == DUMMY_RESULT_KEY1, (
-            'expected known output'
+            last_line.rstrip("\n").encode("UTF-8") != DUMMY_RESULT_PASSPHRASE
+        ), "known false output: phrase-based instead of key-based"
+        assert last_line.rstrip("\n").encode("UTF-8") == DUMMY_RESULT_KEY1, (
+            "expected known output"
         )
 
     @Parametrize.KEY_OVERRIDING_IN_CONFIG
@@ -2728,38 +2728,38 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
+                ssh_agent.SSHAgentClient, "list_keys", tests.list_keys
             )
-            monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', tests.sign)
+            monkeypatch.setattr(ssh_agent.SSHAgentClient, "sign", tests.sign)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
                 command_line,
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-        assert result.clean_exit(), 'expected clean exit'
-        assert not result.stdout.strip(), 'expected no program output'
-        assert result.stderr, 'expected known error output'
+        assert result.clean_exit(), "expected clean exit"
+        assert not result.stdout.strip(), "expected no program output"
+        assert result.stderr, "expected known error output"
         err_lines = result.stderr.splitlines(False)
-        assert err_lines[0].startswith('Passphrase:')
+        assert err_lines[0].startswith("Passphrase:")
         assert tests.warning_emitted(
-            'Setting a service passphrase is ineffective ',
+            "Setting a service passphrase is ineffective ",
             caplog.record_tuples,
         ) or tests.warning_emitted(
-            'Setting a global passphrase is ineffective ',
+            "Setting a global passphrase is ineffective ",
             caplog.record_tuples,
-        ), 'expected known warning message'
+        ), "expected known warning message"
         assert all(map(is_warning_line, result.stderr.splitlines(True)))
         assert all(
             map(is_harmless_config_import_warning, caplog.record_tuples)
-        ), 'unexpected error output'
+        ), "unexpected error output"
 
     @hypothesis.given(
         notes=strategies.text(
             strategies.characters(
                 min_codepoint=32,
                 max_codepoint=126,
-                include_characters='\n',
+                include_characters="\n",
             ),
             max_size=256,
         ),
@@ -2769,7 +2769,7 @@ class TestCLI:
         notes: str,
     ) -> None:
         """Service notes are printed, if they exist."""
-        hypothesis.assume('Error:' not in notes)
+        hypothesis.assume("Error:" not in notes)
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -2781,12 +2781,12 @@ class TestCLI:
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config={
-                        'global': {
-                            'phrase': DUMMY_PASSPHRASE,
+                        "global": {
+                            "phrase": DUMMY_PASSPHRASE,
                         },
-                        'services': {
+                        "services": {
                             DUMMY_SERVICE: {
-                                'notes': notes,
+                                "notes": notes,
                                 **DUMMY_CONFIG_SETTINGS,
                             },
                         },
@@ -2795,19 +2795,19 @@ class TestCLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--', DUMMY_SERVICE],
+                ["--", DUMMY_SERVICE],
             )
-        assert result.clean_exit(), 'expected clean exit'
-        assert result.stdout, 'expected program output'
+        assert result.clean_exit(), "expected clean exit"
+        assert result.stdout, "expected program output"
         assert result.stdout.strip() == DUMMY_RESULT_PASSPHRASE.decode(
-            'ascii'
-        ), 'expected known program output'
-        assert result.stderr or not notes.strip(), 'expected stderr'
-        assert 'Error:' not in result.stderr, (
-            'expected no error messages on stderr'
+            "ascii"
+        ), "expected known program output"
+        assert result.stderr or not notes.strip(), "expected stderr"
+        assert "Error:" not in result.stderr, (
+            "expected no error messages on stderr"
         )
         assert result.stderr.strip() == notes.strip(), (
-            'expected known stderr contents'
+            "expected known stderr contents"
         )
 
     @Parametrize.VAULT_CHARSET_OPTION
@@ -2828,15 +2828,15 @@ class TestCLI:
                     runner=runner,
                 )
             )
-            for value in '-42', 'invalid':
+            for value in "-42", "invalid":
                 result = runner.invoke(
                     cli.derivepassphrase_vault,
-                    [option, value, '-p', '--', DUMMY_SERVICE],
+                    [option, value, "-p", "--", DUMMY_SERVICE],
                     input=DUMMY_PASSPHRASE,
                     catch_exceptions=False,
                 )
-                assert result.error_exit(error='Invalid value'), (
-                    'expected error exit and known error message'
+                assert result.error_exit(error="Invalid value"), (
+                    "expected error exit and known error message"
                 )
 
     @Parametrize.OPTION_COMBINATIONS_SERVICE_NEEDED
@@ -2858,30 +2858,30 @@ class TestCLI:
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={"global": {"phrase": "abc"}, "services": {}},
                 )
             )
             monkeypatch.setattr(
-                cli_helpers, 'prompt_for_passphrase', tests.auto_prompt
+                cli_helpers, "prompt_for_passphrase", tests.auto_prompt
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                options if service else [*options, '--', DUMMY_SERVICE],
+                options if service else [*options, "--", DUMMY_SERVICE],
                 input=input,
                 catch_exceptions=False,
             )
             if service is not None:
                 err_msg = (
-                    ' requires a SERVICE'
+                    " requires a SERVICE"
                     if service
-                    else ' does not take a SERVICE argument'
+                    else " does not take a SERVICE argument"
                 )
                 assert result.error_exit(error=err_msg), (
-                    'expected error exit and known error message'
+                    "expected error exit and known error message"
                 )
             else:
                 assert result.clean_exit(empty_stderr=True), (
-                    'expected clean exit'
+                    "expected clean exit"
                 )
         if check_success:
             # TODO(the-13th-letter): Rewrite using parenthesized
@@ -2894,21 +2894,21 @@ class TestCLI:
                         monkeypatch=monkeypatch,
                         runner=runner,
                         vault_config={
-                            'global': {'phrase': 'abc'},
-                            'services': {},
+                            "global": {"phrase": "abc"},
+                            "services": {},
                         },
                     )
                 )
                 monkeypatch.setattr(
-                    cli_helpers, 'prompt_for_passphrase', tests.auto_prompt
+                    cli_helpers, "prompt_for_passphrase", tests.auto_prompt
                 )
                 result = runner.invoke(
                     cli.derivepassphrase_vault,
-                    [*options, '--', DUMMY_SERVICE] if service else options,
+                    [*options, "--", DUMMY_SERVICE] if service else options,
                     input=input,
                     catch_exceptions=False,
                 )
-            assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+            assert result.clean_exit(empty_stderr=True), "expected clean exit"
 
     def test_211a_empty_service_name_causes_warning(
         self,
@@ -2924,7 +2924,7 @@ class TestCLI:
             return is_harmless_config_import_warning(
                 record
             ) or tests.warning_emitted(
-                'An empty SERVICE is not supported by vault(1)', [record]
+                "An empty SERVICE is not supported by vault(1)", [record]
             )
 
         runner = tests.CliRunner(mix_stderr=False)
@@ -2937,42 +2937,42 @@ class TestCLI:
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'services': {}},
+                    vault_config={"services": {}},
                 )
             )
             monkeypatch.setattr(
-                cli_helpers, 'prompt_for_passphrase', tests.auto_prompt
+                cli_helpers, "prompt_for_passphrase", tests.auto_prompt
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--config', '--length=30', '--', ''],
+                ["--config", "--length=30", "--", ""],
                 catch_exceptions=False,
             )
-            assert result.clean_exit(empty_stderr=False), 'expected clean exit'
-            assert result.stderr is not None, 'expected known error output'
+            assert result.clean_exit(empty_stderr=False), "expected clean exit"
+            assert result.stderr is not None, "expected known error output"
             assert all(map(is_expected_warning, caplog.record_tuples)), (
-                'expected known error output'
+                "expected known error output"
             )
             assert cli_helpers.load_config() == {
-                'global': {'length': 30},
-                'services': {},
-            }, 'requested configuration change was not applied'
+                "global": {"length": 30},
+                "services": {},
+            }, "requested configuration change was not applied"
             caplog.clear()
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--import', '-'],
-                input=json.dumps({'services': {'': {'length': 40}}}),
+                ["--import", "-"],
+                input=json.dumps({"services": {"": {"length": 40}}}),
                 catch_exceptions=False,
             )
-            assert result.clean_exit(empty_stderr=False), 'expected clean exit'
-            assert result.stderr is not None, 'expected known error output'
+            assert result.clean_exit(empty_stderr=False), "expected clean exit"
+            assert result.stderr is not None, "expected known error output"
             assert all(map(is_expected_warning, caplog.record_tuples)), (
-                'expected known error output'
+                "expected known error output"
             )
             assert cli_helpers.load_config() == {
-                'global': {'length': 30},
-                'services': {'': {'length': 40}},
-            }, 'requested configuration change was not applied'
+                "global": {"length": 30},
+                "services": {"": {"length": 40}},
+            }, "requested configuration change was not applied"
 
     @Parametrize.OPTION_COMBINATIONS_INCOMPATIBLE
     def test_212_incompatible_options(
@@ -2995,12 +2995,12 @@ class TestCLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                [*options, '--', DUMMY_SERVICE] if service else options,
+                [*options, "--", DUMMY_SERVICE] if service else options,
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-        assert result.error_exit(error='mutually exclusive with '), (
-            'expected error exit and known error message'
+        assert result.error_exit(error="mutually exclusive with "), (
+            "expected error exit and known error message"
         )
 
     @Parametrize.VALID_TEST_CONFIGS
@@ -3020,24 +3020,24 @@ class TestCLI:
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'services': {}},
+                    vault_config={"services": {}},
                 )
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--import', '-'],
+                ["--import", "-"],
                 input=json.dumps(config),
                 catch_exceptions=False,
             )
             config_txt = cli_helpers.config_filename(
-                subsystem='vault'
-            ).read_text(encoding='UTF-8')
+                subsystem="vault"
+            ).read_text(encoding="UTF-8")
             config2 = json.loads(config_txt)
-        assert result.clean_exit(empty_stderr=False), 'expected clean exit'
-        assert config2 == config, 'config not imported correctly'
+        assert result.clean_exit(empty_stderr=False), "expected clean exit"
+        assert config2 == config, "config not imported correctly"
         assert not result.stderr or all(  # pragma: no branch
             map(is_harmless_config_import_warning, caplog.record_tuples)
-        ), 'unexpected error output'
+        ), "unexpected error output"
         assert_vault_config_is_indented_and_line_broken(config_txt)
 
     @hypothesis.settings(
@@ -3080,24 +3080,24 @@ class TestCLI:
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'services': {}},
+                    vault_config={"services": {}},
                 )
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--import', '-'],
+                ["--import", "-"],
                 input=json.dumps(config),
                 catch_exceptions=False,
             )
             config_txt = cli_helpers.config_filename(
-                subsystem='vault'
-            ).read_text(encoding='UTF-8')
+                subsystem="vault"
+            ).read_text(encoding="UTF-8")
             config3 = json.loads(config_txt)
-        assert result.clean_exit(empty_stderr=False), 'expected clean exit'
-        assert config3 == config2, 'config not imported correctly'
+        assert result.clean_exit(empty_stderr=False), "expected clean exit"
+        assert config3 == config2, "config not imported correctly"
         assert not result.stderr or all(
             map(is_harmless_config_import_warning, caplog.record_tuples)
-        ), 'unexpected error output'
+        ), "unexpected error output"
         assert_vault_config_is_indented_and_line_broken(config_txt)
 
     def test_213b_import_bad_config_not_vault_config(
@@ -3118,12 +3118,12 @@ class TestCLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--import', '-'],
-                input='null',
+                ["--import", "-"],
+                input="null",
                 catch_exceptions=False,
             )
-        assert result.error_exit(error='Invalid vault config'), (
-            'expected error exit and known error message'
+        assert result.error_exit(error="Invalid vault config"), (
+            "expected error exit and known error message"
         )
 
     def test_213c_import_bad_config_not_json_data(
@@ -3144,12 +3144,12 @@ class TestCLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--import', '-'],
-                input='This string is not valid JSON.',
+                ["--import", "-"],
+                input="This string is not valid JSON.",
                 catch_exceptions=False,
             )
-        assert result.error_exit(error='cannot decode JSON'), (
-            'expected error exit and known error message'
+        assert result.error_exit(error="cannot decode JSON"), (
+            "expected error exit and known error message"
         )
 
     def test_213d_import_bad_config_not_a_file(
@@ -3171,23 +3171,23 @@ class TestCLI:
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'services': {}},
+                    vault_config={"services": {}},
                 )
             )
-            cli_helpers.config_filename(subsystem='vault').write_text(
-                'This string is not valid JSON.\n', encoding='UTF-8'
+            cli_helpers.config_filename(subsystem="vault").write_text(
+                "This string is not valid JSON.\n", encoding="UTF-8"
             )
             dname = cli_helpers.config_filename(subsystem=None)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--import', os.fsdecode(dname)],
+                ["--import", os.fsdecode(dname)],
                 catch_exceptions=False,
             )
         # The Annoying OS uses EACCES, other OSes use EISDIR.
         assert result.error_exit(
             error=os.strerror(errno.EISDIR)
         ) or result.error_exit(error=os.strerror(errno.EACCES)), (
-            'expected error exit and known error message'
+            "expected error exit and known error message"
         )
 
     @Parametrize.VALID_TEST_CONFIGS
@@ -3210,25 +3210,25 @@ class TestCLI:
                     vault_config=config,
                 )
             )
-            with cli_helpers.config_filename(subsystem='vault').open(
-                'w', encoding='UTF-8'
+            with cli_helpers.config_filename(subsystem="vault").open(
+                "w", encoding="UTF-8"
             ) as outfile:
                 # Ensure the config is written on one line.
                 json.dump(config, outfile, indent=None)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--export', '-'],
+                ["--export", "-"],
                 catch_exceptions=False,
             )
-            with cli_helpers.config_filename(subsystem='vault').open(
-                encoding='UTF-8'
+            with cli_helpers.config_filename(subsystem="vault").open(
+                encoding="UTF-8"
             ) as infile:
                 config2 = json.load(infile)
-        assert result.clean_exit(empty_stderr=False), 'expected clean exit'
-        assert config2 == config, 'config not imported correctly'
+        assert result.clean_exit(empty_stderr=False), "expected clean exit"
+        assert config2 == config, "config not imported correctly"
         assert not result.stderr or all(  # pragma: no branch
             map(is_harmless_config_import_warning, caplog.record_tuples)
-        ), 'unexpected error output'
+        ), "unexpected error output"
         assert_vault_config_is_indented_and_line_broken(result.stdout)
 
     @Parametrize.EXPORT_FORMAT_OPTIONS
@@ -3249,7 +3249,7 @@ class TestCLI:
                     runner=runner,
                 )
             )
-            cli_helpers.config_filename(subsystem='vault').unlink(
+            cli_helpers.config_filename(subsystem="vault").unlink(
                 missing_ok=True
             )
             result = runner.invoke(
@@ -3258,10 +3258,10 @@ class TestCLI:
                 # the `--export-as=sh` section to autoconstruct the
                 # program name correctly.
                 cli.derivepassphrase,
-                ['vault', '--export', '-', *export_options],
+                ["vault", "--export", "-", *export_options],
                 catch_exceptions=False,
             )
-        assert result.clean_exit(empty_stderr=True), 'expected clean exit'
+        assert result.clean_exit(empty_stderr=True), "expected clean exit"
 
     @Parametrize.EXPORT_FORMAT_OPTIONS
     def test_214b_export_settings_bad_stored_config(
@@ -3284,12 +3284,12 @@ class TestCLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--export', '-', *export_options],
-                input='null',
+                ["--export", "-", *export_options],
+                input="null",
                 catch_exceptions=False,
             )
-        assert result.error_exit(error='Cannot load vault settings:'), (
-            'expected error exit and known error message'
+        assert result.error_exit(error="Cannot load vault settings:"), (
+            "expected error exit and known error message"
         )
 
     @Parametrize.EXPORT_FORMAT_OPTIONS
@@ -3310,17 +3310,17 @@ class TestCLI:
                     runner=runner,
                 )
             )
-            config_file = cli_helpers.config_filename(subsystem='vault')
+            config_file = cli_helpers.config_filename(subsystem="vault")
             config_file.unlink(missing_ok=True)
             config_file.mkdir(parents=True, exist_ok=True)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--export', '-', *export_options],
-                input='null',
+                ["--export", "-", *export_options],
+                input="null",
                 catch_exceptions=False,
             )
-        assert result.error_exit(error='Cannot load vault settings:'), (
-            'expected error exit and known error message'
+        assert result.error_exit(error="Cannot load vault settings:"), (
+            "expected error exit and known error message"
         )
 
     @Parametrize.EXPORT_FORMAT_OPTIONS
@@ -3344,12 +3344,12 @@ class TestCLI:
             dname = cli_helpers.config_filename(subsystem=None)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--export', os.fsdecode(dname), *export_options],
-                input='null',
+                ["--export", os.fsdecode(dname), *export_options],
+                input="null",
                 catch_exceptions=False,
             )
-        assert result.error_exit(error='Cannot export vault settings:'), (
-            'expected error exit and known error message'
+        assert result.error_exit(error="Cannot export vault settings:"), (
+            "expected error exit and known error message"
         )
 
     @tests.skip_if_on_the_annoying_os
@@ -3374,24 +3374,24 @@ class TestCLI:
             config_dir = cli_helpers.config_filename(subsystem=None)
             with contextlib.suppress(FileNotFoundError):
                 shutil.rmtree(config_dir)
-            config_dir.write_text('Obstruction!!\n')
+            config_dir.write_text("Obstruction!!\n")
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--export', '-', *export_options],
-                input='null',
+                ["--export", "-", *export_options],
+                input="null",
                 catch_exceptions=False,
             )
         assert result.error_exit(
-            error='Cannot load vault settings:'
-        ) or result.error_exit(error='Cannot load user config:'), (
-            'expected error exit and known error message'
+            error="Cannot load vault settings:"
+        ) or result.error_exit(error="Cannot load user config:"), (
+            "expected error exit and known error message"
         )
 
     @Parametrize.NOTES_PLACEMENT
     @hypothesis.given(
         notes=strategies.text(
             strategies.characters(
-                min_codepoint=32, max_codepoint=126, include_characters='\n'
+                min_codepoint=32, max_codepoint=126, include_characters="\n"
             ),
             min_size=1,
             max_size=512,
@@ -3399,23 +3399,23 @@ class TestCLI:
     )
     def test_215_notes_placement(
         self,
-        notes_placement: Literal['before', 'after'],
+        notes_placement: Literal["before", "after"],
         placement_args: list[str],
         notes: str,
     ) -> None:
         notes = notes.strip()
-        maybe_notes = {'notes': notes} if notes else {}
+        maybe_notes = {"notes": notes} if notes else {}
         vault_config = {
-            'global': {'phrase': DUMMY_PASSPHRASE},
-            'services': {
+            "global": {"phrase": DUMMY_PASSPHRASE},
+            "services": {
                 DUMMY_SERVICE: {**maybe_notes, **DUMMY_CONFIG_SETTINGS}
             },
         }
-        result_phrase = DUMMY_RESULT_PASSPHRASE.decode('ascii')
+        result_phrase = DUMMY_RESULT_PASSPHRASE.decode("ascii")
         expected = (
-            f'{notes}\n\n{result_phrase}\n'
-            if notes_placement == 'before'
-            else f'{result_phrase}\n\n{notes}\n\n'
+            f"{notes}\n\n{result_phrase}\n"
+            if notes_placement == "before"
+            else f"{result_phrase}\n\n{notes}\n\n"
         )
         runner = tests.CliRunner(mix_stderr=True)
         # TODO(the-13th-letter): Rewrite using parenthesized
@@ -3432,10 +3432,10 @@ class TestCLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                [*placement_args, '--', DUMMY_SERVICE],
+                [*placement_args, "--", DUMMY_SERVICE],
                 catch_exceptions=False,
             )
-            assert result.clean_exit(output=expected), 'expected clean exit'
+            assert result.clean_exit(output=expected), "expected clean exit"
 
     @Parametrize.MODERN_EDITOR_INTERFACE
     @hypothesis.settings(
@@ -3447,7 +3447,7 @@ class TestCLI:
     @hypothesis.given(
         notes=strategies.text(
             strategies.characters(
-                min_codepoint=32, max_codepoint=126, include_characters='\n'
+                min_codepoint=32, max_codepoint=126, include_characters="\n"
             ),
             min_size=1,
             max_size=512,
@@ -3481,52 +3481,52 @@ class TestCLI:
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config={
-                        'global': {'phrase': 'abc'},
-                        'services': {'sv': {'notes': 'Contents go here'}},
+                        "global": {"phrase": "abc"},
+                        "services": {"sv": {"notes": "Contents go here"}},
                     },
                 )
             )
             notes_backup_file = cli_helpers.config_filename(
-                subsystem='notes backup'
+                subsystem="notes backup"
             )
             notes_backup_file.write_text(
-                'These backup notes are left over from the previous session.',
-                encoding='UTF-8',
+                "These backup notes are left over from the previous session.",
+                encoding="UTF-8",
             )
-            monkeypatch.setattr(click, 'edit', lambda *_a, **_kw: edit_result)
+            monkeypatch.setattr(click, "edit", lambda *_a, **_kw: edit_result)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
                 [
-                    '--config',
-                    '--notes',
-                    '--modern-editor-interface'
+                    "--config",
+                    "--notes",
+                    "--modern-editor-interface"
                     if modern_editor_interface
-                    else '--vault-legacy-editor-interface',
-                    '--',
-                    'sv',
+                    else "--vault-legacy-editor-interface",
+                    "--",
+                    "sv",
                 ],
                 catch_exceptions=False,
             )
-            assert result.clean_exit(), 'expected clean exit'
+            assert result.clean_exit(), "expected clean exit"
             assert all(map(is_warning_line, result.stderr.splitlines(True)))
             assert modern_editor_interface or tests.warning_emitted(
-                'A backup copy of the old notes was saved',
+                "A backup copy of the old notes was saved",
                 caplog.record_tuples,
-            ), 'expected known warning message in stderr'
+            ), "expected known warning message in stderr"
             assert (
                 modern_editor_interface
-                or notes_backup_file.read_text(encoding='UTF-8')
-                == 'Contents go here'
+                or notes_backup_file.read_text(encoding="UTF-8")
+                == "Contents go here"
             )
-            with cli_helpers.config_filename(subsystem='vault').open(
-                encoding='UTF-8'
+            with cli_helpers.config_filename(subsystem="vault").open(
+                encoding="UTF-8"
             ) as infile:
                 config = json.load(infile)
             assert config == {
-                'global': {'phrase': 'abc'},
-                'services': {
-                    'sv': {
-                        'notes': notes.strip()
+                "global": {"phrase": "abc"},
+                "services": {
+                    "sv": {
+                        "notes": notes.strip()
                         if modern_editor_interface
                         else edit_result.strip()
                     }
@@ -3537,7 +3537,7 @@ class TestCLI:
     @hypothesis.given(
         notes=strategies.text(
             strategies.characters(
-                min_codepoint=32, max_codepoint=126, include_characters='\n'
+                min_codepoint=32, max_codepoint=126, include_characters="\n"
             ),
             min_size=1,
             max_size=512,
@@ -3545,7 +3545,7 @@ class TestCLI:
     )
     def test_221_edit_notes_noop(
         self,
-        edit_func_name: Literal['empty', 'space'],
+        edit_func_name: Literal["empty", "space"],
         modern_editor_interface: bool,
         notes: str,
     ) -> None:
@@ -3553,13 +3553,13 @@ class TestCLI:
 
         def empty(text: str, *_args: Any, **_kwargs: Any) -> str:
             del text
-            return ''
+            return ""
 
         def space(text: str, *_args: Any, **_kwargs: Any) -> str:
             del text
-            return '       ' + notes.strip() + '\n\n\n\n\n\n'
+            return "       " + notes.strip() + "\n\n\n\n\n\n"
 
-        edit_funcs = {'empty': empty, 'space': space}
+        edit_funcs = {"empty": empty, "space": space}
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -3571,47 +3571,47 @@ class TestCLI:
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config={
-                        'global': {'phrase': 'abc'},
-                        'services': {'sv': {'notes': notes.strip()}},
+                        "global": {"phrase": "abc"},
+                        "services": {"sv": {"notes": notes.strip()}},
                     },
                 )
             )
             notes_backup_file = cli_helpers.config_filename(
-                subsystem='notes backup'
+                subsystem="notes backup"
             )
             notes_backup_file.write_text(
-                'These backup notes are left over from the previous session.',
-                encoding='UTF-8',
+                "These backup notes are left over from the previous session.",
+                encoding="UTF-8",
             )
-            monkeypatch.setattr(click, 'edit', edit_funcs[edit_func_name])
+            monkeypatch.setattr(click, "edit", edit_funcs[edit_func_name])
             result = runner.invoke(
                 cli.derivepassphrase_vault,
                 [
-                    '--config',
-                    '--notes',
-                    '--modern-editor-interface'
+                    "--config",
+                    "--notes",
+                    "--modern-editor-interface"
                     if modern_editor_interface
-                    else '--vault-legacy-editor-interface',
-                    '--',
-                    'sv',
+                    else "--vault-legacy-editor-interface",
+                    "--",
+                    "sv",
                 ],
                 catch_exceptions=False,
             )
             assert result.clean_exit(empty_stderr=True) or result.error_exit(
-                error='the user aborted the request'
-            ), 'expected clean exit'
+                error="the user aborted the request"
+            ), "expected clean exit"
             assert (
                 modern_editor_interface
-                or notes_backup_file.read_text(encoding='UTF-8')
-                == 'These backup notes are left over from the previous session.'
+                or notes_backup_file.read_text(encoding="UTF-8")
+                == "These backup notes are left over from the previous session."
             )
-            with cli_helpers.config_filename(subsystem='vault').open(
-                encoding='UTF-8'
+            with cli_helpers.config_filename(subsystem="vault").open(
+                encoding="UTF-8"
             ) as infile:
                 config = json.load(infile)
             assert config == {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'notes': notes.strip()}},
+                "global": {"phrase": "abc"},
+                "services": {"sv": {"notes": notes.strip()}},
             }
 
     # TODO(the-13th-letter): Keep this behavior or not, with or without
@@ -3626,7 +3626,7 @@ class TestCLI:
     @hypothesis.given(
         notes=strategies.text(
             strategies.characters(
-                min_codepoint=32, max_codepoint=126, include_characters='\n'
+                min_codepoint=32, max_codepoint=126, include_characters="\n"
             ),
             min_size=1,
             max_size=512,
@@ -3660,58 +3660,58 @@ class TestCLI:
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config={
-                        'global': {'phrase': 'abc'},
-                        'services': {'sv': {'notes': 'Contents go here'}},
+                        "global": {"phrase": "abc"},
+                        "services": {"sv": {"notes": "Contents go here"}},
                     },
                 )
             )
             notes_backup_file = cli_helpers.config_filename(
-                subsystem='notes backup'
+                subsystem="notes backup"
             )
             notes_backup_file.write_text(
-                'These backup notes are left over from the previous session.',
-                encoding='UTF-8',
+                "These backup notes are left over from the previous session.",
+                encoding="UTF-8",
             )
-            monkeypatch.setattr(click, 'edit', lambda *_a, **_kw: notes)
+            monkeypatch.setattr(click, "edit", lambda *_a, **_kw: notes)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
                 [
-                    '--config',
-                    '--notes',
-                    '--modern-editor-interface'
+                    "--config",
+                    "--notes",
+                    "--modern-editor-interface"
                     if modern_editor_interface
-                    else '--vault-legacy-editor-interface',
-                    '--',
-                    'sv',
+                    else "--vault-legacy-editor-interface",
+                    "--",
+                    "sv",
                 ],
                 catch_exceptions=False,
             )
-            assert result.clean_exit(), 'expected clean exit'
+            assert result.clean_exit(), "expected clean exit"
             assert not result.stderr or all(
                 map(is_warning_line, result.stderr.splitlines(True))
             )
             assert not caplog.record_tuples or tests.warning_emitted(
-                'A backup copy of the old notes was saved',
+                "A backup copy of the old notes was saved",
                 caplog.record_tuples,
-            ), 'expected known warning message in stderr'
+            ), "expected known warning message in stderr"
             assert (
                 modern_editor_interface
-                or notes_backup_file.read_text(encoding='UTF-8')
-                == 'Contents go here'
+                or notes_backup_file.read_text(encoding="UTF-8")
+                == "Contents go here"
             )
-            with cli_helpers.config_filename(subsystem='vault').open(
-                encoding='UTF-8'
+            with cli_helpers.config_filename(subsystem="vault").open(
+                encoding="UTF-8"
             ) as infile:
                 config = json.load(infile)
             assert config == {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'notes': notes.strip()}},
+                "global": {"phrase": "abc"},
+                "services": {"sv": {"notes": notes.strip()}},
             }
 
     @hypothesis.given(
         notes=strategies.text(
             strategies.characters(
-                min_codepoint=32, max_codepoint=126, include_characters='\n'
+                min_codepoint=32, max_codepoint=126, include_characters="\n"
             ),
             min_size=1,
             max_size=512,
@@ -3737,33 +3737,33 @@ class TestCLI:
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config={
-                        'global': {'phrase': 'abc'},
-                        'services': {'sv': {'notes': notes.strip()}},
+                        "global": {"phrase": "abc"},
+                        "services": {"sv": {"notes": notes.strip()}},
                     },
                 )
             )
-            monkeypatch.setattr(click, 'edit', lambda *_a, **_kw: '')
+            monkeypatch.setattr(click, "edit", lambda *_a, **_kw: "")
             result = runner.invoke(
                 cli.derivepassphrase_vault,
                 [
-                    '--config',
-                    '--notes',
-                    '--modern-editor-interface',
-                    '--',
-                    'sv',
+                    "--config",
+                    "--notes",
+                    "--modern-editor-interface",
+                    "--",
+                    "sv",
                 ],
                 catch_exceptions=False,
             )
-            assert result.error_exit(error='the user aborted the request'), (
-                'expected known error message'
+            assert result.error_exit(error="the user aborted the request"), (
+                "expected known error message"
             )
-            with cli_helpers.config_filename(subsystem='vault').open(
-                encoding='UTF-8'
+            with cli_helpers.config_filename(subsystem="vault").open(
+                encoding="UTF-8"
             ) as infile:
                 config = json.load(infile)
             assert config == {
-                'global': {'phrase': 'abc'},
-                'services': {'sv': {'notes': notes.strip()}},
+                "global": {"phrase": "abc"},
+                "services": {"sv": {"notes": notes.strip()}},
             }
 
     def test_223a_edit_empty_notes_abort(
@@ -3785,33 +3785,33 @@ class TestCLI:
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config={
-                        'global': {'phrase': 'abc'},
-                        'services': {},
+                        "global": {"phrase": "abc"},
+                        "services": {},
                     },
                 )
             )
-            monkeypatch.setattr(click, 'edit', lambda *_a, **_kw: '')
+            monkeypatch.setattr(click, "edit", lambda *_a, **_kw: "")
             result = runner.invoke(
                 cli.derivepassphrase_vault,
                 [
-                    '--config',
-                    '--notes',
-                    '--modern-editor-interface',
-                    '--',
-                    'sv',
+                    "--config",
+                    "--notes",
+                    "--modern-editor-interface",
+                    "--",
+                    "sv",
                 ],
                 catch_exceptions=False,
             )
-            assert result.error_exit(error='the user aborted the request'), (
-                'expected known error message'
+            assert result.error_exit(error="the user aborted the request"), (
+                "expected known error message"
             )
-            with cli_helpers.config_filename(subsystem='vault').open(
-                encoding='UTF-8'
+            with cli_helpers.config_filename(subsystem="vault").open(
+                encoding="UTF-8"
             ) as infile:
                 config = json.load(infile)
             assert config == {
-                'global': {'phrase': 'abc'},
-                'services': {},
+                "global": {"phrase": "abc"},
+                "services": {},
             }
 
     @Parametrize.MODERN_EDITOR_INTERFACE
@@ -3824,7 +3824,7 @@ class TestCLI:
     @hypothesis.given(
         notes=strategies.text(
             strategies.characters(
-                min_codepoint=32, max_codepoint=126, include_characters='\n'
+                min_codepoint=32, max_codepoint=126, include_characters="\n"
             ),
             max_size=512,
         ),
@@ -3836,10 +3836,10 @@ class TestCLI:
         notes: str,
     ) -> None:
         """Editing notes fails (and warns) if `--config` is missing."""
-        maybe_notes = {'notes': notes.strip()} if notes.strip() else {}
+        maybe_notes = {"notes": notes.strip()} if notes.strip() else {}
         vault_config = {
-            'global': {'phrase': DUMMY_PASSPHRASE},
-            'services': {
+            "global": {"phrase": DUMMY_PASSPHRASE},
+            "services": {
                 DUMMY_SERVICE: {**maybe_notes, **DUMMY_CONFIG_SETTINGS}
             },
         }
@@ -3858,53 +3858,53 @@ class TestCLI:
                     vault_config=vault_config,
                 )
             )
-            EDIT_ATTEMPTED = 'edit attempted!'  # noqa: N806
+            EDIT_ATTEMPTED = "edit attempted!"  # noqa: N806
 
             def raiser(*_args: Any, **_kwargs: Any) -> NoReturn:
                 pytest.fail(EDIT_ATTEMPTED)
 
             notes_backup_file = cli_helpers.config_filename(
-                subsystem='notes backup'
+                subsystem="notes backup"
             )
             notes_backup_file.write_text(
-                'These backup notes are left over from the previous session.',
-                encoding='UTF-8',
+                "These backup notes are left over from the previous session.",
+                encoding="UTF-8",
             )
-            monkeypatch.setattr(click, 'edit', raiser)
+            monkeypatch.setattr(click, "edit", raiser)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
                 [
-                    '--notes',
-                    '--modern-editor-interface'
+                    "--notes",
+                    "--modern-editor-interface"
                     if modern_editor_interface
-                    else '--vault-legacy-editor-interface',
-                    '--',
+                    else "--vault-legacy-editor-interface",
+                    "--",
                     DUMMY_SERVICE,
                 ],
                 catch_exceptions=False,
             )
             assert result.clean_exit(
-                output=DUMMY_RESULT_PASSPHRASE.decode('ascii')
-            ), 'expected clean exit'
+                output=DUMMY_RESULT_PASSPHRASE.decode("ascii")
+            ), "expected clean exit"
             assert result.stderr
             assert notes.strip() in result.stderr
             assert all(
                 is_warning_line(line)
                 for line in result.stderr.splitlines(True)
-                if line.startswith(f'{cli.PROG_NAME}: ')
+                if line.startswith(f"{cli.PROG_NAME}: ")
             )
             assert tests.warning_emitted(
-                'Specifying --notes without --config is ineffective.  '
-                'No notes will be edited.',
+                "Specifying --notes without --config is ineffective.  "
+                "No notes will be edited.",
                 caplog.record_tuples,
-            ), 'expected known warning message in stderr'
+            ), "expected known warning message in stderr"
             assert (
                 modern_editor_interface
-                or notes_backup_file.read_text(encoding='UTF-8')
-                == 'These backup notes are left over from the previous session.'
+                or notes_backup_file.read_text(encoding="UTF-8")
+                == "These backup notes are left over from the previous session."
             )
-            with cli_helpers.config_filename(subsystem='vault').open(
-                encoding='UTF-8'
+            with cli_helpers.config_filename(subsystem="vault").open(
+                encoding="UTF-8"
             ) as infile:
                 config = json.load(infile)
             assert config == vault_config
@@ -3932,25 +3932,25 @@ class TestCLI:
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={"global": {"phrase": "abc"}, "services": {}},
                 )
             )
             monkeypatch.setattr(
-                cli_helpers, 'get_suitable_ssh_keys', tests.suitable_ssh_keys
+                cli_helpers, "get_suitable_ssh_keys", tests.suitable_ssh_keys
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--config', *command_line],
+                ["--config", *command_line],
                 catch_exceptions=False,
                 input=input,
             )
-            assert result.clean_exit(), 'expected clean exit'
+            assert result.clean_exit(), "expected clean exit"
             config_txt = cli_helpers.config_filename(
-                subsystem='vault'
-            ).read_text(encoding='UTF-8')
+                subsystem="vault"
+            ).read_text(encoding="UTF-8")
             config = json.loads(config_txt)
             assert config == result_config, (
-                'stored config does not match expectation'
+                "stored config does not match expectation"
             )
             assert_vault_config_is_indented_and_line_broken(config_txt)
 
@@ -3972,20 +3972,20 @@ class TestCLI:
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={"global": {"phrase": "abc"}, "services": {}},
                 )
             )
             monkeypatch.setattr(
-                cli_helpers, 'get_suitable_ssh_keys', tests.suitable_ssh_keys
+                cli_helpers, "get_suitable_ssh_keys", tests.suitable_ssh_keys
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--config', *command_line],
+                ["--config", *command_line],
                 catch_exceptions=False,
                 input=input,
             )
         assert result.error_exit(error=err_text), (
-            'expected error exit and known error message'
+            "expected error exit and known error message"
         )
 
     def test_225a_store_config_fail_manual_no_ssh_key_selection(
@@ -4004,7 +4004,7 @@ class TestCLI:
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={"global": {"phrase": "abc"}, "services": {}},
                 )
             )
 
@@ -4012,20 +4012,20 @@ class TestCLI:
                 raise IndexError(cli_helpers.EMPTY_SELECTION)
 
             monkeypatch.setattr(
-                cli_helpers, 'prompt_for_selection', prompt_for_selection
+                cli_helpers, "prompt_for_selection", prompt_for_selection
             )
             # Also patch the list of suitable SSH keys, lest we be at
             # the mercy of whatever SSH agent may be running.
             monkeypatch.setattr(
-                cli_helpers, 'get_suitable_ssh_keys', tests.suitable_ssh_keys
+                cli_helpers, "get_suitable_ssh_keys", tests.suitable_ssh_keys
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--key', '--config'],
+                ["--key", "--config"],
                 catch_exceptions=False,
             )
-        assert result.error_exit(error='the user aborted the request'), (
-            'expected error exit and known error message'
+        assert result.error_exit(error="the user aborted the request"), (
+            "expected error exit and known error message"
         )
 
     def test_225b_store_config_fail_manual_no_ssh_agent(
@@ -4044,17 +4044,17 @@ class TestCLI:
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={"global": {"phrase": "abc"}, "services": {}},
                 )
             )
-            monkeypatch.delenv('SSH_AUTH_SOCK', raising=False)
+            monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--key', '--config'],
+                ["--key", "--config"],
                 catch_exceptions=False,
             )
-        assert result.error_exit(error='Cannot find any running SSH agent'), (
-            'expected error exit and known error message'
+        assert result.error_exit(error="Cannot find any running SSH agent"), (
+            "expected error exit and known error message"
         )
 
     def test_225c_store_config_fail_manual_bad_ssh_agent_connection(
@@ -4073,18 +4073,18 @@ class TestCLI:
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={"global": {"phrase": "abc"}, "services": {}},
                 )
             )
             cwd = pathlib.Path.cwd().resolve()
-            monkeypatch.setenv('SSH_AUTH_SOCK', str(cwd))
+            monkeypatch.setenv("SSH_AUTH_SOCK", str(cwd))
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--key', '--config'],
+                ["--key", "--config"],
                 catch_exceptions=False,
             )
-        assert result.error_exit(error='Cannot connect to the SSH agent'), (
-            'expected error exit and known error message'
+        assert result.error_exit(error="Cannot connect to the SSH agent"), (
+            "expected error exit and known error message"
         )
 
     @Parametrize.TRY_RACE_FREE_IMPLEMENTATION
@@ -4103,20 +4103,20 @@ class TestCLI:
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={"global": {"phrase": "abc"}, "services": {}},
                 )
             )
             tests.make_file_readonly(
-                cli_helpers.config_filename(subsystem='vault'),
+                cli_helpers.config_filename(subsystem="vault"),
                 try_race_free_implementation=try_race_free_implementation,
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--config', '--length=15', '--', DUMMY_SERVICE],
+                ["--config", "--length=15", "--", DUMMY_SERVICE],
                 catch_exceptions=False,
             )
-        assert result.error_exit(error='Cannot store vault settings:'), (
-            'expected error exit and known error message'
+        assert result.error_exit(error="Cannot store vault settings:"), (
+            "expected error exit and known error message"
         )
 
     def test_225e_store_config_fail_manual_custom_error(
@@ -4133,23 +4133,23 @@ class TestCLI:
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={"global": {"phrase": "abc"}, "services": {}},
                 )
             )
-            custom_error = 'custom error message'
+            custom_error = "custom error message"
 
             def raiser(config: Any) -> None:
                 del config
                 raise RuntimeError(custom_error)
 
-            monkeypatch.setattr(cli_helpers, 'save_config', raiser)
+            monkeypatch.setattr(cli_helpers, "save_config", raiser)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--config', '--length=15', '--', DUMMY_SERVICE],
+                ["--config", "--length=15", "--", DUMMY_SERVICE],
                 catch_exceptions=False,
             )
         assert result.error_exit(error=custom_error), (
-            'expected error exit and known error message'
+            "expected error exit and known error message"
         )
 
     def test_225f_store_config_fail_unset_and_set_same_settings(
@@ -4166,23 +4166,23 @@ class TestCLI:
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={"global": {"phrase": "abc"}, "services": {}},
                 )
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
                 [
-                    '--config',
-                    '--unset=length',
-                    '--length=15',
-                    '--',
+                    "--config",
+                    "--unset=length",
+                    "--length=15",
+                    "--",
                     DUMMY_SERVICE,
                 ],
                 catch_exceptions=False,
             )
         assert result.error_exit(
-            error='Attempted to unset and set --length at the same time.'
-        ), 'expected error exit and known error message'
+            error="Attempted to unset and set --length at the same time."
+        ), "expected error exit and known error message"
 
     def test_225g_store_config_fail_manual_ssh_agent_no_keys_loaded(
         self,
@@ -4200,7 +4200,7 @@ class TestCLI:
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={"global": {"phrase": "abc"}, "services": {}},
                 )
             )
 
@@ -4210,14 +4210,14 @@ class TestCLI:
             ) -> list[_types.SSHKeyCommentPair]:
                 return []
 
-            monkeypatch.setattr(ssh_agent.SSHAgentClient, 'list_keys', func)
+            monkeypatch.setattr(ssh_agent.SSHAgentClient, "list_keys", func)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--key', '--config'],
+                ["--key", "--config"],
                 catch_exceptions=False,
             )
-        assert result.error_exit(error='no keys suitable'), (
-            'expected error exit and known error message'
+        assert result.error_exit(error="no keys suitable"), (
+            "expected error exit and known error message"
         )
 
     def test_225h_store_config_fail_manual_ssh_agent_runtime_error(
@@ -4236,22 +4236,22 @@ class TestCLI:
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={"global": {"phrase": "abc"}, "services": {}},
                 )
             )
 
             def raiser(*_args: Any, **_kwargs: Any) -> None:
                 raise ssh_agent.TrailingDataError()
 
-            monkeypatch.setattr(ssh_agent.SSHAgentClient, 'list_keys', raiser)
+            monkeypatch.setattr(ssh_agent.SSHAgentClient, "list_keys", raiser)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--key', '--config'],
+                ["--key", "--config"],
                 catch_exceptions=False,
             )
         assert result.error_exit(
-            error='violates the communication protocol.'
-        ), 'expected error exit and known error message'
+            error="violates the communication protocol."
+        ), "expected error exit and known error message"
 
     def test_225i_store_config_fail_manual_ssh_agent_refuses(
         self,
@@ -4269,23 +4269,23 @@ class TestCLI:
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={"global": {"phrase": "abc"}, "services": {}},
                 )
             )
 
             def func(*_args: Any, **_kwargs: Any) -> NoReturn:
                 raise ssh_agent.SSHAgentFailedError(
-                    _types.SSH_AGENT.FAILURE, b''
+                    _types.SSH_AGENT.FAILURE, b""
                 )
 
-            monkeypatch.setattr(ssh_agent.SSHAgentClient, 'list_keys', func)
+            monkeypatch.setattr(ssh_agent.SSHAgentClient, "list_keys", func)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--key', '--config'],
+                ["--key", "--config"],
                 catch_exceptions=False,
             )
-        assert result.error_exit(error='refused to'), (
-            'expected error exit and known error message'
+        assert result.error_exit(error="refused to"), (
+            "expected error exit and known error message"
         )
 
     def test_226_no_arguments(self) -> None:
@@ -4306,8 +4306,8 @@ class TestCLI:
                 cli.derivepassphrase_vault, [], catch_exceptions=False
             )
         assert result.error_exit(
-            error='Deriving a passphrase requires a SERVICE'
-        ), 'expected error exit and known error message'
+            error="Deriving a passphrase requires a SERVICE"
+        ), "expected error exit and known error message"
 
     def test_226a_no_passphrase_or_key(
         self,
@@ -4327,11 +4327,11 @@ class TestCLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--', DUMMY_SERVICE],
+                ["--", DUMMY_SERVICE],
                 catch_exceptions=False,
             )
-        assert result.error_exit(error='No passphrase or key was given'), (
-            'expected error exit and known error message'
+        assert result.error_exit(error="No passphrase or key was given"), (
+            "expected error exit and known error message"
         )
 
     def test_230_config_directory_nonexistant(
@@ -4360,22 +4360,22 @@ class TestCLI:
                 shutil.rmtree(cli_helpers.config_filename(subsystem=None))
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--config', '-p'],
+                ["--config", "-p"],
                 catch_exceptions=False,
-                input='abc\n',
+                input="abc\n",
             )
-            assert result.clean_exit(), 'expected clean exit'
-            assert result.stderr == 'Passphrase:', (
-                'program unexpectedly failed?!'
+            assert result.clean_exit(), "expected clean exit"
+            assert result.stderr == "Passphrase:", (
+                "program unexpectedly failed?!"
             )
-            with cli_helpers.config_filename(subsystem='vault').open(
-                encoding='UTF-8'
+            with cli_helpers.config_filename(subsystem="vault").open(
+                encoding="UTF-8"
             ) as infile:
                 config_readback = json.load(infile)
             assert config_readback == {
-                'global': {'phrase': 'abc'},
-                'services': {},
-            }, 'config mismatch'
+                "global": {"phrase": "abc"},
+                "services": {},
+            }, "config mismatch"
 
     def test_230a_config_directory_not_a_file(
         self,
@@ -4408,21 +4408,21 @@ class TestCLI:
                 config_dir = cli_helpers.config_filename(subsystem=None)
                 with contextlib.suppress(FileNotFoundError):
                     shutil.rmtree(config_dir)
-                config_dir.write_text('Obstruction!!\n')
-                monkeypatch.setattr(cli_helpers, 'save_config', save_config_)
+                config_dir.write_text("Obstruction!!\n")
+                monkeypatch.setattr(cli_helpers, "save_config", save_config_)
                 return save_config_(*args, **kwargs)
 
             monkeypatch.setattr(
-                cli_helpers, 'save_config', obstruct_config_saving
+                cli_helpers, "save_config", obstruct_config_saving
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--config', '-p'],
+                ["--config", "-p"],
                 catch_exceptions=False,
-                input='abc\n',
+                input="abc\n",
             )
-            assert result.error_exit(error='Cannot store vault settings:'), (
-                'expected error exit and known error message'
+            assert result.error_exit(error="Cannot store vault settings:"), (
+                "expected error exit and known error message"
             )
 
     def test_230b_store_config_custom_error(
@@ -4441,21 +4441,21 @@ class TestCLI:
                     runner=runner,
                 )
             )
-            custom_error = 'custom error message'
+            custom_error = "custom error message"
 
             def raiser(config: Any) -> None:
                 del config
                 raise RuntimeError(custom_error)
 
-            monkeypatch.setattr(cli_helpers, 'save_config', raiser)
+            monkeypatch.setattr(cli_helpers, "save_config", raiser)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--config', '-p'],
+                ["--config", "-p"],
                 catch_exceptions=False,
-                input='abc\n',
+                input="abc\n",
             )
             assert result.error_exit(error=custom_error), (
-                'expected error exit and known error message'
+                "expected error exit and known error message"
             )
 
     @Parametrize.UNICODE_NORMALIZATION_WARNING_INPUTS
@@ -4479,7 +4479,7 @@ class TestCLI:
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config={
-                        'services': {
+                        "services": {
                             DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()
                         }
                     },
@@ -4488,13 +4488,13 @@ class TestCLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--debug', *command_line],
+                ["--debug", *command_line],
                 catch_exceptions=False,
                 input=input,
             )
-        assert result.clean_exit(), 'expected clean exit'
+        assert result.clean_exit(), "expected clean exit"
         assert tests.warning_emitted(warning_message, caplog.record_tuples), (
-            'expected known warning message in stderr'
+            "expected known warning message in stderr"
         )
 
     @Parametrize.UNICODE_NORMALIZATION_ERROR_INPUTS
@@ -4517,7 +4517,7 @@ class TestCLI:
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config={
-                        'services': {
+                        "services": {
                             DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()
                         }
                     },
@@ -4531,10 +4531,10 @@ class TestCLI:
                 input=input,
             )
         assert result.error_exit(
-            error='The user configuration file is invalid.'
-        ), 'expected error exit and known error message'
+            error="The user configuration file is invalid."
+        ), "expected error exit and known error message"
         assert result.error_exit(error=error_message), (
-            'expected error exit and known error message'
+            "expected error exit and known error message"
         )
 
     @Parametrize.UNICODE_NORMALIZATION_COMMAND_LINES
@@ -4554,7 +4554,7 @@ class TestCLI:
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config={
-                        'services': {
+                        "services": {
                             DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()
                         }
                     },
@@ -4570,14 +4570,14 @@ class TestCLI:
                 catch_exceptions=False,
             )
             assert result.error_exit(
-                error='The user configuration file is invalid.'
-            ), 'expected error exit and known error message'
+                error="The user configuration file is invalid."
+            ), "expected error exit and known error message"
             assert result.error_exit(
                 error=(
                     "Invalid value 'XXX' for config key "
-                    'vault.default-unicode-normalization-form'
+                    "vault.default-unicode-normalization-form"
                 ),
-            ), 'expected error exit and known error message'
+            ), "expected error exit and known error message"
 
     def test_310_bad_user_config_file(
         self,
@@ -4593,18 +4593,18 @@ class TestCLI:
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'services': {}},
-                    main_config_str='This file is not valid TOML.\n',
+                    vault_config={"services": {}},
+                    main_config_str="This file is not valid TOML.\n",
                 )
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--phrase', '--', DUMMY_SERVICE],
+                ["--phrase", "--", DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-            assert result.error_exit(error='Cannot load user config:'), (
-                'expected error exit and known error message'
+            assert result.error_exit(error="Cannot load user config:"), (
+                "expected error exit and known error message"
             )
 
     def test_311_bad_user_config_is_a_directory(
@@ -4621,23 +4621,23 @@ class TestCLI:
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'services': {}},
-                    main_config_str='',
+                    vault_config={"services": {}},
+                    main_config_str="",
                 )
             )
             user_config = cli_helpers.config_filename(
-                subsystem='user configuration'
+                subsystem="user configuration"
             )
             user_config.unlink()
             user_config.mkdir(parents=True, exist_ok=True)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--phrase', '--', DUMMY_SERVICE],
+                ["--phrase", "--", DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-            assert result.error_exit(error='Cannot load user config:'), (
-                'expected error exit and known error message'
+            assert result.error_exit(error="Cannot load user config:"), (
+                "expected error exit and known error message"
             )
 
     def test_400_missing_af_unix_support(
@@ -4655,28 +4655,28 @@ class TestCLI:
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'global': {'phrase': 'abc'}, 'services': {}},
+                    vault_config={"global": {"phrase": "abc"}, "services": {}},
                 )
             )
             monkeypatch.setenv(
-                'SSH_AUTH_SOCK', "the value doesn't even matter"
+                "SSH_AUTH_SOCK", "the value doesn't even matter"
             )
             monkeypatch.setattr(
-                ssh_agent.SSHAgentClient, 'SOCKET_PROVIDERS', ['posix']
+                ssh_agent.SSHAgentClient, "SOCKET_PROVIDERS", ["posix"]
             )
-            monkeypatch.delattr(socket, 'AF_UNIX', raising=False)
+            monkeypatch.delattr(socket, "AF_UNIX", raising=False)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--key', '--config'],
+                ["--key", "--config"],
                 catch_exceptions=False,
             )
         assert result.error_exit(
-            error='does not support communicating with it'
-        ), 'expected error exit and known error message'
+            error="does not support communicating with it"
+        ), "expected error exit and known error message"
         assert tests.warning_emitted(
-            'Cannot connect to an SSH agent via UNIX domain sockets',
+            "Cannot connect to an SSH agent via UNIX domain sockets",
             caplog.record_tuples,
-        ), 'expected known warning message in stderr'
+        ), "expected known warning message in stderr"
 
 
 class TestCLIUtils:
@@ -4701,8 +4701,8 @@ class TestCLIUtils:
                     vault_config=config,
                 )
             )
-            config_filename = cli_helpers.config_filename(subsystem='vault')
-            with config_filename.open(encoding='UTF-8') as fileobj:
+            config_filename = cli_helpers.config_filename(subsystem="vault")
+            with config_filename.open(encoding="UTF-8") as fileobj:
                 assert json.load(fileobj) == config
             assert cli_helpers.load_config() == config
 
@@ -4724,7 +4724,7 @@ class TestCLIUtils:
                 )
             )
             stack.enter_context(
-                pytest.raises(ValueError, match='Invalid vault config')
+                pytest.raises(ValueError, match="Invalid vault config")
             )
             cli_helpers.save_config(None)  # type: ignore[arg-type]
 
@@ -4732,36 +4732,36 @@ class TestCLIUtils:
         """[`cli_helpers.prompt_for_selection`][] works in the "multiple" case."""
 
         @click.command()
-        @click.option('--heading', default='Our menu:')
-        @click.argument('items', nargs=-1)
+        @click.option("--heading", default="Our menu:")
+        @click.argument("items", nargs=-1)
         def driver(heading: str, items: list[str]) -> None:
             # from https://montypython.fandom.com/wiki/Spam#The_menu
             items = items or [
-                'Egg and bacon',
-                'Egg, sausage and bacon',
-                'Egg and spam',
-                'Egg, bacon and spam',
-                'Egg, bacon, sausage and spam',
-                'Spam, bacon, sausage and spam',
-                'Spam, egg, spam, spam, bacon and spam',
-                'Spam, spam, spam, egg and spam',
+                "Egg and bacon",
+                "Egg, sausage and bacon",
+                "Egg and spam",
+                "Egg, bacon and spam",
+                "Egg, bacon, sausage and spam",
+                "Spam, bacon, sausage and spam",
+                "Spam, egg, spam, spam, bacon and spam",
+                "Spam, spam, spam, egg and spam",
                 (
-                    'Spam, spam, spam, spam, spam, spam, baked beans, '
-                    'spam, spam, spam and spam'
+                    "Spam, spam, spam, spam, spam, spam, baked beans, "
+                    "spam, spam, spam and spam"
                 ),
                 (
-                    'Lobster thermidor aux crevettes with a mornay sauce '
-                    'garnished with truffle paté, brandy '
-                    'and a fried egg on top and spam'
+                    "Lobster thermidor aux crevettes with a mornay sauce "
+                    "garnished with truffle paté, brandy "
+                    "and a fried egg on top and spam"
                 ),
             ]
             index = cli_helpers.prompt_for_selection(items, heading=heading)
-            click.echo('A fine choice: ', nl=False)
+            click.echo("A fine choice: ", nl=False)
             click.echo(items[index])
-            click.echo('(Note: Vikings strictly optional.)')
+            click.echo("(Note: Vikings strictly optional.)")
 
         runner = tests.CliRunner(mix_stderr=True)
-        result = runner.invoke(driver, [], input='9')
+        result = runner.invoke(driver, [], input="9")
         assert result.clean_exit(
             output="""\
 Our menu:
@@ -4779,12 +4779,12 @@ Your selection? (1-10, leave empty to abort): 9
 A fine choice: Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam and spam
 (Note: Vikings strictly optional.)
 """
-        ), 'expected clean exit'
+        ), "expected clean exit"
         result = runner.invoke(
-            driver, ['--heading='], input='\n', catch_exceptions=True
+            driver, ["--heading="], input="\n", catch_exceptions=True
         )
         assert result.error_exit(error=IndexError), (
-            'expected error exit and known error type'
+            "expected error exit and known error type"
         )
         assert (
             result.stdout
@@ -4801,16 +4801,16 @@ A fine choice: Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam
 [10] Lobster thermidor aux crevettes with a mornay sauce garnished with truffle paté, brandy and a fried egg on top and spam
 Your selection? (1-10, leave empty to abort):\x20
 """
-        ), 'expected known output'
+        ), "expected known output"
         # click.testing.CliRunner on click < 8.2.1 incorrectly mocks the
         # click prompting machinery, meaning that the mixed output will
         # incorrectly contain a line break, contrary to what the
         # documentation for click.prompt prescribes.
         result = runner.invoke(
-            driver, ['--heading='], input='', catch_exceptions=True
+            driver, ["--heading="], input="", catch_exceptions=True
         )
         assert result.error_exit(error=IndexError), (
-            'expected error exit and known error type'
+            "expected error exit and known error type"
         )
         assert result.stdout in {
             """\
@@ -4838,28 +4838,28 @@ Your selection? (1-10, leave empty to abort):\x20
 [9] Spam, spam, spam, spam, spam, spam, baked beans, spam, spam, spam and spam
 [10] Lobster thermidor aux crevettes with a mornay sauce garnished with truffle paté, brandy and a fried egg on top and spam
 Your selection? (1-10, leave empty to abort): """,
-        }, 'expected known output'
+        }, "expected known output"
 
     def test_112_prompt_for_selection_single(self) -> None:
         """[`cli_helpers.prompt_for_selection`][] works in the "single" case."""
 
         @click.command()
-        @click.option('--item', default='baked beans')
-        @click.argument('prompt')
+        @click.option("--item", default="baked beans")
+        @click.argument("prompt")
         def driver(item: str, prompt: str) -> None:
             try:
                 cli_helpers.prompt_for_selection(
-                    [item], heading='', single_choice_prompt=prompt
+                    [item], heading="", single_choice_prompt=prompt
                 )
             except IndexError:
-                click.echo('Boo.')
+                click.echo("Boo.")
                 raise
             else:
-                click.echo('Great!')
+                click.echo("Great!")
 
         runner = tests.CliRunner(mix_stderr=True)
         result = runner.invoke(
-            driver, ['Will replace with spam. Confirm, y/n?'], input='y'
+            driver, ["Will replace with spam. Confirm, y/n?"], input="y"
         )
         assert result.clean_exit(
             output="""\
@@ -4867,14 +4867,14 @@ Your selection? (1-10, leave empty to abort): """,
 Will replace with spam. Confirm, y/n? y
 Great!
 """
-        ), 'expected clean exit'
+        ), "expected clean exit"
         result = runner.invoke(
             driver,
             ['Will replace with spam, okay? (Please say "y" or "n".)'],
-            input='\n',
+            input="\n",
         )
         assert result.error_exit(error=IndexError), (
-            'expected error exit and known error type'
+            "expected error exit and known error type"
         )
         assert (
             result.stdout
@@ -4883,7 +4883,7 @@ Great!
 Will replace with spam, okay? (Please say "y" or "n".):\x20
 Boo.
 """
-        ), 'expected known output'
+        ), "expected known output"
         # click.testing.CliRunner on click < 8.2.1 incorrectly mocks the
         # click prompting machinery, meaning that the mixed output will
         # incorrectly contain a line break, contrary to what the
@@ -4891,10 +4891,10 @@ Boo.
         result = runner.invoke(
             driver,
             ['Will replace with spam, okay? (Please say "y" or "n".)'],
-            input='',
+            input="",
         )
         assert result.error_exit(error=IndexError), (
-            'expected error exit and known error type'
+            "expected error exit and known error type"
         )
         assert result.stdout in {
             """\
@@ -4906,7 +4906,7 @@ Boo.
 [1] baked beans
 Will replace with spam, okay? (Please say "y" or "n".): Boo.
 """,
-        }, 'expected known output'
+        }, "expected known output"
 
     def test_113_prompt_for_passphrase(
         self,
@@ -4915,18 +4915,18 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setattr(
                 click,
-                'prompt',
-                lambda *a, **kw: json.dumps({'args': a, 'kwargs': kw}),
+                "prompt",
+                lambda *a, **kw: json.dumps({"args": a, "kwargs": kw}),
             )
             res = json.loads(cli_helpers.prompt_for_passphrase())
-        err_msg = 'missing arguments to passphrase prompt'
-        assert 'args' in res, err_msg
-        assert 'kwargs' in res, err_msg
-        assert res['args'][:1] == ['Passphrase'], err_msg
-        assert res['kwargs'].get('default') == '', err_msg
-        assert not res['kwargs'].get('show_default', True), err_msg
-        assert res['kwargs'].get('err'), err_msg
-        assert res['kwargs'].get('hide_input'), err_msg
+        err_msg = "missing arguments to passphrase prompt"
+        assert "args" in res, err_msg
+        assert "kwargs" in res, err_msg
+        assert res["args"][:1] == ["Passphrase"], err_msg
+        assert res["kwargs"].get("default") == "", err_msg
+        assert not res["kwargs"].get("show_default", True), err_msg
+        assert res["kwargs"].get("err"), err_msg
+        assert res["kwargs"].get("hide_input"), err_msg
 
     def test_120_standard_logging_context_manager(
         self,
@@ -4942,7 +4942,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
         prog_name = cli_machinery.StandardCLILogging.prog_name
         package_name = cli_machinery.StandardCLILogging.package_name
         logger = logging.getLogger(package_name)
-        deprecation_logger = logging.getLogger(f'{package_name}.deprecation')
+        deprecation_logger = logging.getLogger(f"{package_name}.deprecation")
         logging_cm = cli_machinery.StandardCLILogging.ensure_standard_logging()
         with logging_cm:
             assert (
@@ -4953,9 +4953,9 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
                 )
                 == 1
             )
-            logger.warning('message 1')
+            logger.warning("message 1")
             with logging_cm:
-                deprecation_logger.warning('message 2')
+                deprecation_logger.warning("message 2")
                 assert (
                     sum(
                         1
@@ -4965,13 +4965,13 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
                     == 1
                 )
                 assert capsys.readouterr() == (
-                    '',
+                    "",
                     (
-                        f'{prog_name}: Warning: message 1\n'
-                        f'{prog_name}: Deprecation warning: message 2\n'
+                        f"{prog_name}: Warning: message 1\n"
+                        f"{prog_name}: Deprecation warning: message 2\n"
                     ),
                 )
-            logger.warning('message 3')
+            logger.warning("message 3")
             assert (
                 sum(
                     1
@@ -4981,13 +4981,13 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
                 == 1
             )
             assert capsys.readouterr() == (
-                '',
-                f'{prog_name}: Warning: message 3\n',
+                "",
+                f"{prog_name}: Warning: message 3\n",
             )
             assert caplog.record_tuples == [
-                (package_name, logging.WARNING, 'message 1'),
-                (f'{package_name}.deprecation', logging.WARNING, 'message 2'),
-                (package_name, logging.WARNING, 'message 3'),
+                (package_name, logging.WARNING, "message 1"),
+                (f"{package_name}.deprecation", logging.WARNING, "message 2"),
+                (package_name, logging.WARNING, "message 3"),
             ]
 
     def test_121_standard_logging_warnings_context_manager(
@@ -5006,13 +5006,13 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
         warnings_cm = (
             cli_machinery.StandardCLILogging.ensure_standard_warnings_logging()
         )
-        THE_FUTURE = 'the future will be here sooner than you think'  # noqa: N806
-        JUST_TESTING = 'just testing whether warnings work'  # noqa: N806
+        THE_FUTURE = "the future will be here sooner than you think"  # noqa: N806
+        JUST_TESTING = "just testing whether warnings work"  # noqa: N806
         with warnings_cm:
             assert (
                 sum(
                     1
-                    for h in logging.getLogger('py.warnings').handlers
+                    for h in logging.getLogger("py.warnings").handlers
                     if h is cli_machinery.StandardCLILogging.warnings_handler
                 )
                 == 1
@@ -5023,31 +5023,31 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
                 _out, err = capsys.readouterr()
                 err_lines = err.splitlines(True)
                 assert any(
-                    f'UserWarning: {JUST_TESTING}' in line
+                    f"UserWarning: {JUST_TESTING}" in line
                     for line in err_lines
                 )
                 assert any(
-                    f'FutureWarning: {THE_FUTURE}' in line
+                    f"FutureWarning: {THE_FUTURE}" in line
                     for line in err_lines
                 )
             warnings.warn(UserWarning(JUST_TESTING), stacklevel=1)
             _out, err = capsys.readouterr()
             err_lines = err.splitlines(True)
             assert any(
-                f'UserWarning: {JUST_TESTING}' in line for line in err_lines
+                f"UserWarning: {JUST_TESTING}" in line for line in err_lines
             )
             assert not any(
-                f'FutureWarning: {THE_FUTURE}' in line for line in err_lines
+                f"FutureWarning: {THE_FUTURE}" in line for line in err_lines
             )
             record_tuples = caplog.record_tuples
             assert [tup[:2] for tup in record_tuples] == [
-                ('py.warnings', logging.WARNING),
-                ('py.warnings', logging.WARNING),
-                ('py.warnings', logging.WARNING),
+                ("py.warnings", logging.WARNING),
+                ("py.warnings", logging.WARNING),
+                ("py.warnings", logging.WARNING),
             ]
-            assert f'UserWarning: {JUST_TESTING}' in record_tuples[0][2]
-            assert f'FutureWarning: {THE_FUTURE}' in record_tuples[1][2]
-            assert f'UserWarning: {JUST_TESTING}' in record_tuples[2][2]
+            assert f"UserWarning: {JUST_TESTING}" in record_tuples[0][2]
+            assert f"FutureWarning: {THE_FUTURE}" in record_tuples[1][2]
+            assert f"UserWarning: {JUST_TESTING}" in record_tuples[2][2]
 
     def export_as_sh_helper(
         self,
@@ -5066,7 +5066,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
                 The configuration to emit and read back.
 
         """
-        prog_name_list = ('derivepassphrase', 'vault')
+        prog_name_list = ("derivepassphrase", "vault")
         with io.StringIO() as outfile:
             cli_helpers.print_config_as_sh_script(
                 config, outfile=outfile, prog_name_list=prog_name_list
@@ -5082,7 +5082,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'services': {}},
+                    vault_config={"services": {}},
                 )
             )
             for result in vault_config_exporter_shell_interpreter(script):
@@ -5094,14 +5094,14 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
         global_config_importable=strategies.fixed_dictionaries(
             {},
             optional={
-                'key': strategies.text(
+                "key": strategies.text(
                     alphabet=strategies.characters(
                         min_codepoint=32,
                         max_codepoint=126,
                     ),
                     max_size=128,
                 ),
-                'phrase': strategies.text(
+                "phrase": strategies.text(
                     alphabet=strategies.characters(
                         min_codepoint=32,
                         max_codepoint=126,
@@ -5126,8 +5126,8 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
 
         """
         config: _types.VaultConfig = {
-            'global': global_config_settable | global_config_importable,
-            'services': {},
+            "global": global_config_settable | global_config_importable,
+            "services": {},
         }
         assert _types.clean_up_falsy_vault_config_values(config) is not None
         assert _types.is_vault_config(config)
@@ -5137,14 +5137,14 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
         global_config_importable=strategies.fixed_dictionaries(
             {},
             optional={
-                'key': strategies.text(
+                "key": strategies.text(
                     alphabet=strategies.characters(
                         min_codepoint=32,
                         max_codepoint=126,
                     ),
                     max_size=128,
                 ),
-                'phrase': strategies.text(
+                "phrase": strategies.text(
                     alphabet=strategies.characters(
                         min_codepoint=32,
                         max_codepoint=126,
@@ -5167,13 +5167,13 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
 
         """
         config: _types.VaultConfig = {
-            'global': global_config_importable,
-            'services': {},
+            "global": global_config_importable,
+            "services": {},
         }
         assert _types.clean_up_falsy_vault_config_values(config) is not None
         assert _types.is_vault_config(config)
-        if not config['global']:
-            config.pop('global')
+        if not config["global"]:
+            config.pop("global")
         return self.export_as_sh_helper(config)
 
     @hypothesis.given(
@@ -5189,25 +5189,25 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
         service_config_importable=strategies.fixed_dictionaries(
             {},
             optional={
-                'key': strategies.text(
+                "key": strategies.text(
                     alphabet=strategies.characters(
                         min_codepoint=32,
                         max_codepoint=126,
                     ),
                     max_size=128,
                 ),
-                'phrase': strategies.text(
+                "phrase": strategies.text(
                     alphabet=strategies.characters(
                         min_codepoint=32,
                         max_codepoint=126,
                     ),
                     max_size=64,
                 ),
-                'notes': strategies.text(
+                "notes": strategies.text(
                     alphabet=strategies.characters(
                         min_codepoint=32,
                         max_codepoint=126,
-                        include_characters=('\n', '\f', '\t'),
+                        include_characters=("\n", "\f", "\t"),
                     ),
                     max_size=256,
                 ),
@@ -5230,7 +5230,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
 
         """
         config: _types.VaultConfig = {
-            'services': {
+            "services": {
                 service_name: (
                     service_config_settable | service_config_importable
                 ),
@@ -5252,25 +5252,25 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
         service_config_importable=strategies.fixed_dictionaries(
             {},
             optional={
-                'key': strategies.text(
+                "key": strategies.text(
                     alphabet=strategies.characters(
                         min_codepoint=32,
                         max_codepoint=126,
                     ),
                     max_size=128,
                 ),
-                'phrase': strategies.text(
+                "phrase": strategies.text(
                     alphabet=strategies.characters(
                         min_codepoint=32,
                         max_codepoint=126,
                     ),
                     max_size=64,
                 ),
-                'notes': strategies.text(
+                "notes": strategies.text(
                     alphabet=strategies.characters(
                         min_codepoint=32,
                         max_codepoint=126,
-                        include_characters=('\n', '\f', '\t'),
+                        include_characters=("\n", "\f", "\t"),
                     ),
                     max_size=256,
                 ),
@@ -5291,7 +5291,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
 
         """
         config: _types.VaultConfig = {
-            'services': {
+            "services": {
                 service_name: service_config_importable,
             },
         }
@@ -5302,22 +5302,22 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
     # The Annoying OS appears to silently truncate spaces at the end of
     # filenames.
     @hypothesis.given(
-        env_var=strategies.sampled_from(['TMPDIR', 'TEMP', 'TMP']),
+        env_var=strategies.sampled_from(["TMPDIR", "TEMP", "TMP"]),
         suffix=strategies.builds(
             operator.add,
             strategies.text(
-                tuple(' 0123456789abcdefghijklmnopqrstuvwxyz'),
+                tuple(" 0123456789abcdefghijklmnopqrstuvwxyz"),
                 min_size=11,
                 max_size=11,
             ),
             strategies.text(
-                tuple('0123456789abcdefghijklmnopqrstuvwxyz'),
+                tuple("0123456789abcdefghijklmnopqrstuvwxyz"),
                 min_size=1,
                 max_size=1,
             ),
         ),
     )
-    @hypothesis.example(env_var='', suffix='.')
+    @hypothesis.example(env_var="", suffix=".")
     def test_140a_get_tempdir(
         self,
         env_var: str,
@@ -5352,14 +5352,14 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'services': {}},
+                    vault_config={"services": {}},
                 )
             )
             old_tempdir = os.fsdecode(tempfile.gettempdir())
-            monkeypatch.delenv('TMPDIR', raising=False)
-            monkeypatch.delenv('TEMP', raising=False)
-            monkeypatch.delenv('TMP', raising=False)
-            monkeypatch.setattr(tempfile, 'tempdir', None)
+            monkeypatch.delenv("TMPDIR", raising=False)
+            monkeypatch.delenv("TEMP", raising=False)
+            monkeypatch.delenv("TMP", raising=False)
+            monkeypatch.setattr(tempfile, "tempdir", None)
             temp_path = pathlib.Path.cwd() / suffix
             if env_var:
                 monkeypatch.setenv(env_var, os.fsdecode(temp_path))
@@ -5379,7 +5379,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
                 system_tempdir == os.getcwd()  # noqa: PTH109
                 and our_tempdir == cli_helpers.config_filename(subsystem=None)
             )
-        assert not temp_path.exists(), f'temp path {temp_path} not cleaned up!'
+        assert not temp_path.exists(), f"temp path {temp_path} not cleaned up!"
 
     def test_140b_get_tempdir_force_default(self) -> None:
         """[`cli_helpers.get_tempdir`][] returns a temporary directory.
@@ -5399,12 +5399,12 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'services': {}},
+                    vault_config={"services": {}},
                 )
             )
-            monkeypatch.delenv('TMPDIR', raising=False)
-            monkeypatch.delenv('TEMP', raising=False)
-            monkeypatch.delenv('TMP', raising=False)
+            monkeypatch.delenv("TMPDIR", raising=False)
+            monkeypatch.delenv("TEMP", raising=False)
+            monkeypatch.delenv("TMP", raising=False)
             config_dir = cli_helpers.config_filename(subsystem=None)
 
             def is_dir_false(
@@ -5429,10 +5429,10 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
                     str(self),
                 )
 
-            monkeypatch.setattr(pathlib.Path, 'is_dir', is_dir_false)
+            monkeypatch.setattr(pathlib.Path, "is_dir", is_dir_false)
             assert cli_helpers.get_tempdir() == config_dir
 
-            monkeypatch.setattr(pathlib.Path, 'is_dir', is_dir_error)
+            monkeypatch.setattr(pathlib.Path, "is_dir", is_dir_error)
             assert cli_helpers.get_tempdir() == config_dir
 
     @Parametrize.DELETE_CONFIG_INPUT
@@ -5463,10 +5463,10 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
                     catch_exceptions=False,
                 )
                 assert result.clean_exit(empty_stderr=True), (
-                    'expected clean exit'
+                    "expected clean exit"
                 )
-                with cli_helpers.config_filename(subsystem='vault').open(
-                    encoding='UTF-8'
+                with cli_helpers.config_filename(subsystem="vault").open(
+                    encoding="UTF-8"
                 ) as infile:
                     config_readback = json.load(infile)
                 assert config_readback == result_config
@@ -5500,27 +5500,27 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
         """[`cli_helpers.get_suitable_ssh_keys`][] works."""
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setattr(
-                ssh_agent.SSHAgentClient, 'list_keys', tests.list_keys
+                ssh_agent.SSHAgentClient, "list_keys", tests.list_keys
             )
             hint: ssh_agent.SSHAgentClient | _types.SSHAgentSocket | None
             # TODO(the-13th-letter): Rewrite using structural pattern
             # matching.
             # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-            if conn_hint == 'client':
+            if conn_hint == "client":
                 hint = ssh_agent.SSHAgentClient()
-            elif conn_hint == 'socket':
+            elif conn_hint == "socket":
                 if isinstance(
                     running_ssh_agent.socket, str
                 ):  # pragma: no cover
-                    if not hasattr(socket, 'AF_UNIX'):
-                        pytest.skip('socket module does not support AF_UNIX')
+                    if not hasattr(socket, "AF_UNIX"):
+                        pytest.skip("socket module does not support AF_UNIX")
                     # socket.AF_UNIX is not defined everywhere.
                     hint = socket.socket(family=socket.AF_UNIX)  # type: ignore[attr-defined]
                     hint.connect(running_ssh_agent.socket)
                 else:  # pragma: no cover
                     hint = running_ssh_agent.socket()
             else:
-                assert conn_hint == 'none'
+                assert conn_hint == "none"
                 hint = None
             exception: Exception | None = None
             try:
@@ -5531,7 +5531,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
                 exception = e
             finally:
                 assert exception is None, (
-                    'exception querying suitable SSH keys'
+                    "exception querying suitable SSH keys"
                 )
 
     @Parametrize.KEY_TO_PHRASE_SETTINGS
@@ -5560,10 +5560,10 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
                 ssh_agent_client_with_test_keys_loaded.list_keys()
             )
             loaded_key = base64.standard_b64encode(loaded_keys[0][0])
-            monkeypatch.setattr(ssh_agent.SSHAgentClient, 'sign', sign_action)
+            monkeypatch.setattr(ssh_agent.SSHAgentClient, "sign", sign_action)
             if list_keys_action:
                 monkeypatch.setattr(
-                    ssh_agent.SSHAgentClient, 'list_keys', list_keys_action
+                    ssh_agent.SSHAgentClient, "list_keys", list_keys_action
                 )
             if address_action:
                 address_action(monkeypatch)
@@ -5574,12 +5574,12 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
             if list_keys_action == ListKeysAction.FAIL_RUNTIME:
                 assert excinfo.value.kwargs
                 assert isinstance(
-                    excinfo.value.kwargs['exc_info'],
+                    excinfo.value.kwargs["exc_info"],
                     ssh_agent.SSHAgentFailedError,
                 )
-                assert excinfo.value.kwargs['exc_info'].__context__ is not None
+                assert excinfo.value.kwargs["exc_info"].__context__ is not None
                 assert isinstance(
-                    excinfo.value.kwargs['exc_info'].__context__,
+                    excinfo.value.kwargs["exc_info"].__context__,
                     ssh_agent.TrailingDataError,
                 )
 
@@ -5608,8 +5608,8 @@ class TestCLITransition:
                 )
             )
             cli_helpers.config_filename(
-                subsystem='old settings.json'
-            ).write_text(json.dumps(config, indent=2) + '\n', encoding='UTF-8')
+                subsystem="old settings.json"
+            ).write_text(json.dumps(config, indent=2) + "\n", encoding="UTF-8")
             assert cli_helpers.migrate_and_load_old_config()[0] == config
 
     @Parametrize.BASE_CONFIG_VARIATIONS
@@ -5631,8 +5631,8 @@ class TestCLITransition:
                 )
             )
             cli_helpers.config_filename(
-                subsystem='old settings.json'
-            ).write_text(json.dumps(config, indent=2) + '\n', encoding='UTF-8')
+                subsystem="old settings.json"
+            ).write_text(json.dumps(config, indent=2) + "\n", encoding="UTF-8")
             assert cli_helpers.migrate_and_load_old_config() == (config, None)
 
     @Parametrize.BASE_CONFIG_VARIATIONS
@@ -5654,9 +5654,9 @@ class TestCLITransition:
                 )
             )
             cli_helpers.config_filename(
-                subsystem='old settings.json'
-            ).write_text(json.dumps(config, indent=2) + '\n', encoding='UTF-8')
-            cli_helpers.config_filename(subsystem='vault').mkdir(
+                subsystem="old settings.json"
+            ).write_text(json.dumps(config, indent=2) + "\n", encoding="UTF-8")
+            cli_helpers.config_filename(subsystem="vault").mkdir(
                 parents=True, exist_ok=True
             )
             config2, err = cli_helpers.migrate_and_load_old_config()
@@ -5684,8 +5684,8 @@ class TestCLITransition:
                 )
             )
             cli_helpers.config_filename(
-                subsystem='old settings.json'
-            ).write_text(json.dumps(config, indent=2) + '\n', encoding='UTF-8')
+                subsystem="old settings.json"
+            ).write_text(json.dumps(config, indent=2) + "\n", encoding="UTF-8")
             with pytest.raises(
                 ValueError, match=cli_helpers.INVALID_VAULT_CONFIG
             ):
@@ -5696,7 +5696,7 @@ class TestCLITransition:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Forwarding arguments from "export" to "export vault" works."""
-        pytest.importorskip('cryptography', minversion='38.0')
+        pytest.importorskip("cryptography", minversion="38.0")
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -5711,14 +5711,14 @@ class TestCLITransition:
                     vault_key=tests.VAULT_MASTER_KEY,
                 )
             )
-            monkeypatch.setenv('VAULT_KEY', tests.VAULT_MASTER_KEY)
+            monkeypatch.setenv("VAULT_KEY", tests.VAULT_MASTER_KEY)
             result = runner.invoke(
                 cli.derivepassphrase,
-                ['export', 'VAULT_PATH'],
+                ["export", "VAULT_PATH"],
             )
-        assert result.clean_exit(empty_stderr=False), 'expected clean exit'
+        assert result.clean_exit(empty_stderr=False), "expected clean exit"
         assert tests.deprecation_warning_emitted(
-            'A subcommand will be required here in v1.0', caplog.record_tuples
+            "A subcommand will be required here in v1.0", caplog.record_tuples
         )
         assert tests.deprecation_warning_emitted(
             'Defaulting to subcommand "vault"', caplog.record_tuples
@@ -5730,7 +5730,7 @@ class TestCLITransition:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Deferring from "export" to "export vault" works."""
-        pytest.importorskip('cryptography', minversion='38.0')
+        pytest.importorskip("cryptography", minversion="38.0")
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -5745,16 +5745,16 @@ class TestCLITransition:
             )
             result = runner.invoke(
                 cli.derivepassphrase,
-                ['export'],
+                ["export"],
             )
         assert tests.deprecation_warning_emitted(
-            'A subcommand will be required here in v1.0', caplog.record_tuples
+            "A subcommand will be required here in v1.0", caplog.record_tuples
         )
         assert tests.deprecation_warning_emitted(
             'Defaulting to subcommand "vault"', caplog.record_tuples
         )
         assert result.error_exit(error="Missing argument 'PATH'"), (
-            'expected error exit and known error type'
+            "expected error exit and known error type"
         )
 
     @Parametrize.CHARSET_NAME
@@ -5764,8 +5764,8 @@ class TestCLITransition:
         charset_name: str,
     ) -> None:
         """Forwarding arguments from top-level to "vault" works."""
-        option = f'--{charset_name}'
-        charset = vault.Vault.CHARSETS[charset_name].decode('ascii')
+        option = f"--{charset_name}"
+        charset = vault.Vault.CHARSETS[charset_name].decode("ascii")
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -5779,24 +5779,24 @@ class TestCLITransition:
                 )
             )
             monkeypatch.setattr(
-                cli_helpers, 'prompt_for_passphrase', tests.auto_prompt
+                cli_helpers, "prompt_for_passphrase", tests.auto_prompt
             )
             result = runner.invoke(
                 cli.derivepassphrase,
-                [option, '0', '-p', '--', DUMMY_SERVICE],
+                [option, "0", "-p", "--", DUMMY_SERVICE],
                 input=DUMMY_PASSPHRASE,
                 catch_exceptions=False,
             )
-        assert result.clean_exit(empty_stderr=False), 'expected clean exit'
+        assert result.clean_exit(empty_stderr=False), "expected clean exit"
         assert tests.deprecation_warning_emitted(
-            'A subcommand will be required here in v1.0', caplog.record_tuples
+            "A subcommand will be required here in v1.0", caplog.record_tuples
         )
         assert tests.deprecation_warning_emitted(
             'Defaulting to subcommand "vault"', caplog.record_tuples
         )
         for c in charset:
             assert c not in result.stdout, (
-                f'derived password contains forbidden character {c!r}'
+                f"derived password contains forbidden character {c!r}"
             )
 
     def test_211_forward_vault_empty_command_line(
@@ -5823,14 +5823,14 @@ class TestCLITransition:
                 catch_exceptions=False,
             )
         assert tests.deprecation_warning_emitted(
-            'A subcommand will be required here in v1.0', caplog.record_tuples
+            "A subcommand will be required here in v1.0", caplog.record_tuples
         )
         assert tests.deprecation_warning_emitted(
             'Defaulting to subcommand "vault"', caplog.record_tuples
         )
         assert result.error_exit(
-            error='Deriving a passphrase requires a SERVICE.'
-        ), 'expected error exit and known error type'
+            error="Deriving a passphrase requires a SERVICE."
+        ), "expected error exit and known error type"
 
     def test_300_export_using_old_config_file(
         self,
@@ -5851,27 +5851,27 @@ class TestCLITransition:
                 )
             )
             cli_helpers.config_filename(
-                subsystem='old settings.json'
+                subsystem="old settings.json"
             ).write_text(
                 json.dumps(
-                    {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
+                    {"services": {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
                     indent=2,
                 )
-                + '\n',
-                encoding='UTF-8',
+                + "\n",
+                encoding="UTF-8",
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--export', '-'],
+                ["--export", "-"],
                 catch_exceptions=False,
             )
-        assert result.clean_exit(), 'expected clean exit'
+        assert result.clean_exit(), "expected clean exit"
         assert tests.deprecation_warning_emitted(
-            'v0.1-style config file', caplog.record_tuples
-        ), 'expected known warning message in stderr'
+            "v0.1-style config file", caplog.record_tuples
+        ), "expected known warning message in stderr"
         assert tests.deprecation_info_emitted(
-            'Successfully migrated to ', caplog.record_tuples
-        ), 'expected known warning message in stderr'
+            "Successfully migrated to ", caplog.record_tuples
+        ), "expected known warning message in stderr"
 
     def test_300a_export_using_old_config_file_migration_error(
         self,
@@ -5891,43 +5891,43 @@ class TestCLITransition:
                 )
             )
             cli_helpers.config_filename(
-                subsystem='old settings.json'
+                subsystem="old settings.json"
             ).write_text(
                 json.dumps(
-                    {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
+                    {"services": {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}},
                     indent=2,
                 )
-                + '\n',
-                encoding='UTF-8',
+                + "\n",
+                encoding="UTF-8",
             )
 
             def raiser(*_args: Any, **_kwargs: Any) -> None:
                 raise OSError(
                     errno.EACCES,
                     os.strerror(errno.EACCES),
-                    cli_helpers.config_filename(subsystem='vault'),
+                    cli_helpers.config_filename(subsystem="vault"),
                 )
 
-            monkeypatch.setattr(os, 'replace', raiser)
-            monkeypatch.setattr(pathlib.Path, 'rename', raiser)
+            monkeypatch.setattr(os, "replace", raiser)
+            monkeypatch.setattr(pathlib.Path, "rename", raiser)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
-                ['--export', '-'],
+                ["--export", "-"],
                 catch_exceptions=False,
             )
-        assert result.clean_exit(), 'expected clean exit'
+        assert result.clean_exit(), "expected clean exit"
         assert tests.deprecation_warning_emitted(
-            'v0.1-style config file', caplog.record_tuples
-        ), 'expected known warning message in stderr'
+            "v0.1-style config file", caplog.record_tuples
+        ), "expected known warning message in stderr"
         assert tests.warning_emitted(
-            'Failed to migrate to ', caplog.record_tuples
-        ), 'expected known warning message in stderr'
+            "Failed to migrate to ", caplog.record_tuples
+        ), "expected known warning message in stderr"
 
     def test_400_completion_service_name_old_config_file(
         self,
     ) -> None:
         """Completing service names from the old settings file works."""
-        config = {'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}}
+        config = {"services": {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}}
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -5942,29 +5942,29 @@ class TestCLITransition:
                 )
             )
             old_name = cli_helpers.config_filename(
-                subsystem='old settings.json'
+                subsystem="old settings.json"
             )
-            new_name = cli_helpers.config_filename(subsystem='vault')
+            new_name = cli_helpers.config_filename(subsystem="vault")
             old_name.unlink(missing_ok=True)
             new_name.rename(old_name)
             assert cli_helpers.shell_complete_service(
                 click.Context(cli.derivepassphrase),
-                click.Argument(['some_parameter']),
-                '',
+                click.Argument(["some_parameter"]),
+                "",
             ) == [DUMMY_SERVICE]
 
 
-KNOWN_SERVICES = (DUMMY_SERVICE, 'email', 'bank', 'work')
+KNOWN_SERVICES = (DUMMY_SERVICE, "email", "bank", "work")
 """Known service names.  Used for the [`ConfigManagementStateMachine`][]."""
 VALID_PROPERTIES = (
-    'length',
-    'repeat',
-    'upper',
-    'lower',
-    'number',
-    'space',
-    'dash',
-    'symbol',
+    "length",
+    "repeat",
+    "upper",
+    "lower",
+    "number",
+    "space",
+    "dash",
+    "symbol",
 )
 """Known vault properties.  Used for the [`ConfigManagementStateMachine`][]."""
 
@@ -6013,9 +6013,9 @@ def assemble_config(
     """Return a vault config using the global and service data."""
     services_dict = dict(service_data)
     return (
-        {'global': global_data, 'services': services_dict}
+        {"global": global_data, "services": services_dict}
         if global_data
-        else {'services': services_dict}
+        else {"services": services_dict}
     )
 
 
@@ -6093,16 +6093,16 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             tests.isolated_vault_config(
                 monkeypatch=self.monkeypatch,
                 runner=self.runner,
-                vault_config={'services': {}},
+                vault_config={"services": {}},
             )
         )
 
     setting: stateful.Bundle[_types.VaultConfigServicesSettings] = (
-        stateful.Bundle('setting')
+        stateful.Bundle("setting")
     )
     """"""
     configuration: stateful.Bundle[_types.VaultConfig] = stateful.Bundle(
-        'configuration'
+        "configuration"
     )
     """"""
 
@@ -6136,7 +6136,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         """Initialize the settings bundle with four service settings."""
         settings: list[_types.VaultConfigServicesSettings] = []
         for c in configs:
-            settings.extend(c['services'].values())
+            settings.extend(c["services"].values())
         return stateful.multiple(*map(copy.deepcopy, settings))
 
     @staticmethod
@@ -6144,14 +6144,14 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         c1: _types.VaultConfig, c2: _types.VaultConfig
     ) -> _types.VaultConfig:
         """Fold `c1` into `c2`, overriding the latter."""
-        new_global_dict = c1.get('global', c2.get('global'))
+        new_global_dict = c1.get("global", c2.get("global"))
         if new_global_dict is not None:
             return {
-                'global': new_global_dict,
-                'services': {**c2['services'], **c1['services']},
+                "global": new_global_dict,
+                "services": {**c2["services"], **c1["services"]},
             }
         return {
-            'services': {**c2['services'], **c1['services']},
+            "services": {**c2["services"], **c1["services"]},
         }
 
     @stateful.rule(
@@ -6192,14 +6192,14 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
 
         """
         cli_helpers.save_config(config)
-        config_global = config.get('global', {})
+        config_global = config.get("global", {})
         maybe_unset = set(maybe_unset) - setting.keys()
         if overwrite:
-            config['global'] = config_global = {}
+            config["global"] = config_global = {}
         elif maybe_unset:
             for key in maybe_unset:
                 config_global.pop(key, None)  # type: ignore[misc]
-        config.setdefault('global', {}).update(setting)
+        config.setdefault("global", {}).update(setting)
         assert _types.is_vault_config(config)
         # NOTE: This relies on settings_obj containing only the keys
         # "length", "repeat", "upper", "lower", "number", "space",
@@ -6207,12 +6207,12 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         result = self.runner.invoke(
             cli.derivepassphrase_vault,
             [
-                '--config',
-                '--overwrite-existing' if overwrite else '--merge-existing',
+                "--config",
+                "--overwrite-existing" if overwrite else "--merge-existing",
             ]
-            + [f'--unset={key}' for key in maybe_unset]
+            + [f"--unset={key}" for key in maybe_unset]
             + [
-                f'--{key}={value}'
+                f"--{key}={value}"
                 for key, value in setting.items()
                 if key in VALID_PROPERTIES
             ],
@@ -6264,14 +6264,14 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
 
         """
         cli_helpers.save_config(config)
-        config_service = config['services'].get(service, {})
+        config_service = config["services"].get(service, {})
         maybe_unset = set(maybe_unset) - setting.keys()
         if overwrite:
-            config['services'][service] = config_service = {}
+            config["services"][service] = config_service = {}
         elif maybe_unset:
             for key in maybe_unset:
                 config_service.pop(key, None)  # type: ignore[misc]
-        config['services'].setdefault(service, {}).update(setting)
+        config["services"].setdefault(service, {}).update(setting)
         assert _types.is_vault_config(config)
         # NOTE: This relies on settings_obj containing only the keys
         # "length", "repeat", "upper", "lower", "number", "space",
@@ -6279,16 +6279,16 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         result = self.runner.invoke(
             cli.derivepassphrase_vault,
             [
-                '--config',
-                '--overwrite-existing' if overwrite else '--merge-existing',
+                "--config",
+                "--overwrite-existing" if overwrite else "--merge-existing",
             ]
-            + [f'--unset={key}' for key in maybe_unset]
+            + [f"--unset={key}" for key in maybe_unset]
             + [
-                f'--{key}={value}'
+                f"--{key}={value}"
                 for key, value in setting.items()
                 if key in VALID_PROPERTIES
             ]
-            + ['--', service],
+            + ["--", service],
             catch_exceptions=False,
         )
         assert result.clean_exit(empty_stderr=False)
@@ -6314,11 +6314,11 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
 
         """
         cli_helpers.save_config(config)
-        config.pop('global', None)
+        config.pop("global", None)
         result = self.runner.invoke(
             cli.derivepassphrase_vault,
-            ['--delete-globals'],
-            input='y',
+            ["--delete-globals"],
+            input="y",
             catch_exceptions=False,
         )
         assert result.clean_exit(empty_stderr=False)
@@ -6328,11 +6328,11 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     @stateful.rule(
         target=configuration,
         config_and_service=configuration.filter(
-            lambda c: bool(c['services'])
+            lambda c: bool(c["services"])
         ).flatmap(
             lambda c: strategies.tuples(
                 strategies.just(c),
-                strategies.sampled_from(tuple(c['services'].keys())),
+                strategies.sampled_from(tuple(c["services"].keys())),
             )
         ),
     )
@@ -6353,11 +6353,11 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         """
         config, service = config_and_service
         cli_helpers.save_config(config)
-        config['services'].pop(service, None)
+        config["services"].pop(service, None)
         result = self.runner.invoke(
             cli.derivepassphrase_vault,
-            ['--delete', '--', service],
-            input='y',
+            ["--delete", "--", service],
+            input="y",
             catch_exceptions=False,
         )
         assert result.clean_exit(empty_stderr=False)
@@ -6383,11 +6383,11 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
 
         """
         cli_helpers.save_config(config)
-        config = {'services': {}}
+        config = {"services": {}}
         result = self.runner.invoke(
             cli.derivepassphrase_vault,
-            ['--clear'],
-            input='y',
+            ["--clear"],
+            input="y",
             catch_exceptions=False,
         )
         assert result.clean_exit(empty_stderr=False)
@@ -6431,8 +6431,8 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         assert _types.is_vault_config(config)
         result = self.runner.invoke(
             cli.derivepassphrase_vault,
-            ['--import', '-']
-            + (['--overwrite-existing'] if overwrite else []),
+            ["--import", "-"]
+            + (["--overwrite-existing"] if overwrite else []),
             input=json.dumps(config_to_import),
             catch_exceptions=False,
         )
@@ -6503,7 +6503,7 @@ def run_actions_handler(
     with pytest.MonkeyPatch.context() as monkeypatch:
         monkeypatch.setattr(
             cli_helpers,
-            'configuration_mutex',
+            "configuration_mutex",
             lambda: FakeConfigurationMutexStateMachine.ConfigurationMutexStub(
                 my_id=id_num,
                 input_queue=input_queue,
@@ -6522,7 +6522,7 @@ def run_actions_handler(
             output_queue.put(
                 FakeConfigurationMutexStateMachine.IPCMessage(
                     id_num,
-                    'result',
+                    "result",
                     (
                         result.clean_exit(empty_stderr=False),
                         copy.copy(result.stdout),
@@ -6535,7 +6535,7 @@ def run_actions_handler(
         except Exception as exc:  # pragma: no cover  # noqa: BLE001
             output_queue.put(
                 FakeConfigurationMutexStateMachine.IPCMessage(
-                    id_num, 'exception', exc
+                    id_num, "exception", exc
                 ),
                 block=False,
             )
@@ -6586,7 +6586,7 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
 
         child_id: int
         """"""
-        message: Literal['ready', 'go', 'config', 'result', 'exception']
+        message: Literal["ready", "go", "config", "result", "exception"]
         """"""
         payload: object | None
         """"""
@@ -6652,14 +6652,14 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
                 )
                 try:
                     output_queue.put(
-                        IPCMessage(my_id, 'ready', None),
+                        IPCMessage(my_id, "ready", None),
                         block=True,
                         timeout=timeout,
                     )
                     ok = input_queue.get(block=True, timeout=timeout)
-                    if ok != IPCMessage(my_id, 'go', None):  # pragma: no cover
+                    if ok != IPCMessage(my_id, "go", None):  # pragma: no cover
                         output_queue.put(
-                            IPCMessage(my_id, 'exception', ok), block=False
+                            IPCMessage(my_id, "exception", ok), block=False
                         )
                         raise (
                             ok[2]
@@ -6668,7 +6668,7 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
                         )
                 except (queue.Empty, queue.Full) as exc:  # pragma: no cover
                     output_queue.put(
-                        IPCMessage(my_id, 'exception', exc), block=False
+                        IPCMessage(my_id, "exception", exc), block=False
                     )
                     return
 
@@ -6687,7 +6687,7 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
                     output_queue.put(
                         IPCMessage(
                             my_id,
-                            'config',
+                            "config",
                             copy.copy(cli_helpers.load_config()),
                         ),
                         block=True,
@@ -6695,7 +6695,7 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
                     )
                 except (queue.Empty, queue.Full) as exc:  # pragma: no cover
                     output_queue.put(
-                        IPCMessage(my_id, 'exception', exc), block=False
+                        IPCMessage(my_id, "exception", exc), block=False
                     )
                     raise
 
@@ -6703,11 +6703,11 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
             self.unlock = unlock
 
     setting: stateful.Bundle[_types.VaultConfigServicesSettings] = (
-        stateful.Bundle('setting')
+        stateful.Bundle("setting")
     )
     """"""
     configuration: stateful.Bundle[_types.VaultConfig] = stateful.Bundle(
-        'configuration'
+        "configuration"
     )
     """"""
 
@@ -6755,7 +6755,7 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
         """Initialize the settings bundle with four service settings."""
         settings: list[_types.VaultConfigServicesSettings] = []
         for c in configs:
-            settings.extend(c['services'].values())
+            settings.extend(c["services"].values())
         return stateful.multiple(*map(copy.deepcopy, settings))
 
     @stateful.initialize(
@@ -6775,9 +6775,9 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
         and thus trigger loads of hypothesis health check warnings.
 
         """
-        command_line = ['--import', '-', '--overwrite-existing']
+        command_line = ["--import", "-", "--overwrite-existing"]
         input = json.dumps(config)  # noqa: A001
-        hypothesis.note(f'# {command_line = }, {input = }')
+        hypothesis.note(f"# {command_line = }, {input = }")
         action = FakeConfigurationMutexAction(
             command_line=command_line, input=input
         )
@@ -6815,18 +6815,18 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
         maybe_unset = set(maybe_unset) - setting.keys()
         command_line = (
             [
-                '--config',
-                '--overwrite-existing' if overwrite else '--merge-existing',
+                "--config",
+                "--overwrite-existing" if overwrite else "--merge-existing",
             ]
-            + [f'--unset={key}' for key in maybe_unset]
+            + [f"--unset={key}" for key in maybe_unset]
             + [
-                f'--{key}={value}'
+                f"--{key}={value}"
                 for key, value in setting.items()
                 if key in VALID_PROPERTIES
             ]
         )
         input = None  # noqa: A001
-        hypothesis.note(f'# {command_line = }, {input = }')
+        hypothesis.note(f"# {command_line = }, {input = }")
         action = FakeConfigurationMutexAction(
             command_line=command_line, input=input
         )
@@ -6868,19 +6868,19 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
         maybe_unset = set(maybe_unset) - setting.keys()
         command_line = (
             [
-                '--config',
-                '--overwrite-existing' if overwrite else '--merge-existing',
+                "--config",
+                "--overwrite-existing" if overwrite else "--merge-existing",
             ]
-            + [f'--unset={key}' for key in maybe_unset]
+            + [f"--unset={key}" for key in maybe_unset]
             + [
-                f'--{key}={value}'
+                f"--{key}={value}"
                 for key, value in setting.items()
                 if key in VALID_PROPERTIES
             ]
-            + ['--', service]
+            + ["--", service]
         )
         input = None  # noqa: A001
-        hypothesis.note(f'# {command_line = }, {input = }')
+        hypothesis.note(f"# {command_line = }, {input = }")
         action = FakeConfigurationMutexAction(
             command_line=command_line, input=input
         )
@@ -6891,9 +6891,9 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
         self,
     ) -> None:
         """Purge the globals of a configuration."""
-        command_line = ['--delete-globals']
+        command_line = ["--delete-globals"]
         input = None  # 'y'  # noqa: A001
-        hypothesis.note(f'# {command_line = }, {input = }')
+        hypothesis.note(f"# {command_line = }, {input = }")
         action = FakeConfigurationMutexAction(
             command_line=command_line, input=input
         )
@@ -6913,9 +6913,9 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
                 The service name to purge.
 
         """
-        command_line = ['--delete', '--', service]
+        command_line = ["--delete", "--", service]
         input = None  # 'y'  # noqa: A001
-        hypothesis.note(f'# {command_line = }, {input = }')
+        hypothesis.note(f"# {command_line = }, {input = }")
         action = FakeConfigurationMutexAction(
             command_line=command_line, input=input
         )
@@ -6926,9 +6926,9 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
         self,
     ) -> None:
         """Purge the entire configuration."""
-        command_line = ['--clear']
+        command_line = ["--clear"]
         input = None  # 'y'  # noqa: A001
-        hypothesis.note(f'# {command_line = }, {input = }')
+        hypothesis.note(f"# {command_line = }, {input = }")
         action = FakeConfigurationMutexAction(
             command_line=command_line, input=input
         )
@@ -6954,11 +6954,11 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
                 `--merge-existing` command-line arguments.
 
         """
-        command_line = ['--import', '-'] + (
-            ['--overwrite-existing'] if overwrite else []
+        command_line = ["--import", "-"] + (
+            ["--overwrite-existing"] if overwrite else []
         )
         input = json.dumps(config_to_import)  # noqa: A001
-        hypothesis.note(f'# {command_line = }, {input = }')
+        hypothesis.note(f"# {command_line = }, {input = }")
         action = FakeConfigurationMutexAction(
             command_line=command_line, input=input
         )
@@ -6989,7 +6989,7 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
 
         """
         if not TYPE_CHECKING:  # pragma: no branch
-            multiprocessing = pytest.importorskip('multiprocessing')
+            multiprocessing = pytest.importorskip("multiprocessing")
         IPCMessage: TypeAlias = FakeConfigurationMutexStateMachine.IPCMessage
         intermediate_configs: dict[int, _types.VaultConfig] = {}
         intermediate_results: dict[
@@ -7012,12 +7012,12 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
             # Specified by POSIX for fork(3).
             errno.EAGAIN,
             # Specified by Linux/glibc for fork(3)
-            getattr(errno, 'ENOSYS', errno.ENOMEM),
+            getattr(errno, "ENOSYS", errno.ENOMEM),
             # Specified by POSIX for posix_spawn(3).
             errno.EINVAL,
         }
 
-        hypothesis.note(f'# {actions = }')
+        hypothesis.note(f"# {actions = }")
 
         stack = contextlib.ExitStack()
         with stack:
@@ -7027,7 +7027,7 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'services': {}},
+                    vault_config={"services": {}},
                 )
             )
             for i, action in enumerate(actions):
@@ -7051,7 +7051,7 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
                 tests.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={'services': {}},
+                    vault_config={"services": {}},
                 )
             )
 
@@ -7068,14 +7068,14 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
                     q: multiprocessing.Queue[IPCMessage] | None = mp.Queue()
                     try:
                         p: multiprocessing.process.BaseProcess = mp.Process(
-                            name=f'fake-mutex-action-{i:02d}',
+                            name=f"fake-mutex-action-{i:02d}",
                             target=run_actions_handler,
                             kwargs={
-                                'id_num': i,
-                                'timeout': timeout,
-                                'action': action,
-                                'input_queue': q,
-                                'output_queue': child_output_queue,
+                                "id_num": i,
+                                "timeout": timeout,
+                                "action": action,
+                                "input_queue": q,
+                                "output_queue": child_output_queue,
                             },
                             daemon=False,
                         )
@@ -7083,9 +7083,9 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
                     except OSError as exc:  # pragma: no cover
                         if exc.errno in fatal_process_creation_errnos:
                             pytest.skip(
-                                'cannot test mutex functionality due to '
-                                'lack of system resources for '
-                                'creating enough subprocesses'
+                                "cannot test mutex functionality due to "
+                                "lack of system resources for "
+                                "creating enough subprocesses"
                             )
                         raise
                     else:
@@ -7110,7 +7110,7 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
                     except Exception as exc:  # pragma: no cover
                         for i, q in enumerate(child_input_queues):
                             if q:
-                                q.put(IPCMessage(i, 'exception', exc))
+                                q.put(IPCMessage(i, "exception", exc))
                         for p in processes_pending:
                             p.join(timeout=timeout)
                         raise
@@ -7140,16 +7140,16 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
                     # the starting working directory if they are to
                     # survive this test.
                     for coverage_file in pathlib.Path.cwd().glob(
-                        '.coverage.*'
+                        ".coverage.*"
                     ):
                         shutil.move(coverage_file, orig_cwd)
         hypothesis.note(
-            f'# {true_results = }, {intermediate_results = }, '
-            f'identical = {true_results == intermediate_results}'
+            f"# {true_results = }, {intermediate_results = }, "
+            f"identical = {true_results == intermediate_results}"
         )
         hypothesis.note(
-            f'# {true_configs = }, {intermediate_configs = }, '
-            f'identical = {true_configs == intermediate_configs}'
+            f"# {true_configs = }, {intermediate_configs = }, "
+            f"identical = {true_configs == intermediate_configs}"
         )
         assert intermediate_results == true_results
         assert intermediate_configs == true_configs
@@ -7181,31 +7181,31 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         if (  # pragma: no cover
             isinstance(msg, IPCMessage)
-            and msg[1] == 'exception'
+            and msg[1] == "exception"
             and isinstance(msg[2], Exception)
         ):
             e = msg[2]
             raise e
-        if isinstance(msg, IPCMessage) and msg[1] == 'ready':
+        if isinstance(msg, IPCMessage) and msg[1] == "ready":
             n = msg[0]
             ready_wait.remove(n)
             if not ready_wait:
                 assert child_input_queues
                 assert child_input_queues[0]
                 child_input_queues[0].put(
-                    IPCMessage(0, 'go', None),
+                    IPCMessage(0, "go", None),
                     block=True,
                     timeout=timeout,
                 )
-        elif isinstance(msg, IPCMessage) and msg[1] == 'config':
+        elif isinstance(msg, IPCMessage) and msg[1] == "config":
             n = msg[0]
             config = msg[2]
-            intermediate_configs[n] = cast('_types.VaultConfig', config)
-        elif isinstance(msg, IPCMessage) and msg[1] == 'result':
+            intermediate_configs[n] = cast("_types.VaultConfig", config)
+        elif isinstance(msg, IPCMessage) and msg[1] == "result":
             n = msg[0]
             result_ = msg[2]
             result_tuple: tuple[bool, str | None, str | None] = cast(
-                'tuple[bool, str | None, str | None]', result_
+                "tuple[bool, str | None, str | None]", result_
             )
             intermediate_results[n] = result_tuple
             child_input_queues[n] = None
@@ -7214,13 +7214,13 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
             assert not p.is_alive()
             processes_pending.remove(p)
             assert result_tuple[0], (
-                f'action #{n} exited with an error: {result_tuple!r}'
+                f"action #{n} exited with an error: {result_tuple!r}"
             )
             if n + 1 < len(processes):
                 next_child_input_queue = child_input_queues[n + 1]
                 assert next_child_input_queue
                 next_child_input_queue.put(
-                    IPCMessage(n + 1, 'go', None),
+                    IPCMessage(n + 1, "go", None),
                     block=True,
                     timeout=timeout,
                 )
@@ -7239,7 +7239,7 @@ def completion_item(
 ) -> click.shell_completion.CompletionItem:
     """Convert a string to a completion item, if necessary."""
     return (
-        click.shell_completion.CompletionItem(item, type='plain')
+        click.shell_completion.CompletionItem(item, type="plain")
         if isinstance(item, str)
         else item
     )
@@ -7287,8 +7287,8 @@ class TestShellCompletion:
             completion = click.shell_completion.ShellComplete(
                 cli=cli.derivepassphrase,
                 ctx_args={},
-                prog_name='derivepassphrase',
-                complete_var='_DERIVEPASSPHRASE_COMPLETE',
+                prog_name="derivepassphrase",
+                complete_var="_DERIVEPASSPHRASE_COMPLETE",
             )
             return completion.get_completions(args, self.incomplete)
 
@@ -7335,7 +7335,7 @@ class TestShellCompletion:
         incomplete: str,
     ) -> None:
         """Our completion machinery works for all commands' paths."""
-        file = click.shell_completion.CompletionItem('', type='file')
+        file = click.shell_completion.CompletionItem("", type="file")
         completions = frozenset({(file.type, file.value, file.help)})
         comp = self.Completions(command_prefix, incomplete)
         assert (
@@ -7363,7 +7363,7 @@ class TestShellCompletion:
                     vault_config=config,
                 )
             )
-            comp = self.Completions(['vault'], incomplete)
+            comp = self.Completions(["vault"], incomplete)
             assert frozenset(comp.get_words()) == completions
 
     @Parametrize.SHELL_FORMATTER
@@ -7396,16 +7396,16 @@ class TestShellCompletion:
                 )
             )
             expected_items = [assertable_item(item) for item in results]
-            expected_string = '\n'.join(
+            expected_string = "\n".join(
                 format_func(completion_item(item)) for item in results
             )
             manual_raw_items = comp_func(
                 click.Context(cli.derivepassphrase),
-                click.Argument(['sample_parameter']),
+                click.Argument(["sample_parameter"]),
                 incomplete,
             )
             manual_items = [assertable_item(item) for item in manual_raw_items]
-            manual_string = '\n'.join(
+            manual_string = "\n".join(
                 format_func(completion_item(item)) for item in manual_raw_items
             )
             assert manual_items == expected_items
@@ -7415,12 +7415,12 @@ class TestShellCompletion:
             comp = comp_class(
                 cli.derivepassphrase,
                 {},
-                'derivepassphrase',
-                '_DERIVEPASSPHRASE_COMPLETE',
+                "derivepassphrase",
+                "_DERIVEPASSPHRASE_COMPLETE",
             )
             monkeypatch.setattr(
                 comp,
-                'get_completion_args',
+                "get_completion_args",
                 lambda *_a, **_kw: (args, incomplete),
             )
             actual_raw_items = comp.get_completions(
@@ -7436,14 +7436,14 @@ class TestShellCompletion:
     def test_400_incompletable_service_names(
         self,
         caplog: pytest.LogCaptureFixture,
-        mode: Literal['config', 'import'],
+        mode: Literal["config", "import"],
         config: _types.VaultConfig,
         key: str,
         incomplete: str,
         completions: AbstractSet[str],
     ) -> None:
         """Completion skips incompletable items."""
-        vault_config = config if mode == 'config' else {'services': {}}
+        vault_config = config if mode == "config" else {"services": {}}
         runner = tests.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -7457,28 +7457,28 @@ class TestShellCompletion:
                     vault_config=vault_config,
                 )
             )
-            if mode == 'config':
+            if mode == "config":
                 result = runner.invoke(
                     cli.derivepassphrase_vault,
-                    ['--config', '--length=10', '--', key],
+                    ["--config", "--length=10", "--", key],
                     catch_exceptions=False,
                 )
             else:
                 result = runner.invoke(
                     cli.derivepassphrase_vault,
-                    ['--import', '-'],
+                    ["--import", "-"],
                     catch_exceptions=False,
                     input=json.dumps(config),
                 )
-            assert result.clean_exit(), 'expected clean exit'
+            assert result.clean_exit(), "expected clean exit"
             assert tests.warning_emitted(
-                'contains an ASCII control character', caplog.record_tuples
-            ), 'expected known warning message in stderr'
+                "contains an ASCII control character", caplog.record_tuples
+            ), "expected known warning message in stderr"
             assert tests.warning_emitted(
-                'not be available for completion', caplog.record_tuples
-            ), 'expected known warning message in stderr'
+                "not be available for completion", caplog.record_tuples
+            ), "expected known warning message in stderr"
             assert cli_helpers.load_config() == config
-            comp = self.Completions(['vault'], incomplete)
+            comp = self.Completions(["vault"], incomplete)
             assert frozenset(comp.get_words()) == completions
 
     def test_410a_service_name_exceptions_not_found(
@@ -7496,17 +7496,17 @@ class TestShellCompletion:
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config={
-                        'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}
+                        "services": {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}
                     },
                 )
             )
-            cli_helpers.config_filename(subsystem='vault').unlink(
+            cli_helpers.config_filename(subsystem="vault").unlink(
                 missing_ok=True
             )
             assert not cli_helpers.shell_complete_service(
                 click.Context(cli.derivepassphrase),
-                click.Argument(['some_parameter']),
-                '',
+                click.Argument(["some_parameter"]),
+                "",
             )
 
     @Parametrize.SERVICE_NAME_EXCEPTIONS
@@ -7526,17 +7526,17 @@ class TestShellCompletion:
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config={
-                        'services': {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}
+                        "services": {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}
                     },
                 )
             )
 
             def raiser(*_a: Any, **_kw: Any) -> NoReturn:
-                raise exc_type('just being difficult')  # noqa: EM101,TRY003
+                raise exc_type("just being difficult")  # noqa: EM101,TRY003
 
-            monkeypatch.setattr(cli_helpers, 'load_config', raiser)
+            monkeypatch.setattr(cli_helpers, "load_config", raiser)
             assert not cli_helpers.shell_complete_service(
                 click.Context(cli.derivepassphrase),
-                click.Argument(['some_parameter']),
-                '',
+                click.Argument(["some_parameter"]),
+                "",
             )

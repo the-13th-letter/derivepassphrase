@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
     from derivepassphrase import _types
 
-__all__ = ('SocketProvider',)
+__all__ = ("SocketProvider",)
 
 
 class NoSuchProviderError(KeyError):
@@ -64,15 +64,15 @@ class SocketProvider:
                 agent.
 
         """
-        if not hasattr(socket, 'AF_UNIX'):
-            msg = 'This Python version does not support UNIX domain sockets.'
+        if not hasattr(socket, "AF_UNIX"):
+            msg = "This Python version does not support UNIX domain sockets."
             raise AfUnixNotAvailableError(msg)
         else:  # noqa: RET506  # pragma: unless posix no cover
             sock = socket.socket(family=socket.AF_UNIX)
-            if 'SSH_AUTH_SOCK' not in os.environ:
-                msg = 'SSH_AUTH_SOCK environment variable'
+            if "SSH_AUTH_SOCK" not in os.environ:
+                msg = "SSH_AUTH_SOCK environment variable"
                 raise KeyError(msg)
-            ssh_auth_sock = os.environ['SSH_AUTH_SOCK']
+            ssh_auth_sock = os.environ["SSH_AUTH_SOCK"]
             sock.settimeout(timeout)
             sock.connect(ssh_auth_sock)
             return sock
@@ -98,13 +98,13 @@ class SocketProvider:
             [windows-ssh-agent-support]: https://the13thletter.info/derivepassphrase/0.x/wishlist/windows-ssh-agent-support/
 
         """
-        if not hasattr(ctypes, 'WinDLL'):
-            msg = 'This Python version does not support Windows named pipes.'
+        if not hasattr(ctypes, "WinDLL"):
+            msg = "This Python version does not support Windows named pipes."
             raise TheAnnoyingOsNamedPipesNotAvailableError(msg)
         else:  # noqa: RET506  # pragma: unless the-annoying-os no cover
             msg = (
-                'Communicating with Pageant or OpenSSH on Windows '
-                'is not implemented yet.'
+                "Communicating with Pageant or OpenSSH on Windows "
+                "is not implemented yet."
             )
             raise NotImplementedError(msg)
 
@@ -194,8 +194,8 @@ class SocketProvider:
                         cls.registry[alias] = f if alias == name else name
                     elif existing != f:
                         msg = (
-                            f'The SSH agent socket provider {alias!r} '
-                            f'is already registered.'
+                            f"The SSH agent socket provider {alias!r} "
+                            f"is already registered."
                         )
                         raise ValueError(msg)
             return f
@@ -251,13 +251,13 @@ class SocketProvider:
         ret = cls.lookup(provider)
         if ret is None:
             msg = (
-                f'The {ret!r} socket provider is not functional on or '
-                'not applicable to this derivepassphrase installation.'
+                f"The {ret!r} socket provider is not functional on or "
+                "not applicable to this derivepassphrase installation."
             )
             raise NotImplementedError(msg)
         return ret
 
-    ENTRY_POINT_GROUP_NAME = 'derivepassphrase.ssh_agent_socket_providers'
+    ENTRY_POINT_GROUP_NAME = "derivepassphrase.ssh_agent_socket_providers"
     """
     The group name under which [entry
     points][importlib.metadata.entry_points] for the SSH agent socket
@@ -292,42 +292,42 @@ class SocketProvider:
             group=cls.ENTRY_POINT_GROUP_NAME
         ):
             provider_entry = cast(
-                '_types.SSHAgentSocketProviderEntry', entry_point.load()
+                "_types.SSHAgentSocketProviderEntry", entry_point.load()
             )
             key = provider_entry.key
             value = entry_point.value
             dist = (
                 entry_point.dist.name  # type: ignore[union-attr]
-                if getattr(entry_point, 'dist', None) is not None
+                if getattr(entry_point, "dist", None) is not None
                 else None
             )
-            origin = origins.get(key, 'derivepassphrase')
+            origin = origins.get(key, "derivepassphrase")
             if not callable(provider_entry.provider):
                 msg = (
-                    f'Not an SSHAgentSocketProvider: '
-                    f'{dist = }, {cls.ENTRY_POINT_GROUP_NAME = }, '
-                    f'{value = }, {provider_entry = }'
+                    f"Not an SSHAgentSocketProvider: "
+                    f"{dist = }, {cls.ENTRY_POINT_GROUP_NAME = }, "
+                    f"{value = }, {provider_entry = }"
                 )
                 raise AssertionError(msg)  # noqa: TRY004
             if key in entries:
                 if entries[key] != provider_entry.provider:
                     msg = (
-                        f'Name clash in SSH agent socket providers '
-                        f'for entry {key!r}, both by {dist!r} '
-                        f'and by {origin!r}'
+                        f"Name clash in SSH agent socket providers "
+                        f"for entry {key!r}, both by {dist!r} "
+                        f"and by {origin!r}"
                     )
                     raise AssertionError(msg)
             else:
                 entries[key] = provider_entry.provider
                 origins[key] = dist
             for alias in provider_entry.aliases:
-                alias_origin = origins.get(alias, 'derivepassphrase')
+                alias_origin = origins.get(alias, "derivepassphrase")
                 if alias in entries:
                     if entries[alias] != key:
                         msg = (
-                            f'Name clash in SSH agent socket providers '
-                            f'for entry {alias!r}, both by {dist!r} '
-                            f'and by {alias_origin!r}'
+                            f"Name clash in SSH agent socket providers "
+                            f"for entry {alias!r}, both by {dist!r} "
+                            f"and by {alias_origin!r}"
                         )
                         raise AssertionError(msg)
                 else:
@@ -337,21 +337,21 @@ class SocketProvider:
 
 
 SocketProvider.registry.update({
-    'posix': SocketProvider.unix_domain_ssh_auth_sock,
-    'the_annoying_os': SocketProvider.the_annoying_os_named_pipes,
+    "posix": SocketProvider.unix_domain_ssh_auth_sock,
+    "the_annoying_os": SocketProvider.the_annoying_os_named_pipes,
     # known instances
-    'stub_agent': None,
-    'stub_with_address': None,
-    'stub_with_address_and_deterministic_dsa': None,
+    "stub_agent": None,
+    "stub_with_address": None,
+    "stub_with_address_and_deterministic_dsa": None,
     # aliases
-    'native': 'the_annoying_os' if os.name == 'nt' else 'posix',
-    'unix_domain': 'posix',
-    'ssh_auth_sock': 'posix',
-    'the_annoying_os_named_pipe': 'the_annoying_os',
-    'pageant_on_the_annoying_os': 'the_annoying_os',
-    'openssh_on_the_annoying_os': 'the_annoying_os',
-    'windows': 'the_annoying_os',
-    'windows_named_pipe': 'the_annoying_os',
-    'pageant_on_windows': 'the_annoying_os',
-    'openssh_on_windows': 'the_annoying_os',
+    "native": "the_annoying_os" if os.name == "nt" else "posix",
+    "unix_domain": "posix",
+    "ssh_auth_sock": "posix",
+    "the_annoying_os_named_pipe": "the_annoying_os",
+    "pageant_on_the_annoying_os": "the_annoying_os",
+    "openssh_on_the_annoying_os": "the_annoying_os",
+    "windows": "the_annoying_os",
+    "windows_named_pipe": "the_annoying_os",
+    "pageant_on_windows": "the_annoying_os",
+    "openssh_on_windows": "the_annoying_os",
 })
