@@ -77,10 +77,12 @@ class Parametrize(types.SimpleNamespace):
             for conf in tests.data.TEST_CONFIGS
             if conf.validation_settings in {None, (True,)}
         ],
-        ids=tests.data._test_config_ids,
+        ids=tests.data.VaultTestConfig._test_id,
     )
     VAULT_TEST_CONFIGS = pytest.mark.parametrize(
-        "test_config", tests.data.TEST_CONFIGS, ids=tests.data._test_config_ids
+        "test_config",
+        tests.data.TEST_CONFIGS,
+        ids=tests.data.VaultTestConfig._test_id,
     )
 
 
@@ -127,9 +129,7 @@ def test_200_is_vault_config(test_config: tests.data.VaultTestConfig) -> None:
 @hypothesis.given(
     test_config=tests.machinery.hypothesis.smudged_vault_test_config(
         config=strategies.sampled_from([
-            conf
-            for conf in tests.data.TEST_CONFIGS
-            if tests.data.is_valid_test_config(conf)
+            conf for conf in tests.data.TEST_CONFIGS if conf.is_valid()
         ])
     )
 )
@@ -194,9 +194,7 @@ def test_400_validate_vault_config(
 @hypothesis.given(
     test_config=tests.machinery.hypothesis.smudged_vault_test_config(
         config=strategies.sampled_from([
-            conf
-            for conf in tests.data.TEST_CONFIGS
-            if tests.data.is_smudgable_vault_test_config(conf)
+            conf for conf in tests.data.TEST_CONFIGS if conf.is_smudgable()
         ])
     )
 )

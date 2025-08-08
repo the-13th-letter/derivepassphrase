@@ -285,48 +285,33 @@ class VaultTestConfig(NamedTuple):
     validation_settings: ValidationSettings | None
     """"""
 
+    def is_valid(self, /) -> bool:
+        """Return true if this test config is valid."""
+        return not self.comment and self.validation_settings in {
+            None,
+            (True,),
+        }
 
-def is_valid_test_config(conf: VaultTestConfig, /) -> bool:
-    """Return true if the test config is valid.
+    def is_smudgable(self) -> bool:
+        """Return true if this vault test config can be effectively smudged.
 
-    Args:
-        conf: The test config to check.
+        A "smudged" test config is one where falsy values (in the
+        JavaScript sense) can be replaced by other falsy values without
+        changing the meaning of the config.
 
-    """
-    return not conf.comment and conf.validation_settings in {
-        None,
-        (True,),
-    }
+        """
+        config = self.config
+        return bool(
+            isinstance(config, dict)
+            and ("global" not in config or isinstance(config["global"], dict))
+            and ("services" in config and isinstance(config["services"], dict))
+            and all(isinstance(x, dict) for x in config["services"].values())
+            and (config["services"] or config.get("global"))
+        )
 
-
-def is_smudgable_vault_test_config(conf: VaultTestConfig) -> bool:
-    """Check whether this vault test config can be effectively smudged.
-
-    A "smudged" test config is one where falsy values (in the JavaScript
-    sense) can be replaced by other falsy values without changing the
-    meaning of the config.
-
-    Args:
-        conf: A test config to check.
-
-    Returns:
-        True if the test config can be smudged, False otherwise.
-
-    """
-    config = conf.config
-    return bool(
-        isinstance(config, dict)
-        and ("global" not in config or isinstance(config["global"], dict))
-        and ("services" in config and isinstance(config["services"], dict))
-        and all(isinstance(x, dict) for x in config["services"].values())
-        and (config["services"] or config.get("global"))
-    )
-
-
-def _test_config_ids(val: VaultTestConfig) -> Any:  # pragma: no cover
-    """pytest id function for VaultTestConfig objects."""
-    assert isinstance(val, VaultTestConfig)
-    return val[1] or (val[0], val[1], val[2])
+    def _test_id(self) -> Any:  # pragma: no cover
+        """Return a test ID, e.g., for `pytest`."""
+        return self[1] or (self[0], self[1], self[2])
 
 
 # Data objects

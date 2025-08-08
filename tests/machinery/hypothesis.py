@@ -107,7 +107,7 @@ def vault_full_service_config(draw: strategies.DrawFn) -> dict[str, int]:
 def smudged_vault_test_config(
     draw: strategies.DrawFn,
     config: Any = strategies.sampled_from(tests.data.TEST_CONFIGS).filter(  # noqa: B008
-        tests.data.is_smudgable_vault_test_config
+        tests.data.VaultTestConfig.is_smudgable
     ),
 ) -> Any:
     """Hypothesis strategy to replace falsy values with other falsy values.
@@ -132,7 +132,7 @@ def smudged_vault_test_config(
     falsy_no_str = (None, False, 0, 0.0, float("nan"))
     falsy_no_zero = (None, False, "", float("nan"))
     conf = draw(config)
-    hypothesis.assume(tests.data.is_smudgable_vault_test_config(conf))
+    hypothesis.assume(conf.is_smudgable())
     obj = copy.deepcopy(conf.config)
     services: list[dict[str, Any]] = list(obj["services"].values())
     if "global" in obj:

@@ -1221,11 +1221,7 @@ class Parametrize(types.SimpleNamespace):
     )
     VALID_TEST_CONFIGS = pytest.mark.parametrize(
         "config",
-        [
-            conf.config
-            for conf in TEST_CONFIGS
-            if tests.data.is_valid_test_config(conf)
-        ],
+        [conf.config for conf in TEST_CONFIGS if conf.is_valid()],
     )
     KEY_OVERRIDING_IN_CONFIG = pytest.mark.parametrize(
         ["config", "command_line"],
@@ -3083,9 +3079,7 @@ class TestCLI:
     @hypothesis.given(
         conf=tests.machinery.hypothesis.smudged_vault_test_config(
             strategies.sampled_from([
-                conf
-                for conf in tests.data.TEST_CONFIGS
-                if tests.data.is_valid_test_config(conf)
+                conf for conf in tests.data.TEST_CONFIGS if conf.is_valid()
             ])
         )
     )
