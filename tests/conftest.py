@@ -19,7 +19,9 @@ import hypothesis
 import packaging.version
 import pytest
 
-import tests
+import tests.data
+import tests.data.callables
+import tests.machinery
 from derivepassphrase import _types, ssh_agent
 
 if TYPE_CHECKING:
@@ -281,28 +283,28 @@ def spawn_noop(  # pragma: no cover [unused]
     """Placeholder function. Does nothing."""
 
 
-spawn_handlers: dict[str, tuple[str, SpawnFunc, tests.KnownSSHAgent]] = {
+spawn_handlers: dict[str, tuple[str, SpawnFunc, tests.data.KnownSSHAgent]] = {
     "pageant": (
         "pageant",
         spawn_pageant_on_posix,
-        tests.KnownSSHAgent.Pageant,
+        tests.data.KnownSSHAgent.Pageant,
     ),
     "ssh-agent": (
         "ssh-agent",
         spawn_openssh_agent_on_posix,
-        tests.KnownSSHAgent.OpenSSHAgent,
+        tests.data.KnownSSHAgent.OpenSSHAgent,
     ),
     "stub_agent": (
         "stub_agent",
         spawn_noop,
-        tests.KnownSSHAgent.StubbedSSHAgent,
+        tests.data.KnownSSHAgent.StubbedSSHAgent,
     ),
     "stub_agent_with_extensions": (
         "stub_agent_with_extensions",
         spawn_noop,
-        tests.KnownSSHAgent.StubbedSSHAgent,
+        tests.data.KnownSSHAgent.StubbedSSHAgent,
     ),
-    "(system)": ("(system)", spawn_noop, tests.KnownSSHAgent.UNKNOWN),
+    "(system)": ("(system)", spawn_noop, tests.data.KnownSSHAgent.UNKNOWN),
 }
 """
 The standard registry of agent spawning functions.
@@ -339,8 +341,8 @@ class CannotSpawnError(RuntimeError):
 def spawn_named_agent(
     exec_name: str,
     spawn_func: SpawnFunc,
-    agent_type: tests.KnownSSHAgent,
-) -> Iterator[tests.SpawnedSSHAgentInfo]:  # pragma: no cover [external]
+    agent_type: tests.data.KnownSSHAgent,
+) -> Iterator[tests.data.SpawnedSSHAgentInfo]:  # pragma: no cover [external]
     """Spawn the named SSH agent and check that it is operational.
 
     Using the correct agent-specific spawn function from the
@@ -396,7 +398,7 @@ def spawn_named_agent(
     with exit_stack:
         if (
             spawn_func is spawn_noop
-            and agent_type == tests.KnownSSHAgent.StubbedSSHAgent
+            and agent_type == tests.data.KnownSSHAgent.StubbedSSHAgent
         ):
             ssh_auth_sock = None
         elif spawn_func is spawn_noop:
@@ -412,7 +414,7 @@ def spawn_named_agent(
             assert proc.stdout is not None
             ssh_auth_sock_line = proc.stdout.readline()
             try:
-                ssh_auth_sock = tests.parse_sh_export_line(
+                ssh_auth_sock = tests.data.callables.parse_sh_export_line(
                     ssh_auth_sock_line, env_name="SSH_AUTH_SOCK"
                 )
             except ValueError:  # pragma: no cover [external]
@@ -433,7 +435,7 @@ def spawn_named_agent(
             )
         else:
             monkeypatch.setenv(
-                "SSH_AUTH_SOCK", tests.StubbedSSHAgentSocketWithAddress.ADDRESS
+                "SSH_AUTH_SOCK", tests.machinery.StubbedSSHAgentSocketWithAddress.ADDRESS
             )
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient,
@@ -444,9 +446,9 @@ def spawn_named_agent(
             )
             client = exit_stack.enter_context(
                 ssh_agent.SSHAgentClient.ensure_agent_subcontext(
-                    tests.StubbedSSHAgentSocketWithAddressAndDeterministicDSA()
+                    tests.machinery.StubbedSSHAgentSocketWithAddressAndDeterministicDSA()
                     if exec_name == "stub_agent_with_extensions"
-                    else tests.StubbedSSHAgentSocketWithAddress()
+                    else tests.machinery.StubbedSSHAgentSocketWithAddress()
                 )
             )
         # We sanity-test the connected SSH agent if it is not one of our
@@ -460,7 +462,7 @@ def spawn_named_agent(
         # agent is not one of our test agents, and if the check fails,
         # skip this agent.
         if (
-            agent_type != tests.KnownSSHAgent.StubbedSSHAgent
+            agent_type != tests.data.KnownSSHAgent.StubbedSSHAgent
         ):  # pragma: no cover [external]
             try:
                 client.list_keys()  # sanity test
@@ -471,7 +473,7 @@ def spawn_named_agent(
             ) as exc:  # pragma: no cover [failsafe]
                 msg = f'agent failed the "list keys" sanity test: {exc!r}'
                 raise CannotSpawnError(msg) from exc
-        yield tests.SpawnedSSHAgentInfo(
+        yield tests.data.SpawnedSSHAgentInfo(
             agent_type, client, spawn_func is not spawn_noop
         )
     assert os.environ.get("SSH_AUTH_SOCK", None) == startup_ssh_auth_sock, (
@@ -480,7 +482,7 @@ def spawn_named_agent(
 
 
 def is_agent_permitted(
-    agent_type: tests.KnownSSHAgent,
+    agent_type: tests.data.KnownSSHAgent,
 ) -> bool:  # pragma: no cover [external]
     """May the given SSH agent be spawned by the test harness?
 
@@ -498,11 +500,11 @@ def is_agent_permitted(
     """
     if not os.environ.get("PERMITTED_SSH_AGENTS"):
         return True
-    permitted_agents = {tests.KnownSSHAgent.StubbedSSHAgent}
+    permitted_agents = {tests.data.KnownSSHAgent.StubbedSSHAgent}
     permitted_agents.update({
-        tests.KnownSSHAgent(x)
+        tests.data.KnownSSHAgent(x)
         for x in os.environ["PERMITTED_SSH_AGENTS"].split(",")
-        if x in tests.KnownSSHAgent.__members__
+        if x in tests.data.KnownSSHAgent.__members__
     })
     return agent_type in permitted_agents
 
@@ -532,7 +534,7 @@ for key, handler in spawn_handlers.items():
 
 @pytest.fixture
 def running_ssh_agent(  # pragma: no cover [external]
-) -> Iterator[tests.RunningSSHAgentInfo]:
+) -> Iterator[tests.data.RunningSSHAgentInfo]:
     """Ensure a running SSH agent, if possible, as a pytest fixture.
 
     Check for a running SSH agent, or spawn a new one if possible.  We
@@ -555,10 +557,10 @@ def running_ssh_agent(  # pragma: no cover [external]
     """
 
     def prepare_environment(
-        agent_type: tests.KnownSSHAgent,
-    ) -> Iterator[tests.RunningSSHAgentInfo]:
+        agent_type: tests.data.KnownSSHAgent,
+    ) -> Iterator[tests.data.RunningSSHAgentInfo]:
         with pytest.MonkeyPatch.context() as monkeypatch:
-            if agent_type == tests.KnownSSHAgent.StubbedSSHAgent:
+            if agent_type == tests.data.KnownSSHAgent.StubbedSSHAgent:
                 monkeypatch.setattr(
                     ssh_agent.SSHAgentClient,
                     "SOCKET_PROVIDERS",
@@ -566,14 +568,14 @@ def running_ssh_agent(  # pragma: no cover [external]
                 )
                 monkeypatch.setenv(
                     "SSH_AUTH_SOCK",
-                    tests.StubbedSSHAgentSocketWithAddress.ADDRESS,
+                    tests.machinery.StubbedSSHAgentSocketWithAddress.ADDRESS,
                 )
-                yield tests.RunningSSHAgentInfo(
-                    tests.StubbedSSHAgentSocketWithAddress,
-                    tests.KnownSSHAgent.StubbedSSHAgent,
+                yield tests.data.RunningSSHAgentInfo(
+                    tests.machinery.StubbedSSHAgentSocketWithAddress,
+                    tests.data.KnownSSHAgent.StubbedSSHAgent,
                 )
             else:
-                yield tests.RunningSSHAgentInfo(
+                yield tests.data.RunningSSHAgentInfo(
                     os.environ["SSH_AUTH_SOCK"],
                     agent_type,
                 )
@@ -607,7 +609,7 @@ def running_ssh_agent(  # pragma: no cover [external]
 @pytest.fixture(params=spawn_handlers_params)
 def spawn_ssh_agent(
     request: pytest.FixtureRequest,
-) -> Iterator[tests.SpawnedSSHAgentInfo]:  # pragma: no cover [external]
+) -> Iterator[tests.data.SpawnedSSHAgentInfo]:  # pragma: no cover [external]
     """Spawn an isolated SSH agent, if possible, as a pytest fixture.
 
     Spawn a new SSH agent isolated from other SSH use by other
@@ -648,7 +650,7 @@ def spawn_ssh_agent(
 
 @pytest.fixture
 def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
-    spawn_ssh_agent: tests.SpawnedSSHAgentInfo,
+    spawn_ssh_agent: tests.data.SpawnedSSHAgentInfo,
 ) -> Iterator[ssh_agent.SSHAgentClient]:
     """Provide an SSH agent with loaded test keys, as a pytest fixture.
 
@@ -711,7 +713,7 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
         return (return_code, bytes(payload) + lifetime_constraint)
 
     try:
-        for key_type, key_struct in tests.ALL_KEYS.items():
+        for key_type, key_struct in tests.data.ALL_KEYS.items():
             private_key_data = key_struct.private_key_blob
             if private_key_data is None:  # pragma: no cover [failsafe]
                 continue
@@ -741,11 +743,11 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
                     current_loaded_keys = frozenset({
                         pair.key for pair in client.list_keys()
                     })
-                    if agent_type == tests.KnownSSHAgent.Pageant and (
+                    if agent_type == tests.data.KnownSSHAgent.Pageant and (
                         key_struct.public_key_data in current_loaded_keys
                     ):
                         pass
-                    elif agent_type == tests.KnownSSHAgent.Pageant and (
+                    elif agent_type == tests.data.KnownSSHAgent.Pageant and (
                         not isolated
                     ):
                         request_code, payload = prepare_payload(
@@ -768,7 +770,7 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
                 successfully_loaded_keys.add(key_type)
         yield client
     finally:
-        for key_type, key_struct in tests.ALL_KEYS.items():
+        for key_type, key_struct in tests.data.ALL_KEYS.items():
             if not isolated and (
                 key_type in successfully_loaded_keys
             ):  # pragma: no cover [external]
