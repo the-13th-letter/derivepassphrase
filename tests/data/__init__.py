@@ -328,6 +328,7 @@ def _test_config_ids(val: VaultTestConfig) -> Any:  # pragma: no cover
     assert isinstance(val, VaultTestConfig)
     return val[1] or (val[0], val[1], val[2])
 
+
 # Data objects
 # ============
 

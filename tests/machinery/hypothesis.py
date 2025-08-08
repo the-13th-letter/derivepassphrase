@@ -53,7 +53,9 @@ def get_concurrency_step_count(
     """
     if settings is None:  # pragma: no cover
         settings = hypothesis.settings()
-    return min(tests.machinery.get_concurrency_limit(), settings.stateful_step_count)
+    return min(
+        tests.machinery.get_concurrency_limit(), settings.stateful_step_count
+    )
 
 
 # Hypothesis strategies
@@ -165,4 +167,6 @@ def smudged_vault_test_config(
             if not _types.js_truthiness(value) and value != 0:
                 service[key] = draw(strategies.sampled_from(falsy_no_zero))
     hypothesis.assume(obj != conf.config)
-    return tests.data.VaultTestConfig(obj, conf.comment, conf.validation_settings)
+    return tests.data.VaultTestConfig(
+        obj, conf.comment, conf.validation_settings
+    )

@@ -278,7 +278,9 @@ def is_harmless_config_import_warning(record: tuple[str, int, str]) -> bool:
             "because a key is also set:"
         ),
     ]
-    return any(tests.machinery.warning_emitted(w, [record]) for w in possible_warnings)
+    return any(
+        tests.machinery.warning_emitted(w, [record]) for w in possible_warnings
+    )
 
 
 def assert_vault_config_is_indented_and_line_broken(
@@ -2490,7 +2492,9 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                cli_helpers, "prompt_for_passphrase", tests.data.callables.auto_prompt
+                cli_helpers,
+                "prompt_for_passphrase",
+                tests.data.callables.auto_prompt,
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -2521,7 +2525,9 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                cli_helpers, "prompt_for_passphrase", tests.data.callables.auto_prompt
+                cli_helpers,
+                "prompt_for_passphrase",
+                tests.data.callables.auto_prompt,
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -2561,7 +2567,9 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                vault.Vault, "phrase_from_key", tests.data.callables.phrase_from_key
+                vault.Vault,
+                "phrase_from_key",
+                tests.data.callables.phrase_from_key,
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -2602,10 +2610,14 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                cli_helpers, "get_suitable_ssh_keys", tests.data.callables.suitable_ssh_keys
+                cli_helpers,
+                "get_suitable_ssh_keys",
+                tests.data.callables.suitable_ssh_keys,
             )
             monkeypatch.setattr(
-                vault.Vault, "phrase_from_key", tests.data.callables.phrase_from_key
+                vault.Vault,
+                "phrase_from_key",
+                tests.data.callables.phrase_from_key,
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -2647,9 +2659,13 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                ssh_agent.SSHAgentClient, "list_keys", tests.data.callables.list_keys
+                ssh_agent.SSHAgentClient,
+                "list_keys",
+                tests.data.callables.list_keys,
             )
-            monkeypatch.setattr(ssh_agent.SSHAgentClient, "sign", tests.data.callables.sign)
+            monkeypatch.setattr(
+                ssh_agent.SSHAgentClient, "sign", tests.data.callables.sign
+            )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ["-k", "--", DUMMY_SERVICE],
@@ -2690,9 +2706,13 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                ssh_agent.SSHAgentClient, "list_keys", tests.data.callables.list_keys
+                ssh_agent.SSHAgentClient,
+                "list_keys",
+                tests.data.callables.list_keys,
             )
-            monkeypatch.setattr(ssh_agent.SSHAgentClient, "sign", tests.data.callables.sign)
+            monkeypatch.setattr(
+                ssh_agent.SSHAgentClient, "sign", tests.data.callables.sign
+            )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ["--", DUMMY_SERVICE],
@@ -2732,9 +2752,13 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                ssh_agent.SSHAgentClient, "list_keys", tests.data.callables.list_keys
+                ssh_agent.SSHAgentClient,
+                "list_keys",
+                tests.data.callables.list_keys,
             )
-            monkeypatch.setattr(ssh_agent.SSHAgentClient, "sign", tests.data.callables.sign)
+            monkeypatch.setattr(
+                ssh_agent.SSHAgentClient, "sign", tests.data.callables.sign
+            )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
                 command_line,
@@ -2866,7 +2890,9 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                cli_helpers, "prompt_for_passphrase", tests.data.callables.auto_prompt
+                cli_helpers,
+                "prompt_for_passphrase",
+                tests.data.callables.auto_prompt,
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -2904,7 +2930,9 @@ class TestCLI:
                     )
                 )
                 monkeypatch.setattr(
-                    cli_helpers, "prompt_for_passphrase", tests.data.callables.auto_prompt
+                    cli_helpers,
+                    "prompt_for_passphrase",
+                    tests.data.callables.auto_prompt,
                 )
                 result = runner.invoke(
                     cli.derivepassphrase_vault,
@@ -2945,7 +2973,9 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                cli_helpers, "prompt_for_passphrase", tests.data.callables.auto_prompt
+                cli_helpers,
+                "prompt_for_passphrase",
+                tests.data.callables.auto_prompt,
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -3940,7 +3970,9 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                cli_helpers, "get_suitable_ssh_keys", tests.data.callables.suitable_ssh_keys
+                cli_helpers,
+                "get_suitable_ssh_keys",
+                tests.data.callables.suitable_ssh_keys,
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -3980,7 +4012,9 @@ class TestCLI:
                 )
             )
             monkeypatch.setattr(
-                cli_helpers, "get_suitable_ssh_keys", tests.data.callables.suitable_ssh_keys
+                cli_helpers,
+                "get_suitable_ssh_keys",
+                tests.data.callables.suitable_ssh_keys,
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -4021,7 +4055,9 @@ class TestCLI:
             # Also patch the list of suitable SSH keys, lest we be at
             # the mercy of whatever SSH agent may be running.
             monkeypatch.setattr(
-                cli_helpers, "get_suitable_ssh_keys", tests.data.callables.suitable_ssh_keys
+                cli_helpers,
+                "get_suitable_ssh_keys",
+                tests.data.callables.suitable_ssh_keys,
             )
             result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -4497,9 +4533,9 @@ class TestCLI:
                 input=input,
             )
         assert result.clean_exit(), "expected clean exit"
-        assert tests.machinery.warning_emitted(warning_message, caplog.record_tuples), (
-            "expected known warning message in stderr"
-        )
+        assert tests.machinery.warning_emitted(
+            warning_message, caplog.record_tuples
+        ), "expected known warning message in stderr"
 
     @Parametrize.UNICODE_NORMALIZATION_ERROR_INPUTS
     def test_301_unicode_normalization_form_error(
@@ -5504,7 +5540,9 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
         """[`cli_helpers.get_suitable_ssh_keys`][] works."""
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setattr(
-                ssh_agent.SSHAgentClient, "list_keys", tests.data.callables.list_keys
+                ssh_agent.SSHAgentClient,
+                "list_keys",
+                tests.data.callables.list_keys,
             )
             hint: ssh_agent.SSHAgentClient | _types.SSHAgentSocket | None
             # TODO(the-13th-letter): Rewrite using structural pattern
@@ -5783,7 +5821,9 @@ class TestCLITransition:
                 )
             )
             monkeypatch.setattr(
-                cli_helpers, "prompt_for_passphrase", tests.data.callables.auto_prompt
+                cli_helpers,
+                "prompt_for_passphrase",
+                tests.data.callables.auto_prompt,
             )
             result = runner.invoke(
                 cli.derivepassphrase,
@@ -6727,7 +6767,9 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
             settings = FakeConfigurationMutexStateMachine.TestCase.settings
         except AttributeError:  # pragma: no cover
             settings = None
-        self.step_count = tests.machinery.hypothesis.get_concurrency_step_count(settings)
+        self.step_count = (
+            tests.machinery.hypothesis.get_concurrency_step_count(settings)
+        )
 
     @stateful.initialize(
         target=configuration,
@@ -7232,8 +7274,10 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
             raise AssertionError()
 
 
-TestFakedConfigurationMutex = tests.machinery.pytest.skip_if_no_multiprocessing_support(
-    FakeConfigurationMutexStateMachine.TestCase
+TestFakedConfigurationMutex = (
+    tests.machinery.pytest.skip_if_no_multiprocessing_support(
+        FakeConfigurationMutexStateMachine.TestCase
+    )
 )
 """The [`unittest.TestCase`][] class that will actually be run."""
 

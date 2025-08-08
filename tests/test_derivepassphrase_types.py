@@ -159,7 +159,9 @@ def test_200a_is_vault_config_smudged(
 
 
 @Parametrize.VAULT_TEST_CONFIGS
-def test_400_validate_vault_config(test_config: tests.data.VaultTestConfig) -> None:
+def test_400_validate_vault_config(
+    test_config: tests.data.VaultTestConfig,
+) -> None:
     """Validate this vault configuration.
 
     Check all test configurations, including those with non-standard

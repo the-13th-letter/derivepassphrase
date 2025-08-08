@@ -517,7 +517,8 @@ class TestTestingMachineryStubbedSSHAgentSocket:
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             monkeypatch.setenv(
-                "SSH_AUTH_SOCK", tests.machinery.StubbedSSHAgentSocketWithAddress.ADDRESS
+                "SSH_AUTH_SOCK",
+                tests.machinery.StubbedSSHAgentSocketWithAddress.ADDRESS,
             )
             agent = stack.enter_context(
                 tests.machinery.StubbedSSHAgentSocketWithAddress()
@@ -545,7 +546,8 @@ class TestTestingMachineryStubbedSSHAgentSocket:
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             monkeypatch.setenv(
-                "SSH_AUTH_SOCK", tests.machinery.StubbedSSHAgentSocketWithAddress.ADDRESS
+                "SSH_AUTH_SOCK",
+                tests.machinery.StubbedSSHAgentSocketWithAddress.ADDRESS,
             )
             agent = stack.enter_context(
                 tests.machinery.StubbedSSHAgentSocketWithAddressAndDeterministicDSA()
@@ -659,7 +661,9 @@ class TestTestingMachineryStubbedSSHAgentSocket:
         query_response = b""
         with pytest.raises(
             ValueError,
-            match=re.escape(tests.machinery.StubbedSSHAgentSocket._SOCKET_IS_CLOSED),
+            match=re.escape(
+                tests.machinery.StubbedSSHAgentSocket._SOCKET_IS_CLOSED
+            ),
         ):
             agent.sendall(query_request)
         assert agent.recv(100) == query_response
@@ -797,10 +801,17 @@ class TestStaticFunctionality:
     ) -> None:
         """[`tests.parse_sh_export_line`][] works."""
         if value is not None:
-            assert tests.data.callables.parse_sh_export_line(line, env_name=env_name) == value
+            assert (
+                tests.data.callables.parse_sh_export_line(
+                    line, env_name=env_name
+                )
+                == value
+            )
         else:
             with pytest.raises(ValueError, match="Cannot parse sh line:"):
-                tests.data.callables.parse_sh_export_line(line, env_name=env_name)
+                tests.data.callables.parse_sh_export_line(
+                    line, env_name=env_name
+                )
 
     def test_200_constructor_posix_no_ssh_auth_sock(
         self,
@@ -1324,7 +1335,9 @@ class TestAgentInteraction:
 
         def key_is_suitable(key: bytes) -> bool:
             """Stub out [`vault.Vault.key_is_suitable`][]."""
-            always = {v.public_key_data for v in tests.data.SUPPORTED_KEYS.values()}
+            always = {
+                v.public_key_data for v in tests.data.SUPPORTED_KEYS.values()
+            }
             dsa = {
                 v.public_key_data
                 for k, v in tests.data.UNSUITABLE_KEYS.items()
@@ -1354,7 +1367,9 @@ class TestAgentInteraction:
             text = "Use this key? yes\n"
         else:
             monkeypatch.setattr(
-                ssh_agent.SSHAgentClient, "list_keys", tests.data.callables.list_keys
+                ssh_agent.SSHAgentClient,
+                "list_keys",
+                tests.data.callables.list_keys,
             )
             keys = [
                 pair.key

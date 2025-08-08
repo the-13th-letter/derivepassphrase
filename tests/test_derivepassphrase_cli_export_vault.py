@@ -137,7 +137,9 @@ class Parametrize(types.SimpleNamespace):
         [
             None,
             pytest.param(tests.data.VAULT_MASTER_KEY, id="str"),
-            pytest.param(tests.data.VAULT_MASTER_KEY.encode("ascii"), id="bytes"),
+            pytest.param(
+                tests.data.VAULT_MASTER_KEY.encode("ascii"), id="bytes"
+            ),
             pytest.param(
                 bytearray(tests.data.VAULT_MASTER_KEY.encode("ascii")),
                 id="bytearray",
@@ -259,7 +261,13 @@ class TestCLI:
             )
             result = runner.invoke(
                 cli.derivepassphrase_export_vault,
-                ["-f", format, "-k", tests.data.VAULT_MASTER_KEY, "VAULT_PATH"],
+                [
+                    "-f",
+                    format,
+                    "-k",
+                    tests.data.VAULT_MASTER_KEY,
+                    "VAULT_PATH",
+                ],
             )
         assert result.clean_exit(empty_stderr=True), "expected clean exit"
         assert json.loads(result.stdout) == config_data

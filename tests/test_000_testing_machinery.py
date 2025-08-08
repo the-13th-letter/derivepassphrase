@@ -138,7 +138,9 @@ class Parametrize:
     """Common test parametrizations."""
 
     TEST_KEYS = pytest.mark.parametrize(
-        ["keyname", "key"], tests.data.ALL_KEYS.items(), ids=tests.data.ALL_KEYS.keys()
+        ["keyname", "key"],
+        tests.data.ALL_KEYS.items(),
+        ids=tests.data.ALL_KEYS.keys(),
     )
 
 

@@ -435,7 +435,8 @@ def spawn_named_agent(
             )
         else:
             monkeypatch.setenv(
-                "SSH_AUTH_SOCK", tests.machinery.StubbedSSHAgentSocketWithAddress.ADDRESS
+                "SSH_AUTH_SOCK",
+                tests.machinery.StubbedSSHAgentSocketWithAddress.ADDRESS,
             )
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient,
