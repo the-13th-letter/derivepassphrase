@@ -140,6 +140,17 @@ def xfail_on_the_annoying_os(
     return mark if f is None else mark(f)
 
 
+heavy_duty = pytest.mark.heavy_duty
+"""
+A cached `pytest` mark indicating that this test function/class/module
+is a slow, heavy duty test.  Users who are impatient (or otherwise
+cannot afford to wait for these tests to complete) may wish to exclude
+these tests; this mark helps in achieving that.
+
+All current heavy duty tests are integration tests.
+"""
+
+
 # Parameter sets
 # ==============
 

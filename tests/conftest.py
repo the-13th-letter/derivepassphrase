@@ -110,6 +110,17 @@ def _hypothesis_settings_setup() -> None:
 _hypothesis_settings_setup()
 
 
+def pytest_configure(config: pytest.Config) -> None:
+    """Configure `pytest`: add the `heavy_duty` marker."""
+    config.addinivalue_line(
+        'markers',
+        (
+            'heavy_duty: '
+            'mark test as a slow, heavy-duty test (e.g., an integration test)'
+        ),
+    )
+
+
 # https://docs.pytest.org/en/stable/explanation/fixtures.html#a-note-about-fixture-cleanup
 # https://github.com/pytest-dev/pytest/issues/5243#issuecomment-491522595
 @pytest.fixture(scope="session", autouse=False)
