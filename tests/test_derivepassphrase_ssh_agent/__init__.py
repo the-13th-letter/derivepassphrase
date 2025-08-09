@@ -25,14 +25,12 @@ import hypothesis
 import pytest
 from hypothesis import strategies
 
-import tests.data
-import tests.data.callables
-import tests.machinery
-import tests.machinery.hypothesis
-import tests.machinery.pytest
 from derivepassphrase import _types, ssh_agent, vault
 from derivepassphrase._internals import cli_helpers
 from derivepassphrase.ssh_agent import socketprovider
+from tests import data, machinery
+from tests.data import callables
+from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -50,7 +48,7 @@ class Parametrize(types.SimpleNamespace):
             pytest.param(
                 [
                     importlib.metadata.EntryPoint(
-                        name=tests.data.faulty_entry_callable.key,
+                        name=data.faulty_entry_callable.key,
                         group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
                         value="tests.data: faulty_entry_callable",
                     ),
@@ -60,7 +58,7 @@ class Parametrize(types.SimpleNamespace):
             pytest.param(
                 [
                     importlib.metadata.EntryPoint(
-                        name=tests.data.faulty_entry_name_exists.key,
+                        name=data.faulty_entry_name_exists.key,
                         group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
                         value="tests.data: faulty_entry_name_exists",
                     ),
@@ -70,7 +68,7 @@ class Parametrize(types.SimpleNamespace):
             pytest.param(
                 [
                     importlib.metadata.EntryPoint(
-                        name=tests.data.faulty_entry_alias_exists.key,
+                        name=data.faulty_entry_alias_exists.key,
                         group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
                         value="tests.data: faulty_entry_alias_exists",
                     ),
@@ -85,12 +83,12 @@ class Parametrize(types.SimpleNamespace):
             pytest.param(
                 [
                     importlib.metadata.EntryPoint(
-                        name=tests.data.posix_entry.key,
+                        name=data.posix_entry.key,
                         group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
                         value="tests.data: posix_entry",
                     ),
                     importlib.metadata.EntryPoint(
-                        name=tests.data.the_annoying_os_entry.key,
+                        name=data.the_annoying_os_entry.key,
                         group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
                         value="tests.data: the_annoying_os_entry",
                     ),
@@ -100,12 +98,12 @@ class Parametrize(types.SimpleNamespace):
             pytest.param(
                 [
                     importlib.metadata.EntryPoint(
-                        name=tests.data.callables.provider_entry1.key,
+                        name=callables.provider_entry1.key,
                         group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
                         value="tests.data.callables: provider_entry1",
                     ),
                     importlib.metadata.EntryPoint(
-                        name=tests.data.callables.provider_entry2.key,
+                        name=callables.provider_entry2.key,
                         group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
                         value="tests.data.callables: provider_entry2",
                     ),
@@ -257,7 +255,7 @@ class Parametrize(types.SimpleNamespace):
                 id="key-not-loaded",
             ),
             pytest.param(
-                tests.data.SUPPORTED_KEYS["ed25519"].public_key_data,
+                data.SUPPORTED_KEYS["ed25519"].public_key_data,
                 True,
                 _types.SSH_AGENT.FAILURE,
                 b"",
@@ -271,10 +269,10 @@ class Parametrize(types.SimpleNamespace):
         ["key", "single"],
         [
             (value.public_key_data, False)
-            for value in tests.data.SUPPORTED_KEYS.values()
+            for value in data.SUPPORTED_KEYS.values()
         ]
-        + [(tests.data.callables.list_keys_singleton()[0].key, True)],
-        ids=[*tests.data.SUPPORTED_KEYS.keys(), "singleton"],
+        + [(callables.list_keys_singleton()[0].key, True)],
+        ids=[*data.SUPPORTED_KEYS.keys(), "singleton"],
     )
     SH_EXPORT_LINES = pytest.mark.parametrize(
         ["line", "env_name", "value"],
@@ -370,7 +368,7 @@ class Parametrize(types.SimpleNamespace):
                     b"".join([
                         b"\x0d",
                         ssh_agent.SSHAgentClient.string(
-                            tests.data.ALL_KEYS["rsa"].public_key_data
+                            data.ALL_KEYS["rsa"].public_key_data
                         ),
                         ssh_agent.SSHAgentClient.string(vault.Vault.UUID),
                         b"\x00\x00\x00\x02",
@@ -383,7 +381,7 @@ class Parametrize(types.SimpleNamespace):
                     b"".join([
                         b"\x0d",
                         ssh_agent.SSHAgentClient.string(
-                            tests.data.ALL_KEYS["ed25519"].public_key_data
+                            data.ALL_KEYS["ed25519"].public_key_data
                         ),
                         b"\x00\x00\x00\x08\x00\x01\x02\x03\x04\x05\x06\x07",
                         b"\x00\x00\x00\x00",
@@ -396,7 +394,7 @@ class Parametrize(types.SimpleNamespace):
                     b"".join([
                         b"\x0d",
                         ssh_agent.SSHAgentClient.string(
-                            tests.data.ALL_KEYS["dsa1024"].public_key_data
+                            data.ALL_KEYS["dsa1024"].public_key_data
                         ),
                         ssh_agent.SSHAgentClient.string(vault.Vault.UUID),
                         b"\x00\x00\x00\x00",
@@ -419,8 +417,8 @@ class Parametrize(types.SimpleNamespace):
     )
     PUBLIC_KEY_DATA = pytest.mark.parametrize(
         "public_key_struct",
-        list(tests.data.SUPPORTED_KEYS.values()),
-        ids=list(tests.data.SUPPORTED_KEYS.keys()),
+        list(data.SUPPORTED_KEYS.values()),
+        ids=list(data.SUPPORTED_KEYS.keys()),
     )
     REQUEST_ERROR_RESPONSES = pytest.mark.parametrize(
         ["request_code", "response_code", "exc_type", "exc_pattern"],
@@ -488,13 +486,13 @@ class Parametrize(types.SimpleNamespace):
     )
     SUPPORTED_SSH_TEST_KEYS = pytest.mark.parametrize(
         ["ssh_test_key_type", "ssh_test_key"],
-        list(tests.data.SUPPORTED_KEYS.items()),
-        ids=tests.data.SUPPORTED_KEYS.keys(),
+        list(data.SUPPORTED_KEYS.items()),
+        ids=data.SUPPORTED_KEYS.keys(),
     )
     UNSUITABLE_SSH_TEST_KEYS = pytest.mark.parametrize(
         ["ssh_test_key_type", "ssh_test_key"],
-        list(tests.data.UNSUITABLE_KEYS.items()),
-        ids=tests.data.UNSUITABLE_KEYS.keys(),
+        list(data.UNSUITABLE_KEYS.items()),
+        ids=data.UNSUITABLE_KEYS.keys(),
     )
     RESOLVE_CHAINS = pytest.mark.parametrize(
         ["terminal", "chain"],
@@ -518,10 +516,10 @@ class TestTestingMachineryStubbedSSHAgentSocket:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             monkeypatch.setenv(
                 "SSH_AUTH_SOCK",
-                tests.machinery.StubbedSSHAgentSocketWithAddress.ADDRESS,
+                machinery.StubbedSSHAgentSocketWithAddress.ADDRESS,
             )
             agent = stack.enter_context(
-                tests.machinery.StubbedSSHAgentSocketWithAddress()
+                machinery.StubbedSSHAgentSocketWithAddress()
             )
             assert "query" not in agent.enabled_extensions
             query_request = (
@@ -547,10 +545,10 @@ class TestTestingMachineryStubbedSSHAgentSocket:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             monkeypatch.setenv(
                 "SSH_AUTH_SOCK",
-                tests.machinery.StubbedSSHAgentSocketWithAddress.ADDRESS,
+                machinery.StubbedSSHAgentSocketWithAddress.ADDRESS,
             )
             agent = stack.enter_context(
-                tests.machinery.StubbedSSHAgentSocketWithAddressAndDeterministicDSA()
+                machinery.StubbedSSHAgentSocketWithAddressAndDeterministicDSA()
             )
             assert "query" in agent.enabled_extensions
             query_request = (
@@ -580,7 +578,7 @@ class TestTestingMachineryStubbedSSHAgentSocket:
     def test_101_request_identities(self) -> None:
         """The agent implements a known list of identities."""
         unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
-        with tests.machinery.StubbedSSHAgentSocket() as agent:
+        with machinery.StubbedSSHAgentSocket() as agent:
             query_request = (
                 # SSH string header
                 b"\x00\x00\x00\x01"
@@ -603,7 +601,7 @@ class TestTestingMachineryStubbedSSHAgentSocket:
                 _comment, message = unstring_prefix(message)
                 assert key
                 assert key in {
-                    k.public_key_data for k in tests.data.ALL_KEYS.values()
+                    k.public_key_data for k in data.ALL_KEYS.values()
                 }
             assert not message
 
@@ -611,11 +609,11 @@ class TestTestingMachineryStubbedSSHAgentSocket:
     def test_102_sign(
         self,
         ssh_test_key_type: str,
-        ssh_test_key: tests.data.SSHTestKey,
+        ssh_test_key: data.SSHTestKey,
     ) -> None:
         """The agent signs known key/message pairs."""
         del ssh_test_key_type
-        spec = tests.data.SSHTestKeyDeterministicSignatureClass.SPEC
+        spec = data.SSHTestKeyDeterministicSignatureClass.SPEC
         assert ssh_test_key.expected_signatures[spec].signature is not None
         string = ssh_agent.SSHAgentClient.string
         query_request = string(
@@ -634,21 +632,21 @@ class TestTestingMachineryStubbedSSHAgentSocket:
             # expected payload: the binary signature as recorded in the test key data structure
             + string(ssh_test_key.expected_signatures[spec].signature)
         )
-        with tests.machinery.StubbedSSHAgentSocket() as agent:
+        with machinery.StubbedSSHAgentSocket() as agent:
             agent.sendall(query_request)
             assert agent.recv(1000) == query_response
 
     def test_120_close_multiple(self) -> None:
         """The agent can be closed repeatedly."""
-        with tests.machinery.StubbedSSHAgentSocket() as agent:
+        with machinery.StubbedSSHAgentSocket() as agent:
             pass
-        with tests.machinery.StubbedSSHAgentSocket() as agent:
+        with machinery.StubbedSSHAgentSocket() as agent:
             pass
         del agent
 
     def test_121_closed_agents_cannot_be_interacted_with(self) -> None:
         """The agent can be closed repeatedly."""
-        with tests.machinery.StubbedSSHAgentSocket() as agent:
+        with machinery.StubbedSSHAgentSocket() as agent:
             pass
         query_request = (
             # SSH string header
@@ -662,7 +660,7 @@ class TestTestingMachineryStubbedSSHAgentSocket:
         with pytest.raises(
             ValueError,
             match=re.escape(
-                tests.machinery.StubbedSSHAgentSocket._SOCKET_IS_CLOSED
+                machinery.StubbedSSHAgentSocket._SOCKET_IS_CLOSED
             ),
         ):
             agent.sendall(query_request)
@@ -670,11 +668,11 @@ class TestTestingMachineryStubbedSSHAgentSocket:
 
     def test_122_no_recv_without_sendall(self) -> None:
         """The agent requires a message before sending a response."""
-        with tests.machinery.StubbedSSHAgentSocket() as agent:  # noqa: SIM117
+        with machinery.StubbedSSHAgentSocket() as agent:  # noqa: SIM117
             with pytest.raises(
                 AssertionError,
                 match=re.escape(
-                    tests.machinery.StubbedSSHAgentSocket._PROTOCOL_VIOLATION
+                    machinery.StubbedSSHAgentSocket._PROTOCOL_VIOLATION
                 ),
             ):
                 agent.recv(100)
@@ -691,7 +689,7 @@ class TestTestingMachineryStubbedSSHAgentSocket:
             # response code: SSH_AGENT_FAILURE
             b"\x05"
         )
-        with tests.machinery.StubbedSSHAgentSocket() as agent:
+        with machinery.StubbedSSHAgentSocket() as agent:
             agent.sendall(message)
             assert agent.recv(100) == query_response
 
@@ -707,7 +705,7 @@ class TestTestingMachineryStubbedSSHAgentSocket:
             # response code: SSH_AGENT_FAILURE
             b"\x05"
         )
-        with tests.machinery.StubbedSSHAgentSocket() as agent:
+        with machinery.StubbedSSHAgentSocket() as agent:
             agent.sendall(message)
             assert agent.recv(100) == query_response
 
@@ -729,7 +727,7 @@ class TestTestingMachineryStubbedSSHAgentSocket:
                 stack.enter_context(
                     pytest.raises(exception, match=re.escape(match))
                 )
-            tests.machinery.StubbedSSHAgentSocketWithAddress()
+            machinery.StubbedSSHAgentSocketWithAddress()
 
 
 class TestStaticFunctionality:
@@ -785,7 +783,7 @@ class TestStaticFunctionality:
     @Parametrize.PUBLIC_KEY_DATA
     def test_100_key_decoding(
         self,
-        public_key_struct: tests.data.SSHTestKey,
+        public_key_struct: data.SSHTestKey,
     ) -> None:
         """The [`tests.ALL_KEYS`][] public key data looks sane."""
         keydata = base64.b64decode(
@@ -802,14 +800,14 @@ class TestStaticFunctionality:
         """[`tests.parse_sh_export_line`][] works."""
         if value is not None:
             assert (
-                tests.data.callables.parse_sh_export_line(
+                callables.parse_sh_export_line(
                     line, env_name=env_name
                 )
                 == value
             )
         else:
             with pytest.raises(ValueError, match="Cannot parse sh line:"):
-                tests.data.callables.parse_sh_export_line(
+                callables.parse_sh_export_line(
                     line, env_name=env_name
                 )
 
@@ -1056,14 +1054,14 @@ class TestStaticFunctionality:
         """Finding all SSH agent socket providers works."""
         resolve = socketprovider.SocketProvider.resolve
         old_registry = socketprovider.SocketProvider.registry
-        with tests.machinery.pytest.faked_entry_point_list(
+        with pytest_machinery.faked_entry_point_list(
             additional_entry_points, remove_conflicting_entries=False
         ) as names:
             socketprovider.SocketProvider._find_all_ssh_agent_socket_providers()
             for name in names:
                 assert name in socketprovider.SocketProvider.registry
                 assert resolve(name) in {
-                    tests.data.callables.provider_entry_provider,
+                    callables.provider_entry_provider,
                     *old_registry.values(),
                 }
 
@@ -1075,7 +1073,7 @@ class TestStaticFunctionality:
         """Finding faulty SSH agent socket providers raises errors."""
         with contextlib.ExitStack() as stack:
             stack.enter_context(
-                tests.machinery.pytest.faked_entry_point_list(
+                pytest_machinery.faked_entry_point_list(
                     additional_entry_points, remove_conflicting_entries=False
                 )
             )
@@ -1246,7 +1244,7 @@ class TestAgentInteraction:
         self,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
         ssh_test_key_type: str,
-        ssh_test_key: tests.data.SSHTestKey,
+        ssh_test_key: data.SSHTestKey,
     ) -> None:
         """Signing data with specific SSH keys works.
 
@@ -1259,11 +1257,11 @@ class TestAgentInteraction:
         key_comment_pairs = {bytes(k): bytes(c) for k, c in client.list_keys()}
         public_key_data = ssh_test_key.public_key_data
         assert (
-            tests.data.SSHTestKeyDeterministicSignatureClass.SPEC
+            data.SSHTestKeyDeterministicSignatureClass.SPEC
             in ssh_test_key.expected_signatures
         )
         sig = ssh_test_key.expected_signatures[
-            tests.data.SSHTestKeyDeterministicSignatureClass.SPEC
+            data.SSHTestKeyDeterministicSignatureClass.SPEC
         ]
         expected_signature = sig.signature
         derived_passphrase = sig.derived_passphrase
@@ -1291,7 +1289,7 @@ class TestAgentInteraction:
         self,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
         ssh_test_key_type: str,
-        ssh_test_key: tests.data.SSHTestKey,
+        ssh_test_key: data.SSHTestKey,
     ) -> None:
         """Using an unsuitable key with [`vault.Vault`][] fails.
 
@@ -1336,11 +1334,11 @@ class TestAgentInteraction:
         def key_is_suitable(key: bytes) -> bool:
             """Stub out [`vault.Vault.key_is_suitable`][]."""
             always = {
-                v.public_key_data for v in tests.data.SUPPORTED_KEYS.values()
+                v.public_key_data for v in data.SUPPORTED_KEYS.values()
             }
             dsa = {
                 v.public_key_data
-                for k, v in tests.data.UNSUITABLE_KEYS.items()
+                for k, v in data.UNSUITABLE_KEYS.items()
                 if k.startswith(("dsa", "ecdsa"))
             }
             return key in always or (
@@ -1356,11 +1354,11 @@ class TestAgentInteraction:
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient,
                 "list_keys",
-                tests.data.callables.list_keys_singleton,
+                callables.list_keys_singleton,
             )
             keys = [
                 pair.key
-                for pair in tests.data.callables.list_keys_singleton()
+                for pair in callables.list_keys_singleton()
                 if key_is_suitable(pair.key)
             ]
             index = "1"
@@ -1369,11 +1367,11 @@ class TestAgentInteraction:
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient,
                 "list_keys",
-                tests.data.callables.list_keys,
+                callables.list_keys,
             )
             keys = [
                 pair.key
-                for pair in tests.data.callables.list_keys()
+                for pair in callables.list_keys()
                 if key_is_suitable(pair.key)
             ]
             index = str(1 + keys.index(key))
@@ -1389,7 +1387,7 @@ class TestAgentInteraction:
 
         # TODO(the-13th-letter): (Continued from above.)  Update input
         # data to use `index`/`input` directly and unconditionally.
-        runner = tests.machinery.CliRunner(mix_stderr=True)
+        runner = machinery.CliRunner(mix_stderr=True)
         result = runner.invoke(
             driver,
             [],
@@ -1401,7 +1399,7 @@ class TestAgentInteraction:
 
     def test_300_constructor_bad_running_agent(
         self,
-        running_ssh_agent: tests.data.RunningSSHAgentInfo,
+        running_ssh_agent: data.RunningSSHAgentInfo,
     ) -> None:
         """Fail if the agent address is invalid."""
         with pytest.MonkeyPatch.context() as monkeypatch:
@@ -1445,7 +1443,7 @@ class TestAgentInteraction:
 
     def test_303_explicit_socket(
         self,
-        spawn_ssh_agent: tests.data.SpawnedSSHAgentInfo,
+        spawn_ssh_agent: data.SpawnedSSHAgentInfo,
     ) -> None:
         conn = spawn_ssh_agent.client._connection
         ssh_agent.SSHAgentClient(socket=conn)
@@ -1453,7 +1451,7 @@ class TestAgentInteraction:
     @Parametrize.TRUNCATED_AGENT_RESPONSES
     def test_310_truncated_server_response(
         self,
-        running_ssh_agent: tests.data.RunningSSHAgentInfo,
+        running_ssh_agent: data.RunningSSHAgentInfo,
         response: bytes,
     ) -> None:
         """Fail on truncated responses from the SSH agent."""
@@ -1477,7 +1475,7 @@ class TestAgentInteraction:
     @Parametrize.LIST_KEYS_ERROR_RESPONSES
     def test_320_list_keys_error_responses(
         self,
-        running_ssh_agent: tests.data.RunningSSHAgentInfo,
+        running_ssh_agent: data.RunningSSHAgentInfo,
         response_code: _types.SSH_AGENT,
         response: bytes | bytearray,
         exc_type: type[Exception],
@@ -1537,7 +1535,7 @@ class TestAgentInteraction:
     @Parametrize.SIGN_ERROR_RESPONSES
     def test_330_sign_error_responses(
         self,
-        running_ssh_agent: tests.data.RunningSSHAgentInfo,
+        running_ssh_agent: data.RunningSSHAgentInfo,
         key: bytes | bytearray,
         check: bool,
         response_code: _types.SSH_AGENT,
@@ -1597,7 +1595,7 @@ class TestAgentInteraction:
             com = b"no comment"
             loaded_keys = [
                 Pair(v.public_key_data, com).toreadonly()
-                for v in tests.data.SUPPORTED_KEYS.values()
+                for v in data.SUPPORTED_KEYS.values()
             ]
             monkeypatch.setattr(client, "list_keys", lambda: loaded_keys)
             with pytest.raises(exc_type, match=exc_pattern):
@@ -1606,7 +1604,7 @@ class TestAgentInteraction:
     @Parametrize.REQUEST_ERROR_RESPONSES
     def test_340_request_error_responses(
         self,
-        running_ssh_agent: tests.data.RunningSSHAgentInfo,
+        running_ssh_agent: data.RunningSSHAgentInfo,
         request_code: _types.SSH_AGENTC,
         response_code: _types.SSH_AGENT,
         exc_type: type[Exception],
@@ -1635,7 +1633,7 @@ class TestAgentInteraction:
     def test_350_query_extensions_malformed_responses(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        running_ssh_agent: tests.data.RunningSSHAgentInfo,
+        running_ssh_agent: data.RunningSSHAgentInfo,
         response_data: bytes,
     ) -> None:
         """Fail on malformed responses while querying extensions."""

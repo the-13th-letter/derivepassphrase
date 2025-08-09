@@ -10,11 +10,11 @@ import hypothesis
 from hypothesis import strategies
 from typing_extensions import Any
 
-import tests.machinery.pytest
 from derivepassphrase import _types
+from tests.machinery import pytest as pytest_machinery
 
 # All tests in this module are heavy-duty tests.
-pytestmark = [tests.machinery.pytest.heavy_duty]
+pytestmark = [pytest_machinery.heavy_duty]
 
 
 @strategies.composite

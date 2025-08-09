@@ -17,8 +17,8 @@ import pytest
 from hypothesis import strategies
 from typing_extensions import TypeVar
 
-import tests.machinery.hypothesis
 from derivepassphrase import vault
+from tests.machinery import hypothesis as hypothesis_machinery
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
@@ -503,7 +503,7 @@ class TestVault:
             min_size=1,
             max_size=32,
         ),
-        config=tests.machinery.hypothesis.vault_full_service_config(),
+        config=hypothesis_machinery.vault_full_service_config(),
         services=strategies.lists(
             strategies.binary(min_size=1, max_size=32),
             min_size=2,
@@ -629,7 +629,7 @@ class TestVault:
         phrase=strategies.one_of(
             strategies.binary(min_size=1), strategies.text(min_size=1)
         ),
-        config=tests.machinery.hypothesis.vault_full_service_config(),
+        config=hypothesis_machinery.vault_full_service_config(),
         service=strategies.text(min_size=1),
     )
     @hypothesis.example(

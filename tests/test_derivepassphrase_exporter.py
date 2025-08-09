@@ -16,10 +16,9 @@ import hypothesis
 import pytest
 from hypothesis import strategies
 
-import tests.data
-import tests.machinery
-import tests.machinery.pytest
 from derivepassphrase import cli, exporter
+from tests import data, machinery
+from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
     from typing_extensions import Buffer
@@ -207,14 +206,14 @@ class Test001ExporterUtils:
             ("USER", user),
             ("USERNAME", username),
         ]
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_exporter_config(
+                pytest_machinery.isolated_vault_exporter_config(
                     monkeypatch=monkeypatch, runner=runner
                 )
             )
@@ -234,14 +233,14 @@ class Test001ExporterUtils:
         Handle relative paths, absolute paths, and missing paths.
 
         """
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_exporter_config(
+                pytest_machinery.isolated_vault_exporter_config(
                     monkeypatch=monkeypatch, runner=runner
                 )
             )
@@ -379,18 +378,18 @@ class Test002CLI:
 
     def test_300_invalid_format(self) -> None:
         """Reject invalid vault configuration format names."""
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_exporter_config(
+                pytest_machinery.isolated_vault_exporter_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config=tests.data.VAULT_V03_CONFIG,
-                    vault_key=tests.data.VAULT_MASTER_KEY,
+                    vault_config=data.VAULT_V03_CONFIG,
+                    vault_key=data.VAULT_MASTER_KEY,
                 )
             )
             result = runner.invoke(
@@ -403,8 +402,8 @@ class Test002CLI:
                 "expected error exit and known error message"
             )
 
-    @tests.machinery.pytest.skip_if_cryptography_support
-    @tests.machinery.pytest.Parametrize.VAULT_CONFIG_FORMATS_DATA
+    @pytest_machinery.skip_if_cryptography_support
+    @pytest_machinery.Parametrize.VAULT_CONFIG_FORMATS_DATA
     def test_999_no_cryptography_error_message(
         self,
         caplog: pytest.LogCaptureFixture,
@@ -414,18 +413,18 @@ class Test002CLI:
     ) -> None:
         """Abort export call if no cryptography is available."""
         del config_data
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_exporter_config(
+                pytest_machinery.isolated_vault_exporter_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config=config,
-                    vault_key=tests.data.VAULT_MASTER_KEY,
+                    vault_key=data.VAULT_MASTER_KEY,
                 )
             )
             result = runner.invoke(
@@ -434,6 +433,6 @@ class Test002CLI:
                 catch_exceptions=False,
             )
         assert result.error_exit(
-            error=tests.data.CANNOT_LOAD_CRYPTOGRAPHY,
+            error=data.CANNOT_LOAD_CRYPTOGRAPHY,
             record_tuples=caplog.record_tuples,
         ), "expected error exit and known error message"

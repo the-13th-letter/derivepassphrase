@@ -15,11 +15,10 @@ import hypothesis
 import pytest
 from hypothesis import strategies
 
-import tests.data
-import tests.machinery
-import tests.machinery.pytest
 from derivepassphrase import _types, cli, exporter
 from derivepassphrase.exporter import storeroom, vault_native
+from tests import data, machinery
+from tests.machinery import pytest as pytest_machinery
 
 cryptography = pytest.importorskip("cryptography", minversion="38.0")
 
@@ -49,27 +48,27 @@ class Parametrize(types.SimpleNamespace):
         ["config", "format", "config_data"],
         [
             pytest.param(
-                tests.data.VAULT_V02_CONFIG,
+                data.VAULT_V02_CONFIG,
                 "v0.2",
-                tests.data.VAULT_V02_CONFIG_DATA,
+                data.VAULT_V02_CONFIG_DATA,
                 id="V02_CONFIG-v0.2",
             ),
             pytest.param(
-                tests.data.VAULT_V02_CONFIG,
+                data.VAULT_V02_CONFIG,
                 "v0.3",
                 exporter.NotAVaultConfigError,
                 id="V02_CONFIG-v0.3",
             ),
             pytest.param(
-                tests.data.VAULT_V03_CONFIG,
+                data.VAULT_V03_CONFIG,
                 "v0.2",
                 exporter.NotAVaultConfigError,
                 id="V03_CONFIG-v0.2",
             ),
             pytest.param(
-                tests.data.VAULT_V03_CONFIG,
+                data.VAULT_V03_CONFIG,
                 "v0.3",
-                tests.data.VAULT_V03_CONFIG_DATA,
+                data.VAULT_V03_CONFIG_DATA,
                 id="V03_CONFIG-v0.3",
             ),
         ],
@@ -78,36 +77,16 @@ class Parametrize(types.SimpleNamespace):
         ["config", "parser_class", "config_data"],
         [
             pytest.param(
-                tests.data.VAULT_V02_CONFIG,
+                data.VAULT_V02_CONFIG,
                 vault_native.VaultNativeV02ConfigParser,
-                tests.data.VAULT_V02_CONFIG_DATA,
+                data.VAULT_V02_CONFIG_DATA,
                 id="0.2",
             ),
             pytest.param(
-                tests.data.VAULT_V03_CONFIG,
+                data.VAULT_V03_CONFIG,
                 vault_native.VaultNativeV03ConfigParser,
-                tests.data.VAULT_V03_CONFIG_DATA,
+                data.VAULT_V03_CONFIG_DATA,
                 id="0.3",
-            ),
-        ],
-    )
-    BAD_MASTER_KEYS_DATA = pytest.mark.parametrize(
-        ["data", "err_msg"],
-        [
-            pytest.param(
-                '{"version": 255}',
-                "bad or unsupported keys version header",
-                id="v255",
-            ),
-            pytest.param(
-                '{"version": 1}\nAAAA\nAAAA',
-                "trailing data; cannot make sense",
-                id="trailing-data",
-            ),
-            pytest.param(
-                '{"version": 1}\nAAAA',
-                "cannot handle version 0 encrypted keys",
-                id="v0-keys",
             ),
         ],
     )
@@ -136,17 +115,37 @@ class Parametrize(types.SimpleNamespace):
         "key",
         [
             None,
-            pytest.param(tests.data.VAULT_MASTER_KEY, id="str"),
+            pytest.param(data.VAULT_MASTER_KEY, id="str"),
             pytest.param(
-                tests.data.VAULT_MASTER_KEY.encode("ascii"), id="bytes"
+                data.VAULT_MASTER_KEY.encode("ascii"), id="bytes"
             ),
             pytest.param(
-                bytearray(tests.data.VAULT_MASTER_KEY.encode("ascii")),
+                bytearray(data.VAULT_MASTER_KEY.encode("ascii")),
                 id="bytearray",
             ),
             pytest.param(
-                memoryview(tests.data.VAULT_MASTER_KEY.encode("ascii")),
+                memoryview(data.VAULT_MASTER_KEY.encode("ascii")),
                 id="memoryview",
+            ),
+        ],
+    )
+    BAD_MASTER_KEYS_DATA = pytest.mark.parametrize(
+        ["master_keys_data", "err_msg"],
+        [
+            pytest.param(
+                '{"version": 255}',
+                "bad or unsupported keys version header",
+                id="v255",
+            ),
+            pytest.param(
+                '{"version": 1}\nAAAA\nAAAA',
+                "trailing data; cannot make sense",
+                id="trailing-data",
+            ),
+            pytest.param(
+                '{"version": 1}\nAAAA',
+                "cannot handle version 0 encrypted keys",
+                id="v0-keys",
             ),
         ],
     )
@@ -155,22 +154,22 @@ class Parametrize(types.SimpleNamespace):
         ["zipped_config", "error_text"],
         [
             pytest.param(
-                tests.data.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED,
+                data.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED,
                 "Object key mismatch",
                 id="VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED",
             ),
             pytest.param(
-                tests.data.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED2,
+                data.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED2,
                 "Directory index is not actually an index",
                 id="VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED2",
             ),
             pytest.param(
-                tests.data.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED3,
+                data.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED3,
                 "Directory index is not actually an index",
                 id="VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED3",
             ),
             pytest.param(
-                tests.data.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED4,
+                data.VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED4,
                 "Object key mismatch",
                 id="VAULT_STOREROOM_BROKEN_DIR_CONFIG_ZIPPED4",
             ),
@@ -189,51 +188,51 @@ class TestCLI:
         [`exporter.get_vault_path`][] for details.
 
         """
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_exporter_config(
+                pytest_machinery.isolated_vault_exporter_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config=tests.data.VAULT_V03_CONFIG,
-                    vault_key=tests.data.VAULT_MASTER_KEY,
+                    vault_config=data.VAULT_V03_CONFIG,
+                    vault_key=data.VAULT_MASTER_KEY,
                 )
             )
-            monkeypatch.setenv("VAULT_KEY", tests.data.VAULT_MASTER_KEY)
+            monkeypatch.setenv("VAULT_KEY", data.VAULT_MASTER_KEY)
             result = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 ["VAULT_PATH"],
             )
         assert result.clean_exit(empty_stderr=True), "expected clean exit"
-        assert json.loads(result.stdout) == tests.data.VAULT_V03_CONFIG_DATA
+        assert json.loads(result.stdout) == data.VAULT_V03_CONFIG_DATA
 
     def test_201_key_parameter(self) -> None:
         """The `--key` option is supported."""
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_exporter_config(
+                pytest_machinery.isolated_vault_exporter_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config=tests.data.VAULT_V03_CONFIG,
+                    vault_config=data.VAULT_V03_CONFIG,
                 )
             )
             result = runner.invoke(
                 cli.derivepassphrase_export_vault,
-                ["-k", tests.data.VAULT_MASTER_KEY, ".vault"],
+                ["-k", data.VAULT_MASTER_KEY, ".vault"],
             )
         assert result.clean_exit(empty_stderr=True), "expected clean exit"
-        assert json.loads(result.stdout) == tests.data.VAULT_V03_CONFIG_DATA
+        assert json.loads(result.stdout) == data.VAULT_V03_CONFIG_DATA
 
-    @tests.machinery.pytest.Parametrize.VAULT_CONFIG_FORMATS_DATA
+    @pytest_machinery.Parametrize.VAULT_CONFIG_FORMATS_DATA
     def test_210_load_vault_v02_v03_storeroom(
         self,
         config: str | bytes,
@@ -246,14 +245,14 @@ class TestCLI:
         vault` to only attempt decoding in that named format.
 
         """
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_exporter_config(
+                pytest_machinery.isolated_vault_exporter_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config=config,
@@ -265,7 +264,7 @@ class TestCLI:
                     "-f",
                     format,
                     "-k",
-                    tests.data.VAULT_MASTER_KEY,
+                    data.VAULT_MASTER_KEY,
                     "VAULT_PATH",
                 ],
             )
@@ -280,18 +279,18 @@ class TestCLI:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Fail when trying to decode non-existant files/directories."""
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_exporter_config(
+                pytest_machinery.isolated_vault_exporter_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config=tests.data.VAULT_V03_CONFIG,
-                    vault_key=tests.data.VAULT_MASTER_KEY,
+                    vault_config=data.VAULT_V03_CONFIG,
+                    vault_key=data.VAULT_MASTER_KEY,
                 )
             )
             result = runner.invoke(
@@ -305,25 +304,25 @@ class TestCLI:
             ),
             record_tuples=caplog.record_tuples,
         ), "expected error exit and known error message"
-        assert tests.data.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
+        assert data.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
     def test_302_vault_config_invalid(
         self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Fail to parse invalid vault configurations (files)."""
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_exporter_config(
+                pytest_machinery.isolated_vault_exporter_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config="",
-                    vault_key=tests.data.VAULT_MASTER_KEY,
+                    vault_key=data.VAULT_MASTER_KEY,
                 )
             )
             result = runner.invoke(
@@ -334,25 +333,25 @@ class TestCLI:
             error="Cannot parse '.vault' as a valid vault-native config",
             record_tuples=caplog.record_tuples,
         ), "expected error exit and known error message"
-        assert tests.data.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
+        assert data.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
     def test_302a_vault_config_invalid_just_a_directory(
         self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Fail to parse invalid vault configurations (directories)."""
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_exporter_config(
+                pytest_machinery.isolated_vault_exporter_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config="",
-                    vault_key=tests.data.VAULT_MASTER_KEY,
+                    vault_key=data.VAULT_MASTER_KEY,
                 )
             )
             p = pathlib.Path(".vault")
@@ -366,25 +365,25 @@ class TestCLI:
             error="Cannot parse '.vault' as a valid vault-native config",
             record_tuples=caplog.record_tuples,
         ), "expected error exit and known error message"
-        assert tests.data.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
+        assert data.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
     def test_403_invalid_vault_config_bad_signature(
         self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Fail to parse vault configurations with invalid integrity checks."""
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_exporter_config(
+                pytest_machinery.isolated_vault_exporter_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config=tests.data.VAULT_V02_CONFIG,
-                    vault_key=tests.data.VAULT_MASTER_KEY,
+                    vault_config=data.VAULT_V02_CONFIG,
+                    vault_key=data.VAULT_MASTER_KEY,
                 )
             )
             result = runner.invoke(
@@ -395,25 +394,25 @@ class TestCLI:
             error="Cannot parse '.vault' as a valid vault-native config",
             record_tuples=caplog.record_tuples,
         ), "expected error exit and known error message"
-        assert tests.data.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
+        assert data.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
     def test_500_vault_config_invalid_internal(
         self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """The decoded vault configuration data is valid."""
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_exporter_config(
+                pytest_machinery.isolated_vault_exporter_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config=tests.data.VAULT_V03_CONFIG,
-                    vault_key=tests.data.VAULT_MASTER_KEY,
+                    vault_config=data.VAULT_V03_CONFIG,
+                    vault_key=data.VAULT_MASTER_KEY,
                 )
             )
 
@@ -433,7 +432,7 @@ class TestCLI:
             error="Invalid vault config: ",
             record_tuples=caplog.record_tuples,
         ), "expected error exit and known error message"
-        assert tests.data.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
+        assert data.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
 
 class TestStoreroom:
@@ -454,23 +453,23 @@ class TestStoreroom:
         them as well.
 
         """
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_exporter_config(
+                pytest_machinery.isolated_vault_exporter_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config=tests.data.VAULT_STOREROOM_CONFIG_ZIPPED,
-                    vault_key=tests.data.VAULT_MASTER_KEY,
+                    vault_config=data.VAULT_STOREROOM_CONFIG_ZIPPED,
+                    vault_key=data.VAULT_MASTER_KEY,
                 )
             )
             assert (
                 handler(path, key, format="storeroom")
-                == tests.data.VAULT_STOREROOM_CONFIG_DATA
+                == data.VAULT_STOREROOM_CONFIG_DATA
             )
 
     def test_400_decrypt_bucket_item_unknown_version(self) -> None:
@@ -497,7 +496,7 @@ class TestStoreroom:
         wrong shape.
 
         """
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         master_keys = _types.StoreroomMasterKeys(
             encryption_key=bytes(storeroom.KEY_SIZE),
             signing_key=bytes(storeroom.KEY_SIZE),
@@ -509,10 +508,10 @@ class TestStoreroom:
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_exporter_config(
+                pytest_machinery.isolated_vault_exporter_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config=tests.data.VAULT_STOREROOM_CONFIG_ZIPPED,
+                    vault_config=data.VAULT_STOREROOM_CONFIG_ZIPPED,
                 )
             )
             p = pathlib.Path(".vault", "20")
@@ -525,7 +524,7 @@ class TestStoreroom:
     @Parametrize.STOREROOM_HANDLER
     def test_402_export_storeroom_data_bad_master_keys_file(
         self,
-        data: str,
+        master_keys_data: str,
         err_msg: str,
         handler: exporter.ExportVaultConfigDataFunction,
     ) -> None:
@@ -534,23 +533,23 @@ class TestStoreroom:
         These include unknown versions, and data of the wrong shape.
 
         """
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_exporter_config(
+                pytest_machinery.isolated_vault_exporter_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config=tests.data.VAULT_STOREROOM_CONFIG_ZIPPED,
-                    vault_key=tests.data.VAULT_MASTER_KEY,
+                    vault_config=data.VAULT_STOREROOM_CONFIG_ZIPPED,
+                    vault_key=data.VAULT_MASTER_KEY,
                 )
             )
             p = pathlib.Path(".vault", ".keys")
             with p.open("w", encoding="UTF-8") as outfile:
-                print(data, file=outfile)
+                print(master_keys_data, file=outfile)
             with pytest.raises(RuntimeError, match=err_msg):
                 handler(format="storeroom")
 
@@ -576,18 +575,18 @@ class TestStoreroom:
             subdirectories.
 
         """
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_exporter_config(
+                pytest_machinery.isolated_vault_exporter_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config=zipped_config,
-                    vault_key=tests.data.VAULT_MASTER_KEY,
+                    vault_key=data.VAULT_MASTER_KEY,
                 )
             )
             stack.enter_context(pytest.raises(RuntimeError, match=error_text))
@@ -678,7 +677,7 @@ class TestVaultNativeConfig:
         """The PBKDF2 helper function works."""
         assert (
             vault_native.VaultNativeConfigParser._pbkdf2(
-                tests.data.VAULT_MASTER_KEY.encode("utf-8"), 32, iterations
+                data.VAULT_MASTER_KEY.encode("utf-8"), 32, iterations
             )
             == result
         )
@@ -702,18 +701,18 @@ class TestVaultNativeConfig:
             no longer does.
 
         """
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_exporter_config(
+                pytest_machinery.isolated_vault_exporter_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config=config,
-                    vault_key=tests.data.VAULT_MASTER_KEY,
+                    vault_key=data.VAULT_MASTER_KEY,
                 )
             )
             if isinstance(config_data, type):
@@ -738,23 +737,23 @@ class TestVaultNativeConfig:
         them as well.
 
         """
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_exporter_config(
+                pytest_machinery.isolated_vault_exporter_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config=tests.data.VAULT_V03_CONFIG,
-                    vault_key=tests.data.VAULT_MASTER_KEY,
+                    vault_config=data.VAULT_V03_CONFIG,
+                    vault_key=data.VAULT_MASTER_KEY,
                 )
             )
             assert (
                 handler(path, key, format="v0.3")
-                == tests.data.VAULT_V03_CONFIG_DATA
+                == data.VAULT_V03_CONFIG_DATA
             )
 
     @Parametrize.VAULT_NATIVE_PARSER_CLASS_DATA
@@ -773,21 +772,21 @@ class TestVaultNativeConfig:
 
             return func
 
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_exporter_config(
+                pytest_machinery.isolated_vault_exporter_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config=config,
                 )
             )
             parser = parser_class(
-                base64.b64decode(config), tests.data.VAULT_MASTER_KEY
+                base64.b64decode(config), data.VAULT_MASTER_KEY
             )
             assert parser() == config_data
             # Now stub out all functions used to calculate the above result.

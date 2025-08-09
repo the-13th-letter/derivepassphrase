@@ -8,8 +8,8 @@ import base64
 
 import pytest
 
-import tests.data
 from derivepassphrase import ssh_agent
+from tests import data
 
 OPENSSH_MAGIC = b"openssh-key-v1\x00"
 OPENSSH_HEADER = (
@@ -139,15 +139,15 @@ class Parametrize:
 
     TEST_KEYS = pytest.mark.parametrize(
         ["keyname", "key"],
-        tests.data.ALL_KEYS.items(),
-        ids=tests.data.ALL_KEYS.keys(),
+        data.ALL_KEYS.items(),
+        ids=data.ALL_KEYS.keys(),
     )
 
 
 @Parametrize.TEST_KEYS
 def test_100_test_keys_public_keys_are_internally_consistent(
     keyname: str,
-    key: tests.data.SSHTestKey,
+    key: data.SSHTestKey,
 ) -> None:
     """The test key public key data structures are internally consistent."""
     del keyname
@@ -163,7 +163,7 @@ def test_100_test_keys_public_keys_are_internally_consistent(
 @Parametrize.TEST_KEYS
 def test_101_test_keys_private_keys_are_consistent_with_public_keys(
     keyname: str,
-    key: tests.data.SSHTestKey,
+    key: data.SSHTestKey,
 ) -> None:
     """The test key private key data are consistent with their public parts."""
     del keyname
@@ -197,7 +197,7 @@ def test_101_test_keys_private_keys_are_consistent_with_public_keys(
 @Parametrize.TEST_KEYS
 def test_102_test_keys_private_keys_are_internally_consistent(
     keyname: str,
-    key: tests.data.SSHTestKey,
+    key: data.SSHTestKey,
 ) -> None:
     """The test key private key data structures are internally consistent."""
     del keyname

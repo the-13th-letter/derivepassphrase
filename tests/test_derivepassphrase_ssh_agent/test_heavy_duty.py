@@ -12,14 +12,14 @@ from typing import TYPE_CHECKING
 import pytest
 from hypothesis import stateful, strategies
 
-import tests.machinery.pytest
 from derivepassphrase.ssh_agent import socketprovider
+from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
     from derivepassphrase import _types
 
 # All tests in this module are heavy-duty tests.
-pytestmark = [tests.machinery.pytest.heavy_duty]
+pytestmark = [pytest_machinery.heavy_duty]
 
 
 @strategies.composite

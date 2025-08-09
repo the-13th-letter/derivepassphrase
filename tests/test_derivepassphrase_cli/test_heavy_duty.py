@@ -18,13 +18,11 @@ import pytest
 from hypothesis import stateful, strategies
 from typing_extensions import Any, NamedTuple, TypeAlias
 
-import tests.data
-import tests.data.callables
-import tests.machinery
-import tests.machinery.hypothesis
-import tests.machinery.pytest
 from derivepassphrase import _types, cli
 from derivepassphrase._internals import cli_helpers
+from tests import data, machinery
+from tests.machinery import hypothesis as hypothesis_machinery
+from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
     import multiprocessing
@@ -33,9 +31,9 @@ if TYPE_CHECKING:
     from typing_extensions import Literal
 
 # All tests in this module are heavy-duty tests.
-pytestmark = [tests.machinery.pytest.heavy_duty]
+pytestmark = [pytest_machinery.heavy_duty]
 
-KNOWN_SERVICES = (tests.data.DUMMY_SERVICE, "email", "bank", "work")
+KNOWN_SERVICES = (data.DUMMY_SERVICE, "email", "bank", "work")
 """Known service names.  Used for the [`ConfigManagementStateMachine`][]."""
 VALID_PROPERTIES = (
     "length",
@@ -71,7 +69,7 @@ def build_reduced_vault_config_settings(
 
 SERVICES_STRATEGY = strategies.builds(
     build_reduced_vault_config_settings,
-    tests.machinery.hypothesis.vault_full_service_config(),
+    hypothesis_machinery.vault_full_service_config(),
     strategies.sets(
         strategies.sampled_from(VALID_PROPERTIES),
         max_size=7,
@@ -165,13 +163,13 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     def __init__(self) -> None:
         """Initialize self, set up context managers and enter them."""
         super().__init__()
-        self.runner = tests.machinery.CliRunner(mix_stderr=False)
+        self.runner = machinery.CliRunner(mix_stderr=False)
         self.exit_stack = contextlib.ExitStack().__enter__()
         self.monkeypatch = self.exit_stack.enter_context(
             pytest.MonkeyPatch().context()
         )
         self.isolated_config = self.exit_stack.enter_context(
-            tests.machinery.pytest.isolated_vault_config(
+            pytest_machinery.isolated_vault_config(
                 monkeypatch=self.monkeypatch,
                 runner=self.runner,
                 vault_config={"services": {}},
@@ -592,7 +590,7 @@ def run_actions_handler(
                 timeout=timeout,
             ),
         )
-        runner = tests.machinery.CliRunner(mix_stderr=False)
+        runner = machinery.CliRunner(mix_stderr=False)
         try:
             result = runner.invoke(
                 cli.derivepassphrase_vault,
@@ -623,7 +621,7 @@ def run_actions_handler(
 
 
 @hypothesis.settings(
-    stateful_step_count=tests.machinery.hypothesis.get_concurrency_step_count(),
+    stateful_step_count=hypothesis_machinery.get_concurrency_step_count(),
     deadline=None,
 )
 class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
@@ -805,7 +803,7 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
         except AttributeError:  # pragma: no cover
             settings = None
         self.step_count = (
-            tests.machinery.hypothesis.get_concurrency_step_count(settings)
+            hypothesis_machinery.get_concurrency_step_count(settings)
         )
 
     @stateful.initialize(
@@ -1085,7 +1083,7 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
         mp = multiprocessing.get_context()
         # Coverage tracking writes coverage data to the current working
         # directory, but because the subprocesses are spawned within the
-        # `tests.machinery.pytest.isolated_vault_config` context manager, their starting
+        # `pytest_machinery.isolated_vault_config` context manager, their starting
         # working directory is the isolated one, not the original one.
         orig_cwd = pathlib.Path.cwd()
 
@@ -1104,10 +1102,10 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
 
         stack = contextlib.ExitStack()
         with stack:
-            runner = tests.machinery.CliRunner(mix_stderr=False)
+            runner = machinery.CliRunner(mix_stderr=False)
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_config(
+                pytest_machinery.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config={"services": {}},
@@ -1128,10 +1126,10 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
                 )
 
         with stack:  # noqa: PLR1702
-            runner = tests.machinery.CliRunner(mix_stderr=False)
+            runner = machinery.CliRunner(mix_stderr=False)
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             stack.enter_context(
-                tests.machinery.pytest.isolated_vault_config(
+                pytest_machinery.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config={"services": {}},
@@ -1216,7 +1214,7 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
                             break
                 finally:
                     # The subprocesses have this
-                    # `tests.machinery.pytest.isolated_vault_config` directory as their
+                    # `pytest_machinery.isolated_vault_config` directory as their
                     # startup and working directory, so systems like
                     # coverage tracking write their data files to this
                     # directory.  We need to manually move them back to
@@ -1312,7 +1310,7 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
 
 
 TestFakedConfigurationMutex = (
-    tests.machinery.pytest.skip_if_no_multiprocessing_support(
+    pytest_machinery.skip_if_no_multiprocessing_support(
         FakeConfigurationMutexStateMachine.TestCase
     )
 )
