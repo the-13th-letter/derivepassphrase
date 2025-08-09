@@ -802,8 +802,8 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
             settings = FakeConfigurationMutexStateMachine.TestCase.settings
         except AttributeError:  # pragma: no cover
             settings = None
-        self.step_count = (
-            hypothesis_machinery.get_concurrency_step_count(settings)
+        self.step_count = hypothesis_machinery.get_concurrency_step_count(
+            settings
         )
 
     @stateful.initialize(

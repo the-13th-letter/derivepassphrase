@@ -1090,9 +1090,9 @@ def export_version_option_callback(
             # Marked as known-but-unavailable, because they are used by
             # subcommands of `derivepassphrase export`, not by the
             # command itself.
-            _msg.Label.UNAVAILABLE_FOREIGN_CONFIGURATION_FORMATS: [
-                k for k in foreign_configuration_formats
-            ],
+            _msg.Label.UNAVAILABLE_FOREIGN_CONFIGURATION_FORMATS: list(
+                foreign_configuration_formats
+            ),
             _msg.Label.SUPPORTED_SUBCOMMANDS: [
                 k for k in supported_subcommands if k.test()
             ],

@@ -116,9 +116,7 @@ class Parametrize(types.SimpleNamespace):
         [
             None,
             pytest.param(data.VAULT_MASTER_KEY, id="str"),
-            pytest.param(
-                data.VAULT_MASTER_KEY.encode("ascii"), id="bytes"
-            ),
+            pytest.param(data.VAULT_MASTER_KEY.encode("ascii"), id="bytes"),
             pytest.param(
                 bytearray(data.VAULT_MASTER_KEY.encode("ascii")),
                 id="bytearray",
@@ -752,8 +750,7 @@ class TestVaultNativeConfig:
                 )
             )
             assert (
-                handler(path, key, format="v0.3")
-                == data.VAULT_V03_CONFIG_DATA
+                handler(path, key, format="v0.3") == data.VAULT_V03_CONFIG_DATA
             )
 
     @Parametrize.VAULT_NATIVE_PARSER_CLASS_DATA

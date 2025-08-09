@@ -659,9 +659,7 @@ class TestTestingMachineryStubbedSSHAgentSocket:
         query_response = b""
         with pytest.raises(
             ValueError,
-            match=re.escape(
-                machinery.StubbedSSHAgentSocket._SOCKET_IS_CLOSED
-            ),
+            match=re.escape(machinery.StubbedSSHAgentSocket._SOCKET_IS_CLOSED),
         ):
             agent.sendall(query_request)
         assert agent.recv(100) == query_response
@@ -800,16 +798,12 @@ class TestStaticFunctionality:
         """[`tests.parse_sh_export_line`][] works."""
         if value is not None:
             assert (
-                callables.parse_sh_export_line(
-                    line, env_name=env_name
-                )
+                callables.parse_sh_export_line(line, env_name=env_name)
                 == value
             )
         else:
             with pytest.raises(ValueError, match="Cannot parse sh line:"):
-                callables.parse_sh_export_line(
-                    line, env_name=env_name
-                )
+                callables.parse_sh_export_line(line, env_name=env_name)
 
     def test_200_constructor_posix_no_ssh_auth_sock(
         self,
@@ -1333,9 +1327,7 @@ class TestAgentInteraction:
 
         def key_is_suitable(key: bytes) -> bool:
             """Stub out [`vault.Vault.key_is_suitable`][]."""
-            always = {
-                v.public_key_data for v in data.SUPPORTED_KEYS.values()
-            }
+            always = {v.public_key_data for v in data.SUPPORTED_KEYS.values()}
             dsa = {
                 v.public_key_data
                 for k, v in data.UNSUITABLE_KEYS.items()

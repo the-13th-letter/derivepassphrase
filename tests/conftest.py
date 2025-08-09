@@ -113,10 +113,10 @@ _hypothesis_settings_setup()
 def pytest_configure(config: pytest.Config) -> None:
     """Configure `pytest`: add the `heavy_duty` marker."""
     config.addinivalue_line(
-        'markers',
+        "markers",
         (
-            'heavy_duty: '
-            'mark test as a slow, heavy-duty test (e.g., an integration test)'
+            "heavy_duty: "
+            "mark test as a slow, heavy-duty test (e.g., an integration test)"
         ),
     )
 
