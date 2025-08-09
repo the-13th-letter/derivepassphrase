@@ -22,19 +22,17 @@ from derivepassphrase import cli, vault
 from derivepassphrase._internals import (
     cli_helpers,
 )
-from tests import data, machinery, test_derivepassphrase_cli
+from tests import data, machinery
 from tests.data import callables
 from tests.machinery import pytest as pytest_machinery
-from tests.test_derivepassphrase_cli import test_utils
+from tests.test_derivepassphrase_cli import test_000_basic, test_utils
 
 DUMMY_SERVICE = data.DUMMY_SERVICE
 DUMMY_PASSPHRASE = data.DUMMY_PASSPHRASE
 DUMMY_CONFIG_SETTINGS = data.DUMMY_CONFIG_SETTINGS
 
 
-class Parametrize(
-    test_derivepassphrase_cli.Parametrize, test_utils.Parametrize
-):
+class Parametrize(test_000_basic.Parametrize, test_utils.Parametrize):
     """Common test parametrizations."""
 
     BAD_CONFIGS = pytest.mark.parametrize(
