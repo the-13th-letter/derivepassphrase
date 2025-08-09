@@ -702,36 +702,6 @@ class TestCLI:
             empty_stderr=True, output="Use $VISUAL or $EDITOR to configure"
         ), "expected clean exit, and option group epilog in help text"
 
-    # TODO(the-13th-letter): Remove this test once
-    # TestAllCLI.test_202_version_option_output no longer xfails.
-    def test_200a_version_output(
-        self,
-    ) -> None:
-        """The `--version` option emits version information."""
-        runner = machinery.CliRunner(mix_stderr=False)
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            stack.enter_context(
-                pytest_machinery.isolated_config(
-                    monkeypatch=monkeypatch,
-                    runner=runner,
-                )
-            )
-            result = runner.invoke(
-                cli.derivepassphrase_vault,
-                ["--version"],
-                catch_exceptions=False,
-            )
-        assert result.clean_exit(empty_stderr=True, output=cli.PROG_NAME), (
-            "expected clean exit, and program name in version text"
-        )
-        assert result.clean_exit(empty_stderr=True, output=cli.VERSION), (
-            "expected clean exit, and version in help text"
-        )
-
     @Parametrize.CHARSET_NAME
     def test_201_disable_character_set(
         self,

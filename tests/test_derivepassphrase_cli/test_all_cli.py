@@ -581,6 +581,10 @@ class TestAllCLI:
         the known and supported derivation schemes, and a list of
         subcommands.
 
+        As a side effect, [`parse_version_output`][] guarantees that the
+        first line contains both the correct program name as well as the
+        correct program version number.
+
         """
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
@@ -621,6 +625,10 @@ class TestAllCLI:
         `export` command, the output should contain the known foreign
         configuration formats (but not marked as supported), and a list
         of subcommands.
+
+        As a side effect, [`parse_version_output`][] guarantees that the
+        first line contains both the correct program name as well as the
+        correct program version number.
 
         """
         runner = machinery.CliRunner(mix_stderr=False)
@@ -669,6 +677,10 @@ class TestAllCLI:
         `export vault` subcommand, the output should contain the
         vault-specific subset of the known or supported foreign
         configuration formats, and a list of available PEP 508 extras.
+
+        As a side effect, [`parse_version_output`][] guarantees that the
+        first line contains both the correct program name as well as the
+        correct program version number.
 
         """
         runner = machinery.CliRunner(mix_stderr=False)
@@ -724,6 +736,10 @@ class TestAllCLI:
         [`Parametrize.VERSION_OUTPUT_DATA`][].  Specifically, for the
         vault command, the output should not contain anything beyond the
         first paragraph.
+
+        As a side effect, [`parse_version_output`][] guarantees that the
+        first line contains both the correct program name as well as the
+        correct program version number.
 
         """
         runner = machinery.CliRunner(mix_stderr=False)
