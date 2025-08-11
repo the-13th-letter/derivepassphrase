@@ -526,11 +526,11 @@ class Parametrize(types.SimpleNamespace):
     )
 
 
-class TestCLIUtils:
-    """Tests for command-line utility functions."""
+class TestConfigLoadingSaving:
+    """Tests for the config loading and saving utility functions."""
 
     @Parametrize.BASE_CONFIG_VARIATIONS
-    def test_100_load_config(
+    def test_load(
         self,
         config: Any,
     ) -> None:
@@ -553,7 +553,7 @@ class TestCLIUtils:
                 assert json.load(fileobj) == config
             assert cli_helpers.load_config() == config
 
-    def test_110_save_bad_config(
+    def test_save_bad_config(
         self,
     ) -> None:
         """[`cli_helpers.save_config`][] fails for bad configurations."""
@@ -575,7 +575,11 @@ class TestCLIUtils:
             )
             cli_helpers.save_config(None)  # type: ignore[arg-type]
 
-    def test_111_prompt_for_selection_multiple(self) -> None:
+
+class TestPrompting:
+    """Tests for the prompting utility functions."""
+
+    def test_selection_multiple(self) -> None:
         """[`cli_helpers.prompt_for_selection`][] works in the "multiple" case."""
 
         @click.command()
@@ -687,7 +691,7 @@ Your selection? (1-10, leave empty to abort):\x20
 Your selection? (1-10, leave empty to abort): """,
         }, "expected known output"
 
-    def test_112_prompt_for_selection_single(self) -> None:
+    def test_selection_single(self) -> None:
         """[`cli_helpers.prompt_for_selection`][] works in the "single" case."""
 
         @click.command()
@@ -755,7 +759,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
 """,
         }, "expected known output"
 
-    def test_113_prompt_for_passphrase(
+    def test_passphrase(
         self,
     ) -> None:
         """[`cli_helpers.prompt_for_passphrase`][] works."""
@@ -775,7 +779,11 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
         assert res["kwargs"].get("err"), err_msg
         assert res["kwargs"].get("hide_input"), err_msg
 
-    def test_120_standard_logging_context_manager(
+
+class TestLoggingMachinery:
+    """Tests for the logging utility functions."""
+
+    def test_standard_logging_context_manager(
         self,
         caplog: pytest.LogCaptureFixture,
         capsys: pytest.CaptureFixture[str],
@@ -837,7 +845,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
                 (package_name, logging.WARNING, "message 3"),
             ]
 
-    def test_121_standard_logging_warnings_context_manager(
+    def test_warnings_context_manager(
         self,
         caplog: pytest.LogCaptureFixture,
         capsys: pytest.CaptureFixture[str],
@@ -895,6 +903,10 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
             assert f"UserWarning: {JUST_TESTING}" in record_tuples[0][2]
             assert f"FutureWarning: {THE_FUTURE}" in record_tuples[1][2]
             assert f"UserWarning: {JUST_TESTING}" in record_tuples[2][2]
+
+
+class TestExportConfigAsShellScript:
+    """Tests the utility functions for exporting configs in `sh` format."""
 
     def export_as_sh_helper(
         self,
@@ -958,7 +970,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
             },
         ),
     )
-    def test_130a_export_as_sh_global(
+    def test_export_as_sh_global(
         self,
         global_config_settable: _types.VaultConfigServicesSettings,
         global_config_importable: _types.VaultConfigServicesSettings,
@@ -1001,7 +1013,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
             },
         ),
     )
-    def test_130b_export_as_sh_global_only_imports(
+    def test_export_as_sh_global_only_imports(
         self,
         global_config_importable: _types.VaultConfigServicesSettings,
     ) -> None:
@@ -1061,7 +1073,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
             },
         ),
     )
-    def test_130c_export_as_sh_service(
+    def test_export_as_sh_service(
         self,
         service_name: str,
         service_config_settable: _types.VaultConfigServicesSettings,
@@ -1124,7 +1136,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
             },
         ),
     )
-    def test_130d_export_as_sh_service_only_imports(
+    def test_export_as_sh_service_only_imports(
         self,
         service_name: str,
         service_config_importable: _types.VaultConfigServicesSettings,
@@ -1146,6 +1158,10 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
         assert _types.is_vault_config(config)
         return self.export_as_sh_helper(config)
 
+
+class TestTempdir:
+    """Tests for the temporary directory handling utility functions."""
+
     # The Annoying OS appears to silently truncate spaces at the end of
     # filenames.
     @hypothesis.given(
@@ -1165,7 +1181,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
         ),
     )
     @hypothesis.example(env_var="", suffix=".")
-    def test_140a_get_tempdir(
+    def test_get_tempdir(
         self,
         env_var: str,
         suffix: str,
@@ -1228,7 +1244,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
             )
         assert not temp_path.exists(), f"temp path {temp_path} not cleaned up!"
 
-    def test_140b_get_tempdir_force_default(self) -> None:
+    def test_get_tempdir_force_default(self) -> None:
         """[`cli_helpers.get_tempdir`][] returns a temporary directory.
 
         If all candidates are mocked to fail for the standard temporary
@@ -1282,8 +1298,14 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
             monkeypatch.setattr(pathlib.Path, "is_dir", is_dir_error)
             assert cli_helpers.get_tempdir() == config_dir
 
+
+# TODO(the-13th-letter): Use a better class name, or consider keeping them
+# as top-level functions.
+class TestMisc:
+    """Miscellaneous tests for the command-line utility functions."""
+
     @Parametrize.DELETE_CONFIG_INPUT
-    def test_203_repeated_config_deletion(
+    def test_repeated_config_deletion(
         self,
         command_line: list[str],
         config: _types.VaultConfig,
@@ -1318,7 +1340,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
                     config_readback = json.load(infile)
                 assert config_readback == result_config
 
-    def test_204_phrase_from_key_manually(self) -> None:
+    def test_phrase_from_key_manually(self) -> None:
         """The dummy service, key and config settings are consistent."""
         assert (
             vault.Vault(
@@ -1328,7 +1350,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
         )
 
     @Parametrize.VALIDATION_FUNCTION_INPUT
-    def test_210a_validate_constraints_manually(
+    def test_validate_constraints_manually(
         self,
         vfunc: Callable[[click.Context, click.Parameter, Any], int | None],
         input: int,
@@ -1339,7 +1361,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
         assert vfunc(ctx, param, input) == input
 
     @Parametrize.CONNECTION_HINTS
-    def test_227_get_suitable_ssh_keys(
+    def test_get_suitable_ssh_keys(
         self,
         running_ssh_agent: data.RunningSSHAgentInfo,
         conn_hint: str,
@@ -1384,7 +1406,7 @@ Will replace with spam, okay? (Please say "y" or "n".): Boo.
                 )
 
     @Parametrize.KEY_TO_PHRASE_SETTINGS
-    def test_400_key_to_phrase(
+    def test_key_to_phrase(
         self,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
         list_keys_action: ListKeysAction | None,

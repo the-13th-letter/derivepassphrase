@@ -589,8 +589,12 @@ class TestShellCompletion:
             """Return the completion items' values, as a sequence."""
             return tuple(c.value for c in self())
 
+
+class TestCompletableItems:
+    """Tests for completablility of items."""
+
     @Parametrize.COMPLETABLE_ITEMS
-    def test_100_is_completable_item(
+    def test_is_completable_item(
         self,
         partial: str,
         is_completable: bool,
@@ -598,8 +602,12 @@ class TestShellCompletion:
         """Our `_is_completable_item` predicate for service names works."""
         assert cli_helpers.is_completable_item(partial) == is_completable
 
+
+class TestCompletableItemClasses(TestShellCompletion):
+    """Tests for the different classes of completable items."""
+
     @Parametrize.COMPLETABLE_OPTIONS
-    def test_200_options(
+    def test_options(
         self,
         command_prefix: Sequence[str],
         incomplete: str,
@@ -610,7 +618,7 @@ class TestShellCompletion:
         assert frozenset(comp.get_words()) == completions
 
     @Parametrize.COMPLETABLE_SUBCOMMANDS
-    def test_201_subcommands(
+    def test_subcommands(
         self,
         command_prefix: Sequence[str],
         incomplete: str,
@@ -622,7 +630,7 @@ class TestShellCompletion:
 
     @Parametrize.COMPLETABLE_PATH_ARGUMENT
     @Parametrize.INCOMPLETE
-    def test_202_paths(
+    def test_paths(
         self,
         command_prefix: Sequence[str],
         incomplete: str,
@@ -636,7 +644,7 @@ class TestShellCompletion:
         )
 
     @Parametrize.COMPLETABLE_SERVICE_NAMES
-    def test_203_service_names(
+    def test_service_names(
         self,
         config: _types.VaultConfig,
         incomplete: str,
@@ -659,9 +667,13 @@ class TestShellCompletion:
             comp = self.Completions(["vault"], incomplete)
             assert frozenset(comp.get_words()) == completions
 
+
+class TestCompletionFormatting:
+    """Tests for the formatting of completable items."""
+
     @Parametrize.SHELL_FORMATTER
     @Parametrize.COMPLETION_FUNCTION_INPUTS
-    def test_300_shell_completion_formatting(
+    def test_shell_completion_formatting(
         self,
         shell: str,
         format_func: Callable[[click.shell_completion.CompletionItem], str],
@@ -724,9 +736,13 @@ class TestShellCompletion:
             assert actual_items == expected_items
             assert actual_string == expected_string
 
+
+class TestCLICompletabilityHandling(TestShellCompletion):
+    """Tests for how the command-line interface handles completability."""
+
     @Parametrize.CONFIG_SETTING_MODE
     @Parametrize.SERVICE_NAME_COMPLETION_INPUTS
-    def test_400_incompletable_service_names(
+    def test_cli_warns_and_completion_skips_incompletable_service_names(
         self,
         caplog: pytest.LogCaptureFixture,
         mode: Literal["config", "import"],
@@ -774,7 +790,7 @@ class TestShellCompletion:
             comp = self.Completions(["vault"], incomplete)
             assert frozenset(comp.get_words()) == completions
 
-    def test_410a_service_name_exceptions_not_found(
+    def test_handling_nonexistant_service_names(
         self,
     ) -> None:
         """Service name completion quietly fails on missing configuration."""
@@ -803,7 +819,7 @@ class TestShellCompletion:
             )
 
     @Parametrize.SERVICE_NAME_EXCEPTIONS
-    def test_410b_service_name_exceptions_custom_error(
+    def test_handling_unexpected_exceptions(
         self,
         exc_type: type[Exception],
     ) -> None:

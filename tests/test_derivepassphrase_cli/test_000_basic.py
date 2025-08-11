@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: Zlib
 
+"""Tests for the `derivepassphrase vault` command-line interface."""
+
 from __future__ import annotations
 
 import contextlib
@@ -671,10 +673,10 @@ class Parametrize(types.SimpleNamespace):
     )
 
 
-class TestCLI:
-    """Tests for the `derivepassphrase vault` command-line interface."""
+class TestHelp:
+    """Tests related to help output."""
 
-    def test_200_help_output(
+    def test_help_output(
         self,
     ) -> None:
         """The `--help` option emits help text."""
@@ -702,8 +704,12 @@ class TestCLI:
             empty_stderr=True, output="Use $VISUAL or $EDITOR to configure"
         ), "expected clean exit, and option group epilog in help text"
 
+
+class TestDerivedPassphraseConstraints:
+    """Tests for (derived) passphrase constraints."""
+
     @Parametrize.CHARSET_NAME
-    def test_201_disable_character_set(
+    def test_disable_character_set(
         self,
         charset_name: str,
     ) -> None:
@@ -739,7 +745,7 @@ class TestCLI:
                 f"derived password contains forbidden character {c!r}"
             )
 
-    def test_202_disable_repetition(
+    def test_disable_repetition(
         self,
     ) -> None:
         """Character repetition can be disabled on the command-line."""
@@ -776,8 +782,40 @@ class TestCLI:
                 f"at position {i}: {result.stdout!r}"
             )
 
+
+class TestPhraseBasic:
+    """Tests for master passphrase configuration: basic."""
+
+    @pytest.mark.xfail(
+        True,
+        reason='not implemented yet',
+        raises=NotImplementedError,
+        strict=True,
+    )
+    def test_phrase_from_config(
+        self,
+    ) -> None:
+        """A stored configured master passphrase will be used."""
+        raise NotImplementedError
+
+    @pytest.mark.xfail(
+        True,
+        reason='not implemented yet',
+        raises=NotImplementedError,
+        strict=True,
+    )
+    def test_phrase_from_command_line(
+        self,
+    ) -> None:
+        """A master passphrase requested on the command-line will be used."""
+        raise NotImplementedError
+
+
+class TestKeyBasic:
+    """Tests for SSH key configuration: basic."""
+
     @Parametrize.CONFIG_WITH_KEY
-    def test_204a_key_from_config(
+    def test_key_from_config(
         self,
         running_ssh_agent: data.RunningSSHAgentInfo,
         config: _types.VaultConfig,
@@ -819,7 +857,7 @@ class TestCLI:
             result.stdout.rstrip("\n").encode("UTF-8") == DUMMY_RESULT_KEY1
         ), "expected known output"
 
-    def test_204b_key_from_command_line(
+    def test_key_from_command_line(
         self,
         running_ssh_agent: data.RunningSSHAgentInfo,
     ) -> None:
@@ -866,9 +904,13 @@ class TestCLI:
             "expected known output"
         )
 
+
+class TestPhraseAndKeyOverriding:
+    """Tests for master passphrase and SSH key configuration: overriding."""
+
     @Parametrize.BASE_CONFIG_WITH_KEY_VARIATIONS
     @Parametrize.KEY_INDEX
-    def test_204c_key_override_on_command_line(
+    def test_key_override_on_command_line(
         self,
         running_ssh_agent: data.RunningSSHAgentInfo,
         config: dict[str, Any],
@@ -909,7 +951,7 @@ class TestCLI:
             "expected no error messages on stderr"
         )
 
-    def test_205_service_phrase_if_key_in_global_config(
+    def test_service_phrase_if_key_in_global_config(
         self,
         running_ssh_agent: data.RunningSSHAgentInfo,
     ) -> None:
@@ -960,7 +1002,7 @@ class TestCLI:
         )
 
     @Parametrize.KEY_OVERRIDING_IN_CONFIG
-    def test_206_setting_phrase_thus_overriding_key_in_config(
+    def test_setting_phrase_thus_overriding_key_in_config(
         self,
         running_ssh_agent: data.RunningSSHAgentInfo,
         caplog: pytest.LogCaptureFixture,
@@ -1012,6 +1054,11 @@ class TestCLI:
         assert all(
             map(is_harmless_config_import_warning, caplog.record_tuples)
         ), "unexpected error output"
+
+
+# TODO(the-13th-letter): Assimilate into its descendant.
+class TestNotesPrinting000:
+    """Tests concerning printing the service notes: group 000."""
 
     @hypothesis.given(
         notes=strategies.text(
@@ -1069,8 +1116,13 @@ class TestCLI:
             "expected known stderr contents"
         )
 
+
+# TODO(the-13th-letter): Assimilate the descendants.
+class TestInvalidCommandLines:
+    """Tests concerning invalid command-lines."""
+
     @Parametrize.VAULT_CHARSET_OPTION
-    def test_210_invalid_argument_range(
+    def test_invalid_argument_range(
         self,
         option: str,
     ) -> None:
@@ -1099,7 +1151,7 @@ class TestCLI:
                 )
 
     @Parametrize.OPTION_COMBINATIONS_SERVICE_NEEDED
-    def test_211_service_needed(
+    def test_service_needed(
         self,
         options: list[str],
         service: bool | None,
@@ -1173,7 +1225,7 @@ class TestCLI:
                 )
             assert result.clean_exit(empty_stderr=True), "expected clean exit"
 
-    def test_211a_empty_service_name_causes_warning(
+    def test_empty_service_name_causes_warning(
         self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
@@ -1240,7 +1292,7 @@ class TestCLI:
             }, "requested configuration change was not applied"
 
     @Parametrize.OPTION_COMBINATIONS_INCOMPATIBLE
-    def test_212_incompatible_options(
+    def test_incompatible_options(
         self,
         options: list[str],
         service: bool | None,
@@ -1268,8 +1320,12 @@ class TestCLI:
             "expected error exit and known error message"
         )
 
+
+class TestImportConfigValid:
+    """Tests concerning `vault` configuration imports: valid imports."""
+
     @Parametrize.VALID_TEST_CONFIGS
-    def test_213_import_config_success(
+    def test_import_config(
         self,
         caplog: pytest.LogCaptureFixture,
         config: Any,
@@ -1318,7 +1374,7 @@ class TestCLI:
             ])
         )
     )
-    def test_213a_import_config_success(
+    def test_import_smudged_config(
         self,
         caplog: pytest.LogCaptureFixture,
         conf: data.VaultTestConfig,
@@ -1363,7 +1419,11 @@ class TestCLI:
         ), "unexpected error output"
         assert_vault_config_is_indented_and_line_broken(config_txt)
 
-    def test_213b_import_bad_config_not_vault_config(
+
+class TestImportConfigInvalid:
+    """Tests concerning `vault` configuration imports: invalid imports."""
+
+    def test_import_config_not_a_vault_config(
         self,
     ) -> None:
         """Importing an invalid config fails."""
@@ -1389,7 +1449,7 @@ class TestCLI:
             "expected error exit and known error message"
         )
 
-    def test_213c_import_bad_config_not_json_data(
+    def test_import_config_not_json_data(
         self,
     ) -> None:
         """Importing an invalid config fails."""
@@ -1415,7 +1475,7 @@ class TestCLI:
             "expected error exit and known error message"
         )
 
-    def test_213d_import_bad_config_not_a_file(
+    def test_import_config_not_a_file(
         self,
     ) -> None:
         """Importing an invalid config fails."""
@@ -1453,8 +1513,12 @@ class TestCLI:
             "expected error exit and known error message"
         )
 
+
+class TestExportConfigValid:
+    """Tests concerning `vault` configuration exports: valid exports."""
+
     @Parametrize.VALID_TEST_CONFIGS
-    def test_214_export_config_success(
+    def test_export_config_success(
         self,
         caplog: pytest.LogCaptureFixture,
         config: Any,
@@ -1494,8 +1558,20 @@ class TestCLI:
         ), "unexpected error output"
         assert_vault_config_is_indented_and_line_broken(result.stdout)
 
+    @pytest.mark.xfail(
+        True,
+        reason='not implemented yet',
+        raises=NotImplementedError,
+        strict=True,
+    )
+    def test_export_smudged_config(
+        self,
+    ) -> None:
+        """Exporting a smudged configuration works."""
+        raise NotImplementedError
+
     @Parametrize.EXPORT_FORMAT_OPTIONS
-    def test_214a_export_settings_no_stored_settings(
+    def test_export_config_no_stored_settings(
         self,
         export_options: list[str],
     ) -> None:
@@ -1526,8 +1602,12 @@ class TestCLI:
             )
         assert result.clean_exit(empty_stderr=True), "expected clean exit"
 
+
+class TestExportConfigInvalid:
+    """Tests concerning `vault` configuration exports: invalid exports."""
+
     @Parametrize.EXPORT_FORMAT_OPTIONS
-    def test_214b_export_settings_bad_stored_config(
+    def test_export_config_bad_stored_config(
         self,
         export_options: list[str],
     ) -> None:
@@ -1556,7 +1636,7 @@ class TestCLI:
         )
 
     @Parametrize.EXPORT_FORMAT_OPTIONS
-    def test_214c_export_settings_not_a_file(
+    def test_export_config_not_a_file(
         self,
         export_options: list[str],
     ) -> None:
@@ -1587,7 +1667,7 @@ class TestCLI:
         )
 
     @Parametrize.EXPORT_FORMAT_OPTIONS
-    def test_214d_export_settings_target_not_a_file(
+    def test_export_config_target_not_a_file(
         self,
         export_options: list[str],
     ) -> None:
@@ -1617,7 +1697,7 @@ class TestCLI:
 
     @pytest_machinery.skip_if_on_the_annoying_os
     @Parametrize.EXPORT_FORMAT_OPTIONS
-    def test_214e_export_settings_settings_directory_not_a_directory(
+    def test_export_config_settings_directory_not_a_directory(
         self,
         export_options: list[str],
     ) -> None:
@@ -1650,6 +1730,11 @@ class TestCLI:
             "expected error exit and known error message"
         )
 
+
+# TODO(the-13th-letter): Assimilate the parent.
+class TestNotesPrinting001:
+    """Tests concerning printing the service notes: group 001."""
+
     @Parametrize.NOTES_PLACEMENT
     @hypothesis.given(
         notes=strategies.text(
@@ -1660,7 +1745,7 @@ class TestCLI:
             max_size=512,
         ).filter(str.strip),
     )
-    def test_215_notes_placement(
+    def test_notes_placement(
         self,
         notes_placement: Literal["before", "after"],
         placement_args: list[str],
@@ -1700,6 +1785,10 @@ class TestCLI:
             )
             assert result.clean_exit(output=expected), "expected clean exit"
 
+
+class TestNotesEditingValid:
+    """Tests concerning editing service notes: valid calls."""
+
     @Parametrize.MODERN_EDITOR_INTERFACE
     @hypothesis.settings(
         suppress_health_check=[
@@ -1716,7 +1805,7 @@ class TestCLI:
             max_size=512,
         ).filter(str.strip),
     )
-    def test_220_edit_notes_successfully(
+    def test_successful_edit(
         self,
         caplog: pytest.LogCaptureFixture,
         modern_editor_interface: bool,
@@ -1806,7 +1895,7 @@ class TestCLI:
             max_size=512,
         ).filter(str.strip),
     )
-    def test_221_edit_notes_noop(
+    def test_noop_edit(
         self,
         edit_func_name: Literal["empty", "space"],
         modern_editor_interface: bool,
@@ -1895,7 +1984,7 @@ class TestCLI:
             max_size=512,
         ).filter(str.strip),
     )
-    def test_222_edit_notes_marker_removed(
+    def test_marker_removed(
         self,
         caplog: pytest.LogCaptureFixture,
         modern_editor_interface: bool,
@@ -1971,6 +2060,10 @@ class TestCLI:
                 "services": {"sv": {"notes": notes.strip()}},
             }
 
+
+class TestNotesEditingInvalid:
+    """Tests concerning editing service notes: invalid/error calls."""
+
     @hypothesis.given(
         notes=strategies.text(
             strategies.characters(
@@ -1980,7 +2073,7 @@ class TestCLI:
             max_size=512,
         ).filter(str.strip),
     )
-    def test_223_edit_notes_abort(
+    def test_abort(
         self,
         notes: str,
     ) -> None:
@@ -2029,7 +2122,7 @@ class TestCLI:
                 "services": {"sv": {"notes": notes.strip()}},
             }
 
-    def test_223a_edit_empty_notes_abort(
+    def test_abort_no_prior_notes(
         self,
     ) -> None:
         """Aborting editing notes works even if no notes are stored yet.
@@ -2092,7 +2185,7 @@ class TestCLI:
             max_size=512,
         ),
     )
-    def test_223b_edit_notes_fail_config_option_missing(
+    def test_fail_on_config_option_missing(
         self,
         caplog: pytest.LogCaptureFixture,
         modern_editor_interface: bool,
@@ -2172,8 +2265,13 @@ class TestCLI:
                 config = json.load(infile)
             assert config == vault_config
 
+
+# TODO(the-13th-letter): Assimilate the descendants.
+class TestStoringConfigurationSuccesses:
+    """Tests concerning storing the configuration: successes."""
+
     @Parametrize.CONFIG_EDITING_VIA_CONFIG_FLAG
-    def test_224_store_config_good(
+    def test_store_good_config(
         self,
         command_line: list[str],
         input: str,
@@ -2219,8 +2317,13 @@ class TestCLI:
             )
             assert_vault_config_is_indented_and_line_broken(config_txt)
 
+
+# TODO(the-13th-letter): Assimilate the descendants.
+class TestStoringConfigurationFailures:
+    """Tests concerning storing the configuration: failures."""
+
     @Parametrize.CONFIG_EDITING_VIA_CONFIG_FLAG_FAILURES
-    def test_225_store_config_fail(
+    def test_store_bad_config(
         self,
         command_line: list[str],
         input: str,
@@ -2255,7 +2358,7 @@ class TestCLI:
             "expected error exit and known error message"
         )
 
-    def test_225a_store_config_fail_manual_no_ssh_key_selection(
+    def test_fail_because_no_ssh_key_selection(
         self,
         running_ssh_agent: data.RunningSSHAgentInfo,
     ) -> None:
@@ -2297,7 +2400,7 @@ class TestCLI:
             "expected error exit and known error message"
         )
 
-    def test_225b_store_config_fail_manual_no_ssh_agent(
+    def test_fail_because_no_ssh_agent(
         self,
         running_ssh_agent: data.RunningSSHAgentInfo,
     ) -> None:
@@ -2326,7 +2429,7 @@ class TestCLI:
             "expected error exit and known error message"
         )
 
-    def test_225c_store_config_fail_manual_bad_ssh_agent_connection(
+    def test_fail_because_bad_ssh_agent_connection(
         self,
         running_ssh_agent: data.RunningSSHAgentInfo,
     ) -> None:
@@ -2357,7 +2460,7 @@ class TestCLI:
         )
 
     @Parametrize.TRY_RACE_FREE_IMPLEMENTATION
-    def test_225d_store_config_fail_manual_read_only_file(
+    def test_fail_because_read_only_file(
         self,
         try_race_free_implementation: bool,
     ) -> None:
@@ -2388,10 +2491,10 @@ class TestCLI:
             "expected error exit and known error message"
         )
 
-    def test_225e_store_config_fail_manual_custom_error(
+    def test_fail_because_of_custom_error(
         self,
     ) -> None:
-        """OS-erroring with `--config` fails."""
+        """Triggering internal errors during `--config` leads to failure."""
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -2421,7 +2524,7 @@ class TestCLI:
             "expected error exit and known error message"
         )
 
-    def test_225f_store_config_fail_unset_and_set_same_settings(
+    def test_fail_because_unsetting_and_setting_same_settings(
         self,
     ) -> None:
         """Issuing conflicting settings to `--config` fails."""
@@ -2453,7 +2556,7 @@ class TestCLI:
             error="Attempted to unset and set --length at the same time."
         ), "expected error exit and known error message"
 
-    def test_225g_store_config_fail_manual_ssh_agent_no_keys_loaded(
+    def test_fail_because_ssh_agent_has_no_keys_loaded(
         self,
         running_ssh_agent: data.RunningSSHAgentInfo,
     ) -> None:
@@ -2489,11 +2592,11 @@ class TestCLI:
             "expected error exit and known error message"
         )
 
-    def test_225h_store_config_fail_manual_ssh_agent_runtime_error(
+    def test_store_config_fail_manual_ssh_agent_runtime_error(
         self,
         running_ssh_agent: data.RunningSSHAgentInfo,
     ) -> None:
-        """The SSH agent erroring during `--config --key` fails."""
+        """Triggering an error in the SSH agent during `--config --key` leads to failure."""
         del running_ssh_agent
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
@@ -2522,11 +2625,11 @@ class TestCLI:
             error="violates the communication protocol."
         ), "expected error exit and known error message"
 
-    def test_225i_store_config_fail_manual_ssh_agent_refuses(
+    def test_store_config_fail_manual_ssh_agent_refuses(
         self,
         running_ssh_agent: data.RunningSSHAgentInfo,
     ) -> None:
-        """The SSH agent refusing during `--config --key` fails."""
+        """The SSH agent refusing during `--config --key` leads to failure."""
         del running_ssh_agent
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
@@ -2557,7 +2660,12 @@ class TestCLI:
             "expected error exit and known error message"
         )
 
-    def test_226_no_arguments(self) -> None:
+
+# TODO(the-13th-letter): Assimilate the parent.
+class TestInvalidCommandLines001(TestInvalidCommandLines):
+    """Tests concerning invalid command-lines: group 001."""
+
+    def test_no_arguments(self) -> None:
         """Calling `derivepassphrase vault` without any arguments fails."""
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
@@ -2578,7 +2686,7 @@ class TestCLI:
             error="Deriving a passphrase requires a SERVICE"
         ), "expected error exit and known error message"
 
-    def test_226a_no_passphrase_or_key(
+    def test_no_passphrase_or_key(
         self,
     ) -> None:
         """Deriving a passphrase without a passphrase or key fails."""
@@ -2603,12 +2711,20 @@ class TestCLI:
             "expected error exit and known error message"
         )
 
-    def test_230_config_directory_nonexistant(
+
+# TODO(the-13th-letter): Assimilate into the parent.
+class TestStoringConfigurationSuccesses001:
+    """Tests concerning storing the configuration: successes, group 001."""
+
+    def test_config_directory_nonexistant(
         self,
     ) -> None:
         """Running without an existing config directory works.
 
         This is a regression test; see [issue\u00a0#6][] for context.
+        See also
+        [TestStoringConfigurationFailures001.test_config_directory_not_a_file][]
+        for a related aspect of this.
 
         [issue #6]: https://github.com/the-13th-letter/derivepassphrase/issues/6
 
@@ -2646,7 +2762,12 @@ class TestCLI:
                 "services": {},
             }, "config mismatch"
 
-    def test_230a_config_directory_not_a_file(
+
+# TODO(the-13th-letter): Assimilate into the parent.
+class TestStoringConfigurationFailures001:
+    """Tests concerning storing the configuration: failures, group 001."""
+
+    def test_config_directory_not_a_file(
         self,
     ) -> None:
         """Erroring without an existing config directory errors normally.
@@ -2655,6 +2776,9 @@ class TestCLI:
         errors by itself.
 
         This is a regression test; see [issue\u00a0#6][] for context.
+        See also
+        [TestStoringConfigurationSuccesses001.test_config_directory_nonexistant][]
+        for a related aspect of this.
 
         [issue #6]: https://github.com/the-13th-letter/derivepassphrase/issues/6
 
@@ -2694,7 +2818,10 @@ class TestCLI:
                 "expected error exit and known error message"
             )
 
-    def test_230b_store_config_custom_error(
+    # TODO(the-13th-letter): Remove this test, because it is basically
+    # the same as
+    # TestStoringConfigurationFailures.test_fail_because_of_custom_error.
+    def test_store_config_custom_error(
         self,
     ) -> None:
         """Storing the configuration reacts even to weird errors."""
@@ -2727,8 +2854,12 @@ class TestCLI:
                 "expected error exit and known error message"
             )
 
+
+class TestPassphraseUnicodeNormalization:
+    """Tests concerning the Unicode normalization of passphrases."""
+
     @Parametrize.UNICODE_NORMALIZATION_WARNING_INPUTS
-    def test_300_unicode_normalization_form_warning(
+    def test_warning(
         self,
         caplog: pytest.LogCaptureFixture,
         main_config: str,
@@ -2767,7 +2898,7 @@ class TestCLI:
         ), "expected known warning message in stderr"
 
     @Parametrize.UNICODE_NORMALIZATION_ERROR_INPUTS
-    def test_301_unicode_normalization_form_error(
+    def test_error(
         self,
         main_config: str,
         command_line: list[str],
@@ -2807,7 +2938,7 @@ class TestCLI:
         )
 
     @Parametrize.UNICODE_NORMALIZATION_COMMAND_LINES
-    def test_301a_unicode_normalization_form_error_from_stored_config(
+    def test_error_from_stored_config(
         self,
         command_line: list[str],
     ) -> None:
@@ -2848,7 +2979,11 @@ class TestCLI:
                 ),
             ), "expected error exit and known error message"
 
-    def test_310_bad_user_config_file(
+
+class TestUserConfigurationFileOther:
+    """Other tests concerning the user configuration file."""
+
+    def test_bad_user_config_file(
         self,
     ) -> None:
         """Loading a user configuration file in an invalid format fails."""
@@ -2876,10 +3011,10 @@ class TestCLI:
                 "expected error exit and known error message"
             )
 
-    def test_311_bad_user_config_is_a_directory(
+    def test_user_config_is_a_directory(
         self,
     ) -> None:
-        """Loading a user configuration file in an invalid format fails."""
+        """Loading a user configuration non-file fails."""
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -2909,7 +3044,11 @@ class TestCLI:
                 "expected error exit and known error message"
             )
 
-    def test_400_missing_af_unix_support(
+
+class TestSSHAgentAvailability:
+    """Tests concerning the availability of the SSH agent."""
+
+    def test_missing_af_unix_support(
         self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:

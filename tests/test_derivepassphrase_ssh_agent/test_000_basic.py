@@ -507,10 +507,10 @@ class Parametrize(types.SimpleNamespace):
     )
 
 
-class TestTestingMachineryStubbedSSHAgentSocket:
-    """Test the stubbed SSH agent socket for the `ssh_agent` module tests."""
+class TestStubbedSSHAgentSocketRequests:
+    """Test the stubbed SSH agent socket: normal requests."""
 
-    def test_100a_query_extensions_base(self) -> None:
+    def test_query_extensions_base(self) -> None:
         """The base agent implements no extensions."""
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
@@ -539,7 +539,7 @@ class TestTestingMachineryStubbedSSHAgentSocket:
             agent.sendall(query_request)
             assert agent.recv(1000) == query_response
 
-    def test_100b_query_extensions_extended(self) -> None:
+    def test_query_extensions_extended(self) -> None:
         """The extended agent implements a known list of extensions."""
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
@@ -575,7 +575,7 @@ class TestTestingMachineryStubbedSSHAgentSocket:
             agent.sendall(query_request)
             assert agent.recv(1000) == query_response
 
-    def test_101_request_identities(self) -> None:
+    def test_request_identities(self) -> None:
         """The agent implements a known list of identities."""
         unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
         with machinery.StubbedSSHAgentSocket() as agent:
@@ -606,7 +606,7 @@ class TestTestingMachineryStubbedSSHAgentSocket:
             assert not message
 
     @Parametrize.SUPPORTED_SSH_TEST_KEYS
-    def test_102_sign(
+    def test_sign(
         self,
         ssh_test_key_type: str,
         ssh_test_key: data.SSHTestKey,
@@ -636,7 +636,11 @@ class TestTestingMachineryStubbedSSHAgentSocket:
             agent.sendall(query_request)
             assert agent.recv(1000) == query_response
 
-    def test_120_close_multiple(self) -> None:
+
+class TestStubbedSSHAgentSocketProperOperations:
+    """Test the stubbed SSH agent socket: proper use and misuse."""
+
+    def test_close_multiple(self) -> None:
         """The agent can be closed repeatedly."""
         with machinery.StubbedSSHAgentSocket() as agent:
             pass
@@ -644,7 +648,7 @@ class TestTestingMachineryStubbedSSHAgentSocket:
             pass
         del agent
 
-    def test_121_closed_agents_cannot_be_interacted_with(self) -> None:
+    def test_closed_agents_cannot_be_interacted_with(self) -> None:
         """The agent can be closed repeatedly."""
         with machinery.StubbedSSHAgentSocket() as agent:
             pass
@@ -664,7 +668,7 @@ class TestTestingMachineryStubbedSSHAgentSocket:
             agent.sendall(query_request)
         assert agent.recv(100) == query_response
 
-    def test_122_no_recv_without_sendall(self) -> None:
+    def test_no_recv_without_sendall(self) -> None:
         """The agent requires a message before sending a response."""
         with machinery.StubbedSSHAgentSocket() as agent:  # noqa: SIM117
             with pytest.raises(
@@ -676,7 +680,7 @@ class TestTestingMachineryStubbedSSHAgentSocket:
                 agent.recv(100)
 
     @Parametrize.INVALID_SSH_AGENT_MESSAGES
-    def test_123_invalid_ssh_agent_messages(
+    def test_invalid_ssh_agent_messages(
         self,
         message: Buffer,
     ) -> None:
@@ -691,8 +695,12 @@ class TestTestingMachineryStubbedSSHAgentSocket:
             agent.sendall(message)
             assert agent.recv(100) == query_response
 
+
+class TestStubbedSSHAgentSocketSupportedAndUnsupportedFeatures:
+    """Test the stubbed SSH agent socket: supported/unsupported features."""
+
     @Parametrize.UNSUPPORTED_SSH_AGENT_MESSAGES
-    def test_124_unsupported_ssh_agent_messages(
+    def test_unsupported_ssh_agent_messages(
         self,
         message: Buffer,
     ) -> None:
@@ -708,7 +716,7 @@ class TestTestingMachineryStubbedSSHAgentSocket:
             assert agent.recv(100) == query_response
 
     @Parametrize.STUBBED_AGENT_ADDRESSES
-    def test_125_addresses(
+    def test_addresses(
         self,
         address: str | None,
         exception: type[Exception] | None,
@@ -776,8 +784,12 @@ class TestStaticFunctionality:
         assert not trailer
         return ssh_agent.SSHAgentClient.string(unstringed)
 
-    # TODO(the-13th-letter): Re-evaluate if this check is worth keeping.
-    # It cannot provide true tamper-resistence, but probably appears to.
+
+class TestObsolete001:
+    """Obsolete tests: group 001."""
+
+    # TODO(the-13th-letter): Remove this test. The test key data has its
+    # own set of tests now.
     @Parametrize.PUBLIC_KEY_DATA
     def test_100_key_decoding(
         self,
@@ -791,8 +803,12 @@ class TestStaticFunctionality:
             "recorded public key data doesn't match"
         )
 
+
+class TestShellExportScriptParsing:
+    """Test the shell export script parsing utility function."""
+
     @Parametrize.SH_EXPORT_LINES
-    def test_190_sh_export_line_parsing(
+    def test_sh_export_line_parsing(
         self, line: str, env_name: str, value: str | None
     ) -> None:
         """[`tests.parse_sh_export_line`][] works."""
@@ -804,6 +820,10 @@ class TestStaticFunctionality:
         else:
             with pytest.raises(ValueError, match="Cannot parse sh line:"):
                 callables.parse_sh_export_line(line, env_name=env_name)
+
+
+class TestGracefulFailureForSSHAuthSock:
+    """Test the `posix` socket provider if `SSH_AUTH_SOCK` is unset."""
 
     def test_200_constructor_posix_no_ssh_auth_sock(
         self,
@@ -819,15 +839,19 @@ class TestStaticFunctionality:
             ):
                 posix_handler()
 
+
+class TestSSHProtocolDatatypes(TestStaticFunctionality):
+    """Tests for the utility functions for the SSH protocol datatypes."""
+
     @Parametrize.UINT32_INPUT
-    def test_210_uint32(self, input: int, expected: bytes | bytearray) -> None:
+    def test_uint32(self, input: int, expected: bytes | bytearray) -> None:
         """`uint32` encoding works."""
         uint32 = ssh_agent.SSHAgentClient.uint32
         assert uint32(input) == expected
 
     @hypothesis.given(strategies.integers(min_value=0, max_value=0xFFFFFFFF))
     @hypothesis.example(0xDEADBEEF).via("manual, pre-hypothesis example")
-    def test_210a_uint32_from_number(self, num: int) -> None:
+    def test_uint32_from_number(self, num: int) -> None:
         """`uint32` encoding works, starting from numbers."""
         uint32 = ssh_agent.SSHAgentClient.uint32
         assert int.from_bytes(uint32(num), "big", signed=False) == num
@@ -836,7 +860,7 @@ class TestStaticFunctionality:
     @hypothesis.example(b"\xde\xad\xbe\xef").via(
         "manual, pre-hypothesis example"
     )
-    def test_210b_uint32_from_bytestring(self, bytestring: bytes) -> None:
+    def test_uint32_from_bytestring(self, bytestring: bytes) -> None:
         """`uint32` encoding works, starting from length four byte strings."""
         uint32 = ssh_agent.SSHAgentClient.uint32
         assert (
@@ -845,7 +869,7 @@ class TestStaticFunctionality:
         )
 
     @Parametrize.SSH_STRING_INPUT
-    def test_211_string(
+    def test_string(
         self, input: bytes | bytearray, expected: bytes | bytearray
     ) -> None:
         """SSH string encoding works."""
@@ -856,7 +880,7 @@ class TestStaticFunctionality:
     @hypothesis.example(b"DEADBEEF" * 10000).via(
         "manual, pre-hypothesis example with highest order bit set"
     )
-    def test_211a_string_from_bytestring(self, bytestring: bytes) -> None:
+    def test_string_from_bytestring(self, bytestring: bytes) -> None:
         """SSH string encoding works, starting from a byte string."""
         res = ssh_agent.SSHAgentClient.string(bytestring)
         assert res.startswith((b"\x00\x00", b"\x00\x01"))
@@ -864,7 +888,7 @@ class TestStaticFunctionality:
         assert res[4:] == bytestring
 
     @Parametrize.SSH_UNSTRING_INPUT
-    def test_212_unstring(
+    def test_unstring(
         self, input: bytes | bytearray, expected: bytes | bytearray
     ) -> None:
         """SSH string decoding works."""
@@ -883,7 +907,7 @@ class TestStaticFunctionality:
     @hypothesis.example(b"\x00\x00\x00\x01").via(
         "detect no-op encoding via ill-formed SSH string"
     )
-    def test_212a_unstring_of_string_of_data(self, bytestring: bytes) -> None:
+    def test_unstring_of_string_of_data(self, bytestring: bytes) -> None:
         """SSH string decoding of encoded SSH strings works.
 
         References:
@@ -911,7 +935,7 @@ class TestStaticFunctionality:
             lambda x: TestStaticFunctionality.as_ssh_string(x)  # noqa: PLW0108
         ),
     )
-    def test_212b_string_of_unstring_of_data(self, encoded: bytes) -> None:
+    def test_string_of_unstring_of_data(self, encoded: bytes) -> None:
         """SSH string decoding of encoded SSH strings works.
 
         References:
@@ -928,7 +952,11 @@ class TestStaticFunctionality:
                 assert canon1(encoded) == canon2(encoded)
                 assert canon1(canon2(encoded)) == canon1(encoded)
 
-    def test_220_registry_resolve(
+
+class TestSSHAgentSocketProviderRegistry:
+    """Tests for the SSH agent socket provider registry."""
+
+    def test_resolve(
         self,
     ) -> None:
         """Resolving entries in the socket provider registry works."""
@@ -944,7 +972,7 @@ class TestStaticFunctionality:
                 resolve("stub_agent")
 
     @Parametrize.RESOLVE_CHAINS
-    def test_221_registry_resolve_chains(
+    def test_resolve_chains(
         self,
         terminal: Literal["unimplemented", "alias", "callable"],
         chain: list[str],
@@ -1003,7 +1031,7 @@ class TestStaticFunctionality:
             unique=True,
         ),
     )
-    def test_221a_registry_resolve_chains(
+    def test_resolve_chains2(
         self,
         terminal: Literal["unimplemented", "alias", "callable"],
         chain: list[str],
@@ -1041,7 +1069,7 @@ class TestStaticFunctionality:
                     assert resolve(link) == implementation
 
     @Parametrize.GOOD_ENTRY_POINTS
-    def test_230_find_all_socket_providers(
+    def test_find_all_socket_providers(
         self,
         additional_entry_points: list[importlib.metadata.EntryPoint],
     ) -> None:
@@ -1060,7 +1088,7 @@ class TestStaticFunctionality:
                 }
 
     @Parametrize.BAD_ENTRY_POINTS
-    def test_231_find_all_socket_providers_errors(
+    def test_find_all_socket_providers_errors(
         self,
         additional_entry_points: list[importlib.metadata.EntryPoint],
     ) -> None:
@@ -1074,8 +1102,13 @@ class TestStaticFunctionality:
             stack.enter_context(pytest.raises(AssertionError))
             socketprovider.SocketProvider._find_all_ssh_agent_socket_providers()
 
+
+# TODO(the-13th-letter): Assimilate into base class.
+class TestSSHProtocolDatatypes001(TestSSHProtocolDatatypes):
+    """More tests for the utility functions for the SSH protocol datatypes."""
+
     @Parametrize.UINT32_EXCEPTIONS
-    def test_310_uint32_exceptions(
+    def test_uint32_exceptions(
         self, input: int, exc_type: type[Exception], exc_pattern: str
     ) -> None:
         """`uint32` encoding fails for out-of-bound values."""
@@ -1084,7 +1117,7 @@ class TestStaticFunctionality:
             uint32(input)
 
     @Parametrize.SSH_STRING_EXCEPTIONS
-    def test_311_string_exceptions(
+    def test_string_exceptions(
         self, input: Any, exc_type: type[Exception], exc_pattern: str
     ) -> None:
         """SSH string encoding fails for non-strings."""
@@ -1093,7 +1126,7 @@ class TestStaticFunctionality:
             string(input)
 
     @Parametrize.SSH_UNSTRING_EXCEPTIONS
-    def test_312_unstring_exceptions(
+    def test_unstring_exceptions(
         self,
         input: bytes | bytearray,
         exc_type: type[Exception],
@@ -1112,7 +1145,12 @@ class TestStaticFunctionality:
             with pytest.raises(exc_type, match=exc_pattern):
                 unstring_prefix(input)
 
-    def test_320_registry_already_registered(
+
+# TODO(the-13th-letter): Assimilate into base class.
+class TestSSHAgentSocketProviderRegistry001(TestSSHAgentSocketProviderRegistry):
+    """More tests for the SSH agent socket provider registry."""
+
+    def test_already_registered(
         self,
     ) -> None:
         """The registry forbids overwriting entries."""
@@ -1136,7 +1174,7 @@ class TestStaticFunctionality:
             with pytest.raises(ValueError, match="already registered"):
                 register("the_annoying_os", "unix_domain")(the_annoying_os)
 
-    def test_321_registry_resolve_non_existant_entries(
+    def test_resolve_non_existant_entries(
         self,
     ) -> None:
         """Resolving a non-existant entry fails."""
@@ -1153,7 +1191,7 @@ class TestStaticFunctionality:
             with pytest.raises(socketprovider.NoSuchProviderError):
                 socketprovider.SocketProvider.resolve("native")
 
-    def test_322_registry_register_new_entry(
+    def test_register_new_entry(
         self,
     ) -> None:
         """Registering new entries works."""
@@ -1188,7 +1226,7 @@ class TestStaticFunctionality:
             ])
 
     @Parametrize.EXISTING_REGISTRY_ENTRIES
-    def test_323_registry_register_old_entry(
+    def test_register_old_entry(
         self,
         existing: str,
     ) -> None:
@@ -1230,11 +1268,11 @@ class TestStaticFunctionality:
             ])
 
 
-class TestAgentInteraction:
-    """Test actually talking to the SSH agent."""
+class TestAgentSigning:
+    """Test actually talking to the SSH agent: signing data."""
 
     @Parametrize.SUPPORTED_SSH_TEST_KEYS
-    def test_200_sign_data_via_agent(
+    def test_sign_data_via_agent(
         self,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
         ssh_test_key_type: str,
@@ -1279,7 +1317,7 @@ class TestAgentInteraction:
         ), f"SSH signature mismatch ({ssh_test_key_type})"
 
     @Parametrize.UNSUITABLE_SSH_TEST_KEYS
-    def test_201_sign_data_via_agent_unsupported(
+    def test_sign_data_via_agent_unsupported(
         self,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
         ssh_test_key_type: str,
@@ -1309,8 +1347,12 @@ class TestAgentInteraction:
         with pytest.raises(ValueError, match="unsuitable SSH key"):
             vault.Vault.phrase_from_key(public_key_data, conn=client)
 
+
+class TestSuitableKeys:
+    """Test actually talking to the SSH agent: determining suitable keys."""
+
     @Parametrize.SSH_KEY_SELECTION
-    def test_210_ssh_key_selector(
+    def test_ssh_key_selector(
         self,
         monkeypatch: pytest.MonkeyPatch,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
@@ -1389,7 +1431,11 @@ class TestAgentInteraction:
         for snippet in ("Suitable SSH keys:\n", text, f"\n{b64_key}\n"):
             assert result.clean_exit(output=snippet), "expected clean exit"
 
-    def test_300_constructor_bad_running_agent(
+
+class TestConstructorFailures:
+    """Test actually talking to the SSH agent: constructor failures."""
+
+    def test_constructor_bad_running_agent(
         self,
         running_ssh_agent: data.RunningSSHAgentInfo,
     ) -> None:
@@ -1404,7 +1450,7 @@ class TestAgentInteraction:
             with pytest.raises(OSError):  # noqa: PT011
                 ssh_agent.SSHAgentClient()
 
-    def test_301_constructor_no_af_unix_support(self) -> None:
+    def test_constructor_no_af_unix_support(self) -> None:
         """Fail without [`socket.AF_UNIX`][] support."""
         assert "posix" in socketprovider.SocketProvider.registry
         with pytest.MonkeyPatch.context() as monkeypatch:
@@ -1416,7 +1462,7 @@ class TestAgentInteraction:
             ):
                 ssh_agent.SSHAgentClient(socket="posix")
 
-    def test_302_no_ssh_agent_socket_provider_available(
+    def test_no_ssh_agent_socket_provider_available(
         self,
     ) -> None:
         """Fail if no SSH agent socket provider is available."""
@@ -1433,15 +1479,23 @@ class TestAgentInteraction:
                 for e in excinfo.value.exceptions
             ])
 
-    def test_303_explicit_socket(
+
+class TestOtherConstructorFeatures:
+    """Test actually talking to the SSH agent: other constructor features."""
+
+    def test_explicit_socket(
         self,
         spawn_ssh_agent: data.SpawnedSSHAgentInfo,
     ) -> None:
         conn = spawn_ssh_agent.client._connection
         ssh_agent.SSHAgentClient(socket=conn)
 
+
+class TestAgentErrorResponses:
+    """Test actually talking to the SSH agent: errors from the SSH agent."""
+
     @Parametrize.TRUNCATED_AGENT_RESPONSES
-    def test_310_truncated_server_response(
+    def test_truncated_server_response(
         self,
         running_ssh_agent: data.RunningSSHAgentInfo,
         response: bytes,
@@ -1465,7 +1519,7 @@ class TestAgentInteraction:
                 client.request(255, b"")
 
     @Parametrize.LIST_KEYS_ERROR_RESPONSES
-    def test_320_list_keys_error_responses(
+    def test_list_keys_error_responses(
         self,
         running_ssh_agent: data.RunningSSHAgentInfo,
         response_code: _types.SSH_AGENT,
@@ -1525,7 +1579,7 @@ class TestAgentInteraction:
                 client.list_keys()
 
     @Parametrize.SIGN_ERROR_RESPONSES
-    def test_330_sign_error_responses(
+    def test_sign_error_responses(
         self,
         running_ssh_agent: data.RunningSSHAgentInfo,
         key: bytes | bytearray,
@@ -1594,7 +1648,7 @@ class TestAgentInteraction:
                 client.sign(key, b"abc", check_if_key_loaded=check)
 
     @Parametrize.REQUEST_ERROR_RESPONSES
-    def test_340_request_error_responses(
+    def test_request_error_responses(
         self,
         running_ssh_agent: data.RunningSSHAgentInfo,
         request_code: _types.SSH_AGENTC,
@@ -1622,7 +1676,7 @@ class TestAgentInteraction:
             client.request(request_code, b"", response_code=response_code)
 
     @Parametrize.QUERY_EXTENSIONS_MALFORMED_RESPONSES
-    def test_350_query_extensions_malformed_responses(
+    def test_query_extensions_malformed_responses(
         self,
         monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: data.RunningSSHAgentInfo,

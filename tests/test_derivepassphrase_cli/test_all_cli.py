@@ -349,13 +349,13 @@ def parse_version_output(  # noqa: C901
     )
 
 
-class TestAllCLI:
-    """Tests uniformly for all command-line interfaces."""
+class Test001VersionOutputParser:
+    """Tests for the `--version` output parser."""
 
     @Parametrize.MASK_PROG_NAME
     @Parametrize.MASK_VERSION
     @Parametrize.VERSION_OUTPUT_DATA
-    def test_001_parse_version_output(
+    def test_parse_version_output(
         self,
         version_output: str,
         prog_name: str | None,
@@ -373,6 +373,10 @@ class TestAllCLI:
             )
             == expected_parse
         )
+
+
+class TestHelpOutput:
+    """Tests for all command-line interfaces' `--help` output."""
 
     # TODO(the-13th-letter): Do we actually need this?  What should we
     # check for?
@@ -569,7 +573,11 @@ class TestAllCLI:
             "Expected no color, but found an ANSI control sequence"
         )
 
-    def test_202a_derivepassphrase_version_option_output(
+
+class TestVersionOutput:
+    """Tests for all command-line interfaces' `--version` output."""
+
+    def test_derivepassphrase_version_option_output(
         self,
     ) -> None:
         """The version output states supported features.
@@ -614,7 +622,7 @@ class TestAllCLI:
         assert not version_data.features
         assert not version_data.extras
 
-    def test_202b_export_version_option_output(
+    def test_export_version_option_output(
         self,
     ) -> None:
         """The version output states supported features.
@@ -666,7 +674,7 @@ class TestAllCLI:
         assert not version_data.features
         assert not version_data.extras
 
-    def test_202c_export_vault_version_option_output(
+    def test_export_vault_version_option_output(
         self,
     ) -> None:
         """The version output states supported features.
@@ -726,7 +734,7 @@ class TestAllCLI:
         assert not version_data.features
         assert version_data.extras == actually_enabled_extras
 
-    def test_202d_vault_version_option_output(
+    def test_vault_version_option_output(
         self,
     ) -> None:
         """The version output states supported features.

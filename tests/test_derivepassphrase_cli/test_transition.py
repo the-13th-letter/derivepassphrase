@@ -56,11 +56,12 @@ class Parametrize(test_000_basic.Parametrize, test_utils.Parametrize):
     )
 
 
-class TestCLITransition:
-    """Transition tests for the command-line interface up to v1.0."""
+# TODO(the-13th-letter): Assimilate the descendants.
+class TestConfigMigrationMachinery:
+    """Tests for the configuration file migration machinery."""
 
     @Parametrize.BASE_CONFIG_VARIATIONS
-    def test_110_load_config_backup(
+    def test_load_config_backup(
         self,
         config: Any,
     ) -> None:
@@ -83,7 +84,7 @@ class TestCLITransition:
             assert cli_helpers.migrate_and_load_old_config()[0] == config
 
     @Parametrize.BASE_CONFIG_VARIATIONS
-    def test_111_migrate_config(
+    def test_migration(
         self,
         config: Any,
     ) -> None:
@@ -106,7 +107,7 @@ class TestCLITransition:
             assert cli_helpers.migrate_and_load_old_config() == (config, None)
 
     @Parametrize.BASE_CONFIG_VARIATIONS
-    def test_112_migrate_config_error(
+    def test_migration_error(
         self,
         config: Any,
     ) -> None:
@@ -136,7 +137,7 @@ class TestCLITransition:
             assert err.errno in {errno.EISDIR, errno.EEXIST}
 
     @Parametrize.BAD_CONFIGS
-    def test_113_migrate_config_error_bad_config_value(
+    def test_bad_config_migration(
         self,
         config: Any,
     ) -> None:
@@ -161,7 +162,11 @@ class TestCLITransition:
             ):
                 cli_helpers.migrate_and_load_old_config()
 
-    def test_200_forward_export_vault_path_parameter(
+
+class TestArgumentForwarding:
+    """Tests for the argument forwarding up to v1.0."""
+
+    def test_forward_export_vault_path_parameter(
         self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
@@ -195,7 +200,7 @@ class TestCLITransition:
         )
         assert json.loads(result.stdout) == data.VAULT_V03_CONFIG_DATA
 
-    def test_201_forward_export_vault_empty_commandline(
+    def test_forward_export_vault_empty_commandline(
         self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
@@ -228,7 +233,7 @@ class TestCLITransition:
         )
 
     @Parametrize.CHARSET_NAME
-    def test_210_forward_vault_disable_character_set(
+    def test_forward_vault_disable_character_set(
         self,
         caplog: pytest.LogCaptureFixture,
         charset_name: str,
@@ -271,7 +276,7 @@ class TestCLITransition:
                 f"derived password contains forbidden character {c!r}"
             )
 
-    def test_211_forward_vault_empty_command_line(
+    def test_forward_vault_empty_command_line(
         self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
@@ -304,7 +309,11 @@ class TestCLITransition:
             error="Deriving a passphrase requires a SERVICE."
         ), "expected error exit and known error type"
 
-    def test_300_export_using_old_config_file(
+
+class TestConfigMigration:
+    """Tests for the configuration file migration up to v1.0."""
+
+    def test_export_and_automatic_migration(
         self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
@@ -345,7 +354,7 @@ class TestCLITransition:
             "Successfully migrated to ", caplog.record_tuples
         ), "expected known warning message in stderr"
 
-    def test_300a_export_using_old_config_file_migration_error(
+    def test_export_and_automatic_migration_with_errors(
         self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
@@ -395,7 +404,12 @@ class TestCLITransition:
             "Failed to migrate to ", caplog.record_tuples
         ), "expected known warning message in stderr"
 
-    def test_400_completion_service_name_old_config_file(
+
+# TODO(the-13th-letter): Assimilate into the parent.
+class TestConfigMigrationMachinery001(TestConfigMigrationMachinery):
+    """Tests for the configuration file migration machinery, group 001."""
+
+    def test_completion_supports_old_config_file(
         self,
     ) -> None:
         """Completing service names from the old settings file works."""
