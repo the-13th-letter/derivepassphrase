@@ -633,8 +633,17 @@ class TestConstraintSatisfactionThoroughness(TestVault):
         password = vault.Vault(
             phrase=phrase, length=length, repeat=repeat
         ).generate(service)
-        for i in range((length + 1) - (repeat + 1)):
-            assert len(set(password[i : i + repeat + 1])) > 1
+        last_char: str | int | None = None
+        highest_count = 0
+        count = 0
+        for ch in password:
+            if ch != last_char:
+                last_char = ch
+                count = 0
+            else:
+                count += 1
+                highest_count = max(highest_count, count)
+            assert count <= repeat
 
 
 class TestConstraintSatisfactionHeavyDuty(TestVault):
@@ -728,16 +737,19 @@ class TestConstraintSatisfactionHeavyDuty(TestVault):
                     sum(c in vault.Vault.CHARSETS[key] for c in password) == 0
                 ), "Password does not satisfy character ban constraints."
 
-        T = TypeVar("T", str, bytes)
-
-        def length_r_substrings(string: T, *, r: int) -> Iterator[T]:
-            for i in range(len(string) - (r - 1)):
-                yield string[i : i + r]
-
         repeat = config["repeat"]
         if repeat:
-            for snippet in length_r_substrings(password, r=(repeat + 1)):
-                assert len(set(snippet)) > 1, (
+            last_char: str | int | None = None
+            highest_count = 0
+            count = 0
+            for ch in password:
+                if ch != last_char:
+                    last_char = ch
+                    count = 0
+                else:
+                    count += 1
+                    highest_count = max(highest_count, count)
+                assert count <= repeat, (
                     "Password does not satisfy character repeat constraints."
                 )
 
