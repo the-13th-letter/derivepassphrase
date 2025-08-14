@@ -788,7 +788,7 @@ class TestPhraseBasic:
 
     @pytest.mark.xfail(
         True,
-        reason='not implemented yet',
+        reason="not implemented yet",
         raises=NotImplementedError,
         strict=True,
     )
@@ -800,7 +800,7 @@ class TestPhraseBasic:
 
     @pytest.mark.xfail(
         True,
-        reason='not implemented yet',
+        reason="not implemented yet",
         raises=NotImplementedError,
         strict=True,
     )
@@ -1544,7 +1544,7 @@ class TestExportConfigValid:
 
     @pytest.mark.xfail(
         True,
-        reason='not implemented yet',
+        reason="not implemented yet",
         raises=NotImplementedError,
         strict=True,
     )

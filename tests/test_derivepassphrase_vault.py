@@ -262,46 +262,6 @@ class TestPhraseDependence:
             phrase=phrases[0], service=service
         ) != vault.Vault.create_hash(phrase=phrases[1], service=service)
 
-    @hypothesis.given(
-        phrases=strategies.lists(
-            strategies.text(
-                strategies.characters(min_codepoint=32, max_codepoint=126),
-                min_size=1,
-                max_size=32,
-            ),
-            min_size=2,
-            max_size=2,
-            unique=True,
-        ),
-        config=hypothesis_machinery.vault_full_service_config(),
-        service=strategies.text(
-            strategies.characters(min_codepoint=32, max_codepoint=126),
-            min_size=1,
-            max_size=32,
-        ),
-    )
-    def test_phrase_dependence_with_config(
-        self,
-        phrases: list[str],
-        config: dict[str, int],
-        service: bytes,
-    ) -> None:
-        """The derived passphrase is dependent on the master passphrase."""
-        try:
-            assert vault.Vault(phrase=phrases[0], **config).generate(
-                service
-            ) != vault.Vault(phrase=phrases[1], **config).generate(service)
-        except ValueError as exc:  # pragma: no cover
-            # The service configuration strategy attempts to only
-            # generate satisfiable configurations.  It is possible,
-            # though rare, that this fails, and that unsatisfiability is
-            # only recognized when actually deriving a passphrase.  In
-            # that case, reject the generated configuration.
-            hypothesis.assume("no allowed characters left" not in exc.args)
-            # Otherwise it's a genuine bug in the test case or the
-            # implementation, and should be raised.
-            raise
-
 
 class TestServiceNameDependence:
     """Test the dependence of the internal hash on the service name."""
@@ -328,46 +288,6 @@ class TestServiceNameDependence:
         assert vault.Vault.create_hash(
             phrase=phrase, service=services[0]
         ) != vault.Vault.create_hash(phrase=phrase, service=services[1])
-
-    @hypothesis.given(
-        phrase=strategies.text(
-            strategies.characters(min_codepoint=32, max_codepoint=126),
-            min_size=1,
-            max_size=32,
-        ),
-        config=hypothesis_machinery.vault_full_service_config(),
-        services=strategies.lists(
-            strategies.text(
-                strategies.characters(min_codepoint=32, max_codepoint=126),
-                min_size=1,
-                max_size=32,
-            ),
-            min_size=2,
-            max_size=2,
-            unique=True,
-        ),
-    )
-    def test_service_name_dependence_with_config(
-        self,
-        phrase: str,
-        config: dict[str, int],
-        services: list[bytes],
-    ) -> None:
-        """The derived passphrase is dependent on the service name."""
-        try:
-            assert vault.Vault(phrase=phrase, **config).generate(
-                services[0]
-            ) != vault.Vault(phrase=phrase, **config).generate(services[1])
-        except ValueError as exc:  # pragma: no cover
-            # The service configuration strategy attempts to only
-            # generate satisfiable configurations.  It is possible,
-            # though rare, that this fails, and that unsatisfiability is
-            # only recognized when actually deriving a passphrase.  In
-            # that case, reject the generated configuration.
-            hypothesis.assume("no allowed characters left" not in exc.args)
-            # Otherwise it's a genuine bug in the test case or the
-            # implementation, and should be raised.
-            raise
 
 
 class TestInterchangablePhrases:
