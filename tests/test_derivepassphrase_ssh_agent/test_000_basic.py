@@ -785,25 +785,6 @@ class TestStaticFunctionality:
         return ssh_agent.SSHAgentClient.string(unstringed)
 
 
-class TestObsolete001:
-    """Obsolete tests: group 001."""
-
-    # TODO(the-13th-letter): Remove this test. The test key data has its
-    # own set of tests now.
-    @Parametrize.PUBLIC_KEY_DATA
-    def test_100_key_decoding(
-        self,
-        public_key_struct: data.SSHTestKey,
-    ) -> None:
-        """The [`tests.ALL_KEYS`][] public key data looks sane."""
-        keydata = base64.b64decode(
-            public_key_struct.public_key.split(None, 2)[1]
-        )
-        assert keydata == public_key_struct.public_key_data, (
-            "recorded public key data doesn't match"
-        )
-
-
 class TestShellExportScriptParsing:
     """Test the shell export script parsing utility function."""
 
@@ -951,6 +932,44 @@ class TestSSHProtocolDatatypes(TestStaticFunctionality):
             for canon2 in canonical_functions:
                 assert canon1(encoded) == canon2(encoded)
                 assert canon1(canon2(encoded)) == canon1(encoded)
+
+    @Parametrize.UINT32_EXCEPTIONS
+    def test_uint32_exceptions(
+        self, input: int, exc_type: type[Exception], exc_pattern: str
+    ) -> None:
+        """`uint32` encoding fails for out-of-bound values."""
+        uint32 = ssh_agent.SSHAgentClient.uint32
+        with pytest.raises(exc_type, match=exc_pattern):
+            uint32(input)
+
+    @Parametrize.SSH_STRING_EXCEPTIONS
+    def test_string_exceptions(
+        self, input: Any, exc_type: type[Exception], exc_pattern: str
+    ) -> None:
+        """SSH string encoding fails for non-strings."""
+        string = ssh_agent.SSHAgentClient.string
+        with pytest.raises(exc_type, match=exc_pattern):
+            string(input)
+
+    @Parametrize.SSH_UNSTRING_EXCEPTIONS
+    def test_unstring_exceptions(
+        self,
+        input: bytes | bytearray,
+        exc_type: type[Exception],
+        exc_pattern: str,
+        has_trailer: bool,
+        parts: tuple[bytes | bytearray, bytes | bytearray] | None,
+    ) -> None:
+        """SSH string decoding fails for invalid values."""
+        unstring = ssh_agent.SSHAgentClient.unstring
+        unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
+        with pytest.raises(exc_type, match=exc_pattern):
+            unstring(input)
+        if has_trailer:
+            assert tuple(bytes(x) for x in unstring_prefix(input)) == parts
+        else:
+            with pytest.raises(exc_type, match=exc_pattern):
+                unstring_prefix(input)
 
 
 class TestSSHAgentSocketProviderRegistry:
@@ -1101,54 +1120,6 @@ class TestSSHAgentSocketProviderRegistry:
             )
             stack.enter_context(pytest.raises(AssertionError))
             socketprovider.SocketProvider._find_all_ssh_agent_socket_providers()
-
-
-# TODO(the-13th-letter): Assimilate into base class.
-class TestSSHProtocolDatatypes001(TestSSHProtocolDatatypes):
-    """More tests for the utility functions for the SSH protocol datatypes."""
-
-    @Parametrize.UINT32_EXCEPTIONS
-    def test_uint32_exceptions(
-        self, input: int, exc_type: type[Exception], exc_pattern: str
-    ) -> None:
-        """`uint32` encoding fails for out-of-bound values."""
-        uint32 = ssh_agent.SSHAgentClient.uint32
-        with pytest.raises(exc_type, match=exc_pattern):
-            uint32(input)
-
-    @Parametrize.SSH_STRING_EXCEPTIONS
-    def test_string_exceptions(
-        self, input: Any, exc_type: type[Exception], exc_pattern: str
-    ) -> None:
-        """SSH string encoding fails for non-strings."""
-        string = ssh_agent.SSHAgentClient.string
-        with pytest.raises(exc_type, match=exc_pattern):
-            string(input)
-
-    @Parametrize.SSH_UNSTRING_EXCEPTIONS
-    def test_unstring_exceptions(
-        self,
-        input: bytes | bytearray,
-        exc_type: type[Exception],
-        exc_pattern: str,
-        has_trailer: bool,
-        parts: tuple[bytes | bytearray, bytes | bytearray] | None,
-    ) -> None:
-        """SSH string decoding fails for invalid values."""
-        unstring = ssh_agent.SSHAgentClient.unstring
-        unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
-        with pytest.raises(exc_type, match=exc_pattern):
-            unstring(input)
-        if has_trailer:
-            assert tuple(bytes(x) for x in unstring_prefix(input)) == parts
-        else:
-            with pytest.raises(exc_type, match=exc_pattern):
-                unstring_prefix(input)
-
-
-# TODO(the-13th-letter): Assimilate into base class.
-class TestSSHAgentSocketProviderRegistry001(TestSSHAgentSocketProviderRegistry):
-    """More tests for the SSH agent socket provider registry."""
 
     def test_already_registered(
         self,

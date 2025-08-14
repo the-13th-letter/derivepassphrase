@@ -1056,68 +1056,6 @@ class TestPhraseAndKeyOverriding:
         ), "unexpected error output"
 
 
-# TODO(the-13th-letter): Assimilate into its descendant.
-class TestNotesPrinting000:
-    """Tests concerning printing the service notes: group 000."""
-
-    @hypothesis.given(
-        notes=strategies.text(
-            strategies.characters(
-                min_codepoint=32,
-                max_codepoint=126,
-                include_characters="\n",
-            ),
-            max_size=256,
-        ),
-    )
-    def test_207_service_with_notes_actually_prints_notes(
-        self,
-        notes: str,
-    ) -> None:
-        """Service notes are printed, if they exist."""
-        hypothesis.assume("Error:" not in notes)
-        runner = machinery.CliRunner(mix_stderr=False)
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            stack.enter_context(
-                pytest_machinery.isolated_vault_config(
-                    monkeypatch=monkeypatch,
-                    runner=runner,
-                    vault_config={
-                        "global": {
-                            "phrase": DUMMY_PASSPHRASE,
-                        },
-                        "services": {
-                            DUMMY_SERVICE: {
-                                "notes": notes,
-                                **DUMMY_CONFIG_SETTINGS,
-                            },
-                        },
-                    },
-                )
-            )
-            result = runner.invoke(
-                cli.derivepassphrase_vault,
-                ["--", DUMMY_SERVICE],
-            )
-        assert result.clean_exit(), "expected clean exit"
-        assert result.stdout, "expected program output"
-        assert result.stdout.strip() == DUMMY_RESULT_PASSPHRASE.decode(
-            "ascii"
-        ), "expected known program output"
-        assert result.stderr or not notes.strip(), "expected stderr"
-        assert "Error:" not in result.stderr, (
-            "expected no error messages on stderr"
-        )
-        assert result.stderr.strip() == notes.strip(), (
-            "expected known stderr contents"
-        )
-
-
-# TODO(the-13th-letter): Assimilate the descendants.
 class TestInvalidCommandLines:
     """Tests concerning invalid command-lines."""
 
@@ -1317,6 +1255,52 @@ class TestInvalidCommandLines:
                 catch_exceptions=False,
             )
         assert result.error_exit(error="mutually exclusive with "), (
+            "expected error exit and known error message"
+        )
+
+    def test_no_arguments(self) -> None:
+        """Calling `derivepassphrase vault` without any arguments fails."""
+        runner = machinery.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                pytest_machinery.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
+            result = runner.invoke(
+                cli.derivepassphrase_vault, [], catch_exceptions=False
+            )
+        assert result.error_exit(
+            error="Deriving a passphrase requires a SERVICE"
+        ), "expected error exit and known error message"
+
+    def test_no_passphrase_or_key(
+        self,
+    ) -> None:
+        """Deriving a passphrase without a passphrase or key fails."""
+        runner = machinery.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                pytest_machinery.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
+            result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ["--", DUMMY_SERVICE],
+                catch_exceptions=False,
+            )
+        assert result.error_exit(error="No passphrase or key was given"), (
             "expected error exit and known error message"
         )
 
@@ -1731,9 +1715,64 @@ class TestExportConfigInvalid:
         )
 
 
-# TODO(the-13th-letter): Assimilate the parent.
-class TestNotesPrinting001:
-    """Tests concerning printing the service notes: group 001."""
+class TestNotesPrinting:
+    """Tests concerning printing the service notes."""
+
+    @hypothesis.given(
+        notes=strategies.text(
+            strategies.characters(
+                min_codepoint=32,
+                max_codepoint=126,
+                include_characters="\n",
+            ),
+            max_size=256,
+        ),
+    )
+    def test_service_with_notes_actually_prints_notes(
+        self,
+        notes: str,
+    ) -> None:
+        """Service notes are printed, if they exist."""
+        hypothesis.assume("Error:" not in notes)
+        runner = machinery.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                pytest_machinery.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={
+                        "global": {
+                            "phrase": DUMMY_PASSPHRASE,
+                        },
+                        "services": {
+                            DUMMY_SERVICE: {
+                                "notes": notes,
+                                **DUMMY_CONFIG_SETTINGS,
+                            },
+                        },
+                    },
+                )
+            )
+            result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ["--", DUMMY_SERVICE],
+            )
+        assert result.clean_exit(), "expected clean exit"
+        assert result.stdout, "expected program output"
+        assert result.stdout.strip() == DUMMY_RESULT_PASSPHRASE.decode(
+            "ascii"
+        ), "expected known program output"
+        assert result.stderr or not notes.strip(), "expected stderr"
+        assert "Error:" not in result.stderr, (
+            "expected no error messages on stderr"
+        )
+        assert result.stderr.strip() == notes.strip(), (
+            "expected known stderr contents"
+        )
 
     @Parametrize.NOTES_PLACEMENT
     @hypothesis.given(
@@ -2266,7 +2305,6 @@ class TestNotesEditingInvalid:
             assert config == vault_config
 
 
-# TODO(the-13th-letter): Assimilate the descendants.
 class TestStoringConfigurationSuccesses:
     """Tests concerning storing the configuration: successes."""
 
@@ -2317,8 +2355,53 @@ class TestStoringConfigurationSuccesses:
             )
             assert_vault_config_is_indented_and_line_broken(config_txt)
 
+    def test_config_directory_nonexistant(
+        self,
+    ) -> None:
+        """Running without an existing config directory works.
 
-# TODO(the-13th-letter): Assimilate the descendants.
+        This is a regression test; see [issue\u00a0#6][] for context.
+        See also
+        [TestStoringConfigurationFailures001.test_config_directory_not_a_file][]
+        for a related aspect of this.
+
+        [issue #6]: https://github.com/the-13th-letter/derivepassphrase/issues/6
+
+        """
+        runner = machinery.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                pytest_machinery.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
+            with contextlib.suppress(FileNotFoundError):
+                shutil.rmtree(cli_helpers.config_filename(subsystem=None))
+            result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ["--config", "-p"],
+                catch_exceptions=False,
+                input="abc\n",
+            )
+            assert result.clean_exit(), "expected clean exit"
+            assert result.stderr == "Passphrase:", (
+                "program unexpectedly failed?!"
+            )
+            with cli_helpers.config_filename(subsystem="vault").open(
+                encoding="UTF-8"
+            ) as infile:
+                config_readback = json.load(infile)
+            assert config_readback == {
+                "global": {"phrase": "abc"},
+                "services": {},
+            }, "config mismatch"
+
+
 class TestStoringConfigurationFailures:
     """Tests concerning storing the configuration: failures."""
 
@@ -2660,113 +2743,6 @@ class TestStoringConfigurationFailures:
             "expected error exit and known error message"
         )
 
-
-# TODO(the-13th-letter): Assimilate the parent.
-class TestInvalidCommandLines001(TestInvalidCommandLines):
-    """Tests concerning invalid command-lines: group 001."""
-
-    def test_no_arguments(self) -> None:
-        """Calling `derivepassphrase vault` without any arguments fails."""
-        runner = machinery.CliRunner(mix_stderr=False)
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            stack.enter_context(
-                pytest_machinery.isolated_config(
-                    monkeypatch=monkeypatch,
-                    runner=runner,
-                )
-            )
-            result = runner.invoke(
-                cli.derivepassphrase_vault, [], catch_exceptions=False
-            )
-        assert result.error_exit(
-            error="Deriving a passphrase requires a SERVICE"
-        ), "expected error exit and known error message"
-
-    def test_no_passphrase_or_key(
-        self,
-    ) -> None:
-        """Deriving a passphrase without a passphrase or key fails."""
-        runner = machinery.CliRunner(mix_stderr=False)
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            stack.enter_context(
-                pytest_machinery.isolated_config(
-                    monkeypatch=monkeypatch,
-                    runner=runner,
-                )
-            )
-            result = runner.invoke(
-                cli.derivepassphrase_vault,
-                ["--", DUMMY_SERVICE],
-                catch_exceptions=False,
-            )
-        assert result.error_exit(error="No passphrase or key was given"), (
-            "expected error exit and known error message"
-        )
-
-
-# TODO(the-13th-letter): Assimilate into the parent.
-class TestStoringConfigurationSuccesses001:
-    """Tests concerning storing the configuration: successes, group 001."""
-
-    def test_config_directory_nonexistant(
-        self,
-    ) -> None:
-        """Running without an existing config directory works.
-
-        This is a regression test; see [issue\u00a0#6][] for context.
-        See also
-        [TestStoringConfigurationFailures001.test_config_directory_not_a_file][]
-        for a related aspect of this.
-
-        [issue #6]: https://github.com/the-13th-letter/derivepassphrase/issues/6
-
-        """
-        runner = machinery.CliRunner(mix_stderr=False)
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            stack.enter_context(
-                pytest_machinery.isolated_config(
-                    monkeypatch=monkeypatch,
-                    runner=runner,
-                )
-            )
-            with contextlib.suppress(FileNotFoundError):
-                shutil.rmtree(cli_helpers.config_filename(subsystem=None))
-            result = runner.invoke(
-                cli.derivepassphrase_vault,
-                ["--config", "-p"],
-                catch_exceptions=False,
-                input="abc\n",
-            )
-            assert result.clean_exit(), "expected clean exit"
-            assert result.stderr == "Passphrase:", (
-                "program unexpectedly failed?!"
-            )
-            with cli_helpers.config_filename(subsystem="vault").open(
-                encoding="UTF-8"
-            ) as infile:
-                config_readback = json.load(infile)
-            assert config_readback == {
-                "global": {"phrase": "abc"},
-                "services": {},
-            }, "config mismatch"
-
-
-# TODO(the-13th-letter): Assimilate into the parent.
-class TestStoringConfigurationFailures001:
-    """Tests concerning storing the configuration: failures, group 001."""
-
     def test_config_directory_not_a_file(
         self,
     ) -> None:
@@ -2815,42 +2791,6 @@ class TestStoringConfigurationFailures001:
                 input="abc\n",
             )
             assert result.error_exit(error="Cannot store vault settings:"), (
-                "expected error exit and known error message"
-            )
-
-    # TODO(the-13th-letter): Remove this test, because it is basically
-    # the same as
-    # TestStoringConfigurationFailures.test_fail_because_of_custom_error.
-    def test_store_config_custom_error(
-        self,
-    ) -> None:
-        """Storing the configuration reacts even to weird errors."""
-        runner = machinery.CliRunner(mix_stderr=False)
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            stack.enter_context(
-                pytest_machinery.isolated_config(
-                    monkeypatch=monkeypatch,
-                    runner=runner,
-                )
-            )
-            custom_error = "custom error message"
-
-            def raiser(config: Any) -> None:
-                del config
-                raise RuntimeError(custom_error)
-
-            monkeypatch.setattr(cli_helpers, "save_config", raiser)
-            result = runner.invoke(
-                cli.derivepassphrase_vault,
-                ["--config", "-p"],
-                catch_exceptions=False,
-                input="abc\n",
-            )
-            assert result.error_exit(error=custom_error), (
                 "expected error exit and known error message"
             )
 

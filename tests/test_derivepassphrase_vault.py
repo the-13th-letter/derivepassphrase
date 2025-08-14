@@ -138,6 +138,10 @@ class TestPhraseDependence:
             max_size=BLOCK_SIZE // 2,
         ),
     )
+    @hypothesis.example(phrases=[b"\x00", b"\x00\x00"], service="0").xfail(
+        reason="phrases are interchangable",
+        raises=AssertionError,
+    )
     def test_small(
         self,
         phrases: list[bytes],
@@ -227,6 +231,23 @@ class TestPhraseDependence:
             max_size=BLOCK_SIZE // 2,
         ),
     )
+    @hypothesis.example(
+        phrases=[
+            (
+                b"plnlrtfpijpuhqylxbgqiiyipieyxvfs"
+                b"avzgxbbcfusqkozwpngsyejqlmjsytrmd"
+            ),
+            b"eBkXQTfuBqp'cTcar&g*",
+        ],
+        service="any service name here",
+    ).xfail(
+        reason=(
+            "phrases are interchangable (Wikipedia example:"
+            "https://en.wikipedia.org/w/index.php?title=PBKDF2&oldid=1264881215#HMAC_collisions"
+            ")"
+        ),
+        raises=AssertionError,
+    )
     def test_mixed(
         self,
         phrases: list[bytes],
@@ -240,6 +261,46 @@ class TestPhraseDependence:
         assert vault.Vault.create_hash(
             phrase=phrases[0], service=service
         ) != vault.Vault.create_hash(phrase=phrases[1], service=service)
+
+    @hypothesis.given(
+        phrases=strategies.lists(
+            strategies.text(
+                strategies.characters(min_codepoint=32, max_codepoint=126),
+                min_size=1,
+                max_size=32,
+            ),
+            min_size=2,
+            max_size=2,
+            unique=True,
+        ),
+        config=hypothesis_machinery.vault_full_service_config(),
+        service=strategies.text(
+            strategies.characters(min_codepoint=32, max_codepoint=126),
+            min_size=1,
+            max_size=32,
+        ),
+    )
+    def test_phrase_dependence_with_config(
+        self,
+        phrases: list[str],
+        config: dict[str, int],
+        service: bytes,
+    ) -> None:
+        """The derived passphrase is dependent on the master passphrase."""
+        try:
+            assert vault.Vault(phrase=phrases[0], **config).generate(
+                service
+            ) != vault.Vault(phrase=phrases[1], **config).generate(service)
+        except ValueError as exc:  # pragma: no cover
+            # The service configuration strategy attempts to only
+            # generate satisfiable configurations.  It is possible,
+            # though rare, that this fails, and that unsatisfiability is
+            # only recognized when actually deriving a passphrase.  In
+            # that case, reject the generated configuration.
+            hypothesis.assume("no allowed characters left" not in exc.args)
+            # Otherwise it's a genuine bug in the test case or the
+            # implementation, and should be raised.
+            raise
 
 
 class TestServiceNameDependence:
@@ -267,6 +328,46 @@ class TestServiceNameDependence:
         assert vault.Vault.create_hash(
             phrase=phrase, service=services[0]
         ) != vault.Vault.create_hash(phrase=phrase, service=services[1])
+
+    @hypothesis.given(
+        phrase=strategies.text(
+            strategies.characters(min_codepoint=32, max_codepoint=126),
+            min_size=1,
+            max_size=32,
+        ),
+        config=hypothesis_machinery.vault_full_service_config(),
+        services=strategies.lists(
+            strategies.text(
+                strategies.characters(min_codepoint=32, max_codepoint=126),
+                min_size=1,
+                max_size=32,
+            ),
+            min_size=2,
+            max_size=2,
+            unique=True,
+        ),
+    )
+    def test_service_name_dependence_with_config(
+        self,
+        phrase: str,
+        config: dict[str, int],
+        services: list[bytes],
+    ) -> None:
+        """The derived passphrase is dependent on the service name."""
+        try:
+            assert vault.Vault(phrase=phrase, **config).generate(
+                services[0]
+            ) != vault.Vault(phrase=phrase, **config).generate(services[1])
+        except ValueError as exc:  # pragma: no cover
+            # The service configuration strategy attempts to only
+            # generate satisfiable configurations.  It is possible,
+            # though rare, that this fails, and that unsatisfiability is
+            # only recognized when actually deriving a passphrase.  In
+            # that case, reject the generated configuration.
+            hypothesis.assume("no allowed characters left" not in exc.args)
+            # Otherwise it's a genuine bug in the test case or the
+            # implementation, and should be raised.
+            raise
 
 
 class TestInterchangablePhrases:
@@ -347,61 +448,6 @@ class TestBasicFunctionalityFromUpstream(TestVault):
             vault.Vault(phrase=(self.phrase + b"X")).generate("google")
             == b"n+oIz6sL>K*lTEWYRO%7"
         )
-
-    # TODO(the-13th-letter): Retire this test in favor of
-    # TestPhraseDependence.  The first example is a "short" example, the
-    # second is a "mixed" one.
-    @hypothesis.given(
-        phrases=strategies.lists(
-            strategies.binary(min_size=1, max_size=32),
-            min_size=2,
-            max_size=2,
-            unique=True,
-        ).filter(lambda tup: not phrases_are_interchangable(*tup)),
-        service=strategies.text(
-            strategies.characters(min_codepoint=32, max_codepoint=126),
-            min_size=1,
-            max_size=32,
-        ),
-    )
-    @hypothesis.example(phrases=[b"\x00", b"\x00\x00"], service="0").xfail(
-        reason="phrases are interchangable",
-        raises=AssertionError,
-    )
-    @hypothesis.example(
-        phrases=[
-            (
-                b"plnlrtfpijpuhqylxbgqiiyipieyxvfs"
-                b"avzgxbbcfusqkozwpngsyejqlmjsytrmd"
-            ),
-            b"eBkXQTfuBqp'cTcar&g*",
-        ],
-        service="any service name here",
-    ).xfail(
-        reason=(
-            "phrases are interchangable (Wikipedia example:"
-            "https://en.wikipedia.org/w/index.php?title=PBKDF2&oldid=1264881215#HMAC_collisions"
-            ")"
-        ),
-        raises=AssertionError,
-    )
-    def test_xxx_phrase_dependence(
-        self,
-        phrases: list[bytes],
-        service: str,
-    ) -> None:
-        """The derived passphrase is dependent on the master passphrase.
-
-        Certain pairs of master passphrases are known to be
-        interchangable; see [`vault.Vault.phrases_are_interchangable`][].
-        These are excluded from consideration by the hypothesis
-        strategy.
-
-        """
-        # See test_100_create_hash_phrase_dependence for context.
-        assert vault.Vault(phrase=phrases[0]).generate(service) != vault.Vault(
-            phrase=phrases[1]
-        ).generate(service)
 
 
 class TestStringAndBinaryExchangability(TestVault):
@@ -502,76 +548,8 @@ class TestStringAndBinaryExchangability(TestVault):
                 "service name generate different passphrases"
             )
 
-    # TODO(the-13th-letter): Retire this test in favor of
-    # TestServiceNameDependence.
-    @hypothesis.given(
-        phrase=strategies.text(
-            strategies.characters(min_codepoint=32, max_codepoint=126),
-            min_size=1,
-            max_size=32,
-        ),
-        services=strategies.lists(
-            strategies.binary(min_size=1, max_size=32),
-            min_size=2,
-            max_size=2,
-            unique=True,
-        ),
-    )
-    def test_xxx_service_name_dependence(
-        self,
-        phrase: str,
-        services: list[bytes],
-    ) -> None:
-        """The derived passphrase is dependent on the service name."""
-        assert vault.Vault(phrase=phrase).generate(services[0]) != vault.Vault(
-            phrase=phrase
-        ).generate(services[1])
 
-    # TODO(the-13th-letter): Move this test into TestServiceNameDependence
-    # and write a counterpart for TestPhraseDependence. Or, generalize
-    # this test into a class TestConfigDependence.
-    @hypothesis.given(
-        phrase=strategies.text(
-            strategies.characters(min_codepoint=32, max_codepoint=126),
-            min_size=1,
-            max_size=32,
-        ),
-        config=hypothesis_machinery.vault_full_service_config(),
-        services=strategies.lists(
-            strategies.binary(min_size=1, max_size=32),
-            min_size=2,
-            max_size=2,
-            unique=True,
-        ),
-    )
-    def test_service_name_dependence_with_config(
-        self,
-        phrase: str,
-        config: dict[str, int],
-        services: list[bytes],
-    ) -> None:
-        """The derived passphrase is dependent on the service name."""
-        try:
-            assert vault.Vault(phrase=phrase, **config).generate(
-                services[0]
-            ) != vault.Vault(phrase=phrase, **config).generate(services[1])
-        except ValueError as exc:  # pragma: no cover
-            # The service configuration strategy attempts to only
-            # generate satisfiable configurations.  It is possible,
-            # though rare, that this fails, and that unsatisfiability is
-            # only recognized when actually deriving a passphrase.  In
-            # that case, reject the generated configuration.
-            hypothesis.assume("no allowed characters left" not in exc.args)
-            # Otherwise it's a genuine bug in the test case or the
-            # implementation, and should be raised.
-            raise
-
-
-# TODO(the-13th-letter): State machine, for master passphrase, service
-# name and config dependence?
-
-
-class TestConstraintSatisfactionFromUpstream001(TestVault):
+class TestConstraintSatisfactionFromUpstream(TestVault):
     """Test passphrase derivation with the "vault" scheme: upstream tests."""
 
     def test_nonstandard_length(self) -> None:
@@ -580,36 +558,6 @@ class TestConstraintSatisfactionFromUpstream001(TestVault):
             vault.Vault(phrase=self.phrase, length=4).generate("google")
             == b"xDFu"
         )
-
-
-class TestConstraintSatisfactionThoroughness001(TestVault):
-    """Test passphrase derivation with the "vault" scheme: constraint satisfaction."""
-
-    @hypothesis.given(
-        phrase=strategies.one_of(
-            strategies.binary(min_size=1, max_size=100),
-            strategies.text(
-                min_size=1,
-                max_size=100,
-                alphabet=strategies.characters(max_codepoint=255),
-            ),
-        ),
-        length=strategies.integers(min_value=1, max_value=200),
-        service=strategies.text(min_size=1, max_size=100),
-    )
-    def test_password_with_length(
-        self,
-        phrase: str | bytes,
-        length: int,
-        service: str,
-    ) -> None:
-        """Derived passphrases have the requested length."""
-        password = vault.Vault(phrase=phrase, length=length).generate(service)
-        assert len(password) == length
-
-
-class TestConstraintSatisfactionFromUpstream002(TestVault):
-    """Test passphrase derivation with the "vault" scheme: upstream tests."""
 
     def test_repetition_limit(self) -> None:
         """Deriving a passphrase adheres to imposed repetition limits."""
@@ -674,8 +622,102 @@ class TestConstraintSatisfactionFromUpstream002(TestVault):
             == b": : fv_wqt>a-4w1S  R"
         )
 
+    def test_only_numbers_and_very_high_repetition_limit(self) -> None:
+        """Deriving a passphrase adheres to imposed repetition limits.
 
-class TestConstraintSatisfactionHeavyDuty001(TestVault):
+        This example is checked explicitly against forbidden substrings.
+
+        """
+        generated = vault.Vault(
+            phrase=b"",
+            length=40,
+            lower=0,
+            upper=0,
+            space=0,
+            dash=0,
+            symbol=0,
+            repeat=4,
+        ).generate("abcdef")
+        forbidden_substrings = {
+            b"0000",
+            b"1111",
+            b"2222",
+            b"3333",
+            b"4444",
+            b"5555",
+            b"6666",
+            b"7777",
+            b"8888",
+            b"9999",
+        }
+        for substring in forbidden_substrings:
+            assert substring not in generated
+
+    def test_very_limited_character_set(self) -> None:
+        """Deriving a passphrase works even with limited character sets."""
+        generated = vault.Vault(
+            phrase=b"", length=24, lower=0, upper=0, space=0, symbol=0
+        ).generate("testing")
+        assert generated == b"763252593304946694588866"
+
+
+class TestConstraintSatisfactionThoroughness(TestVault):
+    """Test passphrase derivation with the "vault" scheme: constraint satisfaction."""
+
+    @hypothesis.given(
+        phrase=strategies.one_of(
+            strategies.binary(min_size=1, max_size=100),
+            strategies.text(
+                min_size=1,
+                max_size=100,
+                alphabet=strategies.characters(max_codepoint=255),
+            ),
+        ),
+        length=strategies.integers(min_value=1, max_value=200),
+        service=strategies.text(min_size=1, max_size=100),
+    )
+    def test_password_with_length(
+        self,
+        phrase: str | bytes,
+        length: int,
+        service: str,
+    ) -> None:
+        """Derived passphrases have the requested length."""
+        password = vault.Vault(phrase=phrase, length=length).generate(service)
+        assert len(password) == length
+
+    # This test has time complexity `O(length * repeat)`, both of which
+    # are chosen by hypothesis and thus outside our control.
+    @hypothesis.settings(deadline=None)
+    @hypothesis.given(
+        phrase=strategies.one_of(
+            strategies.binary(min_size=1, max_size=100),
+            strategies.text(
+                min_size=1,
+                max_size=100,
+                alphabet=strategies.characters(max_codepoint=255),
+            ),
+        ),
+        length=strategies.integers(min_value=2, max_value=200),
+        repeat=strategies.integers(min_value=1, max_value=200),
+        service=strategies.text(min_size=1, max_size=1000),
+    )
+    def test_arbitrary_repetition_limit(
+        self,
+        phrase: str | bytes,
+        length: int,
+        repeat: int,
+        service: str,
+    ) -> None:
+        """Derived passphrases obey the given occurrence constraint."""
+        password = vault.Vault(
+            phrase=phrase, length=length, repeat=repeat
+        ).generate(service)
+        for i in range((length + 1) - (repeat + 1)):
+            assert len(set(password[i : i + repeat + 1])) > 1
+
+
+class TestConstraintSatisfactionHeavyDuty(TestVault):
     """Test passphrase derivation with the "vault" scheme: constraint satisfaction."""
 
     @hypothesis.given(
@@ -778,86 +820,6 @@ class TestConstraintSatisfactionHeavyDuty001(TestVault):
                 assert len(set(snippet)) > 1, (
                     "Password does not satisfy character repeat constraints."
                 )
-
-
-class TestConstraintSatisfactionFromUpstream003(TestVault):
-    """Test passphrase derivation with the "vault" scheme: upstream tests."""
-
-    def test_only_numbers_and_very_high_repetition_limit(self) -> None:
-        """Deriving a passphrase adheres to imposed repetition limits.
-
-        This example is checked explicitly against forbidden substrings.
-
-        """
-        generated = vault.Vault(
-            phrase=b"",
-            length=40,
-            lower=0,
-            upper=0,
-            space=0,
-            dash=0,
-            symbol=0,
-            repeat=4,
-        ).generate("abcdef")
-        forbidden_substrings = {
-            b"0000",
-            b"1111",
-            b"2222",
-            b"3333",
-            b"4444",
-            b"5555",
-            b"6666",
-            b"7777",
-            b"8888",
-            b"9999",
-        }
-        for substring in forbidden_substrings:
-            assert substring not in generated
-
-
-class TestConstraintSatisfactionThoroughness002(TestVault):
-    """Test passphrase derivation with the "vault" scheme: constraint satisfaction."""
-
-    # This test has time complexity `O(length * repeat)`, both of which
-    # are chosen by hypothesis and thus outside our control.
-    @hypothesis.settings(deadline=None)
-    @hypothesis.given(
-        phrase=strategies.one_of(
-            strategies.binary(min_size=1, max_size=100),
-            strategies.text(
-                min_size=1,
-                max_size=100,
-                alphabet=strategies.characters(max_codepoint=255),
-            ),
-        ),
-        length=strategies.integers(min_value=2, max_value=200),
-        repeat=strategies.integers(min_value=1, max_value=200),
-        service=strategies.text(min_size=1, max_size=1000),
-    )
-    def test_218a_arbitrary_repetition_limit(
-        self,
-        phrase: str | bytes,
-        length: int,
-        repeat: int,
-        service: str,
-    ) -> None:
-        """Derived passphrases obey the given occurrence constraint."""
-        password = vault.Vault(
-            phrase=phrase, length=length, repeat=repeat
-        ).generate(service)
-        for i in range((length + 1) - (repeat + 1)):
-            assert len(set(password[i : i + repeat + 1])) > 1
-
-
-class TestConstraintSatisfactionFromUpstream004(TestVault):
-    """Test passphrase derivation with the "vault" scheme: upstream tests."""
-
-    def test_very_limited_character_set(self) -> None:
-        """Deriving a passphrase works even with limited character sets."""
-        generated = vault.Vault(
-            phrase=b"", length=24, lower=0, upper=0, space=0, symbol=0
-        ).generate("testing")
-        assert generated == b"763252593304946694588866"
 
 
 class TestUtilities(TestVault):

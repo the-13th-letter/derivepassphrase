@@ -56,7 +56,6 @@ class Parametrize(test_000_basic.Parametrize, test_utils.Parametrize):
     )
 
 
-# TODO(the-13th-letter): Assimilate the descendants.
 class TestConfigMigrationMachinery:
     """Tests for the configuration file migration machinery."""
 
@@ -161,6 +160,36 @@ class TestConfigMigrationMachinery:
                 ValueError, match=cli_helpers.INVALID_VAULT_CONFIG
             ):
                 cli_helpers.migrate_and_load_old_config()
+
+    def test_completion_supports_old_config_file(
+        self,
+    ) -> None:
+        """Completing service names from the old settings file works."""
+        config = {"services": {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}}
+        runner = machinery.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                pytest_machinery.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config=config,
+                )
+            )
+            old_name = cli_helpers.config_filename(
+                subsystem="old settings.json"
+            )
+            new_name = cli_helpers.config_filename(subsystem="vault")
+            old_name.unlink(missing_ok=True)
+            new_name.rename(old_name)
+            assert cli_helpers.shell_complete_service(
+                click.Context(cli.derivepassphrase),
+                click.Argument(["some_parameter"]),
+                "",
+            ) == [DUMMY_SERVICE]
 
 
 class TestArgumentForwarding:
@@ -403,38 +432,3 @@ class TestConfigMigration:
         assert machinery.warning_emitted(
             "Failed to migrate to ", caplog.record_tuples
         ), "expected known warning message in stderr"
-
-
-# TODO(the-13th-letter): Assimilate into the parent.
-class TestConfigMigrationMachinery001(TestConfigMigrationMachinery):
-    """Tests for the configuration file migration machinery, group 001."""
-
-    def test_completion_supports_old_config_file(
-        self,
-    ) -> None:
-        """Completing service names from the old settings file works."""
-        config = {"services": {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy()}}
-        runner = machinery.CliRunner(mix_stderr=False)
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            stack.enter_context(
-                pytest_machinery.isolated_vault_config(
-                    monkeypatch=monkeypatch,
-                    runner=runner,
-                    vault_config=config,
-                )
-            )
-            old_name = cli_helpers.config_filename(
-                subsystem="old settings.json"
-            )
-            new_name = cli_helpers.config_filename(subsystem="vault")
-            old_name.unlink(missing_ok=True)
-            new_name.rename(old_name)
-            assert cli_helpers.shell_complete_service(
-                click.Context(cli.derivepassphrase),
-                click.Argument(["some_parameter"]),
-                "",
-            ) == [DUMMY_SERVICE]
