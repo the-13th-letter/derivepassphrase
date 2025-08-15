@@ -273,6 +273,9 @@ def assert_vault_config_is_indented_and_line_broken(
 class Parametrize(types.SimpleNamespace):
     """Common test parametrizations."""
 
+    AUTO_PROMPT = pytest.mark.parametrize(
+        "auto_prompt", [False, True], ids=["normal_prompt", "auto_prompt"]
+    )
     CHARSET_NAME = pytest.mark.parametrize(
         "charset_name", ["lower", "upper", "number", "space", "dash", "symbol"]
     )
@@ -420,6 +423,34 @@ class Parametrize(types.SimpleNamespace):
                     "services": {
                         DUMMY_SERVICE: {
                             "key": DUMMY_KEY1_B64,
+                            **DUMMY_CONFIG_SETTINGS,
+                        }
+                    },
+                },
+                id="service",
+            ),
+        ],
+    )
+    CONFIG_WITH_PHRASE = pytest.mark.parametrize(
+        "config",
+        [
+            pytest.param(
+                {
+                    "global": {"phrase": DUMMY_PASSPHRASE.rstrip("\n")},
+                    "services": {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS},
+                },
+                id="global",
+            ),
+            pytest.param(
+                {
+                    "global": {
+                        "phrase": DUMMY_PASSPHRASE.rstrip("\n")
+                        + "XXX"
+                        + DUMMY_PASSPHRASE.rstrip("\n")
+                    },
+                    "services": {
+                        DUMMY_SERVICE: {
+                            "phrase": DUMMY_PASSPHRASE.rstrip("\n"),
                             **DUMMY_CONFIG_SETTINGS,
                         }
                     },
@@ -786,29 +817,85 @@ class TestDerivedPassphraseConstraints:
 class TestPhraseBasic:
     """Tests for master passphrase configuration: basic."""
 
-    @pytest.mark.xfail(
-        True,
-        reason="not implemented yet",
-        raises=NotImplementedError,
-        strict=True,
-    )
+    @Parametrize.CONFIG_WITH_PHRASE
     def test_phrase_from_config(
         self,
+        config: _types.VaultConfig,
     ) -> None:
         """A stored configured master passphrase will be used."""
-        raise NotImplementedError
+        runner = machinery.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                pytest_machinery.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config=config,
+                )
+            )
 
-    @pytest.mark.xfail(
-        True,
-        reason="not implemented yet",
-        raises=NotImplementedError,
-        strict=True,
-    )
+            def phrase_from_key(*_args: Any, **_kwargs: Any) -> NoReturn:
+                pytest.fail("Attempted to use a key in a phrase-based test!")
+
+            monkeypatch.setattr(
+                vault.Vault, "phrase_from_key", phrase_from_key
+            )
+            result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ["--", DUMMY_SERVICE],
+                catch_exceptions=False,
+            )
+        assert result.clean_exit(empty_stderr=True), (
+            "expected clean exit and empty stderr"
+        )
+        assert result.stdout
+        assert (
+            result.stdout.rstrip("\n").encode("UTF-8")
+            == DUMMY_RESULT_PASSPHRASE
+        ), "expected known output"
+
+    @Parametrize.AUTO_PROMPT
     def test_phrase_from_command_line(
         self,
+        auto_prompt: bool,
     ) -> None:
         """A master passphrase requested on the command-line will be used."""
-        raise NotImplementedError
+        runner = machinery.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                pytest_machinery.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={
+                        "services": {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}
+                    },
+                )
+            )
+            if auto_prompt:
+                monkeypatch.setattr(
+                    cli_helpers,
+                    "prompt_for_passphrase",
+                    callables.auto_prompt,
+                )
+            result = runner.invoke(
+                cli.derivepassphrase_vault,
+                ["-p", "--", DUMMY_SERVICE],
+                input=None if auto_prompt else DUMMY_PASSPHRASE,
+                catch_exceptions=False,
+            )
+        assert result.clean_exit(), "expected clean exit"
+        assert result.stdout, "expected program output"
+        last_line = result.stdout.splitlines(True)[-1]
+        assert (
+            last_line.rstrip("\n").encode("UTF-8") == DUMMY_RESULT_PASSPHRASE
+        ), "expected known output"
 
 
 class TestKeyBasic:
@@ -1542,17 +1629,72 @@ class TestExportConfigValid:
         ), "unexpected error output"
         assert_vault_config_is_indented_and_line_broken(result.stdout)
 
-    @pytest.mark.xfail(
-        True,
-        reason="not implemented yet",
-        raises=NotImplementedError,
-        strict=True,
+    @hypothesis.settings(
+        suppress_health_check=[
+            *hypothesis.settings().suppress_health_check,
+            hypothesis.HealthCheck.function_scoped_fixture,
+        ],
     )
-    def test_export_smudged_config(
+    @hypothesis.given(
+        conf=hypothesis_machinery.smudged_vault_test_config(
+            strategies.sampled_from([
+                conf for conf in data.TEST_CONFIGS if conf.is_valid()
+            ])
+        )
+    )
+    def test_reexport_smudged_config(
         self,
+        caplog: pytest.LogCaptureFixture,
+        conf: data.VaultTestConfig,
     ) -> None:
-        """Exporting a smudged configuration works."""
-        raise NotImplementedError
+        """Re-exporting a smudged configuration works.
+
+        Tested via hypothesis.
+
+        """
+        config = conf.config
+        config2 = copy.deepcopy(config)
+        _types.clean_up_falsy_vault_config_values(config2)
+        # Reset caplog between hypothesis runs.
+        caplog.clear()
+        runner = machinery.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                pytest_machinery.isolated_vault_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                    vault_config={"services": {}},
+                )
+            )
+            result1 = runner.invoke(
+                cli.derivepassphrase_vault,
+                ["--import", "-"],
+                input=json.dumps(config),
+                catch_exceptions=False,
+            )
+            assert result1.clean_exit(empty_stderr=False), (
+                "expected clean exit"
+            )
+            assert not result1.stderr or all(
+                map(is_harmless_config_import_warning, caplog.record_tuples)
+            ), "unexpected error output"
+            result2 = runner.invoke(
+                cli.derivepassphrase_vault,
+                ["--export", "-"],
+                catch_exceptions=False,
+            )
+            assert result2.clean_exit(empty_stderr=False), (
+                "expected clean exit"
+            )
+            assert not result2.stderr or all(
+                map(is_harmless_config_import_warning, caplog.record_tuples)
+            ), "unexpected error output"
+            config3 = json.loads(result2.stdout)
+            assert config3 == config2, "config not exported correctly"
 
     @Parametrize.EXPORT_FORMAT_OPTIONS
     def test_export_config_no_stored_settings(
