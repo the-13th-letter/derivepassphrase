@@ -700,7 +700,9 @@ class Parametrize(types.SimpleNamespace):
         ],
     )
     TRY_RACE_FREE_IMPLEMENTATION = pytest.mark.parametrize(
-        "try_race_free_implementation", [True, False]
+        "try_race_free_implementation",
+        [False, True],
+        ids=["racy", "maybe-race-free"],
     )
 
 

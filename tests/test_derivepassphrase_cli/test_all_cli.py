@@ -124,8 +124,14 @@ class Parametrize(types.SimpleNamespace):
         [False, True],
         ids=["notty", "tty"],
     )
-    MASK_PROG_NAME = pytest.mark.parametrize("mask_prog_name", [False, True])
-    MASK_VERSION = pytest.mark.parametrize("mask_version", [False, True])
+    MASK_PROG_NAME = pytest.mark.parametrize(
+        "mask_prog_name",
+        [False, True],
+        ids=["clear_prog_name", "masked_prog_name"],
+    )
+    MASK_VERSION = pytest.mark.parametrize(
+        "mask_version", [False, True], ids=["clear_version", "masked_version"]
+    )
     VERSION_OUTPUT_DATA = pytest.mark.parametrize(
         ["version_output", "prog_name", "version", "expected_parse"],
         [
