@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import array
+import enum
 import hashlib
 import math
 import types
@@ -15,13 +16,12 @@ from typing import TYPE_CHECKING
 import hypothesis
 import pytest
 from hypothesis import strategies
-from typing_extensions import TypeVar
 
 from derivepassphrase import vault
 from tests.machinery import hypothesis as hypothesis_machinery
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import Callable
 
     from typing_extensions import Buffer
 
@@ -116,6 +116,154 @@ def phrases_are_interchangable(
     return phrase1 == phrase2
 
 
+class PhraseSize(str, enum.Enum):
+    """Size of the generated phrase.
+
+    Attributes:
+        SHORT: A phrase shorter than the SHA-1 block size.
+        FULL: A phrase exactly as long as the SHA-1 block size.
+        OVERLONG: A phrase longer than the SHA-1 block size.
+        MIXED: A `SHORT`, `FULL` or `OVERLONG` phrase.
+
+    """
+
+    SHORT = enum.auto()
+    """"""
+    FULL = enum.auto()
+    """"""
+    OVERLONG = enum.auto()
+    """"""
+    MIXED = enum.auto()
+    """"""
+
+
+class Strategies:
+    """Hypothesis strategies."""
+
+    @staticmethod
+    def text_strategy() -> strategies.SearchStrategy[str]:
+        """Return a strategy for textual master passphrases or service names."""
+        return strategies.text(
+            strategies.characters(min_codepoint=32, max_codepoint=126),
+            min_size=1,
+            max_size=BLOCK_SIZE // 2,
+        )
+
+    @strategies.composite
+    @staticmethod
+    def binary_phrase_strategy(
+        draw: strategies.DrawFn, size: PhraseSize = PhraseSize.MIXED
+    ) -> Buffer:
+        """Return a strategy for binary master passphrases.
+
+        Args:
+            draw:
+                The [strategy drawing
+                function][hypothesis.strategies.composite].
+            size:
+                The desired phrase size.
+
+        Returns:
+            The strategy.
+
+        """
+        if size == PhraseSize.MIXED:
+            size = draw(
+                strategies.sampled_from([
+                    PhraseSize.SHORT,
+                    PhraseSize.FULL,
+                    PhraseSize.OVERLONG,
+                ]),
+                label="concrete_size",
+            )
+        min_size, max_size = (
+            (1, BLOCK_SIZE // 2)
+            if size == PhraseSize.SHORT
+            else (BLOCK_SIZE, BLOCK_SIZE)
+            if size == PhraseSize.FULL
+            else (BLOCK_SIZE + 1, BLOCK_SIZE + 8)
+        )
+        return draw(
+            strategies.binary(min_size=min_size, max_size=max_size),
+            label="phrase",
+        )
+
+    @strategies.composite
+    @staticmethod
+    def pair_of_binary_phrases_strategy(
+        draw: strategies.DrawFn, size: PhraseSize = PhraseSize.MIXED
+    ) -> tuple[Buffer, Buffer]:
+        """Return a strategy for two non-interchangable binary master passphrases.
+
+        Args:
+            draw:
+                The [strategy drawing
+                function][hypothesis.strategies.composite].
+            size:
+                The desired phrase size.
+
+        Returns:
+            The strategy.
+
+        """
+        phrase1 = draw(
+            Strategies.binary_phrase_strategy(size=size), label="phrase1"
+        )
+        phrase2 = draw(
+            Strategies.binary_phrase_strategy(size=size).filter(
+                lambda p: not phrases_are_interchangable(phrase1, p)
+            ),
+            label="phrase2",
+        )
+        return (phrase1, phrase2)
+
+    @strategies.composite
+    @staticmethod
+    def make_interchangable_phrases(
+        draw: strategies.DrawFn, phrase: Buffer
+    ) -> tuple[Buffer, Buffer]:
+        """Transform a phrase into a pair of interchangable phrases.
+
+        For phrases of size 64 (the SHA-1 block size), [in 99.6% of the
+        cases][INTERCHANGABLE_PASSPHRASES], it is infeasible for us to
+        find a second interchangable phrase.  (It would be equivalent to
+        mounting a pre-image attack on an SHA-1, a cryptographically
+        infeasible action.)  However, in the remaining 0.4% of cases,
+        the phrase of size 64 is padded with NUL bytes at the end, and
+        we can generate the second interchangable phrase by altering the
+        padding.  For other phrase sizes, no such problems exist: we can
+        obtain interchangable phrases by adding padding (if the phrase
+        is shorter than 64 bytes) or by computing the SHA-1 value of the
+        phrase (if it is longer than 64 bytes).
+
+        [INTERCHANGABLE_PASSPHRASES]: https://the13thletter.info/derivepassphrase/0.x/explanation/faq-vault-interchangable-passphrases/ 'What are "interchangable passphrases" in `vault`, and what does that mean in practice?'
+
+        Args:
+            draw:
+                The [strategy drawing
+                function][hypothesis.strategies.composite].
+            phrase:
+                The first phrase.
+
+        Returns:
+            The strategy for two interchangable phrases.
+
+        """
+        p = bytes(phrase)
+        hypothesis.assume(p.rstrip(b"\x00") != p or len(p) != BLOCK_SIZE)
+        base = (
+            hashlib.sha1(p).digest()
+            if len(p) > BLOCK_SIZE
+            else p.rstrip(b"\x00") or b"\x00"
+        )
+        zero_filled = [
+            base + bytes(i)
+            for i in range(BLOCK_SIZE - len(base) + 1)
+            if base + bytes(i) != p
+        ]
+        return (p, draw(strategies.sampled_from(zero_filled)))
+
+
 class TestVault:
     """Test passphrase derivation with the "vault" scheme."""
 
@@ -126,17 +274,10 @@ class TestPhraseDependence:
     """Test the dependence of the internal hash on the master passphrase."""
 
     @hypothesis.given(
-        phrases=strategies.lists(
-            strategies.binary(min_size=1, max_size=BLOCK_SIZE // 2),
-            min_size=2,
-            max_size=2,
-            unique=True,
-        ).filter(lambda tup: not phrases_are_interchangable(*tup)),
-        service=strategies.text(
-            strategies.characters(min_codepoint=32, max_codepoint=126),
-            min_size=1,
-            max_size=BLOCK_SIZE // 2,
+        phrases=Strategies.pair_of_binary_phrases_strategy(
+            size=PhraseSize.SHORT
         ),
+        service=Strategies.text_strategy(),
     )
     @hypothesis.example(phrases=[b"\x00", b"\x00\x00"], service="0").xfail(
         reason="phrases are interchangable",
@@ -157,17 +298,10 @@ class TestPhraseDependence:
         ) != vault.Vault.create_hash(phrase=phrases[1], service=service)
 
     @hypothesis.given(
-        phrases=strategies.lists(
-            strategies.binary(min_size=BLOCK_SIZE, max_size=BLOCK_SIZE),
-            min_size=2,
-            max_size=2,
-            unique=True,
-        ).filter(lambda tup: not phrases_are_interchangable(*tup)),
-        service=strategies.text(
-            strategies.characters(min_codepoint=32, max_codepoint=126),
-            min_size=1,
-            max_size=BLOCK_SIZE // 2,
+        phrases=Strategies.pair_of_binary_phrases_strategy(
+            size=PhraseSize.FULL
         ),
+        service=Strategies.text_strategy(),
     )
     def test_medium(
         self,
@@ -184,19 +318,10 @@ class TestPhraseDependence:
         ) != vault.Vault.create_hash(phrase=phrases[1], service=service)
 
     @hypothesis.given(
-        phrases=strategies.lists(
-            strategies.binary(
-                min_size=BLOCK_SIZE + 1, max_size=BLOCK_SIZE + 8
-            ),
-            min_size=2,
-            max_size=2,
-            unique=True,
-        ).filter(lambda tup: not phrases_are_interchangable(*tup)),
-        service=strategies.text(
-            strategies.characters(min_codepoint=32, max_codepoint=126),
-            min_size=1,
-            max_size=BLOCK_SIZE // 2,
+        phrases=Strategies.pair_of_binary_phrases_strategy(
+            size=PhraseSize.OVERLONG
         ),
+        service=Strategies.text_strategy(),
     )
     def test_large(
         self,
@@ -213,23 +338,10 @@ class TestPhraseDependence:
         ) != vault.Vault.create_hash(phrase=phrases[1], service=service)
 
     @hypothesis.given(
-        phrases=strategies.lists(
-            strategies.one_of(
-                strategies.binary(min_size=1, max_size=BLOCK_SIZE // 2),
-                strategies.binary(min_size=BLOCK_SIZE, max_size=BLOCK_SIZE),
-                strategies.binary(
-                    min_size=BLOCK_SIZE + 1, max_size=BLOCK_SIZE + 8
-                ),
-            ),
-            min_size=2,
-            max_size=2,
-            unique=True,
-        ).filter(lambda tup: not phrases_are_interchangable(*tup)),
-        service=strategies.text(
-            strategies.characters(min_codepoint=32, max_codepoint=126),
-            min_size=1,
-            max_size=BLOCK_SIZE // 2,
+        phrases=Strategies.pair_of_binary_phrases_strategy(
+            size=PhraseSize.MIXED
         ),
+        service=Strategies.text_strategy(),
     )
     @hypothesis.example(
         phrases=[
@@ -267,13 +379,9 @@ class TestServiceNameDependence:
     """Test the dependence of the internal hash on the service name."""
 
     @hypothesis.given(
-        phrase=strategies.text(
-            strategies.characters(min_codepoint=32, max_codepoint=126),
-            min_size=1,
-            max_size=32,
-        ),
+        phrase=Strategies.text_strategy(),
         services=strategies.lists(
-            strategies.binary(min_size=1, max_size=32),
+            Strategies.text_strategy(),
             min_size=2,
             max_size=2,
             unique=True,
@@ -294,20 +402,10 @@ class TestInterchangablePhrases:
     """Test the interchangability of certain master passphrases."""
 
     @hypothesis.given(
-        phrases=strategies.binary(max_size=BLOCK_SIZE // 2).flatmap(
-            lambda bs: strategies.tuples(
-                strategies.just(bs),
-                strategies.integers(
-                    min_value=1,
-                    max_value=BLOCK_SIZE - len(bs),
-                ).map(lambda num: bs + b"\x00" * num),
-            )
-        ),
-        service=strategies.text(
-            strategies.characters(min_codepoint=32, max_codepoint=126),
-            min_size=1,
-            max_size=32,
-        ),
+        phrases=Strategies.binary_phrase_strategy(
+            size=PhraseSize.SHORT
+        ).flatmap(Strategies.make_interchangable_phrases),
+        service=Strategies.text_strategy(),
     )
     def test_small(
         self,
@@ -321,24 +419,10 @@ class TestInterchangablePhrases:
         ) == vault.Vault.create_hash(phrase=phrases[1], service=service)
 
     @hypothesis.given(
-        phrases=strategies.binary(
-            min_size=BLOCK_SIZE + 1, max_size=BLOCK_SIZE + 8
-        ).flatmap(
-            lambda bs: strategies.tuples(
-                strategies.just(bs),
-                strategies.just(hashlib.sha1(bs).digest()).flatmap(
-                    lambda h: strategies.integers(
-                        min_value=1,
-                        max_value=BLOCK_SIZE - DIGEST_SIZE,
-                    ).map(lambda num: h + b"\x00" * num)
-                ),
-            )
-        ),
-        service=strategies.text(
-            strategies.characters(min_codepoint=32, max_codepoint=126),
-            min_size=1,
-            max_size=32,
-        ),
+        phrases=Strategies.binary_phrase_strategy(
+            size=PhraseSize.OVERLONG,
+        ).flatmap(Strategies.make_interchangable_phrases),
+        service=Strategies.text_strategy(),
     )
     def test_large(
         self,
@@ -397,16 +481,8 @@ class TestStringAndBinaryExchangability(TestVault):
         ) == vault.Vault(phrase=self.phrase).generate(memoryview(b"google"))
 
     @hypothesis.given(
-        phrase=strategies.text(
-            strategies.characters(min_codepoint=32, max_codepoint=126),
-            min_size=1,
-            max_size=32,
-        ),
-        service=strategies.text(
-            strategies.characters(min_codepoint=32, max_codepoint=126),
-            min_size=1,
-            max_size=32,
-        ),
+        phrase=Strategies.text_strategy(),
+        service=Strategies.text_strategy(),
     )
     def test_binary_phrases(
         self,
@@ -433,16 +509,8 @@ class TestStringAndBinaryExchangability(TestVault):
             )
 
     @hypothesis.given(
-        phrase=strategies.text(
-            strategies.characters(min_codepoint=32, max_codepoint=126),
-            min_size=1,
-            max_size=32,
-        ),
-        service=strategies.text(
-            strategies.characters(min_codepoint=32, max_codepoint=126),
-            min_size=1,
-            max_size=32,
-        ),
+        phrase=Strategies.text_strategy(),
+        service=Strategies.text_strategy(),
     )
     def test_binary_service_name(
         self,
