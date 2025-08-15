@@ -69,7 +69,7 @@ def js_nested_strategy(draw: strategies.DrawFn) -> Any:
 
 @hypothesis.given(value=js_nested_strategy())
 @hypothesis.example(float("nan"))
-def test_100_js_truthiness(value: Any) -> None:
+def test_js_truthiness(value: Any) -> None:
     """Determine the truthiness of a value according to JavaScript.
 
     Use hypothesis to generate test values.

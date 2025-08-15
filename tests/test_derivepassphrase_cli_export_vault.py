@@ -178,7 +178,7 @@ class Parametrize(types.SimpleNamespace):
 class TestCLI:
     """Test the command-line interface for `derivepassphrase export vault`."""
 
-    def test_200_path_parameter(self) -> None:
+    def test_path_parameter(self) -> None:
         """The path `VAULT_PATH` is supported.
 
         Using `VAULT_PATH` as the path looks up the actual path in the
@@ -208,7 +208,7 @@ class TestCLI:
         assert result.clean_exit(empty_stderr=True), "expected clean exit"
         assert json.loads(result.stdout) == data.VAULT_V03_CONFIG_DATA
 
-    def test_201_key_parameter(self) -> None:
+    def test_key_parameter(self) -> None:
         """The `--key` option is supported."""
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
@@ -231,7 +231,7 @@ class TestCLI:
         assert json.loads(result.stdout) == data.VAULT_V03_CONFIG_DATA
 
     @pytest_machinery.Parametrize.VAULT_CONFIG_FORMATS_DATA
-    def test_210_load_vault_v02_v03_storeroom(
+    def test_load_vault_v02_v03_storeroom(
         self,
         config: str | bytes,
         format: str,
@@ -269,10 +269,7 @@ class TestCLI:
         assert result.clean_exit(empty_stderr=True), "expected clean exit"
         assert json.loads(result.stdout) == config_data
 
-    # test_300_invalid_format is found in
-    # tests.test_derivepassphrase_export::Test002CLI
-
-    def test_301_vault_config_not_found(
+    def test_vault_config_not_found(
         self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
@@ -304,7 +301,7 @@ class TestCLI:
         ), "expected error exit and known error message"
         assert data.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
-    def test_302_vault_config_invalid(
+    def test_vault_config_invalid(
         self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
@@ -333,7 +330,7 @@ class TestCLI:
         ), "expected error exit and known error message"
         assert data.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
-    def test_302a_vault_config_invalid_just_a_directory(
+    def test_vault_config_invalid_just_a_directory(
         self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
@@ -365,7 +362,7 @@ class TestCLI:
         ), "expected error exit and known error message"
         assert data.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
-    def test_403_invalid_vault_config_bad_signature(
+    def test_invalid_vault_config_bad_signature(
         self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
@@ -394,7 +391,7 @@ class TestCLI:
         ), "expected error exit and known error message"
         assert data.CANNOT_LOAD_CRYPTOGRAPHY not in result.stderr
 
-    def test_500_vault_config_invalid_internal(
+    def test_vault_config_invalid_internal(
         self,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
@@ -439,7 +436,7 @@ class TestStoreroom:
     @Parametrize.PATH
     @Parametrize.KEY_FORMATS
     @Parametrize.STOREROOM_HANDLER
-    def test_200_export_data_path_and_keys_type(
+    def test_export_data_path_and_keys_type(
         self,
         path: str | None,
         key: str | Buffer | None,
@@ -470,7 +467,7 @@ class TestStoreroom:
                 == data.VAULT_STOREROOM_CONFIG_DATA
             )
 
-    def test_400_decrypt_bucket_item_unknown_version(self) -> None:
+    def test_decrypt_bucket_item_unknown_version(self) -> None:
         """Fail on unknown versions of the master keys file."""
         bucket_item = (
             b"\xff" + bytes(storeroom.ENCRYPTED_KEYPAIR_SIZE) + bytes(3)
@@ -484,7 +481,7 @@ class TestStoreroom:
             storeroom._decrypt_bucket_item(bucket_item, master_keys)
 
     @Parametrize.BAD_CONFIG
-    def test_401_decrypt_bucket_file_bad_json_or_version(
+    def test_decrypt_bucket_file_bad_json_or_version(
         self,
         config: str,
     ) -> None:
@@ -520,7 +517,7 @@ class TestStoreroom:
 
     @Parametrize.BAD_MASTER_KEYS_DATA
     @Parametrize.STOREROOM_HANDLER
-    def test_402_export_storeroom_data_bad_master_keys_file(
+    def test_export_storeroom_data_bad_master_keys_file(
         self,
         master_keys_data: str,
         err_msg: str,
@@ -553,7 +550,7 @@ class TestStoreroom:
 
     @Parametrize.BAD_STOREROOM_CONFIG_DATA
     @Parametrize.STOREROOM_HANDLER
-    def test_403_export_storeroom_data_bad_directory_listing(
+    def test_export_storeroom_data_bad_directory_listing(
         self,
         zipped_config: bytes,
         error_text: str,
@@ -590,7 +587,7 @@ class TestStoreroom:
             stack.enter_context(pytest.raises(RuntimeError, match=error_text))
             handler(format="storeroom")
 
-    def test_404_decrypt_keys_wrong_data_length(self) -> None:
+    def test_decrypt_keys_wrong_data_length(self) -> None:
         """Fail on internal structural data of the wrong size.
 
         Specifically, fail on internal structural data such as master
@@ -646,7 +643,7 @@ class TestStoreroom:
             min_size=storeroom.MAC_SIZE, max_size=storeroom.MAC_SIZE
         ),
     )
-    def test_405_decrypt_keys_invalid_signature(self, data: bytes) -> None:
+    def test_decrypt_keys_invalid_signature(self, data: bytes) -> None:
         """Fail on bad MAC values."""
         key = b"DEADBEEFdeadbeefDeAdBeEfdEaDbEeF"
         # Guessing a correct payload plus MAC would be a pre-image
@@ -671,7 +668,7 @@ class TestVaultNativeConfig:
     """Test the vault-native handler and handler machinery."""
 
     @Parametrize.VAULT_NATIVE_PBKDF2_RESULT
-    def test_200_pbkdf2_manually(self, iterations: int, result: bytes) -> None:
+    def test_pbkdf2_manually(self, iterations: int, result: bytes) -> None:
         """The PBKDF2 helper function works."""
         assert (
             vault_native.VaultNativeConfigParser._pbkdf2(
@@ -682,7 +679,7 @@ class TestVaultNativeConfig:
 
     @Parametrize.VAULT_NATIVE_CONFIG_DATA
     @Parametrize.VAULT_NATIVE_HANDLER
-    def test_201_export_vault_native_data_explicit_version(
+    def test_export_vault_native_data_explicit_version(
         self,
         config: str,
         format: Literal["v0.2", "v0.3"],
@@ -723,7 +720,7 @@ class TestVaultNativeConfig:
     @Parametrize.PATH
     @Parametrize.KEY_FORMATS
     @Parametrize.VAULT_NATIVE_HANDLER
-    def test_202_export_data_path_and_keys_type(
+    def test_export_data_path_and_keys_type(
         self,
         path: str | None,
         key: str | Buffer | None,
@@ -754,7 +751,7 @@ class TestVaultNativeConfig:
             )
 
     @Parametrize.VAULT_NATIVE_PARSER_CLASS_DATA
-    def test_300_result_caching(
+    def test_result_caching(
         self,
         config: str,
         parser_class: type[vault_native.VaultNativeConfigParser],
@@ -803,7 +800,7 @@ class TestVaultNativeConfig:
             super_call = vault_native.VaultNativeConfigParser.__call__
             assert super_call(parser) == config_data
 
-    def test_400_no_password(self) -> None:
+    def test_no_password(self) -> None:
         """Fail on empty master keys/master passphrases."""
         with pytest.raises(ValueError, match="Password must not be empty"):
             vault_native.VaultNativeV03ConfigParser(b"", b"")

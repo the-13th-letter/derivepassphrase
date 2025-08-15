@@ -145,7 +145,7 @@ class Parametrize:
 
 
 @Parametrize.TEST_KEYS
-def test_100_test_keys_public_keys_are_internally_consistent(
+def test_test_keys_public_keys_are_internally_consistent(
     keyname: str,
     key: data.SSHTestKey,
 ) -> None:
@@ -161,7 +161,7 @@ def test_100_test_keys_public_keys_are_internally_consistent(
 
 
 @Parametrize.TEST_KEYS
-def test_101_test_keys_private_keys_are_consistent_with_public_keys(
+def test_test_keys_private_keys_are_consistent_with_public_keys(
     keyname: str,
     key: data.SSHTestKey,
 ) -> None:
@@ -195,7 +195,7 @@ def test_101_test_keys_private_keys_are_consistent_with_public_keys(
 
 
 @Parametrize.TEST_KEYS
-def test_102_test_keys_private_keys_are_internally_consistent(
+def test_test_keys_private_keys_are_internally_consistent(
     keyname: str,
     key: data.SSHTestKey,
 ) -> None:

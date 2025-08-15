@@ -386,7 +386,7 @@ class TestHelpOutput:
 
     # TODO(the-13th-letter): Do we actually need this?  What should we
     # check for?
-    def test_100_help_output(self) -> None:
+    def test_help_output(self) -> None:
         """The top-level help text mentions subcommands.
 
         TODO: Do we actually need this?  What should we check for?
@@ -413,7 +413,7 @@ class TestHelpOutput:
 
     # TODO(the-13th-letter): Do we actually need this?  What should we
     # check for?
-    def test_101_help_output_export(
+    def test_help_output_export(
         self,
     ) -> None:
         """The "export" subcommand help text mentions subcommands.
@@ -444,7 +444,7 @@ class TestHelpOutput:
 
     # TODO(the-13th-letter): Do we actually need this?  What should we
     # check for?
-    def test_102_help_output_export_vault(
+    def test_help_output_export_vault(
         self,
     ) -> None:
         """The "export vault" subcommand help text has known content.
@@ -475,7 +475,7 @@ class TestHelpOutput:
 
     # TODO(the-13th-letter): Do we actually need this?  What should we
     # check for?
-    def test_103_help_output_vault(
+    def test_help_output_vault(
         self,
     ) -> None:
         """The "vault" subcommand help text has known content.
@@ -509,7 +509,7 @@ class TestHelpOutput:
 
     @Parametrize.COMMAND_NON_EAGER_ARGUMENTS
     @Parametrize.EAGER_ARGUMENTS
-    def test_200_eager_options(
+    def test_eager_options(
         self,
         command: list[str],
         arguments: list[str],
@@ -537,7 +537,7 @@ class TestHelpOutput:
 
     @Parametrize.ISATTY
     @Parametrize.COLORFUL_COMMAND_INPUT
-    def test_201_automatic_color_mode(
+    def test_automatic_color_mode(
         self,
         isatty: bool,
         command_line: list[str],

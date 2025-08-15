@@ -51,7 +51,7 @@ class Parametrize(types.SimpleNamespace):
     )
 
 
-class Test001ExporterUtils:
+class TestUtilities:
     """Test the utility functions in the `exporter` subpackage."""
 
     class VaultKeyEnvironment(NamedTuple):
@@ -87,7 +87,7 @@ class Test001ExporterUtils:
         def strategy(
             draw: strategies.DrawFn,
             allow_missing: bool = False,
-        ) -> Test001ExporterUtils.VaultKeyEnvironment:
+        ) -> TestUtilities.VaultKeyEnvironment:
             """Return a vault key environment configuration."""
             text_strategy = strategies.text(
                 strategies.characters(min_codepoint=32, max_codepoint=127),
@@ -100,7 +100,7 @@ class Test001ExporterUtils:
             )
             num_fields = sum(
                 1
-                for f in Test001ExporterUtils.VaultKeyEnvironment._fields
+                for f in TestUtilities.VaultKeyEnvironment._fields
                 if f != "expected"
             )
             env_vars: list[str | None] = draw(
@@ -124,7 +124,7 @@ class Test001ExporterUtils:
             for value in reversed(env_vars):
                 if value is not None:
                     expected = value
-            return Test001ExporterUtils.VaultKeyEnvironment(
+            return TestUtilities.VaultKeyEnvironment(
                 expected, *env_vars
             )
 
@@ -188,7 +188,7 @@ class Test001ExporterUtils:
             lambda env: bool(env.expected)
         ),
     )
-    def test_200_get_vault_key(
+    def test_get_vault_key(
         self,
         vault_key_env: VaultKeyEnvironment,
     ) -> None:
@@ -223,7 +223,7 @@ class Test001ExporterUtils:
             assert os.fsdecode(exporter.get_vault_key()) == expected
 
     @Parametrize.EXPECTED_VAULT_PATH
-    def test_210_get_vault_path(
+    def test_get_vault_path(
         self,
         expected: pathlib.Path,
         path: str | os.PathLike[str] | None,
@@ -276,7 +276,7 @@ class Test001ExporterUtils:
             )
         ),
     )
-    def test_220_register_export_vault_config_data_handler(
+    def test_register_export_vault_config_data_handler(
         self, name_data: tuple[list[str], list[str]]
     ) -> None:
         """Register vault config data export handlers."""
@@ -301,7 +301,7 @@ class Test001ExporterUtils:
             assert dec(handler) == handler
             assert registry == dict.fromkeys(names1 + names2, handler)
 
-    def test_300_get_vault_key_without_envs(self) -> None:
+    def test_get_vault_key_without_envs(self) -> None:
         """Fail to look up the vault key in the empty environment."""
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.delenv("VAULT_KEY", raising=False)
@@ -311,7 +311,7 @@ class Test001ExporterUtils:
             with pytest.raises(KeyError, match="VAULT_KEY"):
                 exporter.get_vault_key()
 
-    def test_310_get_vault_path_without_home(self) -> None:
+    def test_get_vault_path_without_home(self) -> None:
         """Fail to look up the vault path without `HOME`."""
 
         def raiser(*_args: Any, **_kwargs: Any) -> Any:
@@ -326,7 +326,7 @@ class Test001ExporterUtils:
                 exporter.get_vault_path()
 
     @Parametrize.EXPORT_VAULT_CONFIG_DATA_HANDLER_NAMELISTS
-    def test_320_register_export_vault_config_data_handler_errors(
+    def test_register_export_vault_config_data_handler_errors(
         self,
         namelist: tuple[str, ...],
         err_pat: str,
@@ -357,7 +357,7 @@ class Test001ExporterUtils:
                     handler
                 )
 
-    def test_321_export_vault_config_data_bad_handler(self) -> None:
+    def test_export_vault_config_data_bad_handler(self) -> None:
         """Fail to export vault config data without known handlers."""
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setattr(
@@ -373,10 +373,10 @@ class Test001ExporterUtils:
                 exporter.export_vault_config_data(format="v0.3")
 
 
-class Test002CLI:
+class TestCLI:
     """Test the command-line functionality of the `exporter` subpackage."""
 
-    def test_300_invalid_format(self) -> None:
+    def test_invalid_format(self) -> None:
         """Reject invalid vault configuration format names."""
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
@@ -404,7 +404,7 @@ class Test002CLI:
 
     @pytest_machinery.skip_if_cryptography_support
     @pytest_machinery.Parametrize.VAULT_CONFIG_FORMATS_DATA
-    def test_999_no_cryptography_error_message(
+    def test_no_cryptography_error_message(
         self,
         caplog: pytest.LogCaptureFixture,
         config: str | bytes,

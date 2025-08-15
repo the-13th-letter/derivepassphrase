@@ -89,13 +89,13 @@ class TestL10nMachineryWithDebugTranslations:
 
     @hypothesis.given(value=strategies.text(max_size=100))
     @hypothesis.example("{")
-    def test_100_debug_translation_get_str(self, value: str) -> None:
+    def test_debug_translation_get_str(self, value: str) -> None:
         """Translating a raw string object does nothing."""
         translated = msg.translation.gettext(value)
         assert translated == value
 
     @hypothesis.given(value=strategies.sampled_from(all_translatable_strings))
-    def test_100a_debug_translation_get_ts(
+    def test_debug_translation_get_ts(
         self,
         value: msg.TranslatableString,
     ) -> None:
@@ -111,7 +111,7 @@ class TestL10nMachineryWithDebugTranslations:
     @hypothesis.given(
         value=strategies.sampled_from(all_translatable_strings_enum_values)
     )
-    def test_100b_debug_translation_get_enum(
+    def test_debug_translation_get_enum(
         self,
         value: msg.MsgTemplate,
     ) -> None:
@@ -127,7 +127,7 @@ class TestL10nMachineryWithDebugTranslations:
 
     @hypothesis.given(value=strategies.text(max_size=100))
     @hypothesis.example("{")
-    def test_100c_debug_translation_get_ts_str(self, value: str) -> None:
+    def test_debug_translation_get_ts_str(self, value: str) -> None:
         """Translating a constant TranslatableString does nothing."""
         translated = msg.TranslatedString.constant(value)
         assert str(translated) == value
@@ -140,7 +140,7 @@ class TestL10nMachineryWithDebugTranslations:
             unique=True,
         )
     )
-    def test_101_translated_strings_operations(
+    def test_translated_strings_operations(
         self,
         values: list[msg.MsgTemplate],
     ) -> None:
@@ -167,7 +167,7 @@ class TestL10nMachineryWithDebugTranslations:
             unique=True,
         ),
     )
-    def test_101a_translated_strings_operations_interpolated(
+    def test_translated_strings_operations_interpolated(
         self,
         value: msg.ErrMsgTemplate,
         errnos: list[int],
@@ -191,7 +191,7 @@ class TestL10nMachineryWithDebugTranslations:
         value=strategies.sampled_from(known_fields_error_messages),
         errno_=strategies.sampled_from(error_codes),
     )
-    def test_101b_translated_strings_operations_interpolated(
+    def test_translated_strings_operations_interpolated_error_and_filename(
         self,
         value: msg.ErrMsgTemplate,
         errno_: int,
@@ -214,7 +214,7 @@ class TestL10nMachineryWithDebugTranslations:
             assert len({ts0, ts1}) == 2
 
     @Parametrize.MAYBE_FORMAT_STRINGS
-    def test_102_translated_strings_suppressed_interpolation_fail(
+    def test_translated_strings_suppressed_interpolation_fail(
         self,
         s: str,
     ) -> None:
@@ -256,7 +256,7 @@ class TestL10nMachineryWithDebugTranslations:
             max_size=20,
         )
     )
-    def test_102a_translated_strings_suppressed_interpolation_str(
+    def test_translated_strings_suppressed_interpolation_str(
         self,
         s: str,
     ) -> None:
@@ -278,7 +278,7 @@ class TestL10nMachineryWithDebugTranslations:
             max_size=20,
         )
     )
-    def test_102b_translated_strings_suppressed_interpolation_ts_manual(
+    def test_translated_strings_suppressed_interpolation_ts_manual(
         self,
         s: str,
     ) -> None:

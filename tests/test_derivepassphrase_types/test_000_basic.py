@@ -34,7 +34,7 @@ class Parametrize(types.SimpleNamespace):
 
 
 @Parametrize.VALID_VAULT_TEST_CONFIGS
-def test_200_is_vault_config(test_config: data.VaultTestConfig) -> None:
+def test_is_vault_config(test_config: data.VaultTestConfig) -> None:
     """Is this vault configuration recognized as valid/invalid?
 
     Check all test configurations that do not need custom validation
@@ -61,7 +61,7 @@ def test_200_is_vault_config(test_config: data.VaultTestConfig) -> None:
         ])
     )
 )
-def test_200a_is_vault_config_smudged(
+def test_is_vault_config_smudged(
     test_config: data.VaultTestConfig,
 ) -> None:
     """Is this vault configuration recognized as valid/invalid?
@@ -87,7 +87,7 @@ def test_200a_is_vault_config_smudged(
 
 
 @Parametrize.VAULT_TEST_CONFIGS
-def test_400_validate_vault_config(
+def test_validate_vault_config(
     test_config: data.VaultTestConfig,
 ) -> None:
     """Validate this vault configuration.
@@ -126,7 +126,7 @@ def test_400_validate_vault_config(
         ])
     )
 )
-def test_400a_validate_vault_config_smudged(
+def test_validate_vault_config_smudged(
     test_config: data.VaultTestConfig,
 ) -> None:
     """Validate this vault configuration.

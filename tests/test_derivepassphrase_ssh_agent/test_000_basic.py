@@ -806,7 +806,7 @@ class TestShellExportScriptParsing:
 class TestGracefulFailureForSSHAuthSock:
     """Test the `posix` socket provider if `SSH_AUTH_SOCK` is unset."""
 
-    def test_200_constructor_posix_no_ssh_auth_sock(
+    def test_constructor_posix_no_ssh_auth_sock(
         self,
         skip_if_no_af_unix_support: None,
     ) -> None:
