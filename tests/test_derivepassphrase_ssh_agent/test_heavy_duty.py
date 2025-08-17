@@ -96,13 +96,15 @@ def draw_alias_chain(
 
     err_msg_chain_size = "Chain sizes must always be 1 or larger."
 
-    size = draw(chain_size)
+    size = draw(chain_size, label="chain_size")
     if size < 1:  # pragma: no cover
         raise ValueError(err_msg_chain_size)
     names: list[str] = []
     base: str | None = None
     if existing:
-        names.append(draw(known_keys_strategy.filter(not_an_alias)))
+        names.append(
+            draw(known_keys_strategy.filter(not_an_alias), label="base")
+        )
         base = names[0]
         size -= 1
         new_key_strategy = new_keys_strategy.filter(
@@ -124,7 +126,7 @@ def draw_alias_chain(
         max_size=size,
         unique=True,
     )
-    names.extend(draw(list_strategy))
+    names.extend(draw(list_strategy, label="others"))
     return tuple(names)
 
 

@@ -17,13 +17,14 @@ import re
 import socket
 import sys
 import types
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 import click
 import click.testing
 import hypothesis
 import pytest
 from hypothesis import strategies
+from typing_extensions import TypeAlias
 
 from derivepassphrase import _types, ssh_agent, vault
 from derivepassphrase._internals import cli_helpers
@@ -33,7 +34,7 @@ from tests.data import callables
 from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Iterator, Mapping
 
     from typing_extensions import Any, Buffer, Literal
 
@@ -489,17 +490,17 @@ class Parametrize(types.SimpleNamespace):
         list(data.SUPPORTED_KEYS.items()),
         ids=data.SUPPORTED_KEYS.keys(),
     )
-    UNSUITABLE_SSH_TEST_KEYS = pytest.mark.parametrize(
+    ALL_SSH_TEST_KEYS = pytest.mark.parametrize(
         ["ssh_test_key_type", "ssh_test_key"],
-        list(data.UNSUITABLE_KEYS.items()),
-        ids=data.UNSUITABLE_KEYS.keys(),
+        list(data.ALL_KEYS.items()),
+        ids=data.ALL_KEYS.keys(),
     )
     RESOLVE_CHAINS = pytest.mark.parametrize(
         ["terminal", "chain"],
         [
             pytest.param("callable", ["a"], id="callable-1"),
             pytest.param("callable", ["a", "b", "c", "d"], id="callable-4"),
-            pytest.param("alias", ["e"], id="alias-5"),
+            pytest.param("alias", ["e"], id="alias-1"),
             pytest.param("alias", ["e", "f", "g", "h", "i"], id="alias-5"),
             pytest.param("unimplemented", ["j"], id="unimplemented-1"),
             pytest.param("unimplemented", ["j", "k"], id="unimplemented-2"),
@@ -510,17 +511,24 @@ class Parametrize(types.SimpleNamespace):
 class TestStubbedSSHAgentSocketRequests:
     """Test the stubbed SSH agent socket: normal requests."""
 
-    def test_query_extensions_base(self) -> None:
-        """The base agent implements no extensions."""
+    @contextlib.contextmanager
+    def _get_addressed_agent(
+        self, *, extended_agent: bool = False
+    ) -> Iterator[machinery.StubbedSSHAgentSocketWithAddress]:
+        agent_class: type[machinery.StubbedSSHAgentSocketWithAddress] = (
+            machinery.StubbedSSHAgentSocketWithAddressAndDeterministicDSA
+            if extended_agent
+            else machinery.StubbedSSHAgentSocketWithAddress
+        )
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            monkeypatch.setenv(
-                "SSH_AUTH_SOCK",
-                machinery.StubbedSSHAgentSocketWithAddress.ADDRESS,
-            )
-            agent = stack.enter_context(
-                machinery.StubbedSSHAgentSocketWithAddress()
-            )
+            monkeypatch.setenv("SSH_AUTH_SOCK", agent_class.ADDRESS)
+            agent = stack.enter_context(agent_class())
+            yield agent
+
+    def test_query_extensions_base(self) -> None:
+        """The base agent implements no extensions."""
+        with self._get_addressed_agent(extended_agent=False) as agent:
             assert "query" not in agent.enabled_extensions
             query_request = (
                 # SSH string header
@@ -541,15 +549,7 @@ class TestStubbedSSHAgentSocketRequests:
 
     def test_query_extensions_extended(self) -> None:
         """The extended agent implements a known list of extensions."""
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            monkeypatch.setenv(
-                "SSH_AUTH_SOCK",
-                machinery.StubbedSSHAgentSocketWithAddress.ADDRESS,
-            )
-            agent = stack.enter_context(
-                machinery.StubbedSSHAgentSocketWithAddressAndDeterministicDSA()
-            )
+        with self._get_addressed_agent(extended_agent=True) as agent:
             assert "query" in agent.enabled_extensions
             query_request = (
                 # SSH string header
@@ -599,6 +599,41 @@ class TestStubbedSSHAgentSocketRequests:
             for _ in range(identity_count):
                 key, message = unstring_prefix(message)
                 _comment, message = unstring_prefix(message)
+                assert key
+                assert key in {
+                    k.public_key_data for k in data.ALL_KEYS.values()
+                }
+            assert not message
+
+    def test_request_identities_extended(self) -> None:
+        """The extended agent implements PuTTY's `list-extended` extension."""
+        unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
+        with self._get_addressed_agent(extended_agent=True) as agent:
+            extension_request = (
+                # SSH string header
+                b"\x00\x00\x00\x2e"
+                # request code: SSH_AGENTC_REQUEST_IDENTITIES
+                b"\x1b"
+                # extension type: list-extended@putty.projects.tartarus.org
+                b"\x00\x00\x00\x29list-extended@putty.projects.tartarus.org"
+                # (no payload)
+            )
+            agent.sendall(extension_request)
+            message_length = int.from_bytes(agent.recv(4), "big")
+            orig_message: bytes | bytearray = bytearray(
+                agent.recv(message_length)
+            )
+            assert (
+                _types.SSH_AGENT(orig_message[0])
+                == _types.SSH_AGENT.SUCCESS
+            )
+            identity_count = int.from_bytes(orig_message[1:5], "big")
+            message = bytes(orig_message[5:])
+            for _ in range(identity_count):
+                key, message = unstring_prefix(message)
+                _comment, message = unstring_prefix(message)
+                flags, message = unstring_prefix(message)
+                assert flags == b"\x00\x00\x00\x00"
                 assert key
                 assert key in {
                     k.public_key_data for k in data.ALL_KEYS.values()
@@ -1242,14 +1277,14 @@ class TestSSHAgentSocketProviderRegistry:
 class TestAgentSigning:
     """Test actually talking to the SSH agent: signing data."""
 
-    @Parametrize.SUPPORTED_SSH_TEST_KEYS
+    @Parametrize.ALL_SSH_TEST_KEYS
     def test_sign_data_via_agent(
         self,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
         ssh_test_key_type: str,
         ssh_test_key: data.SSHTestKey,
     ) -> None:
-        """Signing data with specific SSH keys works.
+        """Signing data with specific SSH keys works iff the key is suitable.
 
         Single tests may abort early (skip) if the indicated key is not
         loaded in the agent.  Presumably this means the key type is
@@ -1259,64 +1294,58 @@ class TestAgentSigning:
         client = ssh_agent_client_with_test_keys_loaded
         key_comment_pairs = {bytes(k): bytes(c) for k, c in client.list_keys()}
         public_key_data = ssh_test_key.public_key_data
-        assert (
-            data.SSHTestKeyDeterministicSignatureClass.SPEC
-            in ssh_test_key.expected_signatures
-        )
-        sig = ssh_test_key.expected_signatures[
-            data.SSHTestKeyDeterministicSignatureClass.SPEC
-        ]
-        expected_signature = sig.signature
-        derived_passphrase = sig.derived_passphrase
         if public_key_data not in key_comment_pairs:  # pragma: no cover
             pytest.skip(f"prerequisite {ssh_test_key_type} SSH key not loaded")
-        signature = bytes(
-            client.sign(payload=vault.Vault.UUID, key=public_key_data)
-        )
-        assert signature == expected_signature, (
-            f"SSH signature mismatch ({ssh_test_key_type})"
-        )
-        signature2 = bytes(
-            client.sign(payload=vault.Vault.UUID, key=public_key_data)
-        )
-        assert signature2 == expected_signature, (
-            f"SSH signature mismatch ({ssh_test_key_type})"
-        )
-        assert (
-            vault.Vault.phrase_from_key(public_key_data, conn=client)
-            == derived_passphrase
-        ), f"SSH signature mismatch ({ssh_test_key_type})"
-
-    @Parametrize.UNSUITABLE_SSH_TEST_KEYS
-    def test_sign_data_via_agent_unsupported(
-        self,
-        ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
-        ssh_test_key_type: str,
-        ssh_test_key: data.SSHTestKey,
-    ) -> None:
-        """Using an unsuitable key with [`vault.Vault`][] fails.
-
-        Single tests may abort early (skip) if the indicated key is not
-        loaded in the agent.  Presumably this means the key type is
-        unsupported.  Single tests may also abort early if the agent
-        ensures that the generally unsuitable key is actually suitable
-        under this agent.
-
-        """
-        client = ssh_agent_client_with_test_keys_loaded
-        key_comment_pairs = {bytes(k): bytes(c) for k, c in client.list_keys()}
-        public_key_data = ssh_test_key.public_key_data
-        if public_key_data not in key_comment_pairs:  # pragma: no cover
-            pytest.skip(f"prerequisite {ssh_test_key_type} SSH key not loaded")
-        assert not vault.Vault.is_suitable_ssh_key(
-            public_key_data, client=None
-        ), f"Expected {ssh_test_key_type} key to be unsuitable in general"
-        if vault.Vault.is_suitable_ssh_key(public_key_data, client=client):
-            pytest.skip(
-                f"agent automatically ensures {ssh_test_key_type} key is suitable"
+        if ssh_test_key.is_suitable():
+            assert (
+                data.SSHTestKeyDeterministicSignatureClass.SPEC
+                in ssh_test_key.expected_signatures
             )
-        with pytest.raises(ValueError, match="unsuitable SSH key"):
-            vault.Vault.phrase_from_key(public_key_data, conn=client)
+            sig = ssh_test_key.expected_signatures[
+                data.SSHTestKeyDeterministicSignatureClass.SPEC
+            ]
+            expected_signature = sig.signature
+            derived_passphrase = sig.derived_passphrase
+            signature = bytes(
+                client.sign(payload=vault.Vault.UUID, key=public_key_data)
+            )
+            assert signature == expected_signature, (
+                f"SSH signature mismatch ({ssh_test_key_type})"
+            )
+            signature2 = bytes(
+                client.sign(payload=vault.Vault.UUID, key=public_key_data)
+            )
+            assert signature2 == expected_signature, (
+                f"SSH signature mismatch ({ssh_test_key_type})"
+            )
+            assert (
+                vault.Vault.phrase_from_key(public_key_data, conn=client)
+                == derived_passphrase
+            ), f"SSH signature mismatch ({ssh_test_key_type})"
+        else:
+            assert (
+                data.SSHTestKeyDeterministicSignatureClass.SPEC
+                not in ssh_test_key.expected_signatures
+            )
+            assert not vault.Vault.is_suitable_ssh_key(
+                public_key_data, client=None
+            ), f"Expected {ssh_test_key_type} key to be unsuitable in general"
+            if vault.Vault.is_suitable_ssh_key(
+                public_key_data, client=client
+            ):  # pragma: no cover [external]
+                potential_signatures = {
+                    sig_class: sig.signature
+                    for sig_class, sig in ssh_test_key.expected_signatures.items()
+                    if sig_class
+                    != data.SSHTestKeyDeterministicSignatureClass.SPEC
+                }
+                signature = bytes(
+                    client.sign(payload=vault.Vault.UUID, key=public_key_data)
+                )
+                assert signature in potential_signatures.values()
+            else:  # pragma: no cover [external]
+                with pytest.raises(ValueError, match="unsuitable SSH key"):
+                    vault.Vault.phrase_from_key(public_key_data, conn=client)
 
 
 class TestSuitableKeys:
@@ -1338,50 +1367,30 @@ class TestSuitableKeys:
         """
         client = ssh_agent_client_with_test_keys_loaded
 
-        def key_is_suitable(key: bytes) -> bool:
-            """Stub out [`vault.Vault.key_is_suitable`][]."""
-            always = {v.public_key_data for v in data.SUPPORTED_KEYS.values()}
-            dsa = {
-                v.public_key_data
-                for k, v in data.UNSUITABLE_KEYS.items()
-                if k.startswith(("dsa", "ecdsa"))
-            }
-            return key in always or (
-                client.has_deterministic_dsa_signatures() and key in dsa
-            )
-
-        # TODO(the-13th-letter): Handle the unlikely(?) case that only
-        # one test key is loaded, but `single` is False.  Rename the
-        # `index` variable to `input`, store the `input` in there, and
-        # make the definition of `text` in the else block dependent on
-        # `n` being singular or non-singular.
-        if single:
-            monkeypatch.setattr(
-                ssh_agent.SSHAgentClient,
-                "list_keys",
-                callables.list_keys_singleton,
-            )
-            keys = [
-                pair.key
-                for pair in callables.list_keys_singleton()
-                if key_is_suitable(pair.key)
-            ]
-            index = "1"
+        monkeypatch.setattr(
+            ssh_agent.SSHAgentClient,
+            "list_keys",
+            callables.list_keys_singleton if single else callables.list_keys,
+        )
+        raw_keys_list = (
+            callables.list_keys_singleton()
+            if single
+            else callables.list_keys()
+        )
+        keys = [
+            pair.key
+            for pair in raw_keys_list
+            if vault.Vault.is_suitable_ssh_key(pair.key, client=client)
+        ]
+        n = len(keys)
+        if single or n == 1:
+            input_text = "yes\n"
             text = "Use this key? yes\n"
         else:
-            monkeypatch.setattr(
-                ssh_agent.SSHAgentClient,
-                "list_keys",
-                callables.list_keys,
+            input_text = f"{1 + keys.index(key)}\n"
+            text = (
+                f"Your selection? (1-{n}, leave empty to abort): {input_text}"
             )
-            keys = [
-                pair.key
-                for pair in callables.list_keys()
-                if key_is_suitable(pair.key)
-            ]
-            index = str(1 + keys.index(key))
-            n = len(keys)
-            text = f"Your selection? (1-{n}, leave empty to abort): {index}\n"
         b64_key = base64.standard_b64encode(key).decode("ASCII")
 
         @click.command()
@@ -1390,14 +1399,9 @@ class TestSuitableKeys:
             key = cli_helpers.select_ssh_key(client)
             click.echo(base64.standard_b64encode(key).decode("ASCII"))
 
-        # TODO(the-13th-letter): (Continued from above.)  Update input
-        # data to use `index`/`input` directly and unconditionally.
         runner = machinery.CliRunner(mix_stderr=True)
         result = runner.invoke(
-            driver,
-            [],
-            input=("yes\n" if single else f"{index}\n"),
-            catch_exceptions=True,
+            driver, [], input=input_text, catch_exceptions=True
         )
         for snippet in ("Suitable SSH keys:\n", text, f"\n{b64_key}\n"):
             assert result.clean_exit(output=snippet), "expected clean exit"
@@ -1465,6 +1469,104 @@ class TestOtherConstructorFeatures:
 class TestAgentErrorResponses:
     """Test actually talking to the SSH agent: errors from the SSH agent."""
 
+    class Request(NamedTuple):
+        """A request for the SSH agent protocol.
+
+        Attributes:
+            code:
+                The expected request code.
+            payload:
+                The expected payload.  Optional.
+
+        """
+
+        code: _types.SSH_AGENTC
+        """"""
+        payload: bytes | None
+        """"""
+
+    class Response(NamedTuple):
+        """A response for the SSH agent protocol.
+
+        Attributes:
+            code:
+                The desired response code.
+            payload:
+                The desired response payload.
+
+        """
+
+        code: _types.SSH_AGENT
+        """"""
+        payload: bytes
+        """"""
+
+    def _make_request_stub(
+        self,
+        request_response_map: Mapping[Request, Response],
+        /,
+    ) -> data.RequestFunc:
+        """Return a stubbed SSH agent client `request` function.
+
+        Args:
+            request_response_map:
+                A map of request/response pairs.
+
+        """
+
+        def request(
+            request_code: int | _types.SSH_AGENTC,
+            payload: bytes | bytearray,
+            /,
+            *,
+            response_code: Iterable[int | _types.SSH_AGENT]
+            | int
+            | _types.SSH_AGENT
+            | None = None,
+        ) -> tuple[int, bytes | bytearray] | bytes | bytearray:
+            request_code = _types.SSH_AGENTC(request_code)
+            response_code = (
+                frozenset({_types.SSH_AGENT.SUCCESS})
+                if response_code is None
+                else frozenset({_types.SSH_AGENT(response_code)})
+                if isinstance(response_code, (int, _types.SSH_AGENT))
+                else frozenset(map(_types.SSH_AGENT, response_code))
+            )
+            response_ = request_response_map.get(
+                self.Request(request_code, bytes(payload))
+            ) or request_response_map.get(self.Request(request_code, None))
+            if response_ is None:  # pragma: no cover [failsafe]
+                raise ssh_agent.SSHAgentFailedError(
+                    _types.SSH_AGENT.FAILURE.value,
+                    "No prepared response for the request "
+                    f"({request_code!r}, {payload!r})".encode(),
+                )
+            code, response = response_
+            if code not in response_code:
+                raise ssh_agent.SSHAgentFailedError(code.value, response)
+            return response
+
+        return request
+
+    @contextlib.contextmanager
+    def _setup_agent_and_request_handler(
+        self, request_response_map: Mapping[Request, Response], /
+    ) -> Iterator[tuple[pytest.MonkeyPatch, ssh_agent.SSHAgentClient]]:
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            client = stack.enter_context(
+                ssh_agent.SSHAgentClient.ensure_agent_subcontext()
+            )
+            monkeypatch.setattr(
+                client,
+                "request",
+                self._make_request_stub(request_response_map),
+            )
+            yield monkeypatch, client
+
     @Parametrize.TRUNCATED_AGENT_RESPONSES
     def test_truncated_server_response(
         self,
@@ -1509,43 +1611,12 @@ class TestAgentErrorResponses:
 
         """
         del running_ssh_agent
-
-        passed_response_code = response_code
-
-        # TODO(the-13th-letter): Extract this mock function into a common
-        # top-level "request" mock function.
-        def request(
-            request_code: int | _types.SSH_AGENTC,
-            payload: bytes | bytearray,
-            /,
-            *,
-            response_code: Iterable[int | _types.SSH_AGENT]
-            | int
-            | _types.SSH_AGENT
-            | None = None,
-        ) -> tuple[int, bytes | bytearray] | bytes | bytearray:
-            del request_code
-            del payload
-            if isinstance(  # pragma: no branch
-                response_code, (int, _types.SSH_AGENT)
-            ):
-                response_code = frozenset({response_code})
-            if response_code is not None:  # pragma: no branch
-                response_code = frozenset({
-                    c if isinstance(c, int) else c.value for c in response_code
-                })
-
-            if not response_code:  # pragma: no cover
-                return (passed_response_code.value, response)
-            if passed_response_code.value not in response_code:
-                raise ssh_agent.SSHAgentFailedError(
-                    passed_response_code.value, response
-                )
-            return response
-
-        with pytest.MonkeyPatch.context() as monkeypatch:
-            client = ssh_agent.SSHAgentClient()
-            monkeypatch.setattr(client, "request", request)
+        with self._setup_agent_and_request_handler({
+            self.Request(
+                _types.SSH_AGENTC.REQUEST_IDENTITIES, None
+            ): self.Response(response_code, response),
+        }) as contexts:
+            _, client = contexts
             with pytest.raises(exc_type, match=exc_pattern):
                 client.list_keys()
 
@@ -1570,50 +1641,23 @@ class TestAgentErrorResponses:
 
         """
         del running_ssh_agent
-        passed_response_code = response_code
-
-        # TODO(the-13th-letter): Extract this mock function into a common
-        # top-level "request" mock function.
-        def request(
-            request_code: int | _types.SSH_AGENTC,
-            payload: bytes | bytearray,
-            /,
-            *,
-            response_code: Iterable[int | _types.SSH_AGENT]
-            | int
-            | _types.SSH_AGENT
-            | None = None,
-        ) -> tuple[int, bytes | bytearray] | bytes | bytearray:
-            del request_code
-            del payload
-            if isinstance(  # pragma: no branch
-                response_code, (int, _types.SSH_AGENT)
-            ):
-                response_code = frozenset({response_code})
-            if response_code is not None:  # pragma: no branch
-                response_code = frozenset({
-                    c if isinstance(c, int) else c.value for c in response_code
-                })
-
-            if not response_code:  # pragma: no cover
-                return (passed_response_code.value, response)
-            if (
-                passed_response_code.value not in response_code
-            ):  # pragma: no branch
-                raise ssh_agent.SSHAgentFailedError(
-                    passed_response_code.value, response
-                )
-            return response  # pragma: no cover
-
-        with pytest.MonkeyPatch.context() as monkeypatch:
-            client = ssh_agent.SSHAgentClient()
-            monkeypatch.setattr(client, "request", request)
-            Pair = _types.SSHKeyCommentPair  # noqa: N806
-            com = b"no comment"
-            loaded_keys = [
-                Pair(v.public_key_data, com).toreadonly()
-                for v in data.SUPPORTED_KEYS.values()
-            ]
+        Pair: TypeAlias = _types.SSHKeyCommentPair
+        com = b"no comment"
+        loaded_keys = [
+            Pair(v.public_key_data, com).toreadonly()
+            for v in data.SUPPORTED_KEYS.values()
+        ]
+        sign_payload = (
+            ssh_agent.SSHAgentClient.string(key)
+            + ssh_agent.SSHAgentClient.string(b"abc")
+            + ssh_agent.SSHAgentClient.uint32(0)
+        )
+        with self._setup_agent_and_request_handler({
+            self.Request(
+                _types.SSH_AGENTC.SIGN_REQUEST, sign_payload
+            ): self.Response(response_code, response),
+        }) as contexts:
+            monkeypatch, client = contexts
             monkeypatch.setattr(client, "list_keys", lambda: loaded_keys)
             with pytest.raises(exc_type, match=exc_pattern):
                 client.sign(key, b"abc", check_if_key_loaded=check)
@@ -1642,68 +1686,27 @@ class TestAgentErrorResponses:
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         with contextlib.ExitStack() as stack:
-            stack.enter_context(pytest.raises(exc_type, match=exc_pattern))
             client = stack.enter_context(ssh_agent.SSHAgentClient())
+            stack.enter_context(pytest.raises(exc_type, match=exc_pattern))
             client.request(request_code, b"", response_code=response_code)
 
     @Parametrize.QUERY_EXTENSIONS_MALFORMED_RESPONSES
     def test_query_extensions_malformed_responses(
         self,
-        monkeypatch: pytest.MonkeyPatch,
         running_ssh_agent: data.RunningSSHAgentInfo,
         response_data: bytes,
     ) -> None:
         """Fail on malformed responses while querying extensions."""
         del running_ssh_agent
-
-        # TODO(the-13th-letter): Extract this mock function into a common
-        # top-level "request" mock function after removing the
-        # payload-specific parts.
-        def request(
-            code: int | _types.SSH_AGENTC,
-            payload: Buffer,
-            /,
-            *,
-            response_code: (
-                Iterable[_types.SSH_AGENT | int]
-                | _types.SSH_AGENT
-                | int
-                | None
-            ) = None,
-        ) -> tuple[int, bytes] | bytes:
-            request_codes = {
+        with self._setup_agent_and_request_handler({
+            self.Request(
                 _types.SSH_AGENTC.EXTENSION,
-                _types.SSH_AGENTC.EXTENSION.value,
-            }
-            assert code in request_codes
-            response_codes = {
-                _types.SSH_AGENT.EXTENSION_RESPONSE,
-                _types.SSH_AGENT.EXTENSION_RESPONSE.value,
-                _types.SSH_AGENT.SUCCESS,
-                _types.SSH_AGENT.SUCCESS.value,
-            }
-            assert payload == b"\x00\x00\x00\x05query"
-            if response_code is None:  # pragma: no cover
-                return (
-                    _types.SSH_AGENT.EXTENSION_RESPONSE.value,
-                    response_data,
-                )
-            if isinstance(  # pragma: no cover
-                response_code, (_types.SSH_AGENT, int)
-            ):
-                assert response_code in response_codes
-                return response_data
-            for single_code in response_code:  # pragma: no cover
-                assert single_code in response_codes
-            return response_data  # pragma: no cover
-
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch2 = stack.enter_context(monkeypatch.context())
-            client = stack.enter_context(ssh_agent.SSHAgentClient())
-            monkeypatch2.setattr(client, "request", request)
+                ssh_agent.SSHAgentClient.string(b"query"),
+            ): self.Response(
+                _types.SSH_AGENT.EXTENSION_RESPONSE, response_data
+            ),
+        }) as contexts:
+            _, client = contexts
             with pytest.raises(
                 RuntimeError,
                 match=r"Malformed response|does not match request",

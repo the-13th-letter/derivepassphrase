@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import base64
 import enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 from typing_extensions import NamedTuple
 
@@ -31,7 +31,7 @@ from derivepassphrase.ssh_agent import socketprovider
 __all__ = ()
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Iterable, Mapping
 
     from typing_extensions import Any
 
@@ -242,6 +242,26 @@ class RunningSSHAgentInfo(NamedTuple):
                 "address for the SSH agent socket."
             )
         return self.socket
+
+
+# `derivepassphrase` internal functions
+# -------------------------------------
+
+
+class RequestFunc(Protocol):
+    """The call signature of [`ssh_agent.SSHAgentClient.request`][]."""
+
+    def __call__(
+        self,
+        request_code: int | _types.SSH_AGENTC,
+        payload: bytes | bytearray,
+        /,
+        *,
+        response_code: Iterable[int | _types.SSH_AGENT]
+        | int
+        | _types.SSH_AGENT
+        | None = None,
+    ) -> tuple[int, bytes | bytearray] | bytes | bytearray: ...
 
 
 # Vault configurations
@@ -1039,11 +1059,23 @@ Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQ==
 SUPPORTED_KEYS: Mapping[str, SSHTestKey] = {
     k: v for k, v in ALL_KEYS.items() if v.is_suitable()
 }
-"""The subset of SSH test keys suitable for use with vault."""
+"""The subset of SSH test keys suitable for use with vault.
+
+Suitability is tested -- via [SSHTestKey.is_suitable][], then
+[vault.Vault.is_suitable_ssh_key][] -- via an internal whitelist, not
+via the presence or absence of a specific expected signature class.
+
+"""
 UNSUITABLE_KEYS: Mapping[str, SSHTestKey] = {
     k: v for k, v in ALL_KEYS.items() if not v.is_suitable()
 }
-"""The subset of SSH test keys not suitable for use with vault."""
+"""The subset of SSH test keys not suitable for use with vault.
+
+Suitability is tested -- via [SSHTestKey.is_suitable][], then
+[vault.Vault.is_suitable_ssh_key][] -- via an internal whitelist, not
+via the presence or absence of a specific expected signature class.
+
+"""
 
 
 # Vault test configurations
