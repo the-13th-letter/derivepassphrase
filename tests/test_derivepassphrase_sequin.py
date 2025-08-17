@@ -90,25 +90,18 @@ class TestStaticFunctionality:
         n = len(seq1)
         seq2 = bits(num, byte_width=8)
         m = len(seq2)
-        assert m == 64
-        assert seq2[-n:] == seq1
-        assert seq2[: m - n] == [0] * (m - n)
         text1 = "".join(str(bit) for bit in seq1)
         text2 = "".join(str(bit) for bit in seq2)
+        text3 = f"{num:064b}"
+        seq3 = bitseq(text3)
+        assert m == 64
+        assert seq2 == seq3
+        assert seq2[-n:] == seq1
+        assert seq2[: m - n] == [0] * (m - n)
         assert text1.lstrip("0") == (f"{num:b}" if num else "")
-        assert text2 == f"{num:064b}"
-
-    @hypothesis.given(
-        num=strategies.integers(min_value=0, max_value=0xFFFFFFFFFFFFFFFF),
-    )
-    def test_bits_bitseq(self, num: int) -> None:
-        """Extract the bits from a number in big-endian format."""
-        text1 = f"{num:064b}"
-        seq1 = bitseq(text1)
-        seq2 = bits(num, byte_width=8)
-        assert seq1 == seq2
-        text2 = "".join(str(bit) for bit in seq1)
+        assert text2.endswith(text1)
         assert int(text2, 2) == num
+        assert text2 == text3
 
     class BigEndianNumberTest(NamedTuple):
         """Test data for

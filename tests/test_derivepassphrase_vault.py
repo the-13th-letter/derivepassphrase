@@ -21,7 +21,7 @@ from derivepassphrase import vault
 from tests.machinery import hypothesis as hypothesis_machinery
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
 
     from typing_extensions import Buffer
 
@@ -40,6 +40,13 @@ TWITTER_PHRASE = rb"[ (HN_N:lI&<ro=)3'g9"
 The standard derived passphrase for the "twitter" service, from
 <i>vault</i>(1)'s test suite.
 """
+
+buffer_types: dict[str, Callable[..., Buffer]] = {
+    "bytes": bytes,
+    "bytearray": bytearray,
+    "memoryview": memoryview,
+    "array.array": lambda data: array.array("B", data),
+}
 
 
 class Parametrize(types.SimpleNamespace):
@@ -62,6 +69,11 @@ class Parametrize(types.SimpleNamespace):
             (1, {"upper": 0, "lower": 0, "number": 0, "symbol": 0}, 0.0),
         ],
     )
+    MASTER_PASSPHRASE_TYPES = pytest.mark.parametrize(
+        ["phrase1", "phrase2"],
+        [(PHRASE.decode("UTF-8"), f(PHRASE)) for f in buffer_types.values()],
+        ids=buffer_types.keys(),
+    )
     BINARY_STRINGS = pytest.mark.parametrize(
         "s",
         [
@@ -79,6 +91,12 @@ class Parametrize(types.SimpleNamespace):
             (b"google", GOOGLE_PHRASE),
             ("twitter", TWITTER_PHRASE),
         ],
+        ids=["google", "twitter"],
+    )
+    SERVICE_NAME_TYPES = pytest.mark.parametrize(
+        ["sv1", "sv2"],
+        [("email", f(b"email")) for f in buffer_types.values()],
+        ids=buffer_types.keys(),
     )
 
 
@@ -273,6 +291,11 @@ class TestVault:
 class TestPhraseDependence:
     """Test the dependence of the internal hash on the master passphrase."""
 
+    def _test(self, phrases: Sequence[bytes], service: str) -> None:
+        assert vault.Vault.create_hash(
+            phrase=phrases[0], service=service
+        ) != vault.Vault.create_hash(phrase=phrases[1], service=service)
+
     @hypothesis.given(
         phrases=Strategies.pair_of_binary_phrases_strategy(
             size=PhraseSize.SHORT
@@ -283,19 +306,13 @@ class TestPhraseDependence:
         reason="phrases are interchangable",
         raises=AssertionError,
     )
-    def test_small(
-        self,
-        phrases: list[bytes],
-        service: str,
-    ) -> None:
+    def test_small(self, phrases: Sequence[bytes], service: str) -> None:
         """The internal hash is dependent on the master passphrase.
 
         We filter out interchangable passphrases during generation.
 
         """
-        assert vault.Vault.create_hash(
-            phrase=phrases[0], service=service
-        ) != vault.Vault.create_hash(phrase=phrases[1], service=service)
+        self._test(phrases, service)
 
     @hypothesis.given(
         phrases=Strategies.pair_of_binary_phrases_strategy(
@@ -303,19 +320,13 @@ class TestPhraseDependence:
         ),
         service=Strategies.text_strategy(),
     )
-    def test_medium(
-        self,
-        phrases: list[bytes],
-        service: str,
-    ) -> None:
+    def test_medium(self, phrases: Sequence[bytes], service: str) -> None:
         """The internal hash is dependent on the master passphrase.
 
         We filter out interchangable passphrases during generation.
 
         """
-        assert vault.Vault.create_hash(
-            phrase=phrases[0], service=service
-        ) != vault.Vault.create_hash(phrase=phrases[1], service=service)
+        self._test(phrases, service)
 
     @hypothesis.given(
         phrases=Strategies.pair_of_binary_phrases_strategy(
@@ -323,19 +334,13 @@ class TestPhraseDependence:
         ),
         service=Strategies.text_strategy(),
     )
-    def test_large(
-        self,
-        phrases: tuple[bytes, bytes],
-        service: str,
-    ) -> None:
+    def test_large(self, phrases: Sequence[bytes], service: str) -> None:
         """The internal hash is dependent on the master passphrase.
 
         We filter out interchangable passphrases during generation.
 
         """
-        assert vault.Vault.create_hash(
-            phrase=phrases[0], service=service
-        ) != vault.Vault.create_hash(phrase=phrases[1], service=service)
+        self._test(phrases, service)
 
     @hypothesis.given(
         phrases=Strategies.pair_of_binary_phrases_strategy(
@@ -360,19 +365,13 @@ class TestPhraseDependence:
         ),
         raises=AssertionError,
     )
-    def test_mixed(
-        self,
-        phrases: list[bytes],
-        service: str,
-    ) -> None:
+    def test_mixed(self, phrases: Sequence[bytes], service: str) -> None:
         """The internal hash is dependent on the master passphrase.
 
         We filter out interchangable passphrases during generation.
 
         """
-        assert vault.Vault.create_hash(
-            phrase=phrases[0], service=service
-        ) != vault.Vault.create_hash(phrase=phrases[1], service=service)
+        self._test(phrases, service)
 
 
 class TestServiceNameDependence:
@@ -401,18 +400,7 @@ class TestServiceNameDependence:
 class TestInterchangablePhrases:
     """Test the interchangability of certain master passphrases."""
 
-    @hypothesis.given(
-        phrases=Strategies.binary_phrase_strategy(
-            size=PhraseSize.SHORT
-        ).flatmap(Strategies.make_interchangable_phrases),
-        service=Strategies.text_strategy(),
-    )
-    def test_small(
-        self,
-        phrases: tuple[bytes, bytes],
-        service: str,
-    ) -> None:
-        """Claimed interchangable passphrases are actually interchangable."""
+    def _test(self, phrases: Sequence[bytes], service: str) -> None:
         assert vault.Vault.phrases_are_interchangable(*phrases)
         assert vault.Vault.create_hash(
             phrase=phrases[0], service=service
@@ -420,20 +408,23 @@ class TestInterchangablePhrases:
 
     @hypothesis.given(
         phrases=Strategies.binary_phrase_strategy(
+            size=PhraseSize.SHORT
+        ).flatmap(Strategies.make_interchangable_phrases),
+        service=Strategies.text_strategy(),
+    )
+    def test_small(self, phrases: Sequence[bytes], service: str) -> None:
+        """Claimed interchangable passphrases are actually interchangable."""
+        self._test(phrases, service)
+
+    @hypothesis.given(
+        phrases=Strategies.binary_phrase_strategy(
             size=PhraseSize.OVERLONG,
         ).flatmap(Strategies.make_interchangable_phrases),
         service=Strategies.text_strategy(),
     )
-    def test_large(
-        self,
-        phrases: tuple[bytes, bytes],
-        service: str,
-    ) -> None:
+    def test_large(self, phrases: Sequence[bytes], service: str) -> None:
         """Claimed interchangable passphrases are actually interchangable."""
-        assert vault.Vault.phrases_are_interchangable(*phrases)
-        assert vault.Vault.create_hash(
-            phrase=phrases[0], service=service
-        ) == vault.Vault.create_hash(phrase=phrases[1], service=service)
+        self._test(phrases, service)
 
 
 class TestBasicFunctionalityFromUpstream(TestVault):
@@ -457,84 +448,66 @@ class TestBasicFunctionalityFromUpstream(TestVault):
 class TestStringAndBinaryExchangability(TestVault):
     """Test the exchangability of text and byte strings in the "vault" scheme.
 
-    This specifically refers to ASCII-cleanliness, and buffer-type
+    This specifically refers to UTF-8-cleanliness, and buffer-type
     independence.
 
     """
 
-    def test_bytes_service_name(self) -> None:
-        """Deriving a passphrase works equally for byte strings."""
-        assert vault.Vault(phrase=self.phrase).generate(
-            b"google"
-        ) == vault.Vault(phrase=self.phrase).generate("google")
-
-    def test_bytearray_service_name(self) -> None:
-        """Deriving a passphrase works equally for byte arrays."""
-        assert vault.Vault(phrase=self.phrase).generate(
-            b"google"
-        ) == vault.Vault(phrase=self.phrase).generate(bytearray(b"google"))
-
-    def test_buffer_like_service_name(self) -> None:
-        """Deriving a passphrase works equally for memory views."""
-        assert vault.Vault(phrase=self.phrase).generate(
-            b"google"
-        ) == vault.Vault(phrase=self.phrase).generate(memoryview(b"google"))
-
-    @hypothesis.given(
-        phrase=Strategies.text_strategy(),
-        service=Strategies.text_strategy(),
-    )
+    @Parametrize.SAMPLE_SERVICES_AND_PHRASES
+    @Parametrize.MASTER_PASSPHRASE_TYPES
     def test_binary_phrases(
         self,
-        phrase: str,
-        service: str,
+        phrase1: str,
+        phrase2: Buffer,
+        service: bytes | str,
+        expected: bytes,
     ) -> None:
         """Binary and text master passphrases generate the same passphrases."""
-        buffer_types: dict[str, Callable[..., Buffer]] = {
-            "bytes": bytes,
-            "bytearray": bytearray,
-            "memoryview": memoryview,
-            "array.array": lambda data: array.array("B", data),
-        }
-        for type_name, buffer_type in buffer_types.items():
-            str_phrase = phrase
-            bytes_phrase = phrase.encode("utf-8")
-            assert vault.Vault(phrase=str_phrase).generate(
-                service
-            ) == vault.Vault(phrase=buffer_type(bytes_phrase)).generate(
-                service
-            ), (
-                f"{str_phrase!r} and {type_name}({bytes_phrase!r}) "
-                "master passphrases generate different passphrases"
-            )
+        v1 = vault.Vault(phrase=phrase1)
+        v2 = vault.Vault(phrase=phrase2)
+        assert v1.generate(service) == expected
+        assert v2.generate(service) == expected
+
+    @Parametrize.SERVICE_NAME_TYPES
+    def test_binary_service_name(self, sv1: str, sv2: Buffer) -> None:
+        """Binary and text service names generate the same passphrases."""
+        v = vault.Vault(phrase=self.phrase)
+        assert v.generate(sv1) == v.generate(sv2)
 
     @hypothesis.given(
         phrase=Strategies.text_strategy(),
         service=Strategies.text_strategy(),
     )
-    def test_binary_service_name(
+    def test_binary_service_name_and_phrase(
         self,
         phrase: str,
         service: str,
     ) -> None:
-        """Binary and text service names generate the same passphrases."""
-        buffer_types: dict[str, Callable[..., Buffer]] = {
-            "bytes": bytes,
-            "bytearray": bytearray,
-            "memoryview": memoryview,
-            "array.array": lambda data: array.array("B", data),
-        }
+        """Binary and text inputs generate the same passphrases."""
+        v0 = vault.Vault(phrase=phrase)
+        str_service = service
+        result = v0.generate(str_service)
+        bytes_service = service.encode("utf-8")
+
         for type_name, buffer_type in buffer_types.items():
-            str_service = service
-            bytes_service = service.encode("utf-8")
-            assert vault.Vault(phrase=phrase).generate(
-                str_service
-            ) == vault.Vault(phrase=phrase).generate(
-                buffer_type(bytes_service)
-            ), (
-                f"{str_service!r} and {type_name}({bytes_service!r}) "
-                "service name generate different passphrases"
+            assert v0.generate(buffer_type(bytes_service)) == result, (
+                f"mismatched result when using the {type_name} service name"
             )
+
+        for type_name, buffer_type in buffer_types.items():
+            v = vault.Vault(phrase=buffer_type(phrase.encode("utf-8")))
+            assert v.generate(str_service) == result, (
+                f"mismatched result when using the {type_name} "
+                "master passphrase"
+            )
+
+        for type_name, buffer_type in buffer_types.items():
+            v = vault.Vault(phrase=buffer_type(phrase.encode("utf-8")))
+            for type_name2, buffer_type2 in buffer_types.items():
+                assert v.generate(buffer_type2(bytes_service)) == result, (
+                    f"mismatched result when using the {type_name} "
+                    f"master passphrase and the {type_name2} service name"
+                )
 
 
 class TestConstraintSatisfactionFromUpstream(TestVault):
@@ -627,16 +600,16 @@ class TestConstraintSatisfactionFromUpstream(TestVault):
             repeat=4,
         ).generate("abcdef")
         forbidden_substrings = {
-            b"0000",
-            b"1111",
-            b"2222",
-            b"3333",
-            b"4444",
-            b"5555",
-            b"6666",
-            b"7777",
-            b"8888",
-            b"9999",
+            b"00000",
+            b"11111",
+            b"22222",
+            b"33333",
+            b"44444",
+            b"55555",
+            b"66666",
+            b"77777",
+            b"88888",
+            b"99999",
         }
         for substring in forbidden_substrings:
             assert substring not in generated
@@ -772,7 +745,7 @@ class TestConstraintSatisfactionHeavyDuty(TestVault):
         config: dict[str, int],
         service: str,
     ) -> None:
-        """Derived passphrases obey character and occurrence restraints."""
+        """Derived passphrases obey character and occurrence constraints."""
         try:
             password = vault.Vault(phrase=phrase, **config).generate(service)
         except ValueError as exc:  # pragma: no cover
