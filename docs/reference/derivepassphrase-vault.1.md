@@ -358,15 +358,16 @@ The <b>derivepassphrase vault</b> utility exits 0 on success, and >0 if an error
 
     We require a running SSH agent, but cannot locate its communication channel, which is normally indicated by the `SSH_AUTH_SOCK` environment variable.
 
-<!-- Message-ID: ErrMsgTemplate.NO_AF_UNIX -->
-??? failure "`Cannot connect to an SSH agent because this Python version does not support UNIX domain sockets.`"
+<!-- Message-ID: ErrMsgTemplate.NO_AGENT_SUPPORT -->
+??? failure "`Cannot connect to an SSH agent because this Python version does not support communicating with it.`"
 
     This Python installation does not support the communication mechanism necessary to talk to SSH agents.
+    [Since v0.6: May be preceded by several warning messages indicating which communication mechanisms were tried.]
 
 <!-- Message-ID: ErrMsgTemplate.CANNOT_CONNECT_TO_AGENT -->
 ??? failure "`Cannot connect to the SSH agent: %s.`"
 
-    We cannot connect to the SSH agent indicated by the `SSH_AUTH_SOCK` environment variable.
+    We cannot connect to the SSH agent indicated by the respective address (e.g. a well-known address, or the `SSH_AUTH_SOCK` environment variable).
     Further details are contained in the variable part of the message.
 
 <!-- Message-ID: ErrMsgTemplate.AGENT_REFUSED_LIST_KEYS -->
@@ -493,6 +494,30 @@ The <b>derivepassphrase vault</b> utility exits 0 on success, and >0 if an error
 
     The <i>vault</i>(1) legacy editor interface is in use, which carries a high risk of accidentally losing or corrupting the old notes because a notes editing session cannot be aborted mid-editing.
     To guard against such accidental data loss, a backup copy of the old notes was saved to the <b>derivepassphrase</b> configuration directory.
+
+<!-- Message-ID: WarnMsgTemplate.NO_AF_UNIX -->
+??? warning "`Cannot connect to an SSH agent via UNIX domain sockets because this Python version does not support them.`"
+
+    [Since v0.6.]
+    We attempted to use UNIX domain sockets to communicate with an SSH agent, but this Python installation does not support them.
+    (Only appears together with the error message "Cannot connect to an SSH agent because this Python version does not support communicating with it.".
+    Other, similar messages about unsupported communication mechanisms may precede the error message.)
+
+<!-- Message-ID: WarnMsgTemplate.NO_ANNOYING_OS_NAMED_PIPES -->
+??? warning "`Cannot connect to an SSH agent via Windows named pipes because this Python version does not support them.`"
+
+    [Since v0.6.]
+    We attempted to use Windows named pipes to communicate with an SSH agent, but this Python installation does not support them.
+    (Only appears together with the error message "Cannot connect to an SSH agent because this Python version does not support communicating with it.".
+    Other, similar messages about unsupported communication mechanisms may precede the error message.)
+
+### Discontinued error, warning and info messages on standard error
+
+<!-- Message-ID (mark only): ErrMsgTemplate.NO_AF_UNIX -->
+??? error "`Cannot connect to an SSH agent because this Python version does not support UNIX domain sockets.`"
+
+    [Until v0.6.]
+    Superseded by both the more general error message "Cannot connect to an SSH agent because this Python version does not support communicating with it." and the warning message "Cannot connect to an SSH agent via UNIX domain sockets because this Python version does not support them.".
 
 ## COMPATIBILITY
 
