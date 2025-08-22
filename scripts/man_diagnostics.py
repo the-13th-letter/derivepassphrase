@@ -24,6 +24,8 @@ if TYPE_CHECKING:
 known_errors = cli_messages.ErrMsgTemplate.__members__
 known_warnings = cli_messages.WarnMsgTemplate.__members__
 
+mark_only = cast("DiagnosticText", "<mark only>")
+
 
 def _replace_known_metavars(string: str) -> str:
     return (
@@ -142,7 +144,7 @@ def _entries_from_mark_only(
         tuple[DiagnosticText, EnumName],
     ]
 ]:
-    text = cast("DiagnosticText", "<mark only>")
+    text = mark_only
     _class_name, dot, enum_entry = name.partition(".")
     assert dot == ".", f"Invalid enum name {name!r}"
     assert "." not in enum_entry, f"Unsupported enum name {name!r}"
@@ -196,6 +198,7 @@ manpage_documented_errors: dict[EnumName, DiagnosticText] = {}
 manpage_documented_warnings: dict[EnumName, DiagnosticText] = {}
 manpagedoc_documented_errors: dict[EnumName, DiagnosticText] = {}
 manpagedoc_documented_warnings: dict[EnumName, DiagnosticText] = {}
+marks: set[EnumName] = set()
 for set_name, globs, errors, warnings in [
     (
         "manpages",
@@ -224,6 +227,8 @@ for set_name, globs, errors, warnings in [
             _check_manpage if set_name == "manpages" else _check_manpagedoc
         )
         for diagnostic_type, (text, name) in checker(path):
+            if text == mark_only:
+                marks.add(name)
             if diagnostic_type == "warning":
                 warnings[name] = text
                 print(f"DOC WARN {name} {text!r}")
@@ -238,13 +243,13 @@ for set_name, globs, errors, warnings in [
         f"Some warning messages aren't documented in the {set_name}: "
         + repr(set(known_warnings) - set(warnings))
     )
-    assert set(errors) <= set(known_errors), (
+    assert set(errors) - marks <= set(known_errors), (
         f"Some unknown error messages are documented in the {set_name}: "
-        + repr(set(errors) - set(known_errors))  # type: ignore[arg-type]
+        + repr(set(errors) - marks - set(known_errors))  # type: ignore[arg-type]
     )
-    assert set(warnings) <= set(known_warnings), (
+    assert set(warnings) - marks <= set(known_warnings), (
         f"Some unknown warning messages are documented in the {set_name}: "
-        + repr(set(warnings) - set(known_warnings))  # type: ignore[arg-type]
+        + repr(set(warnings) - marks - set(known_warnings))  # type: ignore[arg-type]
     )
 
 py_file_errors: set[EnumName] = set()
