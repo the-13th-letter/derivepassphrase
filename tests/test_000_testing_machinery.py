@@ -19,6 +19,7 @@ OPENSSH_HEADER = (
     + b"\x00\x00\x00\x00"  # kdfoptions
     + b"\x00\x00\x00\x01"  # number of keys
 )
+OPENSSH_NONE_CIPHER_BLOCKSIZE = 8
 
 
 def as_openssh_keyfile_payload(
@@ -59,7 +60,7 @@ def as_openssh_keyfile_payload(
     secret.extend(uint32(checkint))  # checkint
     secret.extend(private_key)  # privatekey1 and comment1
     i = 1
-    while len(secret) % 16 != 0:
+    while len(secret) % OPENSSH_NONE_CIPHER_BLOCKSIZE != 0:
         secret.append(i)
         i += 1
     payload.extend(string(secret))  # encrypted, padded list of private keys
@@ -126,8 +127,8 @@ def minimize_openssh_keyfile_padding(
     for i in range(1, len(padding) + 1):
         expected_padding.append(i & 0xFF)
     assert padding == expected_padding
-    while len(padding) >= 8:
-        padding[-8:] = b""
+    while len(padding) >= OPENSSH_NONE_CIPHER_BLOCKSIZE:
+        padding[-OPENSSH_NONE_CIPHER_BLOCKSIZE:] = b""
 
     new_private_block.extend(padding)
     result.extend(string(new_private_block))
@@ -144,93 +145,99 @@ class Parametrize:
     )
 
 
-@Parametrize.TEST_KEYS
-def test_test_keys_public_keys_are_internally_consistent(
-    keyname: str,
-    key: data.SSHTestKey,
-) -> None:
-    """The test key public key data structures are internally consistent."""
-    del keyname
-    string = ssh_agent.SSHAgentClient.string
-    public_key_lines = key.public_key.splitlines(keepends=False)
-    assert len(public_key_lines) == 1
-    line_parts = public_key_lines[0].strip(b"\r\n").split(None, 2)
-    key_type_name, public_key_b64 = line_parts[:2]
-    assert base64.standard_b64encode(key.public_key_data) == public_key_b64
-    assert key.public_key_data.startswith(string(key_type_name))
+class TestTestKeys:
+    """Tests testing the test keys."""
 
+    @Parametrize.TEST_KEYS
+    def test_public_keys_are_internally_consistent(
+        self,
+        keyname: str,
+        key: data.SSHTestKey,
+    ) -> None:
+        """The public key data structures are internally consistent."""
+        del keyname
+        string = ssh_agent.SSHAgentClient.string
+        public_key_lines = key.public_key.splitlines(keepends=False)
+        assert len(public_key_lines) == 1
+        line_parts = public_key_lines[0].strip(b"\r\n").split(None, 2)
+        key_type_name, public_key_b64 = line_parts[:2]
+        assert base64.standard_b64encode(key.public_key_data) == public_key_b64
+        assert key.public_key_data.startswith(string(key_type_name))
 
-@Parametrize.TEST_KEYS
-def test_test_keys_private_keys_are_consistent_with_public_keys(
-    keyname: str,
-    key: data.SSHTestKey,
-) -> None:
-    """The test key private key data are consistent with their public parts."""
-    del keyname
-    string = ssh_agent.SSHAgentClient.string
+    @Parametrize.TEST_KEYS
+    def test_private_keys_are_consistent_with_public_keys(
+        self,
+        keyname: str,
+        key: data.SSHTestKey,
+    ) -> None:
+        """The private key data are consistent with their public parts."""
+        del keyname
+        string = ssh_agent.SSHAgentClient.string
 
-    if key.public_key_data.startswith(string(b"ssh-rsa")):
-        # RSA public keys are *not* prefixes of the corresponding private
-        # key in OpenSSH format! RSA public keys consist of an exponent
-        # e and a modulus n, which in the public key are in the order (e,
-        # n), but in the order (n, e) in the OpenSSH private key.  We thus
-        # need to parse and rearrange the components of the public key into
-        # a new "mangled" public key that then *is* a prefix of the
-        # respective private key.
-        unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
-        key_type, numbers = unstring_prefix(key.public_key_data)
-        e, encoded_n = unstring_prefix(numbers)
-        n, trailer = unstring_prefix(encoded_n)
-        assert not trailer
-        mangled_public_key_data = string(key_type) + string(n) + string(e)
-        assert (
-            key.private_key_blob[: len(mangled_public_key_data)]
-            == mangled_public_key_data
-        )
-    else:
-        assert (
-            key.private_key_blob[: len(key.public_key_data)]
-            == key.public_key_data
-        )
+        if key.public_key_data.startswith(string(b"ssh-rsa")):
+            # RSA public keys are *not* prefixes of the corresponding
+            # private key in OpenSSH format! RSA public keys consist of
+            # an exponent e and a modulus n, which in the public key are
+            # in the order (e, n), but in the order (n, e) in the
+            # OpenSSH private key.  We thus need to parse and rearrange
+            # the components of the public key into a new "mangled"
+            # public key that then *is* a prefix of the respective
+            # private key.
+            unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
+            key_type, numbers = unstring_prefix(key.public_key_data)
+            e, encoded_n = unstring_prefix(numbers)
+            n, trailer = unstring_prefix(encoded_n)
+            assert not trailer
+            mangled_public_key_data = string(key_type) + string(n) + string(e)
+            assert (
+                key.private_key_blob[: len(mangled_public_key_data)]
+                == mangled_public_key_data
+            )
+        else:
+            assert (
+                key.private_key_blob[: len(key.public_key_data)]
+                == key.public_key_data
+            )
 
+    @Parametrize.TEST_KEYS
+    def test_private_keys_are_internally_consistent(
+        self,
+        keyname: str,
+        key: data.SSHTestKey,
+    ) -> None:
+        """The private key data structures are internally consistent."""
+        del keyname
+        string = ssh_agent.SSHAgentClient.string
 
-@Parametrize.TEST_KEYS
-def test_test_keys_private_keys_are_internally_consistent(
-    keyname: str,
-    key: data.SSHTestKey,
-) -> None:
-    """The test key private key data structures are internally consistent."""
-    del keyname
-    string = ssh_agent.SSHAgentClient.string
-
-    private_key_lines = [
-        line
-        for line in key.private_key.splitlines(keepends=False)
-        if line and not line.startswith((b"-----BEGIN", b"-----END"))
-    ]
-    private_key_from_openssh = base64.standard_b64decode(
-        b"".join(private_key_lines)
-    )
-    wrapped_public_key = string(key.public_key_data)
-    assert (
-        private_key_from_openssh[
-            len(OPENSSH_HEADER) : len(OPENSSH_HEADER) + len(wrapped_public_key)
+        private_key_lines = [
+            line
+            for line in key.private_key.splitlines(keepends=False)
+            if line and not line.startswith((b"-----BEGIN", b"-----END"))
         ]
-        == wrapped_public_key
-    )
-
-    # Offset skips the header, the wrapped public key, and the framing
-    # of the private keys section.
-    offset = len(OPENSSH_HEADER) + len(wrapped_public_key) + 4
-    checkint = int.from_bytes(
-        private_key_from_openssh[offset : offset + 4], "big"
-    )
-    assert minimize_openssh_keyfile_padding(
-        private_key_from_openssh
-    ) == minimize_openssh_keyfile_padding(
-        as_openssh_keyfile_payload(
-            public_key=key.public_key_data,
-            private_key=key.private_key_blob,
-            checkint=checkint,
+        private_key_from_openssh = base64.standard_b64decode(
+            b"".join(private_key_lines)
         )
-    )
+        wrapped_public_key = string(key.public_key_data)
+        assert (
+            private_key_from_openssh[
+                len(OPENSSH_HEADER) : len(OPENSSH_HEADER)
+                + len(wrapped_public_key)
+            ]
+            == wrapped_public_key
+        )
+
+        # Offset skips the header, the wrapped public key, and the
+        # framing of the private keys section.
+        offset = len(OPENSSH_HEADER) + len(wrapped_public_key) + 4
+        checkint = int.from_bytes(
+            private_key_from_openssh[offset : offset + 4], "big"
+        )
+        assert minimize_openssh_keyfile_padding(
+            private_key_from_openssh
+        ) == minimize_openssh_keyfile_padding(
+            as_openssh_keyfile_payload(
+                public_key=key.public_key_data,
+                private_key=key.private_key_blob,
+                checkint=checkint,
+            )
+        )
