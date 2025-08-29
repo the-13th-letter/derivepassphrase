@@ -44,17 +44,9 @@ DUMMY_PASSPHRASE = data.DUMMY_PASSPHRASE
 DUMMY_CONFIG_SETTINGS = data.DUMMY_CONFIG_SETTINGS
 DUMMY_RESULT_PASSPHRASE = data.DUMMY_RESULT_PASSPHRASE
 DUMMY_RESULT_KEY1 = data.DUMMY_RESULT_KEY1
-DUMMY_PHRASE_FROM_KEY1_RAW = data.DUMMY_PHRASE_FROM_KEY1_RAW
-DUMMY_PHRASE_FROM_KEY1 = data.DUMMY_PHRASE_FROM_KEY1
 
-DUMMY_KEY1 = data.DUMMY_KEY1
 DUMMY_KEY1_B64 = data.DUMMY_KEY1_B64
-DUMMY_KEY2 = data.DUMMY_KEY2
 DUMMY_KEY2_B64 = data.DUMMY_KEY2_B64
-DUMMY_KEY3 = data.DUMMY_KEY3
-DUMMY_KEY3_B64 = data.DUMMY_KEY3_B64
-
-TEST_CONFIGS = data.TEST_CONFIGS
 
 
 class IncompatibleConfiguration(NamedTuple):
@@ -461,7 +453,7 @@ class Parametrize(types.SimpleNamespace):
     )
     VALID_TEST_CONFIGS = pytest.mark.parametrize(
         "config",
-        [conf.config for conf in TEST_CONFIGS if conf.is_valid()],
+        [conf.config for conf in data.TEST_CONFIGS if conf.is_valid()],
     )
     KEY_OVERRIDING_IN_CONFIG = pytest.mark.parametrize(
         ["config", "command_line"],
@@ -2504,12 +2496,12 @@ class TestStoringConfigurationSuccesses:
     ) -> None:
         """Running without an existing config directory works.
 
-        This is a regression test; see [issue\u00a0#6][] for context.
-        See also
-        [TestStoringConfigurationFailures001.test_config_directory_not_a_file][]
+        This is a regression test; see [the "pretty-print-json"
+        issue][PRETTY_PRINT_JSON] for context.  See also
+        [TestStoringConfigurationFailures.test_config_directory_not_a_file][]
         for a related aspect of this.
 
-        [issue #6]: https://github.com/the-13th-letter/derivepassphrase/issues/6
+        [PRETTY_PRINT_JSON]: https://the13thletter.info/derivepassphrase/0.x/wishlist/pretty-print-json/
 
         """
         runner = machinery.CliRunner(mix_stderr=False)
@@ -2895,12 +2887,12 @@ class TestStoringConfigurationFailures:
         That is, the missing configuration directory does not cause any
         errors by itself.
 
-        This is a regression test; see [issue\u00a0#6][] for context.
-        See also
-        [TestStoringConfigurationSuccesses001.test_config_directory_nonexistant][]
+        This is a regression test; see [the "pretty-print-json"
+        issue][PRETTY_PRINT_JSON] for context.  See also
+        [TestStoringConfigurationSuccesses.test_config_directory_nonexistant][]
         for a related aspect of this.
 
-        [issue #6]: https://github.com/the-13th-letter/derivepassphrase/issues/6
+        [PRETTY_PRINT_JSON]: https://the13thletter.info/derivepassphrase/0.x/wishlist/pretty-print-json/
 
         """
         runner = machinery.CliRunner(mix_stderr=False)

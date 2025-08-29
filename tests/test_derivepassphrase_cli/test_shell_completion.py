@@ -60,15 +60,11 @@ def zsh_format(item: click.shell_completion.CompletionItem) -> str:
     r"""A formatter for `zsh`-style shell completion items.
 
     The format is `type<newline>value<newline>help<newline>`, and is
-    dictated by [`click`][].  Upstream `click` currently (v8.2.0) does
-    not deal with colons in the value correctly when the help text is
-    non-degenerate.  Our formatter here does, provided the upstream
-    `zsh` completion script is used; see the
-    [`cli_machinery.ZshComplete`][] class.  A request is underway to
-    merge this change into upstream `click`; see
-    [`pallets/click#2846`][PR2846].
-
-    [PR2846]: https://github.com/pallets/click/pull/2846
+    dictated by [`click`][].  Upstream `click` up to and including
+    v8.2.1 does not deal with colons in the value correctly when the
+    help text is non-degenerate.  Our formatter here does, provided the
+    upstream `zsh` completion script is used; see the
+    [`cli_machinery.ZshComplete`][] class.
 
     """
     empty_help = "_"

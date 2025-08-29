@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import base64
 import enum
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Protocol, cast
 
 from typing_extensions import NamedTuple
 
@@ -1356,7 +1356,7 @@ DUMMY_KEY3 = SUPPORTED_KEYS["ed448"].public_key_data
 """A third supported SSH test key (in wire format)."""
 DUMMY_KEY3_B64 = base64.standard_b64encode(DUMMY_KEY3).decode("ASCII")
 """A third supported SSH test key (in `authorized_keys` format)."""
-DUMMY_CONFIG_SETTINGS = {
+DUMMY_CONFIG_SETTINGS = cast("_types.VaultConfigServicesSettings", {
     "length": 10,
     "upper": 1,
     "lower": 1,
@@ -1365,7 +1365,7 @@ DUMMY_CONFIG_SETTINGS = {
     "space": 1,
     "dash": 1,
     "symbol": 1,
-}
+})
 """Sample vault settings."""
 DUMMY_RESULT_PASSPHRASE = b".2V_QJkd o"
 """

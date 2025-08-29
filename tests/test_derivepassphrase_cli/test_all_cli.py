@@ -547,7 +547,9 @@ class TestHelpOutput:
 
         (The answer currently is always no. See the
         [`conventional-configurable-text-styling` wishlist
-        entry](../wishlist/conventional-configurable-text-styling.md).)
+        entry][WISHLIST_ENTRY].)
+
+        [WISHLIST_ENTRY]: https://the13thletter.info/derivepassphrase/0.x/wishlist/conventional-configurable-text-styling/
 
         """
         color = False

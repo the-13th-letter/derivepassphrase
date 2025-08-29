@@ -1308,6 +1308,9 @@ class ZshComplete(click.shell_completion.ZshComplete):
     adaptively and "smartly" emit colon-escaped output or not, based on
     whether the completion script will be using it.
 
+    As of `click` v8.2.2, the Zsh completion class also adaptively emits
+    colon-escaped output or not, based on the very same criterion.
+
     """
 
     @override
