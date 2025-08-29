@@ -27,33 +27,29 @@ class VersionOutputData(NamedTuple):
     features: dict[str, bool]
 
 
+def _label_text(e: cli_messages.Label, /) -> str:
+    return e.value.singular.rstrip(":")
+
+
 class KnownLineType(str, enum.Enum):
-    SUPPORTED_FOREIGN_CONFS = cli_messages.Label.SUPPORTED_FOREIGN_CONFIGURATION_FORMATS.value.singular.rstrip(
-        ":"
+    SUPPORTED_FOREIGN_CONFS = _label_text(
+        cli_messages.Label.SUPPORTED_FOREIGN_CONFIGURATION_FORMATS
     )
-    UNAVAILABLE_FOREIGN_CONFS = cli_messages.Label.UNAVAILABLE_FOREIGN_CONFIGURATION_FORMATS.value.singular.rstrip(
-        ":"
+    UNAVAILABLE_FOREIGN_CONFS = _label_text(
+        cli_messages.Label.UNAVAILABLE_FOREIGN_CONFIGURATION_FORMATS
     )
-    SUPPORTED_SCHEMES = (
-        cli_messages.Label.SUPPORTED_DERIVATION_SCHEMES.value.singular.rstrip(
-            ":"
-        )
+    SUPPORTED_SCHEMES = _label_text(
+        cli_messages.Label.SUPPORTED_DERIVATION_SCHEMES
     )
-    UNAVAILABLE_SCHEMES = cli_messages.Label.UNAVAILABLE_DERIVATION_SCHEMES.value.singular.rstrip(
-        ":"
+    UNAVAILABLE_SCHEMES = _label_text(
+        cli_messages.Label.UNAVAILABLE_DERIVATION_SCHEMES
     )
-    SUPPORTED_SUBCOMMANDS = (
-        cli_messages.Label.SUPPORTED_SUBCOMMANDS.value.singular.rstrip(":")
+    SUPPORTED_SUBCOMMANDS = _label_text(
+        cli_messages.Label.SUPPORTED_SUBCOMMANDS
     )
-    SUPPORTED_FEATURES = (
-        cli_messages.Label.SUPPORTED_FEATURES.value.singular.rstrip(":")
-    )
-    UNAVAILABLE_FEATURES = (
-        cli_messages.Label.UNAVAILABLE_FEATURES.value.singular.rstrip(":")
-    )
-    ENABLED_EXTRAS = (
-        cli_messages.Label.ENABLED_PEP508_EXTRAS.value.singular.rstrip(":")
-    )
+    SUPPORTED_FEATURES = _label_text(cli_messages.Label.SUPPORTED_FEATURES)
+    UNAVAILABLE_FEATURES = _label_text(cli_messages.Label.UNAVAILABLE_FEATURES)
+    ENABLED_EXTRAS = _label_text(cli_messages.Label.ENABLED_PEP508_EXTRAS)
 
 
 class Parametrize(types.SimpleNamespace):
@@ -106,6 +102,34 @@ class Parametrize(types.SimpleNamespace):
                 ["vault"],
                 ["--export", "./"],
                 id="vault-args",
+            ),
+        ],
+    )
+    HELP_OUTPUT_COMMAND_LINE = pytest.mark.parametrize(
+        ["command_line", "expected_lines"],
+        [
+            pytest.param(
+                [],
+                ["currently implemented subcommands"],
+                id="derivepassphrase",
+            ),
+            pytest.param(
+                ["export"],
+                ["only available subcommand"],
+                id="derivepassphrase-export",
+            ),
+            pytest.param(
+                ["export", "vault"],
+                ["Export a vault-native configuration"],
+                id="derivepassphrase-export-vault",
+            ),
+            pytest.param(
+                ["vault"],
+                [
+                    "Passphrase generation:",
+                    "Use $VISUAL or $EDITOR to configure",
+                ],
+                id="derivepassphrase-vault",
             ),
         ],
     )
@@ -386,37 +410,13 @@ class TestHelpOutput:
 
     # TODO(the-13th-letter): Do we actually need this?  What should we
     # check for?
-    def test_help_output(self) -> None:
-        """The top-level help text mentions subcommands.
-
-        TODO: Do we actually need this?  What should we check for?
-
-        """
-        runner = machinery.CliRunner(mix_stderr=False)
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            stack.enter_context(
-                pytest_machinery.isolated_config(
-                    monkeypatch=monkeypatch,
-                    runner=runner,
-                )
-            )
-            result = runner.invoke(
-                cli.derivepassphrase, ["--help"], catch_exceptions=False
-            )
-        assert result.clean_exit(
-            empty_stderr=True, output="currently implemented subcommands"
-        ), "expected clean exit, and known help text"
-
-    # TODO(the-13th-letter): Do we actually need this?  What should we
-    # check for?
-    def test_help_output_export(
+    @Parametrize.HELP_OUTPUT_COMMAND_LINE
+    def test_help_output(
         self,
+        command_line: list[str],
+        expected_lines: list[str],
     ) -> None:
-        """The "export" subcommand help text mentions subcommands.
+        """The respective help text contains certain expected phrases.
 
         TODO: Do we actually need this?  What should we check for?
 
@@ -435,77 +435,13 @@ class TestHelpOutput:
             )
             result = runner.invoke(
                 cli.derivepassphrase,
-                ["export", "--help"],
+                [*command_line, "--help"],
                 catch_exceptions=False,
             )
-        assert result.clean_exit(
-            empty_stderr=True, output="only available subcommand"
-        ), "expected clean exit, and known help text"
-
-    # TODO(the-13th-letter): Do we actually need this?  What should we
-    # check for?
-    def test_help_output_export_vault(
-        self,
-    ) -> None:
-        """The "export vault" subcommand help text has known content.
-
-        TODO: Do we actually need this?  What should we check for?
-
-        """
-        runner = machinery.CliRunner(mix_stderr=False)
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            stack.enter_context(
-                pytest_machinery.isolated_config(
-                    monkeypatch=monkeypatch,
-                    runner=runner,
-                )
+        for line in expected_lines:
+            assert result.clean_exit(empty_stderr=True, output=line), (
+                "expected clean exit, and known help text"
             )
-            result = runner.invoke(
-                cli.derivepassphrase,
-                ["export", "vault", "--help"],
-                catch_exceptions=False,
-            )
-        assert result.clean_exit(
-            empty_stderr=True, output="Export a vault-native configuration"
-        ), "expected clean exit, and known help text"
-
-    # TODO(the-13th-letter): Do we actually need this?  What should we
-    # check for?
-    def test_help_output_vault(
-        self,
-    ) -> None:
-        """The "vault" subcommand help text has known content.
-
-        TODO: Do we actually need this?  What should we check for?
-
-        """
-        runner = machinery.CliRunner(mix_stderr=False)
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            stack.enter_context(
-                pytest_machinery.isolated_config(
-                    monkeypatch=monkeypatch,
-                    runner=runner,
-                )
-            )
-            result = runner.invoke(
-                cli.derivepassphrase,
-                ["vault", "--help"],
-                catch_exceptions=False,
-            )
-        assert result.clean_exit(
-            empty_stderr=True, output="Passphrase generation:\n"
-        ), "expected clean exit, and option groups in help text"
-        assert result.clean_exit(
-            empty_stderr=True, output="Use $VISUAL or $EDITOR to configure"
-        ), "expected clean exit, and option group epilog in help text"
 
     @Parametrize.COMMAND_NON_EAGER_ARGUMENTS
     @Parametrize.EAGER_ARGUMENTS
@@ -585,6 +521,31 @@ class TestHelpOutput:
 class TestVersionOutput:
     """Tests for all command-line interfaces' `--version` output."""
 
+    def _test(
+        self,
+        command_line: list[str],
+    ) -> VersionOutputData:
+        runner = machinery.CliRunner(mix_stderr=False)
+        # TODO(the-13th-letter): Rewrite using parenthesized
+        # with-statements.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        with contextlib.ExitStack() as stack:
+            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
+            stack.enter_context(
+                pytest_machinery.isolated_config(
+                    monkeypatch=monkeypatch,
+                    runner=runner,
+                )
+            )
+            result = runner.invoke(
+                cli.derivepassphrase,
+                [*command_line, "--version"],
+                catch_exceptions=False,
+            )
+        assert result.clean_exit(empty_stderr=True), "expected clean exit"
+        assert result.stdout.strip(), "expected version output"
+        return parse_version_output(result.stdout)
+
     def test_derivepassphrase_version_option_output(
         self,
     ) -> None:
@@ -602,26 +563,7 @@ class TestVersionOutput:
         correct program version number.
 
         """
-        runner = machinery.CliRunner(mix_stderr=False)
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            stack.enter_context(
-                pytest_machinery.isolated_config(
-                    monkeypatch=monkeypatch,
-                    runner=runner,
-                )
-            )
-            result = runner.invoke(
-                cli.derivepassphrase,
-                ["--version"],
-                catch_exceptions=False,
-            )
-        assert result.clean_exit(empty_stderr=True), "expected clean exit"
-        assert result.stdout.strip(), "expected version output"
-        version_data = parse_version_output(result.stdout)
+        version_data = self._test([])
         actually_known_schemes = dict.fromkeys(_types.DerivationScheme, True)
         subcommands = set(_types.Subcommand)
         assert version_data.derivation_schemes == actually_known_schemes
@@ -647,26 +589,7 @@ class TestVersionOutput:
         correct program version number.
 
         """
-        runner = machinery.CliRunner(mix_stderr=False)
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            stack.enter_context(
-                pytest_machinery.isolated_config(
-                    monkeypatch=monkeypatch,
-                    runner=runner,
-                )
-            )
-            result = runner.invoke(
-                cli.derivepassphrase,
-                ["export", "--version"],
-                catch_exceptions=False,
-            )
-        assert result.clean_exit(empty_stderr=True), "expected clean exit"
-        assert result.stdout.strip(), "expected version output"
-        version_data = parse_version_output(result.stdout)
+        version_data = self._test(["export"])
         actually_known_formats: dict[str, bool] = {
             _types.ForeignConfigurationFormat.VAULT_STOREROOM: False,
             _types.ForeignConfigurationFormat.VAULT_V02: False,
@@ -699,26 +622,7 @@ class TestVersionOutput:
         correct program version number.
 
         """
-        runner = machinery.CliRunner(mix_stderr=False)
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            stack.enter_context(
-                pytest_machinery.isolated_config(
-                    monkeypatch=monkeypatch,
-                    runner=runner,
-                )
-            )
-            result = runner.invoke(
-                cli.derivepassphrase,
-                ["export", "vault", "--version"],
-                catch_exceptions=False,
-            )
-        assert result.clean_exit(empty_stderr=True), "expected clean exit"
-        assert result.stdout.strip(), "expected version output"
-        version_data = parse_version_output(result.stdout)
+        version_data = self._test(["export", "vault"])
         actually_known_formats: dict[str, bool] = {}
         actually_enabled_extras: set[str] = set()
         with contextlib.suppress(ModuleNotFoundError):
@@ -758,27 +662,7 @@ class TestVersionOutput:
         correct program version number.
 
         """
-        runner = machinery.CliRunner(mix_stderr=False)
-        # TODO(the-13th-letter): Rewrite using parenthesized
-        # with-statements.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            stack.enter_context(
-                pytest_machinery.isolated_config(
-                    monkeypatch=monkeypatch,
-                    runner=runner,
-                )
-            )
-            result = runner.invoke(
-                cli.derivepassphrase,
-                ["vault", "--version"],
-                catch_exceptions=False,
-            )
-        assert result.clean_exit(empty_stderr=True), "expected clean exit"
-        assert result.stdout.strip(), "expected version output"
-        version_data = parse_version_output(result.stdout)
-
+        version_data = self._test(["vault"])
         ssh_key_supported = True
 
         def react_to_notimplementederror(
