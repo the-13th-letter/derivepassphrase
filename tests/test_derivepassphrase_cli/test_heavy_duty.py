@@ -780,8 +780,7 @@ def run_actions_handler(
     [`multiprocessing.Process`][] -- to run a single action from the
     [`FakeConfigurationMutexStateMachine`][].  Output from this function
     must be sent down the output queue instead of relying on the call
-    stack.  Additionally, because this runs in a separate process, we
-    need to restart coverage tracking if it is currently running.
+    stack.
 
     Args:
         id_num:
@@ -865,6 +864,14 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
             A bundle for single-service settings.
         configuration:
             A bundle for full vault configurations.
+        actions:
+            A list of [actions][FakeConfigurationMutexAction] to
+            take.  These will be executed in [`run_actions`][].
+        step_count:
+            The currently valid `hypothesis` step count for state
+            machine testing (if we can successfully determine it;
+            else a default value).
+
 
     """
 
@@ -1015,6 +1022,7 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
         """Initialize the state machine."""
         super().__init__(*args, **kwargs)
         self.actions: list[FakeConfigurationMutexAction] = []
+        """"""
         # Determine the step count by poking around in the hypothesis
         # internals. As this isn't guaranteed to be stable, turn off
         # coverage.
@@ -1023,9 +1031,10 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
             settings = FakeConfigurationMutexStateMachine.TestCase.settings
         except AttributeError:  # pragma: no cover
             settings = None
-        self.step_count = hypothesis_machinery.get_concurrency_step_count(
+        self.step_count: int = hypothesis_machinery.get_concurrency_step_count(
             settings
         )
+        """"""
 
     @staticmethod
     def overwrite_or_merge_commands(*, overwrite: bool = False) -> list[str]:
@@ -1323,8 +1332,9 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
         mp = multiprocessing.get_context()
         # Coverage tracking writes coverage data to the current working
         # directory, but because the subprocesses are spawned within the
-        # `pytest_machinery.isolated_vault_config` context manager, their starting
-        # working directory is the isolated one, not the original one.
+        # `pytest_machinery.isolated_vault_config` context manager,
+        # their starting working directory is the isolated one, not the
+        # original one.
         orig_cwd = pathlib.Path.cwd()
 
         fatal_process_creation_errnos = {
@@ -1454,12 +1464,12 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
                             break
                 finally:
                     # The subprocesses have this
-                    # `pytest_machinery.isolated_vault_config` directory as their
-                    # startup and working directory, so systems like
-                    # coverage tracking write their data files to this
-                    # directory.  We need to manually move them back to
-                    # the starting working directory if they are to
-                    # survive this test.
+                    # `pytest_machinery.isolated_vault_config` directory
+                    # as their startup and working directory, so systems
+                    # like coverage tracking write their data files to
+                    # this directory.  We need to manually move them
+                    # back to the starting working directory if they are
+                    # to survive this test.
                     for coverage_file in pathlib.Path.cwd().glob(
                         ".coverage.*"
                     ):
@@ -1495,6 +1505,73 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
         processes_pending: set[multiprocessing.process.BaseProcess],
         block: bool = True,
     ) -> None:
+        """Run a single step of the IPC main loop operation.
+
+        We check for a message (in a blocking manner, or not, depending
+        on the options) on the common child output queue and react to
+        it, accordingly.  This may entail sending other child processes
+        a message via their input queue, or otherwise updating the
+        bookkeeping data structures.
+
+        Specifically, we take the following actions:
+
+        1.  We re-raise any exceptions that occurred in a child process.
+
+        2.  We issue work clearance for child number 0 once all child
+            processes have signalled readiness.
+
+        3.  We store any results that a child process sends via the
+            output queue.
+
+        4.  We react to any child process exiting by checking its return
+            status and by issuing work clearance to the next child
+            process, if any.
+
+        We take a number of arguments, many of which are data structures
+        that, once they are set up, will be managed by us exclusively.
+        These are marked as "managed by us" below.  **Do not
+        manipulate** these arguments once they have been passed in to us
+        **unless you are absolutely 100% sure you know what you're
+        doing**.
+
+        Args:
+            timeout:
+                The maximum time to wait for sending or receiving an IPC
+                message on a queue.
+            block:
+                If true, block until a message has been sent or
+                received, else return immediately.
+            intermediate_configs:
+                A `dict` in which to store the `vault` configurations
+                returned from the child processes.  Each configuration
+                is keyed by the step number (which is equal to the child
+                process ID).
+            intermediate_results:
+                A `dict` in which to store the result tuples of running
+                the chain of actions at the given step number, based on
+                the results of the previous step number.  Each result
+                tuple contains the exit status (`True` if successful,
+                else `False`), the contents of standard output, and the
+                contents of standard error.
+
+        Other args:
+            child_output_queue:
+                The common output queue of all child processes.  Managed
+                by us.
+            child_input_queues:
+                A list of input queues for the child processes.  Managed
+                by us.
+            ready_wait:
+                The set of child process IDs who have yet to signal
+                readiness.  Managed by us.
+            processes:
+                The child process objects sitting at the other end of
+                the respective input queue.  Managed by us.
+            processes_pending:
+                The set of child processes currently still alive.
+                Managed by us.
+
+        """
         IPCMessage: TypeAlias = FakeConfigurationMutexStateMachine.IPCMessage
         msg = child_output_queue.get(block=block, timeout=timeout)
         # TODO(the-13th-letter): Rewrite using structural pattern
