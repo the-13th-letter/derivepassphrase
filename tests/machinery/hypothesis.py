@@ -22,8 +22,7 @@ from typing import TYPE_CHECKING
 import hypothesis
 from hypothesis import strategies
 
-import tests.data
-import tests.machinery
+from tests import data, machinery
 from derivepassphrase import _types
 
 __all__ = ()
@@ -53,9 +52,7 @@ def get_concurrency_step_count(
     """
     if settings is None:  # pragma: no cover
         settings = hypothesis.settings()
-    return min(
-        tests.machinery.get_concurrency_limit(), settings.stateful_step_count
-    )
+    return min(machinery.get_concurrency_limit(), settings.stateful_step_count)
 
 
 # Hypothesis strategies
@@ -63,7 +60,9 @@ def get_concurrency_step_count(
 
 
 @strategies.composite
-def vault_full_service_config(draw: strategies.DrawFn) -> dict[str, int]:
+def vault_full_service_config(
+    draw: strategies.DrawFn,
+) -> _types.VaultConfigServicesSettings:
     """Hypothesis strategy for full vault service configurations.
 
     Returns a sample configuration with restrictions on length, repeat
@@ -106,10 +105,12 @@ def vault_full_service_config(draw: strategies.DrawFn) -> dict[str, int]:
 @strategies.composite
 def smudged_vault_test_config(
     draw: strategies.DrawFn,
-    config: Any = strategies.sampled_from(tests.data.TEST_CONFIGS).filter(  # noqa: B008
-        tests.data.VaultTestConfig.is_smudgable
+    config: strategies.SearchStrategy[
+        data.VaultTestConfig
+    ] = strategies.sampled_from(data.TEST_CONFIGS).filter(  # noqa: B008
+        data.VaultTestConfig.is_smudgable
     ),
-) -> Any:
+) -> data.VaultTestConfig:
     """Hypothesis strategy to replace falsy values with other falsy values.
 
     Uses [`_types.js_truthiness`][] internally, which is tested
@@ -167,6 +168,4 @@ def smudged_vault_test_config(
             if not _types.js_truthiness(value) and value != 0:
                 service[key] = draw(strategies.sampled_from(falsy_no_zero))
     hypothesis.assume(obj != conf.config)
-    return tests.data.VaultTestConfig(
-        obj, conf.comment, conf.validation_settings
-    )
+    return data.VaultTestConfig(obj, conf.comment, conf.validation_settings)

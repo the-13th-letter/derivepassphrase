@@ -26,7 +26,8 @@ from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
     import multiprocessing
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Sequence
+    from collections.abc import Set as AbstractSet
 
     from typing_extensions import Literal
 
@@ -48,102 +49,155 @@ VALID_PROPERTIES = (
 """Known vault properties.  Used for the [`ConfigManagementStateMachine`][]."""
 
 
-def build_reduced_vault_config_settings(
-    config: _types.VaultConfigServicesSettings,
-    keys_to_prune: frozenset[str],
-) -> _types.VaultConfigServicesSettings:
-    """Return a service settings object with certain keys pruned.
+class Strategies:
+    """Common hypothesis data generation strategies."""
 
-    Args:
-        config:
-            The original service settings object.
-        keys_to_prune:
-            The keys to prune from the settings object.
-
-    """
-    config2 = copy.deepcopy(config)
-    for key in keys_to_prune:
-        config2.pop(key, None)  # type: ignore[misc]
-    return config2
-
-
-SERVICES_STRATEGY = strategies.builds(
-    build_reduced_vault_config_settings,
-    hypothesis_machinery.vault_full_service_config(),
-    strategies.sets(
-        strategies.sampled_from(VALID_PROPERTIES),
-        max_size=7,
-    ),
-)
-"""A hypothesis strategy to build incomplete service configurations."""
-
-
-def services_strategy() -> strategies.SearchStrategy[
-    _types.VaultConfigServicesSettings
-]:
-    """Return a strategy to build incomplete service configurations."""
-    return SERVICES_STRATEGY
-
-
-def assemble_config(
-    global_data: _types.VaultConfigGlobalSettings,
-    service_data: list[tuple[str, _types.VaultConfigServicesSettings]],
-) -> _types.VaultConfig:
-    """Return a vault config using the global and service data."""
-    services_dict = dict(service_data)
-    return (
-        {"global": global_data, "services": services_dict}
-        if global_data
-        else {"services": services_dict}
-    )
-
-
-@strategies.composite
-def draw_service_name_and_data(
-    draw: hypothesis.strategies.DrawFn,
-    num_entries: int,
-) -> tuple[tuple[str, _types.VaultConfigServicesSettings], ...]:
-    """Draw a service name and settings, as a hypothesis strategy.
-
-    Will draw service names from [`KNOWN_SERVICES`][] and service
-    settings via [`services_strategy`][].
-
-    Args:
-        draw:
-            The `draw` function, as provided for by hypothesis.
-        num_entries:
-            The number of services to draw.
-
-    Returns:
-        A sequence of pairs of service names and service settings.
-
-    """
-    possible_services = list(KNOWN_SERVICES)
-    selected_services: list[str] = []
-    for _ in range(num_entries):
-        selected_services.append(
-            draw(strategies.sampled_from(possible_services))
+    @staticmethod
+    def assemble_config(
+        global_data: _types.VaultConfigGlobalSettings,
+        service_data: Sequence[tuple[str, _types.VaultConfigServicesSettings]],
+    ) -> _types.VaultConfig:
+        """Return a vault config using the global and service data."""
+        services_dict = dict(service_data)
+        return (
+            {"global": global_data, "services": services_dict}
+            if global_data
+            else {"services": services_dict}
         )
-        possible_services.remove(selected_services[-1])
-    return tuple(
-        (service, draw(services_strategy())) for service in selected_services
-    )
 
+    @staticmethod
+    def build_reduced_vault_config_settings(
+        config: _types.VaultConfigServicesSettings,
+        keys_to_prune: AbstractSet[str],
+    ) -> _types.VaultConfigServicesSettings:
+        """Return a service settings object with certain keys pruned.
 
-VAULT_FULL_CONFIG = strategies.builds(
-    assemble_config,
-    services_strategy(),
-    strategies.integers(
-        min_value=2,
-        max_value=4,
-    ).flatmap(draw_service_name_and_data),
-)
-"""A hypothesis strategy to build full vault configurations."""
+        Args:
+            config:
+                The original service settings object.
+            keys_to_prune:
+                The keys to prune from the settings object.
 
+        """
+        config2 = copy.deepcopy(config)
+        for key in keys_to_prune:
+            config2.pop(key, None)  # type: ignore[misc]
+        return config2
 
-def vault_full_config() -> strategies.SearchStrategy[_types.VaultConfig]:
-    """Return a strategy to build full vault configurations."""
-    return VAULT_FULL_CONFIG
+    # Prefer this explicit composite strategy oven `strategies.builds`
+    # because the type checker can better introspect this.
+    @strategies.composite
+    @staticmethod
+    def services_strategy(
+        draw: strategies.DrawFn,
+    ) -> _types.VaultConfigServicesSettings:
+        """Return a strategy to build incomplete service configurations.
+
+        Args:
+            draw:
+                The `draw` function, as provided for by hypothesis.
+
+        Returns:
+            A strategy that generates `vault` service configurations,
+            with some settings left unspecified.
+
+        """
+        config = draw(
+            hypothesis_machinery.vault_full_service_config(), label="config"
+        )
+        keys_to_prune = draw(
+            strategies.sets(
+                strategies.sampled_from(VALID_PROPERTIES), max_size=7
+            ),
+            label="keys_to_prune",
+        )
+        # The `hypothesis.strategies.composite` decorator cannot handle
+        # bound class or instance methods, so we must code this as
+        # a static method.  As such, we cannot access sibling helper
+        # methods via `self` or `cls`, but must go via the class name.
+        return Strategies.build_reduced_vault_config_settings(
+            config, keys_to_prune
+        )
+
+    @strategies.composite
+    @staticmethod
+    def service_name_and_data_strategy(
+        draw: hypothesis.strategies.DrawFn,
+        num_entries: int,
+    ) -> tuple[tuple[str, _types.VaultConfigServicesSettings], ...]:
+        """Return a strategy for tuples of service names and settings.
+
+        Will draw service names from [`KNOWN_SERVICES`][] and service
+        settings via [`services_strategy`][].
+
+        Args:
+            draw:
+                The `draw` function, as provided for by hypothesis.
+            num_entries:
+                The number of services to draw.
+
+        Returns:
+            A strategy that generates a sequence of pairs of service
+            names and service settings.
+
+        """
+        possible_services = list(KNOWN_SERVICES)
+        selected_services: list[str] = []
+        for _ in range(num_entries):
+            selected_services.append(
+                draw(strategies.sampled_from(possible_services))
+            )
+            possible_services.remove(selected_services[-1])
+        return tuple(
+            (service, draw(Strategies.services_strategy()))
+            for service in selected_services
+        )
+
+    @strategies.composite
+    @staticmethod
+    def vault_full_config(draw: strategies.DrawFn) -> _types.VaultConfig:
+        """Return a strategy to build full vault configurations."""
+        services = draw(Strategies.services_strategy(), label="services")
+        num_entries = draw(
+            strategies.integers(min_value=2, max_value=4), label="num_entries"
+        )
+        service_name_and_data = draw(
+            Strategies.service_name_and_data_strategy(num_entries),
+            label="service_name_and_data",
+        )
+        return Strategies.assemble_config(services, service_name_and_data)
+
+    @staticmethod
+    def maybe_unset_strategy() -> strategies.SearchStrategy[AbstractSet[str]]:
+        """Return a strategy to build sets of names to maybe unset."""
+        return strategies.sets(
+            strategies.sampled_from(VALID_PROPERTIES), max_size=3
+        )
+
+    @staticmethod
+    def service_name_strategy() -> strategies.SearchStrategy[str]:
+        """Return a strategy for service names."""
+        return strategies.sampled_from(KNOWN_SERVICES)
+
+    @staticmethod
+    def setting_strategy(
+        setting_bundle: stateful.Bundle[_types.VaultConfigServicesSettings],
+    ) -> strategies.SearchStrategy[_types.VaultConfigServicesSettings]:
+        """Return a strategy for setting objects, given a setting bundle."""
+        return setting_bundle.filter(bool)
+
+    @strategies.composite
+    @staticmethod
+    def config_and_service_strategy(
+        draw: strategies.DrawFn,
+        configuration: stateful.Bundle[_types.VaultConfig],
+    ) -> tuple[_types.VaultConfig, str]:
+        """Return a strategy for a vault config and a service name tuple."""
+        config_strategy = configuration.filter(lambda c: bool(c["services"]))
+        config = draw(config_strategy, label="config")
+        keys = tuple(config["services"].keys())
+        key = draw(strategies.sampled_from(keys), label="key")
+        return (config, key)
 
 
 class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
@@ -188,7 +242,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     @stateful.initialize(
         target=configuration,
         configs=strategies.lists(
-            vault_full_config(),
+            Strategies.vault_full_config(),
             min_size=8,
             max_size=8,
         ),
@@ -203,7 +257,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
     @stateful.initialize(
         target=setting,
         configs=strategies.lists(
-            vault_full_config(),
+            Strategies.vault_full_config(),
             min_size=4,
             max_size=4,
         ),
@@ -233,21 +287,106 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
             "services": {**c2["services"], **c1["services"]},
         }
 
+    def call_cli(
+        self,
+        command_line: list[str],
+        expected_config: _types.VaultConfig,
+        /,
+        *,
+        input: str | bytes | None = None,
+        overwrite: bool = False,
+    ) -> _types.VaultConfig:
+        """Call the command-line interface for config manipulation.
+
+        Args:
+            command_line:
+                The command-line to execute via
+                a [`machinery.CliRunner`][].
+
+                The `--overwrite-existing`/`--merge-existing` options
+                should be managed via the `overwrite` option instead of
+                being explicitly specified.
+            expected_config:
+                The expected configuration after calling this
+                command-line.
+
+        Raises:
+            AssertionError:
+                The command exited with an error status.
+
+                *Or*, the actual resulting configuration does not match
+                the expected configuration.
+
+        """
+        overwriting = (
+            ["--overwrite-existing"] if overwrite else ["--merge-existing"]
+        )
+        result = self.runner.invoke(
+            cli.derivepassphrase_vault,
+            [*overwriting, *command_line],
+            input=input,
+            catch_exceptions=False,
+        )
+        assert result.clean_exit(empty_stderr=False)
+        assert cli_helpers.load_config() == expected_config
+        return expected_config
+
+    def set_globals_expected_result(
+        self,
+        config: _types.VaultConfig,
+        setting: _types.VaultConfigGlobalSettings,
+        maybe_unset: AbstractSet[str],
+        overwrite: bool,
+    ) -> tuple[_types.VaultConfig, AbstractSet[str]]:
+        """Set the global settings of a configuration.
+
+        This is the "calculate the correct result" section of the
+        `set_globals` rule.
+
+        Args:
+            config:
+                The configuration to edit.
+            setting:
+                The new global settings.
+            maybe_unset:
+                Settings keys to additionally unset, if not already
+                present in the new settings.  Corresponds to the
+                `--unset` command-line argument.
+            overwrite:
+                Overwrite the settings object if true, or merge if
+                false.  Corresponds to the `--overwrite-existing` and
+                `--merge-existing` command-line arguments.
+
+        Returns:
+            A 2-tuple containing the amended configuration, then the
+            settings keys that were actually unset.
+
+        """
+        config = copy.deepcopy(config)
+        setting = copy.deepcopy(setting)
+        config_global = config.get("global", {})
+        maybe_unset = set(maybe_unset) - setting.keys()
+        if overwrite:
+            config["global"] = config_global = {}
+        elif maybe_unset:
+            for key in maybe_unset:
+                config_global.pop(key, None)  # type: ignore[misc]
+        config.setdefault("global", {}).update(setting)
+        assert _types.is_vault_config(config)
+        return config, maybe_unset
+
     @stateful.rule(
         target=configuration,
         config=configuration,
-        setting=setting.filter(bool),
-        maybe_unset=strategies.sets(
-            strategies.sampled_from(VALID_PROPERTIES),
-            max_size=3,
-        ),
+        setting=Strategies.setting_strategy(setting),
+        maybe_unset=Strategies.maybe_unset_strategy(),
         overwrite=strategies.booleans(),
     )
     def set_globals(
         self,
         config: _types.VaultConfig,
         setting: _types.VaultConfigGlobalSettings,
-        maybe_unset: set[str],
+        maybe_unset: AbstractSet[str],
         overwrite: bool,
     ) -> _types.VaultConfig:
         """Set the global settings of a configuration.
@@ -271,45 +410,79 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
 
         """
         cli_helpers.save_config(config)
-        config_global = config.get("global", {})
-        maybe_unset = set(maybe_unset) - setting.keys()
-        if overwrite:
-            config["global"] = config_global = {}
-        elif maybe_unset:
-            for key in maybe_unset:
-                config_global.pop(key, None)  # type: ignore[misc]
-        config.setdefault("global", {}).update(setting)
-        assert _types.is_vault_config(config)
-        # NOTE: This relies on settings_obj containing only the keys
+        expected_config, maybe_unset = self.set_globals_expected_result(
+            config=config,
+            setting=setting,
+            maybe_unset=maybe_unset,
+            overwrite=overwrite,
+        )
+        # NOTE: This relies on `settings` containing only the keys
         # "length", "repeat", "upper", "lower", "number", "space",
         # "dash" and "symbol".
-        result = self.runner.invoke(
-            cli.derivepassphrase_vault,
-            [
-                "--config",
-                "--overwrite-existing" if overwrite else "--merge-existing",
-            ]
-            + [f"--unset={key}" for key in maybe_unset]
-            + [
-                f"--{key}={value}"
-                for key, value in setting.items()
-                if key in VALID_PROPERTIES
-            ],
-            catch_exceptions=False,
+        unset_commands = [f"--unset={key}" for key in maybe_unset]
+        set_commands = [
+            f"--{key}={value}"
+            for key, value in setting.items()
+            if key in VALID_PROPERTIES
+        ]
+        return self.call_cli(
+            ["--config", *unset_commands, *set_commands],
+            expected_config,
+            overwrite=overwrite,
         )
-        assert result.clean_exit(empty_stderr=False)
-        assert cli_helpers.load_config() == config
-        return config
+
+    def set_service_expected_result(
+        self,
+        service: str,
+        config: _types.VaultConfig,
+        setting: _types.VaultConfigGlobalSettings,
+        maybe_unset: AbstractSet[str],
+        overwrite: bool,
+    ) -> tuple[_types.VaultConfig, AbstractSet[str]]:
+        """Set the named service settings for a configuration.
+
+        This is the "calculate the correct result" section of the
+        `set_service` rule.
+
+        Args:
+            config:
+                The configuration to edit.
+            service:
+                The name of the service to set.
+            setting:
+                The new service settings.
+            maybe_unset:
+                Settings keys to additionally unset, if not already
+                present in the new settings.  Corresponds to the
+                `--unset` command-line argument.
+            overwrite:
+                Overwrite the settings object if true, or merge if
+                false.  Corresponds to the `--overwrite-existing` and
+                `--merge-existing` command-line arguments.
+
+        Returns:
+            A 2-tuple containing the amended configuration, then the
+            settings keys that were actually unset.
+
+        """
+        config = copy.deepcopy(config)
+        config_service = config["services"].get(service, {})
+        maybe_unset = set(maybe_unset) - setting.keys()
+        if overwrite:
+            config["services"][service] = config_service = {}
+        elif maybe_unset:
+            for key in maybe_unset:
+                config_service.pop(key, None)  # type: ignore[misc]
+        config["services"].setdefault(service, {}).update(setting)
+        assert _types.is_vault_config(config)
+        return config, maybe_unset
 
     @stateful.rule(
         target=configuration,
         config=configuration,
-        service=strategies.sampled_from(KNOWN_SERVICES),
-        setting=setting.filter(bool),
-        maybe_unset=strategies.sets(
-            strategies.sampled_from(VALID_PROPERTIES),
-            max_size=3,
-        ),
+        service=Strategies.service_name_strategy(),
+        setting=Strategies.setting_strategy(setting),
+        maybe_unset=Strategies.maybe_unset_strategy(),
         overwrite=strategies.booleans(),
     )
     def set_service(
@@ -317,7 +490,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         config: _types.VaultConfig,
         service: str,
         setting: _types.VaultConfigServicesSettings,
-        maybe_unset: set[str],
+        maybe_unset: AbstractSet[str],
         overwrite: bool,
     ) -> _types.VaultConfig:
         """Set the named service settings for a configuration.
@@ -343,35 +516,48 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
 
         """
         cli_helpers.save_config(config)
-        config_service = config["services"].get(service, {})
-        maybe_unset = set(maybe_unset) - setting.keys()
-        if overwrite:
-            config["services"][service] = config_service = {}
-        elif maybe_unset:
-            for key in maybe_unset:
-                config_service.pop(key, None)  # type: ignore[misc]
-        config["services"].setdefault(service, {}).update(setting)
-        assert _types.is_vault_config(config)
-        # NOTE: This relies on settings_obj containing only the keys
+        expected_config, maybe_unset = self.set_service_expected_result(
+            service,
+            config=config,
+            setting=setting,
+            maybe_unset=maybe_unset,
+            overwrite=overwrite,
+        )
+        # NOTE: This relies on `settings` containing only the keys
         # "length", "repeat", "upper", "lower", "number", "space",
         # "dash" and "symbol".
-        result = self.runner.invoke(
-            cli.derivepassphrase_vault,
-            [
-                "--config",
-                "--overwrite-existing" if overwrite else "--merge-existing",
-            ]
-            + [f"--unset={key}" for key in maybe_unset]
-            + [
-                f"--{key}={value}"
-                for key, value in setting.items()
-                if key in VALID_PROPERTIES
-            ]
-            + ["--", service],
-            catch_exceptions=False,
+        unset_commands = [f"--unset={key}" for key in maybe_unset]
+        set_commands = [
+            f"--{key}={value}"
+            for key, value in setting.items()
+            if key in VALID_PROPERTIES
+        ]
+        service_arg = ["--", service]
+        return self.call_cli(
+            ["--config", *unset_commands, *set_commands, *service_arg],
+            expected_config,
+            overwrite=overwrite,
         )
-        assert result.clean_exit(empty_stderr=False)
-        assert cli_helpers.load_config() == config
+
+    def purge_global_expected_result(
+        self,
+        config: _types.VaultConfig,
+    ) -> _types.VaultConfig:
+        """Purge the globals of a configuration.
+
+        This is the "calculate the correct result" section of the
+        `purge_global` rule.
+
+        Args:
+            config:
+                The configuration to edit.
+
+        Returns:
+            The pruned configuration.
+
+        """
+        config = copy.deepcopy(config)
+        config.pop("global", None)
         return config
 
     @stateful.rule(
@@ -393,26 +579,37 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
 
         """
         cli_helpers.save_config(config)
-        config.pop("global", None)
-        result = self.runner.invoke(
-            cli.derivepassphrase_vault,
-            ["--delete-globals"],
-            input="y",
-            catch_exceptions=False,
-        )
-        assert result.clean_exit(empty_stderr=False)
-        assert cli_helpers.load_config() == config
+        expected_config = self.purge_global_expected_result(config)
+        return self.call_cli(["--delete-globals"], expected_config)
+
+    def purge_service_expected_result(
+        self,
+        config: _types.VaultConfig,
+        service: str,
+    ) -> _types.VaultConfig:
+        """Purge the settings of a named service in a configuration.
+
+        This is the "calculate the correct result" section of the
+        `purge_global` rule.
+
+        Args:
+            config:
+                The configuration to edit.
+            service:
+                The service name to purge.
+
+        Returns:
+            The pruned configuration.
+
+        """
+        config = copy.deepcopy(config)
+        config["services"].pop(service, None)
         return config
 
     @stateful.rule(
         target=configuration,
-        config_and_service=configuration.filter(
-            lambda c: bool(c["services"])
-        ).flatmap(
-            lambda c: strategies.tuples(
-                strategies.just(c),
-                strategies.sampled_from(tuple(c["services"].keys())),
-            )
+        config_and_service=Strategies.config_and_service_strategy(
+            configuration
         ),
     )
     def purge_service(
@@ -432,16 +629,20 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         """
         config, service = config_and_service
         cli_helpers.save_config(config)
-        config["services"].pop(service, None)
-        result = self.runner.invoke(
-            cli.derivepassphrase_vault,
-            ["--delete", "--", service],
-            input="y",
-            catch_exceptions=False,
-        )
-        assert result.clean_exit(empty_stderr=False)
-        assert cli_helpers.load_config() == config
-        return config
+        expected_config = self.purge_service_expected_result(config, service)
+        return self.call_cli(["--delete", "--", service], expected_config)
+
+    def purge_all_expected_result(self) -> _types.VaultConfig:
+        """Purge the entire configuration.
+
+        This is the "calculate the correct result" section of the
+        `purge_all` rule.
+
+        Returns:
+            The empty configuration.
+
+        """
+        return {"services": {}}
 
     @stateful.rule(
         target=configuration,
@@ -462,16 +663,41 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
 
         """
         cli_helpers.save_config(config)
-        config = {"services": {}}
-        result = self.runner.invoke(
-            cli.derivepassphrase_vault,
-            ["--clear"],
-            input="y",
-            catch_exceptions=False,
+        expected_config = self.purge_all_expected_result()
+        return self.call_cli(["--clear"], expected_config)
+
+    def import_configuration_expected_result(
+        self,
+        base_config: _types.VaultConfig,
+        config_to_import: _types.VaultConfig,
+        overwrite: bool,
+    ) -> _types.VaultConfig:
+        """Import the given configuration into a base configuration.
+
+        This is the "calculate the correct result" section of the
+        `import_configuration` rule.
+
+        Args:
+            base_config:
+                The configuration to import into.
+            config_to_import:
+                The configuration to import.
+            overwrite:
+                Overwrite the base configuration if true, or merge if
+                false.  Corresponds to the `--overwrite-existing` and
+                `--merge-existing` command-line arguments.
+
+        Returns:
+            The imported or merged configuration.
+
+        """
+        result = (
+            copy.deepcopy(config_to_import)
+            if overwrite
+            else self.fold_configs(config_to_import, base_config)
         )
-        assert result.clean_exit(empty_stderr=False)
-        assert cli_helpers.load_config() == config
-        return config
+        assert _types.is_vault_config(result)
+        return result
 
     @stateful.rule(
         target=configuration,
@@ -502,22 +728,17 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
 
         """
         cli_helpers.save_config(base_config)
-        config = (
-            self.fold_configs(config_to_import, base_config)
-            if not overwrite
-            else config_to_import
+        expected_config = self.import_configuration_expected_result(
+            base_config=base_config,
+            config_to_import=config_to_import,
+            overwrite=overwrite,
         )
-        assert _types.is_vault_config(config)
-        result = self.runner.invoke(
-            cli.derivepassphrase_vault,
-            ["--import", "-"]
-            + (["--overwrite-existing"] if overwrite else []),
+        return self.call_cli(
+            ["--import", "-"],
+            expected_config,
             input=json.dumps(config_to_import),
-            catch_exceptions=False,
+            overwrite=overwrite,
         )
-        assert result.clean_exit(empty_stderr=False)
-        assert cli_helpers.load_config() == config
-        return config
 
     def teardown(self) -> None:
         """Upon teardown, exit all contexts entered in `__init__`."""
@@ -806,10 +1027,26 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
             settings
         )
 
+    @staticmethod
+    def overwrite_or_merge_commands(*, overwrite: bool = False) -> list[str]:
+        """Return a partial command-line for overwriting or merging.
+
+        Args:
+            overwrite:
+                If true, overwrite the configuration, else merge in the
+                relevant parts.
+
+        Returns:
+            A list of command-line options for selecting config
+            overwriting or config merging.
+
+        """
+        return ["--overwrite-existing"] if overwrite else ["--merge-existing"]
+
     @stateful.initialize(
         target=configuration,
         configs=strategies.lists(
-            vault_full_config(),
+            Strategies.vault_full_config(),
             min_size=8,
             max_size=8,
         ),
@@ -824,7 +1061,7 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
     @stateful.initialize(
         target=setting,
         configs=strategies.lists(
-            vault_full_config(),
+            Strategies.vault_full_config(),
             min_size=4,
             max_size=4,
         ),
@@ -840,7 +1077,7 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
         return stateful.multiple(*map(copy.deepcopy, settings))
 
     @stateful.initialize(
-        config=vault_full_config(),
+        config=Strategies.vault_full_config(),
     )
     def declare_initial_action(
         self,
@@ -865,11 +1102,8 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
         self.actions.append(action)
 
     @stateful.rule(
-        setting=setting.filter(bool),
-        maybe_unset=strategies.sets(
-            strategies.sampled_from(VALID_PROPERTIES),
-            max_size=3,
-        ),
+        setting=Strategies.setting_strategy(setting),
+        maybe_unset=Strategies.maybe_unset_strategy(),
         overwrite=strategies.booleans(),
     )
     def add_set_globals_action(
@@ -894,18 +1128,21 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
 
         """
         maybe_unset = set(maybe_unset) - setting.keys()
-        command_line = (
-            [
-                "--config",
-                "--overwrite-existing" if overwrite else "--merge-existing",
-            ]
-            + [f"--unset={key}" for key in maybe_unset]
-            + [
-                f"--{key}={value}"
-                for key, value in setting.items()
-                if key in VALID_PROPERTIES
-            ]
-        )
+        # NOTE: This relies on `settings` containing only the keys
+        # "length", "repeat", "upper", "lower", "number", "space",
+        # "dash" and "symbol".
+        unset_commands = [f"--unset={key}" for key in maybe_unset]
+        set_commands = [
+            f"--{key}={value}"
+            for key, value in setting.items()
+            if key in VALID_PROPERTIES
+        ]
+        command_line = [
+            "--config",
+            *self.overwrite_or_merge_commands(overwrite=overwrite),
+            *unset_commands,
+            *set_commands,
+        ]
         input = None  # noqa: A001
         hypothesis.note(f"# {command_line = }, {input = }")
         action = FakeConfigurationMutexAction(
@@ -914,12 +1151,9 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
         self.actions.append(action)
 
     @stateful.rule(
-        service=strategies.sampled_from(KNOWN_SERVICES),
-        setting=setting.filter(bool),
-        maybe_unset=strategies.sets(
-            strategies.sampled_from(VALID_PROPERTIES),
-            max_size=3,
-        ),
+        service=Strategies.service_name_strategy(),
+        setting=Strategies.setting_strategy(setting),
+        maybe_unset=Strategies.maybe_unset_strategy(),
         overwrite=strategies.booleans(),
     )
     def add_set_service_action(
@@ -947,19 +1181,23 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
 
         """
         maybe_unset = set(maybe_unset) - setting.keys()
-        command_line = (
-            [
-                "--config",
-                "--overwrite-existing" if overwrite else "--merge-existing",
-            ]
-            + [f"--unset={key}" for key in maybe_unset]
-            + [
-                f"--{key}={value}"
-                for key, value in setting.items()
-                if key in VALID_PROPERTIES
-            ]
-            + ["--", service]
-        )
+        # NOTE: This relies on `settings` containing only the keys
+        # "length", "repeat", "upper", "lower", "number", "space",
+        # "dash" and "symbol".
+        unset_commands = [f"--unset={key}" for key in maybe_unset]
+        set_commands = [
+            f"--{key}={value}"
+            for key, value in setting.items()
+            if key in VALID_PROPERTIES
+        ]
+        command_line = [
+            "--config",
+            *self.overwrite_or_merge_commands(overwrite=overwrite),
+            *unset_commands,
+            *set_commands,
+            "--",
+            service,
+        ]
         input = None  # noqa: A001
         hypothesis.note(f"# {command_line = }, {input = }")
         action = FakeConfigurationMutexAction(
@@ -981,7 +1219,7 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
         self.actions.append(action)
 
     @stateful.rule(
-        service=strategies.sampled_from(KNOWN_SERVICES),
+        service=Strategies.service_name_strategy(),
     )
     def add_purge_service_action(
         self,
@@ -1035,9 +1273,11 @@ class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
                 `--merge-existing` command-line arguments.
 
         """
-        command_line = ["--import", "-"] + (
-            ["--overwrite-existing"] if overwrite else []
-        )
+        command_line = [
+            "--import",
+            "-",
+            *self.overwrite_or_merge_commands(overwrite=overwrite),
+        ]
         input = json.dumps(config_to_import)  # noqa: A001
         hypothesis.note(f"# {command_line = }, {input = }")
         action = FakeConfigurationMutexAction(
