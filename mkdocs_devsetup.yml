@@ -44,12 +44,15 @@ nav:
       - derivepassphrase command-line:
         - cli module, helpers and machinery:
           - Overview: reference/tests.test_derivepassphrase_cli.md
-          - Basic tests: reference/tests.test_derivepassphrase_cli.test_000_basic.md
+          - Basic and common-subsystem tests: reference/tests.test_derivepassphrase_cli.test_000_basic.md
           - Tests concerning all CLIs: reference/tests.test_derivepassphrase_cli.test_all_cli.md
           - Heavy-duty tests: reference/tests.test_derivepassphrase_cli.test_heavy_duty.md
           - Shell completion tests: reference/tests.test_derivepassphrase_cli.test_shell_completion.md
           - CLI Transition tests: reference/tests.test_derivepassphrase_cli.test_transition.md
           - Tests for CLI utilities: reference/tests.test_derivepassphrase_cli.test_utils.md
+          - '"vault" CLI basic tests': reference/tests.test_derivepassphrase_cli.test_vault_cli_basic_functionality.md
+          - '"vault" CLI config management tests': reference/tests.test_derivepassphrase_cli.test_vault_cli_config_management.md
+          - '"vault" CLI notes handling tests': reference/tests.test_derivepassphrase_cli.test_vault_cli_notes_handling.md
         - '"export vault" subcommand tests': reference/tests.test_derivepassphrase_cli_export_vault.md
       - exporter module: reference/tests.test_derivepassphrase_exporter.md
       - sequin module: reference/tests.test_derivepassphrase_sequin.md
