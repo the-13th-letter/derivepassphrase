@@ -60,7 +60,10 @@ nav:
         - Overview: reference/tests.test_derivepassphrase_ssh_agent.md
         - Basic tests: reference/tests.test_derivepassphrase_ssh_agent.test_000_basic.md
         - Heavy-duty tests: reference/tests.test_derivepassphrase_ssh_agent.test_heavy_duty.md
-      - _types module: reference/tests.test_derivepassphrase_types.md
+      - _types module:
+        - Overview: reference/tests.test_derivepassphrase_types.md
+        - Basic tests: reference/tests.test_derivepassphrase_types.test_000_basic.md
+        - Heavy-duty tests: reference/tests.test_derivepassphrase_types.test_heavy_duty.md
       - vault module: reference/tests.test_derivepassphrase_vault.md
   - Design & Background:
     - explanation/index.md

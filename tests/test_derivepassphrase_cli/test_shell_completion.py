@@ -15,6 +15,9 @@ from typing_extensions import Any
 
 from derivepassphrase import _types, cli
 from derivepassphrase._internals import cli_helpers
+from derivepassphrase._internals import (
+    cli_machinery as cli_machinery,  # noqa: PLC0414
+)
 from tests import data, machinery
 from tests.machinery import pytest as pytest_machinery
 
@@ -32,7 +35,8 @@ DUMMY_CONFIG_SETTINGS = data.DUMMY_CONFIG_SETTINGS
 def bash_format(item: click.shell_completion.CompletionItem) -> str:
     """A formatter for `bash`-style shell completion items.
 
-    The format is `type,value`, and is dictated by [`click`][].
+    The format is `type,value`, and is dictated by
+    [`click`](https://pypi.org/project/click/).
 
     """
     type, value = (  # noqa: A001
@@ -45,7 +49,8 @@ def bash_format(item: click.shell_completion.CompletionItem) -> str:
 def fish_format(item: click.shell_completion.CompletionItem) -> str:
     r"""A formatter for `fish`-style shell completion items.
 
-    The format is `type,value<tab>help`, and is dictated by [`click`][].
+    The format is `type,value<tab>help`, and is dictated by
+    [`click`](https://pypi.org/project/click/).
 
     """
     type, value, help = (  # noqa: A001
@@ -60,11 +65,11 @@ def zsh_format(item: click.shell_completion.CompletionItem) -> str:
     r"""A formatter for `zsh`-style shell completion items.
 
     The format is `type<newline>value<newline>help<newline>`, and is
-    dictated by [`click`][].  Upstream `click` up to and including
-    v8.2.1 does not deal with colons in the value correctly when the
-    help text is non-degenerate.  Our formatter here does, provided the
-    upstream `zsh` completion script is used; see the
-    [`cli_machinery.ZshComplete`][] class.
+    dictated by [`click`](https://pypi.org/project/click/).  Upstream
+    `click` up to and including v8.2.1 does not deal with colons in the
+    value correctly when the help text is non-degenerate.  Our formatter
+    here does, provided the upstream `zsh` completion script is used;
+    see the [`cli_machinery.ZshComplete`][] class.
 
     """
     empty_help = "_"

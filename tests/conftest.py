@@ -363,8 +363,9 @@ def spawn_named_agent(
     tear down the communication channel and terminate the SSH agent.
 
     The SSH agent's instructions for setting up the communication
-    channel are parsed with [`tests.parse_sh_export_line`][].  See the
-    caveats there.
+    channel are parsed with
+    [`tests.data.callables.parse_sh_export_line`][].  See the caveats
+    there.
 
     Args:
         exec_name:

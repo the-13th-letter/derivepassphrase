@@ -20,7 +20,6 @@ import types
 from typing import TYPE_CHECKING, NamedTuple
 
 import click
-import click.testing
 import hypothesis
 import pytest
 from hypothesis import strategies
@@ -827,7 +826,7 @@ class TestShellExportScriptParsing:
     def test_sh_export_line_parsing(
         self, line: str, env_name: str, value: str | None
     ) -> None:
-        """[`tests.parse_sh_export_line`][] works."""
+        """[`tests.data.callables.parse_sh_export_line`][] works."""
         if value is not None:
             assert (
                 callables.parse_sh_export_line(line, env_name=env_name)

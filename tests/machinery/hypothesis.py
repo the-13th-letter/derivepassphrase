@@ -22,8 +22,8 @@ from typing import TYPE_CHECKING
 import hypothesis
 from hypothesis import strategies
 
-from tests import data, machinery
 from derivepassphrase import _types
+from tests import data, machinery
 
 __all__ = ()
 
@@ -115,17 +115,18 @@ def smudged_vault_test_config(
 
     Uses [`_types.js_truthiness`][] internally, which is tested
     separately by
-    [`tests.test_derivepassphrase_types.test_100_js_truthiness`][].
+    [`tests.test_derivepassphrase_types.test_heavy_duty.test_js_truthiness`][].
 
     Args:
         draw:
             The `draw` function, as provided for by hypothesis.
         config:
-            A strategy which generates [`VaultTestConfig`][] objects.
+            A strategy which generates [`data.VaultTestConfig`][]
+            objects.
 
     Returns:
-        A new [`VaultTestConfig`][] where some falsy values have been
-        replaced or added.
+        A new [`data.VaultTestConfig`][] where some falsy values have
+        been replaced or added.
 
     """
 
