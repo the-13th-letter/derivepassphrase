@@ -781,13 +781,16 @@ class TestStoringConfigurationFailures:
                 cli_helpers, "prompt_for_selection", prompt_for_selection
             )
 
-    def test_fail_because_no_ssh_agent(self) -> None:
+    def test_fail_because_no_ssh_agent(
+        self, spawn_ssh_agent: data.SpawnedSSHAgentInfo
+    ) -> None:
         """Not running an SSH agent during `--config --key` fails.
 
         (This test does not actually need a running agent; the agent's
         response is mocked by the test harness.)
 
         """
+        del spawn_ssh_agent
         with self._test(
             ["--key"],
             error_text="Cannot find any running SSH agent",
@@ -795,13 +798,11 @@ class TestStoringConfigurationFailures:
         ) as monkeypatch:
             monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
 
-    def test_fail_because_bad_ssh_agent_connection(self) -> None:
-        """Not running a reachable SSH agent during `--config --key` fails.
-
-        (This test does not actually need a running agent; the agent's
-        response is mocked by the test harness.)
-
-        """
+    def test_fail_because_bad_ssh_agent_connection(
+        self, spawn_ssh_agent: data.SpawnedSSHAgentInfo
+    ) -> None:
+        """Not running a reachable SSH agent during `--config --key` fails."""
+        del spawn_ssh_agent
         with self._test(
             ["--key"],
             error_text="Cannot connect to the SSH agent",
@@ -845,13 +846,11 @@ class TestStoringConfigurationFailures:
         ):
             pass
 
-    def test_fail_because_ssh_agent_has_no_keys_loaded(self) -> None:
-        """Not holding any SSH keys during `--config --key` fails.
-
-        (This test does not actually need a running agent; the agent's
-        response is mocked by the test harness.)
-
-        """
+    def test_fail_because_ssh_agent_has_no_keys_loaded(
+        self, spawn_ssh_agent: data.SpawnedSSHAgentInfo
+    ) -> None:
+        """Not holding any SSH keys during `--config --key` fails."""
+        del spawn_ssh_agent
         with self._test(
             ["--key"],
             error_text="no keys suitable",
@@ -866,13 +865,11 @@ class TestStoringConfigurationFailures:
 
             monkeypatch.setattr(ssh_agent.SSHAgentClient, "list_keys", func)
 
-    def test_store_config_fail_manual_ssh_agent_runtime_error(self) -> None:
-        """Triggering an error in the SSH agent during `--config --key` leads to failure.
-
-        (This test does not actually need a running agent; the agent's
-        response is mocked by the test harness.)
-
-        """
+    def test_store_config_fail_manual_ssh_agent_runtime_error(
+        self, spawn_ssh_agent: data.SpawnedSSHAgentInfo
+    ) -> None:
+        """Triggering an error in the SSH agent during `--config --key` leads to failure."""
+        del spawn_ssh_agent
         with self._test(
             ["--key"],
             error_text="violates the communication protocol",
@@ -884,13 +881,11 @@ class TestStoringConfigurationFailures:
 
             monkeypatch.setattr(ssh_agent.SSHAgentClient, "list_keys", raiser)
 
-    def test_store_config_fail_manual_ssh_agent_refuses(self) -> None:
-        """The SSH agent refusing during `--config --key` leads to failure.
-
-        (This test does not actually need a running agent; the agent's
-        response is mocked by the test harness.)
-
-        """
+    def test_store_config_fail_manual_ssh_agent_refuses(
+        self, spawn_ssh_agent: data.SpawnedSSHAgentInfo
+    ) -> None:
+        """The SSH agent refusing during `--config --key` leads to failure."""
+        del spawn_ssh_agent
         with self._test(
             ["--key"], error_text="refused to", patch_suitable_ssh_keys=False
         ) as monkeypatch:
