@@ -1356,16 +1356,24 @@ DUMMY_KEY3 = SUPPORTED_KEYS["ed448"].public_key_data
 """A third supported SSH test key (in wire format)."""
 DUMMY_KEY3_B64 = base64.standard_b64encode(DUMMY_KEY3).decode("ASCII")
 """A third supported SSH test key (in `authorized_keys` format)."""
-DUMMY_CONFIG_SETTINGS = cast("_types.VaultConfigServicesSettings", {
-    "length": 10,
-    "upper": 1,
-    "lower": 1,
-    "repeat": 5,
-    "number": 1,
-    "space": 1,
-    "dash": 1,
-    "symbol": 1,
-})
+DUMMY_CONFIG_SETTINGS_AS_CONSTRUCTOR_ARGS = cast(
+    "_types.VaultConstructorArgs",
+    {
+        "length": 10,
+        "upper": 1,
+        "lower": 1,
+        "repeat": 5,
+        "number": 1,
+        "space": 1,
+        "dash": 1,
+        "symbol": 1,
+    },
+)
+"""Sample vault settings, as constructor args."""
+DUMMY_CONFIG_SETTINGS = cast(
+    "_types.VaultConfigServicesSettings",
+    DUMMY_CONFIG_SETTINGS_AS_CONSTRUCTOR_ARGS,
+)
 """Sample vault settings."""
 DUMMY_RESULT_PASSPHRASE = b".2V_QJkd o"
 """
