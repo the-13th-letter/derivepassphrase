@@ -71,7 +71,14 @@ def vault_config_exporter_shell_interpreter(  # noqa: C901
     /,
     *,
     prog_name_list: list[str] | None = None,
-    command: click.BaseCommand | None = None,
+    # The click.BaseCommand abstract base class, previously the base
+    # class of click.Command and click.Group, was removed in click
+    # 8.2.0 without a transition period, and click.Command instated
+    # as the common base class instead.  To keep some degree of
+    # compatibility with both old click and new click, we explicitly
+    # list the (somewhat) concrete base classes we actually care
+    # about here.
+    command: click.Command | click.Group | None = None,
     runner: machinery.CliRunner | None = None,
 ) -> Iterator[machinery.ReadableResult]:
     """A rudimentary sh(1) interpreter for `--export-as=sh` output.

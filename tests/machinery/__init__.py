@@ -225,13 +225,26 @@ class CliRunner:
             if self._SUPPORTS_MIX_STDERR_ATTRIBUTE
             else {}
         )
-        self.click_testing_clirunner = click.testing.CliRunner(
+        # The "mix_stderr" argument, mandatory for our use case, was
+        # removed in click 8.2.0 without a transition period.  Since we
+        # cannot branch on the click version available to the type
+        # checker, we disable static type checking for this call in
+        # particular; our test suite will have to uncover any breakage
+        # dynamically instead.
+        self.click_testing_clirunner = click.testing.CliRunner(  # type: ignore[misc]
             **mix_stderr_args
         )
 
     def invoke(
         self,
-        cli: click.BaseCommand,
+        # The click.BaseCommand abstract base class, previously the base
+        # class of click.Command and click.Group, was removed in click
+        # 8.2.0 without a transition period, and click.Command instated
+        # as the common base class instead.  To keep some degree of
+        # compatibility with both old click and new click, we explicitly
+        # list the (somewhat) concrete base classes we actually care
+        # about here.
+        cli: click.Command | click.Group,
         args: Sequence[str] | str | None = None,
         input: str | bytes | IO[Any] | None = None,
         env: Mapping[str, str | None] | None = None,
