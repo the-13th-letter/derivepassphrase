@@ -623,8 +623,7 @@ class TestStubbedSSHAgentSocketRequests:
                 agent.recv(message_length)
             )
             assert (
-                _types.SSH_AGENT(orig_message[0])
-                == _types.SSH_AGENT.SUCCESS
+                _types.SSH_AGENT(orig_message[0]) == _types.SSH_AGENT.SUCCESS
             )
             identity_count = int.from_bytes(orig_message[1:5], "big")
             message = bytes(orig_message[5:])

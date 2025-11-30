@@ -179,9 +179,7 @@ class TestStaticFunctionality:
     @hypothesis.example(BigEndianNumberTest([1, 7, 5, 5], 8, 0o1755)).via(
         "manual octal example"
     )
-    def test_big_endian_number(
-        self, test_case: BigEndianNumberTest
-    ) -> None:
+    def test_big_endian_number(self, test_case: BigEndianNumberTest) -> None:
         """Conversion to big endian numbers in any base works.
 
         See [`sequin.Sequin.generate`][] for where this is used.
@@ -412,9 +410,7 @@ class TestSequin:
         )
     ).via("manual, pre-hypothesis parametrization value")
     @hypothesis.given(sequence=GenerationSequence.strategy())
-    def test_internal_generating(
-        self, sequence: GenerationSequence
-    ) -> None:
+    def test_internal_generating(self, sequence: GenerationSequence) -> None:
         """The sequin internals generate deterministic sequences."""
         seq = sequin.Sequin(sequence.bit_sequence, is_bitstring=True)
         for i, (num, result) in enumerate(sequence.steps, start=1):

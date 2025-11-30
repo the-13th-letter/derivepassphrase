@@ -29,7 +29,6 @@ import importlib
 import json
 import logging
 import os
-import os.path
 import pathlib
 import struct
 from typing import TYPE_CHECKING, Any

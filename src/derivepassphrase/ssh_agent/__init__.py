@@ -553,7 +553,7 @@ class SSHAgentClient:
         response_stream = collections.deque(response)
 
         def shift(num: int) -> bytes:
-            buf = collections.deque(b"")
+            buf: collections.deque[int] = collections.deque()
             for _ in range(num):
                 try:
                     val = response_stream.popleft()
