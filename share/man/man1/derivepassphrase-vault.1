@@ -828,20 +828,20 @@ indicated by the
 .Ev SSH_AUTH_SOCK
 environment variable.
 .
-.\" Message-ID: ErrMsgTemplate.NO_AF_UNIX
-.It Cannot connect to an SSH agent because this Python version does not support UNIX domain sockets.
+.\" Message-ID: ErrMsgTemplate.NO_AGENT_SUPPORT
+.It "Cannot connect to an SSH agent" "because this Python version does not support" "communicating with it."
 This Python installation does not support the communication mechanism
 necessary to talk to
 .Tn SSH
 agents.
+.Bq "Since v0.6: May be preceded by several warning messages" "indicating which communication mechanisms were tried."
 .
 .\" Message-ID: ErrMsgTemplate.CANNOT_CONNECT_TO_AGENT
 .It Cannot connect to the SSH agent: %s.
 We cannot connect to the
 .Tn SSH
-agent indicated by the
-.Ev SSH_AUTH_SOCK
-environment variable.
+agent indicated by the respective address
+.Pq e.g. a well-known address, or the Ev SSH_AUTH_SOCK No environment variable.
 Further details are contained in the variable part of the message.
 .
 .\" Message-ID: ErrMsgTemplate.AGENT_REFUSED_LIST_KEYS
@@ -1024,6 +1024,58 @@ To guard against such accidental data loss, a backup copy of the old
 notes was saved to the
 .Nm derivepassphrase
 configuration directory.
+.
+.\" Message-ID: WarnMsgTemplate.NO_AF_UNIX
+.\" Message-ID (mark only): ErrMsgTemplate.NO_AF_UNIX
+.It Cannot connect to an SSH agent via UNIX domain sockets because this Python version does not support them.
+We attempted to use
+.Tn UNIX
+domain sockets to communicate with an
+.Tn SSH
+agent, but this Python installation does not support them.
+.Po
+Only appears together with the error message
+.Do
+Cannot connect to an SSH agent because this Python version does not support communicating with it.
+.Dc .
+Other, similar messages about unsupported communication mechanisms may
+precede the error message.
+.Pc
+.
+.\" Message-ID: WarnMsgTemplate.NO_ANNOYING_OS_NAMED_PIPES
+.It Cannot connect to an SSH agent via Windows named pipes because this Python version does not support them.
+We attempted to use
+.Tn Windows
+named pipes to communicate with an
+.Tn SSH
+agent, but this Python installation does not support them.
+.Po
+Only appears together with the error message
+.Do
+Cannot connect to an SSH agent because this Python version does not support communicating with it.
+.Dc .
+Other, similar messages about unsupported communication mechanisms may
+precede the error message.
+.Pc
+.
+.El
+.Pp
+.
+.Ss Discontinued error, warning and info messages on standard error
+.
+.Pq Li %s Ns No " indicates a variable part of the message."
+.
+.Bl -diag
+.
+.\" Message-ID (mark only): ErrMsgTemplate.NO_AF_UNIX
+.It Cannot connect to an SSH agent because this Python version does not support UNIX domain sockets.
+.Bo
+Until v0.6.
+.Bc
+Superseded by both the more general error message
+.Dq "Cannot connect to an SSH agent because this Python version" "does not support communicating with it."
+and the warning message
+.Dq "Cannot connect to an SSH agent using UNIX domain sockets" "because this Python version does not support them." .
 .
 .El
 .
