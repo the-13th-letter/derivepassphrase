@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Zlib
 
-"""Tests for the `derivepassphrase vault` command-line interface."""
+"""Tests for the `derivepassphrase vault` command-line interface: notes handling."""
 
 from __future__ import annotations
 

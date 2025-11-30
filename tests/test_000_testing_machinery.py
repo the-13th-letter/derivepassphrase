@@ -2,6 +2,16 @@
 #
 # SPDX-License-Identifier: Zlib
 
+"""Miscellaneous tests for the test suite's data and machinery.
+
+At the moment, this only entails testing [the SSH test
+keys][data.ALL_KEYS] for internal consistency.  Tests for the [stubbed
+SSH agent][tests.machinery.StubbedSSHAgentSocket] (in all variations)
+are included in the [basic tests for the `derivepassphrase.ssh_agent`
+module][tests.test_derivepassphrase_ssh_agent.test_000_basic].
+
+"""
+
 from __future__ import annotations
 
 import base64

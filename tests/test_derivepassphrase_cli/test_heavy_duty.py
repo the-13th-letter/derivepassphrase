@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: Zlib
 
+"""Tests for the `derivepassphrase` command-line interface: heavy-duty tests."""
+
 from __future__ import annotations
 
 import contextlib

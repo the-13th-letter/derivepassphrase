@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: Zlib
 
+"""Tests for `derivepassphrase._types`: basic tests."""
+
 from __future__ import annotations
 
 import copy

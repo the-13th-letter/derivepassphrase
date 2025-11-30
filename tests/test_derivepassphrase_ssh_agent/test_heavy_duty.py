@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Zlib
 
-"""Test OpenSSH key loading and signing."""
+"""Tests for `derivepassphrase.ssh_agent`: heavy-duty tests."""
 
 from __future__ import annotations
 

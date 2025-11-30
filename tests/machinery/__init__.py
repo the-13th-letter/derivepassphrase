@@ -2,6 +2,14 @@
 #
 # SPDX-License-Identifier: Zlib
 
+"""Testing machinery for `derivepassphrase`.
+
+This is all the standalone, non-test-system-specific machinery used to
+test `derivepassphrase`; this includes global settings, external API
+wrappers, stub systems, and the like.
+
+"""
+
 from __future__ import annotations
 
 import contextlib

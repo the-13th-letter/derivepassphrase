@@ -40,6 +40,7 @@ nav:
         - pytest configuration: reference/tests.conftest.md
         - Common testing data: reference/tests.data.md
         - Common testing machinery: reference/tests.machinery.md
+        - Miscellaneous test machinery tests: reference/tests.test_000_testing_machinery.md
       - Localization machinery: reference/tests.test_l10n.md
       - derivepassphrase command-line:
         - cli module, helpers and machinery:

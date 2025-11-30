@@ -5,6 +5,13 @@
 # TODO(the-13th-letter): Remove this module in v1.0.
 # https://the13thletter.info/derivepassphrase/latest/upgrade-notes/#upgrading-to-v1.0
 
+"""Tests for the `derivepassphrase` command-line interface: transitional functionality.
+
+This includes deprecation warnings for deprecated commands or options,
+and functionality provided for ease of transition.
+
+"""
+
 from __future__ import annotations
 
 import contextlib

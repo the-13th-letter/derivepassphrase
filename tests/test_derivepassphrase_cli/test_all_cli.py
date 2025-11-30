@@ -2,6 +2,13 @@
 #
 # SPDX-License-Identifier: Zlib
 
+"""Tests for the `derivepassphrase` command-line interface: all subcommands.
+
+This includes tests for functionality or options common to all
+subcommands.
+
+"""
+
 from __future__ import annotations
 
 import contextlib

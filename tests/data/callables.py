@@ -2,6 +2,17 @@
 #
 # SPDX-License-Identifier: Zlib
 
+"""General machinery for `derivepassphrase` testing data.
+
+This module contains machinery supplementary to the data from the
+`tests.data` module, such as common dummy functions, or simple parsers
+for (the restricted format in use by) the data.  It also contains some
+actual test data that needs to be generated programmatically, or that
+e.g. includes a function from this module as an embedded callback
+parameter.
+
+"""
+
 from __future__ import annotations
 
 import os

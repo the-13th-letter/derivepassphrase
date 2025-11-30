@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: Zlib
 
+"""Test the `derivepassphrase export vault` CLI."""
+
 from __future__ import annotations
 
 import base64

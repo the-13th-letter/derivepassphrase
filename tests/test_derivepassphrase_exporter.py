@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: Zlib
 
+"""Test `derivepassphrase.exporter` and the `derivepassphrase export` CLI."""
+
 from __future__ import annotations
 
 import contextlib
