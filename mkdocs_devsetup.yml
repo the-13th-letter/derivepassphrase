@@ -35,15 +35,36 @@ nav:
       - Submodule cli_machinery: reference/derivepassphrase._internals.cli_machinery.md
       - Submodule cli_messages: reference/derivepassphrase._internals.cli_messages.md
     - 'Internal API docs: Tests':
-      - Basic testing infrastructure: reference/tests.md
+      - Basic testing infrastructure:
+        - Overview: reference/tests.md
+        - pytest configuration: reference/tests.conftest.md
+        - Common testing data: reference/tests.data.md
+        - Common testing machinery: reference/tests.machinery.md
+        - Tests for the testing machinery: reference/tests.test_000_testing_machinery.md
       - Localization machinery: reference/tests.test_l10n.md
       - derivepassphrase command-line:
-        - cli module, helpers and machinery: reference/tests.test_derivepassphrase_cli.md
+        - cli module, helpers and machinery:
+          - Overview: reference/tests.test_derivepassphrase_cli.md
+          - Basic and common-subsystem tests: reference/tests.test_derivepassphrase_cli.test_000_basic.md
+          - Tests concerning all CLIs: reference/tests.test_derivepassphrase_cli.test_all_cli.md
+          - Heavy-duty tests: reference/tests.test_derivepassphrase_cli.test_heavy_duty.md
+          - Shell completion tests: reference/tests.test_derivepassphrase_cli.test_shell_completion.md
+          - CLI Transition tests: reference/tests.test_derivepassphrase_cli.test_transition.md
+          - Tests for CLI utilities: reference/tests.test_derivepassphrase_cli.test_utils.md
+          - '"vault" CLI basic tests': reference/tests.test_derivepassphrase_cli.test_vault_cli_basic_functionality.md
+          - '"vault" CLI config management tests': reference/tests.test_derivepassphrase_cli.test_vault_cli_config_management.md
+          - '"vault" CLI notes handling tests': reference/tests.test_derivepassphrase_cli.test_vault_cli_notes_handling.md
         - '"export vault" subcommand tests': reference/tests.test_derivepassphrase_cli_export_vault.md
       - exporter module: reference/tests.test_derivepassphrase_exporter.md
       - sequin module: reference/tests.test_derivepassphrase_sequin.md
-      - ssh_agent module: reference/tests.test_derivepassphrase_ssh_agent.md
-      - _types module: reference/tests.test_derivepassphrase_types.md
+      - ssh_agent module:
+        - Overview: reference/tests.test_derivepassphrase_ssh_agent.md
+        - Basic tests: reference/tests.test_derivepassphrase_ssh_agent.test_000_basic.md
+        - Heavy-duty tests: reference/tests.test_derivepassphrase_ssh_agent.test_heavy_duty.md
+      - _types module:
+        - Overview: reference/tests.test_derivepassphrase_types.md
+        - Basic tests: reference/tests.test_derivepassphrase_types.test_000_basic.md
+        - Heavy-duty tests: reference/tests.test_derivepassphrase_types.test_heavy_duty.md
       - vault module: reference/tests.test_derivepassphrase_vault.md
   - Design & Background:
     - explanation/index.md

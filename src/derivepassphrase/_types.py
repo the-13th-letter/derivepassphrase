@@ -52,19 +52,13 @@ class _Omitted:
         return "..."
 
 
-class VaultConfigGlobalSettings(TypedDict, total=False):
-    r"""Configuration for vault: global settings.
+class VaultConstructorArgs(TypedDict, total=False):
+    r"""Common, optional arguments for the vault constructor.
+
+    (Also doubles as a base class for the vault configuration global
+    settings.)
 
     Attributes:
-        key:
-            The base64-encoded ssh public key to use, overriding the
-            master passphrase. Optional.
-        phrase:
-            The master passphrase. Optional.
-        unicode_normalization_form:
-            The preferred Unicode normalization form; we warn the user
-            if textual passphrases do not match their normalized forms.
-            Optional, and a `derivepassphrase` extension.
         length:
             Desired passphrase length.
         repeat:
@@ -90,14 +84,6 @@ class VaultConfigGlobalSettings(TypedDict, total=False):
 
     """
 
-    key: NotRequired[str]
-    """"""
-    phrase: NotRequired[str]
-    """"""
-    unicode_normalization_form: NotRequired[
-        Literal["NFC", "NFD", "NFKC", "NFKD"]
-    ]
-    """"""
     length: NotRequired[int]
     """"""
     repeat: NotRequired[int]
@@ -113,6 +99,32 @@ class VaultConfigGlobalSettings(TypedDict, total=False):
     dash: NotRequired[int]
     """"""
     symbol: NotRequired[int]
+    """"""
+
+
+class VaultConfigGlobalSettings(VaultConstructorArgs, total=False):
+    r"""Configuration for vault: global settings.
+
+    Attributes:
+        key:
+            The base64-encoded ssh public key to use, overriding the
+            master passphrase. Optional.
+        phrase:
+            The master passphrase. Optional.
+        unicode_normalization_form:
+            The preferred Unicode normalization form; we warn the user
+            if textual passphrases do not match their normalized forms.
+            Optional, and a `derivepassphrase` extension.
+
+    """
+
+    key: NotRequired[str]
+    """"""
+    phrase: NotRequired[str]
+    """"""
+    unicode_normalization_form: NotRequired[
+        Literal["NFC", "NFD", "NFKC", "NFKD"]
+    ]
     """"""
 
 

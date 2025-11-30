@@ -24,7 +24,6 @@ from typing import (
 )
 
 import click
-import click.shell_completion
 from typing_extensions import (
     Any,
 )

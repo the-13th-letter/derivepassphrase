@@ -28,7 +28,7 @@ from __future__ import annotations
 import argparse
 import textwrap
 
-import tests
+import tests.data
 
 from derivepassphrase import _types, ssh_agent, vault  # noqa: PLC2701
 
@@ -39,9 +39,9 @@ def try_key(
     /,
     *,
     deterministic_signature_class: (
-        tests.SSHTestKeyDeterministicSignatureClass
-    ) = tests.SSHTestKeyDeterministicSignatureClass.RFC_6979,
-) -> tests.SSHTestKey | None:
+        tests.data.SSHTestKeyDeterministicSignatureClass
+    ) = tests.data.SSHTestKeyDeterministicSignatureClass.RFC_6979,
+) -> tests.data.SSHTestKey | None:
     """Query a signature and derived passphrase for the named key, if possible.
 
     Args:
@@ -66,7 +66,7 @@ def try_key(
         `None` if no such signature augmentation could be performed.
 
     """  # noqa: E501,RUF002
-    key = tests.ALL_KEYS[keyname]
+    key = tests.data.ALL_KEYS[keyname]
     if not vault.Vault.is_suitable_ssh_key(key.public_key_data, client=client):
         return None
     signature: bytes
@@ -82,18 +82,18 @@ def try_key(
         return None
     expected_signatures = dict(key.expected_signatures)
     signature_class = (
-        tests.SSHTestKeyDeterministicSignatureClass.SPEC
+        tests.data.SSHTestKeyDeterministicSignatureClass.SPEC
         if vault.Vault.is_suitable_ssh_key(key.public_key_data)
         else deterministic_signature_class
     )
     expected_signatures[signature_class] = (
-        tests.SSHTestKeyDeterministicSignature(
+        tests.data.SSHTestKeyDeterministicSignature(
             signature=signature,
             derived_passphrase=derived_passphrase,
             signature_class=signature_class,
         )
     )
-    return tests.SSHTestKey(
+    return tests.data.SSHTestKey(
         public_key=key.public_key,
         public_key_data=key.public_key_data,
         private_key=key.private_key,
@@ -102,7 +102,7 @@ def try_key(
     )
 
 
-def format_key(key: tests.SSHTestKey) -> str:
+def format_key(key: tests.data.SSHTestKey) -> str:
     """Return a formatted SSH test key."""
     ascii_printables = range(32, 127)
     ascii_whitespace = {ord(" "), ord("\n"), ord("\t"), ord("\r"), ord("\f")}
@@ -145,7 +145,7 @@ def format_key(key: tests.SSHTestKey) -> str:
             ])
             if (
                 sig.signature_class
-                != tests.SSHTestKeyDeterministicSignatureClass.SPEC
+                != tests.data.SSHTestKeyDeterministicSignatureClass.SPEC
             ):
                 expected_signature_lines.append(
                     f"        signature_class={sig.signature_class!s},\n"
@@ -168,16 +168,16 @@ def main(argv: list[str] | None = None) -> None:
         "--rfc-6979",
         action="store_const",
         dest="deterministic_signature_class",
-        const=tests.SSHTestKeyDeterministicSignatureClass.RFC_6979,
-        default=tests.SSHTestKeyDeterministicSignatureClass.RFC_6979,
+        const=tests.data.SSHTestKeyDeterministicSignatureClass.RFC_6979,
+        default=tests.data.SSHTestKeyDeterministicSignatureClass.RFC_6979,
         help="assume RFC 6979 signatures for deterministic DSA",
     )
     group.add_argument(
         "--pageant-068-080",
         action="store_const",
         dest="deterministic_signature_class",
-        const=tests.SSHTestKeyDeterministicSignatureClass.Pageant_068_080,
-        default=tests.SSHTestKeyDeterministicSignatureClass.RFC_6979,
+        const=tests.data.SSHTestKeyDeterministicSignatureClass.Pageant_068_080,
+        default=tests.data.SSHTestKeyDeterministicSignatureClass.RFC_6979,
         help="assume Pageant 0.68-0.80 signatures for deterministic DSA",
     )
     ap.add_argument(
@@ -189,7 +189,7 @@ def main(argv: list[str] | None = None) -> None:
     )
     args = ap.parse_args(args=argv)
     if not args.keynames:
-        args.keynames = list(tests.ALL_KEYS.keys())
+        args.keynames = list(tests.data.ALL_KEYS.keys())
     with ssh_agent.SSHAgentClient.ensure_agent_subcontext() as client:
         for keyname in args.keynames:
             key = try_key(

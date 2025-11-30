@@ -11,9 +11,8 @@ import errno
 import gettext
 import os
 import re
-import string
 import types
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, TypeVar, cast
 
 import hypothesis
 import pytest
@@ -23,30 +22,13 @@ from derivepassphrase._internals import cli_messages as msg
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+    from typing import ClassVar
 
 
 class Parametrize(types.SimpleNamespace):
     MAYBE_FORMAT_STRINGS = pytest.mark.parametrize(
         "s", ["{spam}", "{spam}abc", "{", "}", "{{{"]
     )
-
-
-all_translatable_strings_dict: dict[
-    msg.TranslatableString,
-    msg.MsgTemplate,
-] = {}
-for enum_class in msg.MSG_TEMPLATE_CLASSES:
-    all_translatable_strings_dict.update({
-        cast("msg.TranslatableString", v.value): v for v in enum_class
-    })
-
-all_translatable_strings_enum_values = tuple(
-    sorted(all_translatable_strings_dict.values(), key=str)
-)
-all_translatable_strings = [
-    cast("msg.TranslatableString", v.value)
-    for v in all_translatable_strings_enum_values
-]
 
 
 @pytest.fixture(scope="class")
@@ -65,9 +47,27 @@ def monkeypatched_null_translations() -> Iterator[None]:
         yield
 
 
-@pytest.mark.usefixtures("use_debug_translations")
-class TestL10nMachineryWithDebugTranslations:
-    """Test the localization machinery together with debug translations."""
+class Strategies:
+    """`hypothesis` strategies for testing the localization machinery."""
+
+    all_translatable_strings_dict: ClassVar[
+        dict[
+            msg.TranslatableString,
+            msg.MsgTemplate,
+        ]
+    ] = {}
+    for enum_class in msg.MSG_TEMPLATE_CLASSES:
+        all_translatable_strings_dict.update({
+            cast("msg.TranslatableString", v.value): v for v in enum_class
+        })
+
+    all_translatable_strings_enum_values = tuple(
+        sorted(all_translatable_strings_dict.values(), key=str)
+    )
+    all_translatable_strings = tuple(
+        cast("msg.TranslatableString", v.value)
+        for v in all_translatable_strings_enum_values
+    )
 
     error_codes = tuple(
         sorted(errno.errorcode, key=errno.errorcode.__getitem__)
@@ -87,60 +87,133 @@ class TestL10nMachineryWithDebugTranslations:
     )
     """A cache of known messages that don't contain replacement fields."""
 
-    @hypothesis.given(value=strategies.text(max_size=100))
+    @classmethod
+    def errnos(cls) -> strategies.SearchStrategy[int]:
+        """Return a strategy for errno values."""
+        return strategies.sampled_from(cls.error_codes)
+
+    @classmethod
+    def error_messages_with_fields(
+        cls,
+    ) -> strategies.SearchStrategy[msg.ErrMsgTemplate]:
+        """Return a strategy for error messages with known replacement fields.
+
+        All error messages from this strategy contain (only) the "error"
+        and "filename" replacement fields.
+
+        """
+        return strategies.sampled_from(cls.known_fields_error_messages)
+
+    @staticmethod
+    def printable_strings() -> strategies.SearchStrategy[str]:
+        """Return a strategy for printable strings."""
+        return strategies.text(
+            strategies.characters(min_codepoint=32, max_codepoint=126),
+            min_size=1,
+            max_size=100,
+        )
+
+    @classmethod
+    def strings_without_fields(
+        cls,
+    ) -> strategies.SearchStrategy[msg.MsgTemplate]:
+        """Return a strategy for messages without any replacement fields."""
+        return strategies.sampled_from(cls.no_fields_messages)
+
+    @classmethod
+    def translatable_string_enums(
+        cls,
+    ) -> strategies.SearchStrategy[msg.MsgTemplate]:
+        """Return a strategy for translatable message enum values."""
+        return strategies.sampled_from(
+            cls.all_translatable_strings_enum_values
+        )
+
+    @classmethod
+    def translatable_strings(
+        cls,
+    ) -> strategies.SearchStrategy[msg.MsgTemplate]:
+        """Return a strategy for translatable messages."""
+        return strategies.sampled_from(cls.all_translatable_strings)
+
+    T = TypeVar("T")
+
+    @staticmethod
+    def two_different(
+        strategy: strategies.SearchStrategy[T], /
+    ) -> strategies.SearchStrategy[tuple[T, T]]:
+        """Return a strategy for generating unique pairs of things.
+
+        We assume the "things" strategy to generate hashable elements.
+
+        Args:
+            strategy:
+                An existing search strategy.
+
+        """
+        return strategies.lists(
+            strategy, min_size=2, max_size=2, unique=True
+        ).map(tuple)  # type: ignore[arg-type]
+
+
+@pytest.mark.usefixtures("use_debug_translations")
+class TestDebugTranslations:
+    """Test the localization machinery together with debug translations."""
+
+    @staticmethod
+    def _test_interpolated(
+        ts_name: str, ts_value: msg.TranslatableString
+    ) -> None:
+        context = ts_value.l10n_context
+        singular = ts_value.singular
+        translated = msg.translation.pgettext(context, singular)
+        assert translated.startswith(ts_name)
+        suffix = translated.removeprefix(ts_name)
+        assert not suffix or suffix.startswith("(")
+
+    @hypothesis.given(value=Strategies.printable_strings())
     @hypothesis.example("{")
-    def test_100_debug_translation_get_str(self, value: str) -> None:
+    def test_get_str(self, value: str) -> None:
         """Translating a raw string object does nothing."""
         translated = msg.translation.gettext(value)
         assert translated == value
 
-    @hypothesis.given(value=strategies.sampled_from(all_translatable_strings))
-    def test_100a_debug_translation_get_ts(
-        self,
-        value: msg.TranslatableString,
-    ) -> None:
-        """Translating a TranslatableString translates and interpolates."""
-        ts_name = str(all_translatable_strings_dict[value])
-        context = value.l10n_context
-        singular = value.singular
-        translated = msg.translation.pgettext(context, singular)
-        assert translated.startswith(ts_name)
-        suffix = translated.removeprefix(ts_name)
-        assert not suffix or suffix.startswith("(")
-
-    @hypothesis.given(
-        value=strategies.sampled_from(all_translatable_strings_enum_values)
-    )
-    def test_100b_debug_translation_get_enum(
-        self,
-        value: msg.MsgTemplate,
-    ) -> None:
-        """Translating a MsgTemplate operates on the enum value."""
-        ts_name = str(value)
-        inner_value = cast("msg.TranslatableString", value.value)
-        context = inner_value.l10n_context
-        singular = inner_value.singular
-        translated = msg.translation.pgettext(context, singular)
-        assert translated.startswith(ts_name)
-        suffix = translated.removeprefix(ts_name)
-        assert not suffix or suffix.startswith("(")
-
-    @hypothesis.given(value=strategies.text(max_size=100))
+    @hypothesis.given(value=Strategies.printable_strings())
     @hypothesis.example("{")
-    def test_100c_debug_translation_get_ts_str(self, value: str) -> None:
+    def test_get_ts_str(self, value: str) -> None:
         """Translating a constant TranslatableString does nothing."""
         translated = msg.TranslatedString.constant(value)
         assert str(translated) == value
 
-    @hypothesis.given(
-        values=strategies.lists(
-            strategies.sampled_from(no_fields_messages),
-            min_size=2,
-            max_size=2,
-            unique=True,
+    @hypothesis.given(value=Strategies.translatable_strings())
+    def test_get_ts(
+        self,
+        value: msg.TranslatableString,
+    ) -> None:
+        """Translating a TranslatableString translates and interpolates."""
+        self._test_interpolated(
+            str(Strategies.all_translatable_strings_dict[value]), value
         )
+
+    @hypothesis.given(value=Strategies.translatable_string_enums())
+    def test_get_enum(
+        self,
+        value: msg.MsgTemplate,
+    ) -> None:
+        """Translating a MsgTemplate operates on the enum value."""
+        self._test_interpolated(
+            str(value), cast("msg.TranslatableString", value.value)
+        )
+
+
+@pytest.mark.usefixtures("use_debug_translations")
+class TestTranslatedStrings:
+    """Test the translated string objects."""
+
+    @hypothesis.given(
+        values=Strategies.two_different(Strategies.strings_without_fields())
     )
-    def test_101_translated_strings_operations(
+    def test_hashable(
         self,
         values: list[msg.MsgTemplate],
     ) -> None:
@@ -159,15 +232,10 @@ class TestL10nMachineryWithDebugTranslations:
         assert len(strings) == 2
 
     @hypothesis.given(
-        value=strategies.sampled_from(known_fields_error_messages),
-        errnos=strategies.lists(
-            strategies.sampled_from(error_codes),
-            min_size=2,
-            max_size=2,
-            unique=True,
-        ),
+        value=Strategies.error_messages_with_fields(),
+        errnos=Strategies.two_different(Strategies.errnos()),
     )
-    def test_101a_translated_strings_operations_interpolated(
+    def test_hashable_interpolated(
         self,
         value: msg.ErrMsgTemplate,
         errnos: list[int],
@@ -188,10 +256,10 @@ class TestL10nMachineryWithDebugTranslations:
         assert len({ts1, ts2}) == 2
 
     @hypothesis.given(
-        value=strategies.sampled_from(known_fields_error_messages),
-        errno_=strategies.sampled_from(error_codes),
+        value=Strategies.error_messages_with_fields(),
+        errno_=Strategies.errnos(),
     )
-    def test_101b_translated_strings_operations_interpolated(
+    def test_hashable_interpolated_error_and_filename(
         self,
         value: msg.ErrMsgTemplate,
         errno_: int,
@@ -213,11 +281,13 @@ class TestL10nMachineryWithDebugTranslations:
             assert ts0 != ts1
             assert len({ts0, ts1}) == 2
 
+
+@pytest.mark.usefixtures("use_debug_translations")
+class TestSuppressedInterpolations:
+    """Test the interpolation suppression behavior of translated strings."""
+
     @Parametrize.MAYBE_FORMAT_STRINGS
-    def test_102_translated_strings_suppressed_interpolation_fail(
-        self,
-        s: str,
-    ) -> None:
+    def test_missing_fields(self, s: str) -> None:
         """TranslatableStrings require fixed replacement fields.
 
         They reject attempts at stringification if unknown fields are
@@ -249,17 +319,8 @@ class TestL10nMachineryWithDebugTranslations:
                 with pytest.raises(ValueError, match=pattern):
                     str(ts2)
 
-    @hypothesis.given(
-        s=strategies.text(
-            strategies.sampled_from(string.ascii_lowercase + "{}"),
-            min_size=1,
-            max_size=20,
-        )
-    )
-    def test_102a_translated_strings_suppressed_interpolation_str(
-        self,
-        s: str,
-    ) -> None:
+    @hypothesis.given(s=Strategies.printable_strings())
+    def test_constant_strings(self, s: str) -> None:
         """Constant TranslatedStrings don't interpolate fields."""
         with monkeypatched_null_translations():
             ts = msg.TranslatedString.constant(s)
@@ -271,17 +332,8 @@ class TestL10nMachineryWithDebugTranslations:
                 err_msg = "Interpolation attempted"
                 raise AssertionError(err_msg) from exc
 
-    @hypothesis.given(
-        s=strategies.text(
-            strategies.sampled_from(string.ascii_lowercase + "{}"),
-            min_size=1,
-            max_size=20,
-        )
-    )
-    def test_102b_translated_strings_suppressed_interpolation_ts_manual(
-        self,
-        s: str,
-    ) -> None:
+    @hypothesis.given(s=Strategies.printable_strings())
+    def test_nonformat_strings(self, s: str) -> None:
         """Non-format TranslatedStrings don't interpolate fields."""
         with monkeypatched_null_translations():
             ts_inner = msg.TranslatableString(

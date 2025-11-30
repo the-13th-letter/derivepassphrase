@@ -1090,9 +1090,9 @@ def export_version_option_callback(
             # Marked as known-but-unavailable, because they are used by
             # subcommands of `derivepassphrase export`, not by the
             # command itself.
-            _msg.Label.UNAVAILABLE_FOREIGN_CONFIGURATION_FORMATS: [
-                k for k in foreign_configuration_formats
-            ],
+            _msg.Label.UNAVAILABLE_FOREIGN_CONFIGURATION_FORMATS: list(
+                foreign_configuration_formats
+            ),
             _msg.Label.SUPPORTED_SUBCOMMANDS: [
                 k for k in supported_subcommands if k.test()
             ],
@@ -1307,6 +1307,9 @@ class ZshComplete(click.shell_completion.ZshComplete):
     Therefore, it is better to change the `format_completion` method to
     adaptively and "smartly" emit colon-escaped output or not, based on
     whether the completion script will be using it.
+
+    As of `click` v8.2.2, the Zsh completion class also adaptively emits
+    colon-escaped output or not, based on the very same criterion.
 
     """
 

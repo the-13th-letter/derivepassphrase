@@ -84,35 +84,28 @@ class TestStaticFunctionality:
     @hypothesis.given(
         num=strategies.integers(min_value=0, max_value=0xFFFFFFFFFFFFFFFF),
     )
-    def test_100_bits(self, num: int) -> None:
+    def test_bits(self, num: int) -> None:
         """Extract the bits from a number in big-endian format."""
         seq1 = bits(num)
         n = len(seq1)
         seq2 = bits(num, byte_width=8)
         m = len(seq2)
-        assert m == 64
-        assert seq2[-n:] == seq1
-        assert seq2[: m - n] == [0] * (m - n)
         text1 = "".join(str(bit) for bit in seq1)
         text2 = "".join(str(bit) for bit in seq2)
+        text3 = f"{num:064b}"
+        seq3 = bitseq(text3)
+        assert m == 64
+        assert seq2 == seq3
+        assert seq2[-n:] == seq1
+        assert seq2[: m - n] == [0] * (m - n)
         assert text1.lstrip("0") == (f"{num:b}" if num else "")
-        assert text2 == f"{num:064b}"
-
-    @hypothesis.given(
-        num=strategies.integers(min_value=0, max_value=0xFFFFFFFFFFFFFFFF),
-    )
-    def test_101_bits(self, num: int) -> None:
-        """Extract the bits from a number in big-endian format."""
-        text1 = f"{num:064b}"
-        seq1 = bitseq(text1)
-        seq2 = bits(num, byte_width=8)
-        assert seq1 == seq2
-        text2 = "".join(str(bit) for bit in seq1)
+        assert text2.endswith(text1)
         assert int(text2, 2) == num
+        assert text2 == text3
 
     class BigEndianNumberTest(NamedTuple):
         """Test data for
-        [`TestStaticFunctionality.test_200_big_endian_number`][].
+        [`TestStaticFunctionality.test_big_endian_number`][].
 
         Attributes:
             sequence: A sequence of integers.
@@ -186,9 +179,7 @@ class TestStaticFunctionality:
     @hypothesis.example(BigEndianNumberTest([1, 7, 5, 5], 8, 0o1755)).via(
         "manual octal example"
     )
-    def test_200_big_endian_number(
-        self, test_case: BigEndianNumberTest
-    ) -> None:
+    def test_big_endian_number(self, test_case: BigEndianNumberTest) -> None:
         """Conversion to big endian numbers in any base works.
 
         See [`sequin.Sequin.generate`][] for where this is used.
@@ -200,7 +191,7 @@ class TestStaticFunctionality:
         ) == expected
 
     @Parametrize.BIG_ENDIAN_NUMBER_EXCEPTIONS
-    def test_300_big_endian_number_exceptions(
+    def test_big_endian_number_exceptions(
         self,
         exc_type: type[Exception],
         exc_pattern: str,
@@ -319,7 +310,7 @@ class TestSequin:
     @hypothesis.example(
         ConstructorTestCase("OK", False, bitseq("0100111101001011"))
     ).via("manual example latin1 text")
-    def test_200_constructor(
+    def test_constructor(
         self,
         test_case: ConstructorTestCase,
     ) -> None:
@@ -378,7 +369,7 @@ class TestSequin:
         )
     ).via("manual, pre-hypothesis parametrization value")
     @hypothesis.given(sequence=GenerationSequence.strategy())
-    def test_201_generating(self, sequence: GenerationSequence) -> None:
+    def test_generating(self, sequence: GenerationSequence) -> None:
         """The sequin generates deterministic sequences."""
         seq = sequin.Sequin(sequence.bit_sequence, is_bitstring=True)
         for i, (num, result) in enumerate(sequence.steps, start=1):
@@ -397,7 +388,7 @@ class TestSequin:
                         f"but generated {result2:d} instead"
                     )
 
-    def test_201a_generating_errors(self) -> None:
+    def test_generating_errors(self) -> None:
         """The sequin errors deterministically when generating sequences."""
         seq = sequin.Sequin(
             [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1], is_bitstring=True
@@ -419,9 +410,7 @@ class TestSequin:
         )
     ).via("manual, pre-hypothesis parametrization value")
     @hypothesis.given(sequence=GenerationSequence.strategy())
-    def test_210_internal_generating(
-        self, sequence: GenerationSequence
-    ) -> None:
+    def test_internal_generating(self, sequence: GenerationSequence) -> None:
         """The sequin internals generate deterministic sequences."""
         seq = sequin.Sequin(sequence.bit_sequence, is_bitstring=True)
         for i, (num, result) in enumerate(sequence.steps, start=1):
@@ -440,7 +429,7 @@ class TestSequin:
                     f"but generated {result2:d} instead"
                 )
 
-    def test_210a_internal_generating_errors(self) -> None:
+    def test_internal_generating_errors(self) -> None:
         """The sequin generation internals error deterministically."""
         seq = sequin.Sequin(
             [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1], is_bitstring=True
@@ -516,7 +505,7 @@ class TestSequin:
             ],
         )
     )
-    def test_211_shifting(self, sequence: ShiftSequence) -> None:
+    def test_shifting(self, sequence: ShiftSequence) -> None:
         """The sequin manages the pool of remaining entropy for each base.
 
         Specifically, the sequin implements all-or-nothing fixed-length
@@ -542,7 +531,7 @@ class TestSequin:
                 )
 
     @Parametrize.INVALID_SEQUIN_INPUTS
-    def test_300_constructor_exceptions(
+    def test_constructor_exceptions(
         self,
         sequence: list[int] | str,
         is_bitstring: bool,
