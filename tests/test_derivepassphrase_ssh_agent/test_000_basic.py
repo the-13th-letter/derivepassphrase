@@ -8,11 +8,8 @@ from __future__ import annotations
 
 import base64
 import contextlib
-import errno
 import importlib.metadata
 import io
-import os
-import pathlib
 import re
 import socket
 import sys
@@ -35,7 +32,7 @@ from tests.machinery import pytest as pytest_machinery
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Mapping
 
-    from typing_extensions import Any, Buffer, Literal
+    from typing_extensions import Any, Literal
 
 if sys.version_info < (3, 11):
     from exceptiongroup import ExceptionGroup
@@ -109,31 +106,6 @@ class Parametrize(types.SimpleNamespace):
                     ),
                 ],
                 id="new-entries",
-            ),
-        ],
-    )
-    STUBBED_AGENT_ADDRESSES = pytest.mark.parametrize(
-        ["address", "exception", "match"],
-        [
-            pytest.param(None, KeyError, "SSH_AUTH_SOCK", id="unset"),
-            pytest.param("stub-ssh-agent:", None, "", id="standard"),
-            pytest.param(
-                str(pathlib.Path("~").expanduser()),
-                FileNotFoundError,
-                os.strerror(errno.ENOENT),
-                id="invalid-url",
-            ),
-            pytest.param(
-                "stub-ssh-agent:EPROTONOSUPPORT",
-                OSError,
-                os.strerror(errno.EPROTONOSUPPORT),
-                id="protocol-not-supported",
-            ),
-            pytest.param(
-                "stub-ssh-agent:ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-                OSError,
-                os.strerror(errno.EINVAL),
-                id="invalid-error-code",
             ),
         ],
     )
@@ -345,76 +317,6 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
-    INVALID_SSH_AGENT_MESSAGES = pytest.mark.parametrize(
-        "message",
-        [
-            pytest.param(b"\x00\x00\x00\x00", id="empty-message"),
-            pytest.param(b"\x00\x00\x00\x0f\x0d", id="truncated-message"),
-            pytest.param(
-                b"\x00\x00\x00\x06\x1b\x00\x00\x00\x01\xff",
-                id="invalid-extension-name",
-            ),
-            pytest.param(
-                b"\x00\x00\x00\x11\x0d\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
-                id="sign-with-trailing-data",
-            ),
-        ],
-    )
-    UNSUPPORTED_SSH_AGENT_MESSAGES = pytest.mark.parametrize(
-        "message",
-        [
-            pytest.param(
-                ssh_agent.SSHAgentClient.string(
-                    b"".join([
-                        b"\x0d",
-                        ssh_agent.SSHAgentClient.string(
-                            data.ALL_KEYS["rsa"].public_key_data
-                        ),
-                        ssh_agent.SSHAgentClient.string(vault.Vault.UUID),
-                        b"\x00\x00\x00\x02",
-                    ])
-                ),
-                id="sign-with-flags",
-            ),
-            pytest.param(
-                ssh_agent.SSHAgentClient.string(
-                    b"".join([
-                        b"\x0d",
-                        ssh_agent.SSHAgentClient.string(
-                            data.ALL_KEYS["ed25519"].public_key_data
-                        ),
-                        b"\x00\x00\x00\x08\x00\x01\x02\x03\x04\x05\x06\x07",
-                        b"\x00\x00\x00\x00",
-                    ])
-                ),
-                id="sign-with-nonstandard-passphrase",
-            ),
-            pytest.param(
-                ssh_agent.SSHAgentClient.string(
-                    b"".join([
-                        b"\x0d",
-                        ssh_agent.SSHAgentClient.string(
-                            data.ALL_KEYS["dsa1024"].public_key_data
-                        ),
-                        ssh_agent.SSHAgentClient.string(vault.Vault.UUID),
-                        b"\x00\x00\x00\x00",
-                    ])
-                ),
-                id="sign-key-no-expected-signature",
-            ),
-            pytest.param(
-                ssh_agent.SSHAgentClient.string(
-                    b"".join([
-                        b"\x0d",
-                        b"\x00\x00\x00\x00",
-                        ssh_agent.SSHAgentClient.string(vault.Vault.UUID),
-                        b"\x00\x00\x00\x00",
-                    ])
-                ),
-                id="sign-key-unregistered-test-key",
-            ),
-        ],
-    )
     PUBLIC_KEY_DATA = pytest.mark.parametrize(
         "public_key_struct",
         list(data.SUPPORTED_KEYS.values()),
@@ -484,11 +386,6 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
-    SUPPORTED_SSH_TEST_KEYS = pytest.mark.parametrize(
-        ["ssh_test_key_type", "ssh_test_key"],
-        list(data.SUPPORTED_KEYS.items()),
-        ids=data.SUPPORTED_KEYS.keys(),
-    )
     ALL_SSH_TEST_KEYS = pytest.mark.parametrize(
         ["ssh_test_key_type", "ssh_test_key"],
         list(data.ALL_KEYS.items()),
@@ -505,268 +402,6 @@ class Parametrize(types.SimpleNamespace):
             pytest.param("unimplemented", ["j", "k"], id="unimplemented-2"),
         ],
     )
-
-
-class TestStubbedSSHAgentSocketRequests:
-    """Test the stubbed SSH agent socket: normal requests."""
-
-    @contextlib.contextmanager
-    def _get_addressed_agent(
-        self, *, extended_agent: bool = False
-    ) -> Iterator[machinery.StubbedSSHAgentSocketWithAddress]:
-        agent_class: type[machinery.StubbedSSHAgentSocketWithAddress] = (
-            machinery.StubbedSSHAgentSocketWithAddressAndDeterministicDSA
-            if extended_agent
-            else machinery.StubbedSSHAgentSocketWithAddress
-        )
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            monkeypatch.setenv("SSH_AUTH_SOCK", agent_class.ADDRESS)
-            agent = stack.enter_context(agent_class())
-            yield agent
-
-    def test_query_extensions_base(self) -> None:
-        """The base agent implements no extensions."""
-        with self._get_addressed_agent(extended_agent=False) as agent:
-            assert "query" not in agent.enabled_extensions
-            query_request = (
-                # SSH string header
-                b"\x00\x00\x00\x0a"
-                # request code: SSH_AGENTC_EXTENSION
-                b"\x1b"
-                # payload: SSH string "query"
-                b"\x00\x00\x00\x05query"
-            )
-            query_response = (
-                # SSH string header
-                b"\x00\x00\x00\x01"
-                # response code: SSH_AGENT_FAILURE
-                b"\x05"
-            )
-            agent.sendall(query_request)
-            assert agent.recv(1000) == query_response
-
-    def test_query_extensions_extended(self) -> None:
-        """The extended agent implements a known list of extensions."""
-        with self._get_addressed_agent(extended_agent=True) as agent:
-            assert "query" in agent.enabled_extensions
-            query_request = (
-                # SSH string header
-                b"\x00\x00\x00\x0a"
-                # request code: SSH_AGENTC_EXTENSION
-                b"\x1b"
-                # payload: SSH string "query"
-                b"\x00\x00\x00\x05query"
-            )
-            query_response = (
-                # SSH string header
-                b"\x00\x00\x00\x40"
-                # response code: SSH_AGENT_EXTENSION_RESPONSE
-                b"\x1d"
-                # extension response: extension type ("query")
-                b"\x00\x00\x00\x05query"
-                # supported extension #1: query
-                b"\x00\x00\x00\x05query"
-                # supported extension #2:
-                # list-extended@putty.projects.tartarus.org
-                b"\x00\x00\x00\x29list-extended@putty.projects.tartarus.org"
-            )
-            agent.sendall(query_request)
-            assert agent.recv(1000) == query_response
-
-    def test_request_identities(self) -> None:
-        """The agent implements a known list of identities."""
-        unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
-        with machinery.StubbedSSHAgentSocket() as agent:
-            query_request = (
-                # SSH string header
-                b"\x00\x00\x00\x01"
-                # request code: SSH_AGENTC_REQUEST_IDENTITIES
-                b"\x0b"
-            )
-            agent.sendall(query_request)
-            message_length = int.from_bytes(agent.recv(4), "big")
-            orig_message: bytes | bytearray = bytearray(
-                agent.recv(message_length)
-            )
-            assert (
-                _types.SSH_AGENT(orig_message[0])
-                == _types.SSH_AGENT.IDENTITIES_ANSWER
-            )
-            identity_count = int.from_bytes(orig_message[1:5], "big")
-            message = bytes(orig_message[5:])
-            for _ in range(identity_count):
-                key, message = unstring_prefix(message)
-                _comment, message = unstring_prefix(message)
-                assert key
-                assert key in {
-                    k.public_key_data for k in data.ALL_KEYS.values()
-                }
-            assert not message
-
-    def test_request_identities_extended(self) -> None:
-        """The extended agent implements PuTTY's `list-extended` extension."""
-        unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
-        with self._get_addressed_agent(extended_agent=True) as agent:
-            extension_request = (
-                # SSH string header
-                b"\x00\x00\x00\x2e"
-                # request code: SSH_AGENTC_REQUEST_IDENTITIES
-                b"\x1b"
-                # extension type: list-extended@putty.projects.tartarus.org
-                b"\x00\x00\x00\x29list-extended@putty.projects.tartarus.org"
-                # (no payload)
-            )
-            agent.sendall(extension_request)
-            message_length = int.from_bytes(agent.recv(4), "big")
-            orig_message: bytes | bytearray = bytearray(
-                agent.recv(message_length)
-            )
-            assert (
-                _types.SSH_AGENT(orig_message[0]) == _types.SSH_AGENT.SUCCESS
-            )
-            identity_count = int.from_bytes(orig_message[1:5], "big")
-            message = bytes(orig_message[5:])
-            for _ in range(identity_count):
-                key, message = unstring_prefix(message)
-                _comment, message = unstring_prefix(message)
-                flags, message = unstring_prefix(message)
-                assert flags == b"\x00\x00\x00\x00"
-                assert key
-                assert key in {
-                    k.public_key_data for k in data.ALL_KEYS.values()
-                }
-            assert not message
-
-    @Parametrize.SUPPORTED_SSH_TEST_KEYS
-    def test_sign(
-        self,
-        ssh_test_key_type: str,
-        ssh_test_key: data.SSHTestKey,
-    ) -> None:
-        """The agent signs known key/message pairs."""
-        del ssh_test_key_type
-        spec = data.SSHTestKeyDeterministicSignatureClass.SPEC
-        assert ssh_test_key.expected_signatures[spec].signature is not None
-        string = ssh_agent.SSHAgentClient.string
-        query_request = string(
-            # request code: SSH_AGENTC_SIGN_REQUEST
-            b"\x0d"
-            # key: SSH string of the public key
-            + string(ssh_test_key.public_key_data)
-            # payload: SSH string of the vault UUID
-            + string(vault.Vault.UUID)
-            # signing flags (uint32, empty)
-            + b"\x00\x00\x00\x00"
-        )
-        query_response = string(
-            # response code: SSH_AGENT_SIGN_RESPONSE
-            b"\x0e"
-            # expected payload: the binary signature as recorded in the test key data structure
-            + string(ssh_test_key.expected_signatures[spec].signature)
-        )
-        with machinery.StubbedSSHAgentSocket() as agent:
-            agent.sendall(query_request)
-            assert agent.recv(1000) == query_response
-
-
-class TestStubbedSSHAgentSocketProperOperations:
-    """Test the stubbed SSH agent socket: proper use and misuse."""
-
-    def test_close_multiple(self) -> None:
-        """The agent can be closed repeatedly."""
-        with machinery.StubbedSSHAgentSocket() as agent:
-            pass
-        with machinery.StubbedSSHAgentSocket() as agent:
-            pass
-        del agent
-
-    def test_closed_agents_cannot_be_interacted_with(self) -> None:
-        """The agent can be closed repeatedly."""
-        with machinery.StubbedSSHAgentSocket() as agent:
-            pass
-        query_request = (
-            # SSH string header
-            b"\x00\x00\x00\x0a"
-            # request code: SSH_AGENTC_EXTENSION
-            b"\x1b"
-            # payload: SSH string "query"
-            b"\x00\x00\x00\x05query"
-        )
-        query_response = b""
-        with pytest.raises(
-            ValueError,
-            match=re.escape(machinery.StubbedSSHAgentSocket._SOCKET_IS_CLOSED),
-        ):
-            agent.sendall(query_request)
-        assert agent.recv(100) == query_response
-
-    def test_no_recv_without_sendall(self) -> None:
-        """The agent requires a message before sending a response."""
-        with machinery.StubbedSSHAgentSocket() as agent:  # noqa: SIM117
-            with pytest.raises(
-                AssertionError,
-                match=re.escape(
-                    machinery.StubbedSSHAgentSocket._PROTOCOL_VIOLATION
-                ),
-            ):
-                agent.recv(100)
-
-    @Parametrize.INVALID_SSH_AGENT_MESSAGES
-    def test_invalid_ssh_agent_messages(
-        self,
-        message: Buffer,
-    ) -> None:
-        """The agent responds with errors on invalid messages."""
-        query_response = (
-            # SSH string header
-            b"\x00\x00\x00\x01"
-            # response code: SSH_AGENT_FAILURE
-            b"\x05"
-        )
-        with machinery.StubbedSSHAgentSocket() as agent:
-            agent.sendall(message)
-            assert agent.recv(100) == query_response
-
-
-class TestStubbedSSHAgentSocketSupportedAndUnsupportedFeatures:
-    """Test the stubbed SSH agent socket: supported/unsupported features."""
-
-    @Parametrize.UNSUPPORTED_SSH_AGENT_MESSAGES
-    def test_unsupported_ssh_agent_messages(
-        self,
-        message: Buffer,
-    ) -> None:
-        """The agent responds with errors on unsupported messages."""
-        query_response = (
-            # SSH string header
-            b"\x00\x00\x00\x01"
-            # response code: SSH_AGENT_FAILURE
-            b"\x05"
-        )
-        with machinery.StubbedSSHAgentSocket() as agent:
-            agent.sendall(message)
-            assert agent.recv(100) == query_response
-
-    @Parametrize.STUBBED_AGENT_ADDRESSES
-    def test_addresses(
-        self,
-        address: str | None,
-        exception: type[Exception] | None,
-        match: str,
-    ) -> None:
-        """The agent accepts addresses."""
-        with contextlib.ExitStack() as stack:
-            monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
-            if address:
-                monkeypatch.setenv("SSH_AUTH_SOCK", address)
-            else:
-                monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
-            if exception:
-                stack.enter_context(
-                    pytest.raises(exception, match=re.escape(match))
-                )
-            machinery.StubbedSSHAgentSocketWithAddress()
 
 
 class TestStaticFunctionality:
