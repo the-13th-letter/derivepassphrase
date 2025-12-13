@@ -445,6 +445,7 @@ class Parametrize(types.SimpleNamespace):
             "system_support_action",
             "sign_action",
             "pattern",
+            "warnings_patterns",
         ],
         [
             pytest.param(
@@ -453,6 +454,7 @@ class Parametrize(types.SimpleNamespace):
                 None,
                 SignAction.FAIL,
                 "not loaded into the agent",
+                [],
                 id="key-not-loaded",
             ),
             pytest.param(
@@ -461,6 +463,7 @@ class Parametrize(types.SimpleNamespace):
                 None,
                 SignAction.FAIL,
                 "SSH agent failed to or refused to",
+                [],
                 id="list-keys-refused",
             ),
             pytest.param(
@@ -469,6 +472,7 @@ class Parametrize(types.SimpleNamespace):
                 None,
                 SignAction.FAIL,
                 "SSH agent failed to or refused to",
+                [],
                 id="list-keys-protocol-error",
             ),
             pytest.param(
@@ -477,6 +481,7 @@ class Parametrize(types.SimpleNamespace):
                 None,
                 SignAction.FAIL,
                 "Cannot find any running SSH agent",
+                [],
                 id="agent-address-missing",
             ),
             pytest.param(
@@ -485,6 +490,7 @@ class Parametrize(types.SimpleNamespace):
                 None,
                 SignAction.FAIL,
                 "Cannot connect to the SSH agent",
+                [],
                 id="agent-address-mangled",
             ),
             pytest.param(
@@ -493,6 +499,7 @@ class Parametrize(types.SimpleNamespace):
                 SystemSupportAction.UNSET_NATIVE,
                 SignAction.FAIL,
                 "does not support communicating with it",
+                [],
                 id="no-agent-support",
             ),
             pytest.param(
@@ -501,6 +508,7 @@ class Parametrize(types.SimpleNamespace):
                 SystemSupportAction.UNSET_PROVIDER_LIST,
                 SignAction.FAIL,
                 "does not support communicating with it",
+                [],
                 id="no-agent-support",
             ),
             pytest.param(
@@ -509,6 +517,7 @@ class Parametrize(types.SimpleNamespace):
                 SystemSupportAction.UNSET_AF_UNIX_AND_ENSURE_USE,
                 SignAction.FAIL,
                 "does not support communicating with it",
+                ["Cannot connect to an SSH agent via UNIX domain sockets"],
                 id="no-agent-support",
             ),
             pytest.param(
@@ -517,6 +526,7 @@ class Parametrize(types.SimpleNamespace):
                 SystemSupportAction.UNSET_WINDLL_AND_ENSURE_USE,
                 SignAction.FAIL,
                 "does not support communicating with it",
+                ["Cannot connect to an SSH agent via Windows named pipes"],
                 id="no-agent-support",
             ),
             pytest.param(
@@ -525,6 +535,7 @@ class Parametrize(types.SimpleNamespace):
                 None,
                 SignAction.FAIL_RUNTIME,
                 "violates the communication protocol",
+                [],
                 id="sign-violates-protocol",
             ),
         ],
@@ -1427,8 +1438,11 @@ class TestMisc:
         address_action: SocketAddressAction | None,
         sign_action: SignAction,
         pattern: str,
+        warnings_patterns: list[str],
     ) -> None:
         """All errors in [`cli_helpers.key_to_phrase`][] are handled."""
+
+        captured_warnings: list[str] = []
 
         class ErrCallback(BaseException):
             def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -1436,8 +1450,12 @@ class TestMisc:
                 self.args = args
                 self.kwargs = kwargs
 
-        def err(*args: Any, **_kwargs: Any) -> NoReturn:
-            raise ErrCallback(*args, **_kwargs)
+        def err(*args: Any, **kwargs: Any) -> NoReturn:
+            raise ErrCallback(*args, **kwargs)
+
+        def warn(*args: Any) -> None:
+            if args:  # pragma: no branch
+                captured_warnings.append(str(args[0]))
 
         with pytest.MonkeyPatch.context() as monkeypatch:
             loaded_keys = list(
@@ -1454,7 +1472,14 @@ class TestMisc:
             if system_support_action:
                 system_support_action(monkeypatch)
             with pytest.raises(ErrCallback, match=pattern) as excinfo:
-                cli_helpers.key_to_phrase(loaded_key, error_callback=err)
+                cli_helpers.key_to_phrase(
+                    loaded_key, error_callback=err, warning_callback=warn
+                )
+
+            for pat in warnings_patterns:
+                assert any([pat in string for string in captured_warnings]), (
+                    f"expected some warning message to match {pat}"
+                )
             if list_keys_action == ListKeysAction.FAIL_RUNTIME:
                 assert excinfo.value.kwargs
                 assert isinstance(

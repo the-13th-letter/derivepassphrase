@@ -1029,7 +1029,11 @@ class TestSuitableKeys:
         @click.command()
         def driver() -> None:
             """Call [`cli_helpers.select_ssh_key`][] directly, as a command."""
-            key = cli_helpers.select_ssh_key(client)
+            key = cli_helpers.select_ssh_key(
+                client,
+                error_callback=lambda s, *_args: pytest.fail(str(s)),
+                warning_callback=lambda s, *_args: pytest.fail(str(s)),
+            )
             click.echo(base64.standard_b64encode(key).decode("ASCII"))
 
         runner = machinery.CliRunner(mix_stderr=True)
