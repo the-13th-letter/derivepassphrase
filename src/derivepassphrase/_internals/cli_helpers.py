@@ -828,8 +828,8 @@ def select_ssh_key(
     /,
     *,
     ctx: click.Context | None = None,
-    error_callback: Callable[..., NoReturn] = default_error_callback,
-    warning_callback: Callable[..., None] = lambda *_args: None,
+    error_callback: Callable[..., NoReturn],
+    warning_callback: Callable[..., None],
 ) -> bytes | bytearray:
     """Interactively select an SSH key for passphrase derivation.
 
@@ -1068,8 +1068,8 @@ def key_to_phrase(
     key: str | Buffer,
     /,
     *,
-    error_callback: Callable[..., NoReturn] = default_error_callback,
-    warning_callback: Callable[..., None] = lambda *_args: None,
+    error_callback: Callable[..., NoReturn],
+    warning_callback: Callable[..., None],
     conn: ssh_agent.SSHAgentClient
     | _types.SSHAgentSocket
     | Sequence[str]
@@ -1081,6 +1081,26 @@ def key_to_phrase(
     user-facing error messages if no equivalent master passphrase can be
     obtained from the key, because this is the first point of contact
     with the SSH agent.
+
+    Args:
+        key:
+            The SSH key for which the equivalent master passphrase shall
+            be computed, encoded in base64.
+        conn:
+            An optional connection hint to the SSH agent.  See
+            [`ssh_agent.SSHAgentClient.ensure_agent_subcontext`][].
+        error_callback:
+            A callback function for an error message, if any.  The
+            callback function is responsible for aborting this function
+            call after acknowledging, formatting and/or forwarding the
+            error message; it would typically call [`sys.exit`][] or
+            raise an exception of its own, based on the provided error
+            message.
+        warning_callback:
+            A callback function for a warning message, if any.  The
+            callback function is responsible for formatting the warning
+            message and dispatching it into the warning system, if so
+            desired.
 
     """
     key = base64.standard_b64decode(key)

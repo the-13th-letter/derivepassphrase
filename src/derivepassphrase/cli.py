@@ -1379,7 +1379,9 @@ class _VaultContext:  # noqa: PLR0904
             phrase = cast("str", overrides["phrase"])
         elif settings.get("key"):
             phrase = cli_helpers.key_to_phrase(
-                cast("str", settings["key"]), error_callback=self.err
+                cast("str", settings["key"]),
+                error_callback=self.err,
+                warning_callback=self.warning,
             )
         elif settings.get("phrase"):
             phrase = cast("str", settings["phrase"])
