@@ -199,24 +199,24 @@ class SocketAddressAction(str, enum.Enum):
     """Test fixture settings for the SSH agent socket address.
 
     Attributes:
-        MANGLE_ANNOYING_OS_NAMED_PIPE:
-            Mangle the address for the Annoying OS named pipe endpoint.
+        MANGLE_WINDOWS_NAMED_PIPE:
+            Mangle the address for the Windows named pipe endpoint.
         MANGLE_SSH_AUTH_SOCK:
             Mangle the address for the UNIX domain socket (the
             `SSH_AUTH_SOCK` environment variable).
-        UNSET_ANNOYING_OS_NAMED_PIPE:
-            Unset the address for the Annoying OS named pipe endpoint.
+        UNSET_WINDOWS_NAMED_PIPE:
+            Unset the address for the Windows named pipe endpoint.
         UNSET_SSH_AUTH_SOCK:
             Unset the `SSH_AUTH_SOCK` environment variable (the address
             for the UNIX domain socket).
 
     """
 
-    MANGLE_ANNOYING_OS_NAMED_PIPE = enum.auto()
+    MANGLE_WINDOWS_NAMED_PIPE = enum.auto()
     """"""
     MANGLE_SSH_AUTH_SOCK = enum.auto()
     """"""
-    UNSET_ANNOYING_OS_NAMED_PIPE = enum.auto()
+    UNSET_WINDOWS_NAMED_PIPE = enum.auto()
     """"""
     UNSET_SSH_AUTH_SOCK = enum.auto()
     """"""
@@ -229,8 +229,8 @@ class SocketAddressAction(str, enum.Enum):
         # matching.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         if self in {
-            self.MANGLE_ANNOYING_OS_NAMED_PIPE,
-            self.UNSET_ANNOYING_OS_NAMED_PIPE,
+            self.MANGLE_WINDOWS_NAMED_PIPE,
+            self.UNSET_WINDOWS_NAMED_PIPE,
         }:  # pragma: no cover [unused]
             pass
         elif self == self.MANGLE_SSH_AUTH_SOCK:
@@ -260,10 +260,10 @@ class SystemSupportAction(str, enum.Enum):
         UNSET_PROVIDER_LIST:
             Ensure an empty list of SSH agent socket providers.
         UNSET_WINDLL:
-            Ensure lack of support for The Annoying OS named pipes.
+            Ensure lack of support for Windows named pipes.
         UNSET_WINDLL_AND_ENSURE_USE:
-            Ensure lack of support for The Annoying OS named pipes, and
-            that the agent will use this socket provider.
+            Ensure lack of support for Windows named pipes, and that the
+            agent will use this socket provider.
 
     """
 

@@ -1953,7 +1953,7 @@ class WarnMsgTemplate(enum.Enum):
         "aborting mid-edit, and because the notes were actually changed.",
         flags="python-brace-format",
     )
-    NO_AF_UNIX = commented(
+    NO_UNIX_DOMAIN_SOCKETS = commented(
         "",
     )(
         "Warning message",
@@ -1961,7 +1961,7 @@ class WarnMsgTemplate(enum.Enum):
         "because this Python version does not support them.",
     )
     """"""
-    NO_ANNOYING_OS_NAMED_PIPES = commented(
+    NO_WINDOWS_NAMED_PIPES = commented(
         "",
     )(
         "Warning message",

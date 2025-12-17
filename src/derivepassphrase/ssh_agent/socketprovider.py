@@ -24,11 +24,17 @@ class NoSuchProviderError(KeyError):
     """No such SSH agent socket provider is known."""
 
 
-class AfUnixNotAvailableError(NotImplementedError):
-    """This Python installation does not support socket.AF_UNIX."""
+class UnixDomainSocketsNotAvailableError(NotImplementedError):
+    """This Python installation does not support UNIX domain sockets.
+
+    On this installation, the standard library symbol
+    [`socket.AF_UNIX`][] is not available, necessary to create UNIX
+    domain sockets.
+
+    """
 
 
-class TheAnnoyingOsNamedPipesNotAvailableError(NotImplementedError):
+class WindowsNamedPipesNotAvailableError(NotImplementedError):
     """This Python installation does not support Windows named pipes."""
 
 
@@ -52,13 +58,11 @@ class SocketProvider:
         Raises:
             KeyError:
                 The `SSH_AUTH_SOCK` environment variable was not found.
-            AfUnixNotAvailableError:
-                [This Python version does not support UNIX domain
-                sockets][AF_UNIX], necessary to automatically connect to
+            UnixDomainSocketsNotAvailableError:
+                This Python version does not support UNIX domain
+                sockets, necessary to automatically connect to
                 a running SSH agent via the `SSH_AUTH_SOCK` environment
                 variable.
-
-                [AF_UNIX]: https://docs.python.org/3/library/socket.html#socket.AF_UNIX
             OSError:
                 There was an error setting up a socket connection to the
                 agent.
@@ -66,7 +70,7 @@ class SocketProvider:
         """
         if not hasattr(socket, "AF_UNIX"):
             msg = "This Python version does not support UNIX domain sockets."
-            raise AfUnixNotAvailableError(msg)
+            raise UnixDomainSocketsNotAvailableError(msg)
         else:  # noqa: RET506  # pragma: unless posix no cover
             sock = socket.socket(family=socket.AF_UNIX)
             if "SSH_AUTH_SOCK" not in os.environ:
@@ -78,7 +82,7 @@ class SocketProvider:
             return sock
 
     @staticmethod
-    def the_annoying_os_named_pipes() -> _types.SSHAgentSocket:
+    def windows_named_pipe() -> _types.SSHAgentSocket:
         """Return a socket connected to Pageant/OpenSSH on The Annoying OS.
 
         This may be a write-through socket if the underlying connection
@@ -86,7 +90,7 @@ class SocketProvider:
         communicate.
 
         Raises:
-            TheAnnoyingOsNamedPipesNotAvailableError:
+            WindowsNamedPipesNotAvailableError:
                 This functionality is not implemented yet.
 
         Warning: Not implemented yet
@@ -100,7 +104,7 @@ class SocketProvider:
         """
         if not hasattr(ctypes, "WinDLL"):
             msg = "This Python version does not support Windows named pipes."
-            raise TheAnnoyingOsNamedPipesNotAvailableError(msg)
+            raise WindowsNamedPipesNotAvailableError(msg)
         else:  # noqa: RET506  # pragma: unless the-annoying-os no cover
             msg = (
                 "Communicating with Pageant or OpenSSH on Windows "
@@ -338,7 +342,7 @@ class SocketProvider:
 
 SocketProvider.registry.update({
     "posix": SocketProvider.unix_domain_ssh_auth_sock,
-    "the_annoying_os": SocketProvider.the_annoying_os_named_pipes,
+    "the_annoying_os": SocketProvider.windows_named_pipe,
     # known instances
     "stub_agent": None,
     "stub_with_address": None,

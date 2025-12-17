@@ -356,8 +356,8 @@ the_annoying_os_entry = _types.SSHAgentSocketProviderEntry(
     (),
 )
 """
-The standard [`_types.SSHAgentSocketProviderEntry`][] for the named pipe
-handler on The Annoying Operating System.
+The standard [`_types.SSHAgentSocketProviderEntry`][] for the Windows
+named pipe handler on The Annoying Operating System.
 """
 
 faulty_entry_callable = _types.SSHAgentSocketProviderEntry(

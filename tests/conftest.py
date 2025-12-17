@@ -148,7 +148,7 @@ def skip_if_no_af_unix_support() -> None:  # pragma: no cover [external]
 
     """
     if not hasattr(socket, "AF_UNIX"):
-        pytest.skip("socket module does not support AF_UNIX")
+        pytest.skip("No Python or system support for UNIX domain sockets.")
 
 
 class SpawnFunc(Protocol):
@@ -539,7 +539,7 @@ for key, handler in spawn_handlers.items():
         marks.append(
             pytest.mark.skipif(
                 not hasattr(socket, "AF_UNIX"),
-                reason="socket module does not support AF_UNIX",
+                reason="No Python or system support for UNIX domain sockets.",
             )
         )
     spawn_handlers_params.append(pytest.param(handler, id=key, marks=marks))

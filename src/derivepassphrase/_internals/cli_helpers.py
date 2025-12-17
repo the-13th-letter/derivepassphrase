@@ -741,16 +741,20 @@ def handle_notimplementederror(
     """  # noqa: DOC201
 
     def handle_notimplementederror(excgroup: BaseExceptionGroup) -> NoReturn:
-        if excgroup.subgroup(socketprovider.AfUnixNotAvailableError):
-            warning_callback(
-                _msg.TranslatedString(_msg.WarnMsgTemplate.NO_AF_UNIX)
-            )
         if excgroup.subgroup(
-            socketprovider.TheAnnoyingOsNamedPipesNotAvailableError
+            socketprovider.UnixDomainSocketsNotAvailableError
         ):
             warning_callback(
                 _msg.TranslatedString(
-                    _msg.WarnMsgTemplate.NO_ANNOYING_OS_NAMED_PIPES
+                    _msg.WarnMsgTemplate.NO_UNIX_DOMAIN_SOCKETS
+                )
+            )
+        if excgroup.subgroup(
+            socketprovider.WindowsNamedPipesNotAvailableError
+        ):
+            warning_callback(
+                _msg.TranslatedString(
+                    _msg.WarnMsgTemplate.NO_WINDOWS_NAMED_PIPES
                 )
             )
         error_callback(

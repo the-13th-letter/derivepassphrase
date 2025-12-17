@@ -1025,8 +1025,8 @@ notes was saved to the
 .Nm derivepassphrase
 configuration directory.
 .
-.\" Message-ID: WarnMsgTemplate.NO_AF_UNIX
-.\" Message-ID (mark only): ErrMsgTemplate.NO_AF_UNIX
+.\" Message-ID: WarnMsgTemplate.NO_UNIX_DOMAIN_SOCKETS
+.\" Message-ID (mark only): WarnMsgTemplate.NO_AF_UNIX
 .It Cannot connect to an SSH agent via UNIX domain sockets because this Python version does not support them.
 We attempted to use
 .Tn UNIX
@@ -1042,7 +1042,8 @@ Other, similar messages about unsupported communication mechanisms may
 precede the error message.
 .Pc
 .
-.\" Message-ID: WarnMsgTemplate.NO_ANNOYING_OS_NAMED_PIPES
+.\" Message-ID: WarnMsgTemplate.NO_WINDOWS_NAMED_PIPES
+.\" Message-ID (mark only): WarnMsgTemplate.NO_ANNOYING_OS_NAMED_PIPES
 .It Cannot connect to an SSH agent via Windows named pipes because this Python version does not support them.
 We attempted to use
 .Tn Windows

@@ -495,7 +495,8 @@ The <b>derivepassphrase vault</b> utility exits 0 on success, and >0 if an error
     The <i>vault</i>(1) legacy editor interface is in use, which carries a high risk of accidentally losing or corrupting the old notes because a notes editing session cannot be aborted mid-editing.
     To guard against such accidental data loss, a backup copy of the old notes was saved to the <b>derivepassphrase</b> configuration directory.
 
-<!-- Message-ID: WarnMsgTemplate.NO_AF_UNIX -->
+<!-- Message-ID: WarnMsgTemplate.NO_UNIX_DOMAIN_SOCKETS -->
+<!-- Message-ID (mark only): WarnMsgTemplate.NO_AF_UNIX -->
 ??? warning "`Cannot connect to an SSH agent via UNIX domain sockets because this Python version does not support them.`"
 
     [Since v0.6.]
@@ -503,7 +504,8 @@ The <b>derivepassphrase vault</b> utility exits 0 on success, and >0 if an error
     (Only appears together with the error message "Cannot connect to an SSH agent because this Python version does not support communicating with it.".
     Other, similar messages about unsupported communication mechanisms may precede the error message.)
 
-<!-- Message-ID: WarnMsgTemplate.NO_ANNOYING_OS_NAMED_PIPES -->
+<!-- Message-ID: WarnMsgTemplate.NO_WINDOWS_NAMED_PIPES -->
+<!-- Message-ID (mark only): WarnMsgTemplate.NO_ANNOYING_OS_NAMED_PIPES -->
 ??? warning "`Cannot connect to an SSH agent via Windows named pipes because this Python version does not support them.`"
 
     [Since v0.6.]
