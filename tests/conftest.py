@@ -8,6 +8,7 @@ import base64
 import contextlib
 import datetime
 import importlib
+import importlib.util
 import os
 import shutil
 import socket
@@ -756,12 +757,14 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
                     current_loaded_keys = frozenset({
                         pair.key for pair in client.list_keys()
                     })
-                    if agent_type == tests.data.KnownSSHAgent.Pageant and (
-                        key_struct.public_key_data in current_loaded_keys
+                    if (
+                        agent_type == tests.data.KnownSSHAgent.Pageant
+                        and key_struct.public_key_data in current_loaded_keys
                     ):
                         pass
-                    elif agent_type == tests.data.KnownSSHAgent.Pageant and (
-                        not isolated
+                    elif (
+                        agent_type == tests.data.KnownSSHAgent.Pageant
+                        and not isolated
                     ):
                         request_code, payload = prepare_payload(
                             private_key_data, isolated=True

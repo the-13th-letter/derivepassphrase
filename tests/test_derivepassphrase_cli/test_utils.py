@@ -25,7 +25,7 @@ import types
 import warnings
 from typing import TYPE_CHECKING
 
-import click.testing
+import click
 import hypothesis
 import pytest
 from hypothesis import strategies
@@ -500,7 +500,7 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "does not support communicating with it",
                 [],
-                id="no-agent-support",
+                id="no-native-agent-available",
             ),
             pytest.param(
                 None,
@@ -509,7 +509,7 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "does not support communicating with it",
                 [],
-                id="no-agent-support",
+                id="no-agents-in-agent-provider-list",
             ),
             pytest.param(
                 None,
@@ -518,7 +518,7 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "does not support communicating with it",
                 ["Cannot connect to an SSH agent via UNIX domain sockets"],
-                id="no-agent-support",
+                id="no-unix-domain-sockets",
             ),
             pytest.param(
                 None,
@@ -527,7 +527,7 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "does not support communicating with it",
                 ["Cannot connect to an SSH agent via Windows named pipes"],
-                id="no-agent-support",
+                id="no-windows-named-pipes",
             ),
             pytest.param(
                 None,
