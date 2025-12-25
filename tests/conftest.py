@@ -6,15 +6,15 @@ from __future__ import annotations
 
 import base64
 import contextlib
+import ctypes
 import datetime
 import importlib
 import importlib.util
 import os
-import shutil
 import socket
 import subprocess
 import sys
-from typing import TYPE_CHECKING, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
 import hypothesis
 import packaging.version
@@ -25,6 +25,7 @@ import tests.data
 import tests.data.callables
 import tests.machinery
 from derivepassphrase import _types, ssh_agent
+from derivepassphrase.ssh_agent import socketprovider
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
@@ -184,6 +185,37 @@ class SSHAgentSpawnFunc(Protocol):
         """
 
 
+class SSHAgentInterfaceFunc(Protocol):
+    """Interface an SSH agent, if possible."""
+
+    def __call__(
+        self,
+        executable: str | None,
+        env: dict[str, Any],
+    ) -> _types.SSHAgentSocket | None:
+        """Interface the SSH agent.
+
+        Args:
+            env:
+                A configuration environment to interface the agent.
+                Will typically include some kind of address setting
+                detailing how to communicate with the agent.  The
+                exact contents depend on the specific agent.
+
+        Other Args:
+            executable:
+                (Ignored.  Not relevant for interfacing functions.)
+
+        Returns:
+            An abstract socket connected to the specified SSH agent, if
+            possible; otherwise, `None`.
+
+            It is the caller's responsibility to clean up the socket
+            (through use of the context manager protocol).
+
+        """
+
+
 def spawn_pageant_on_posix(  # pragma: no cover [external]
     executable: str | None, env: dict[str, str]
 ) -> subprocess.Popen[str] | None:
@@ -296,8 +328,58 @@ def spawn_noop(  # pragma: no cover [unused]
     """Placeholder function. Does nothing."""
 
 
+def interface_pageant_on_the_annoying_os(
+    executable: str | None,
+    env: dict[str, Any],
+) -> _types.SSHAgentSocket | None:  # pragma: no cover [external]
+    """Interface a Pageant instance on The Annoying OS, if possible.
+
+    Args:
+        env:
+            (Ignored.)
+
+    Returns:
+        An abstract socket connected to Pageant, if possible; else
+        `None`.
+
+        It is the caller's responsibility to clean up the socket
+        (through use of the context manager protocol).
+
+    """
+    del executable, env
+    try:
+        return socketprovider.SocketProvider.windows_named_pipe_for_pageant()
+    except (OSError, socketprovider.WindowsNamedPipesNotAvailableError):
+        return None
+
+
+def interface_openssh_agent_on_the_annoying_os(
+    executable: str | None,
+    env: dict[str, Any],
+) -> _types.SSHAgentSocket | None:  # pragma: no cover [external]
+    """Interface an OpenSSH agent instance on The Annoying OS, if possible.
+
+    Args:
+        env:
+            (Ignored.)
+
+    Returns:
+        An abstract socket connected to the OpenSSH agent, if possible;
+        else `None`.
+
+        It is the caller's responsibility to clean up the socket
+        (through use of the context manager protocol).
+
+    """
+    del executable, env
+    try:
+        return socketprovider.SocketProvider.windows_named_pipe_for_openssh()
+    except (OSError, socketprovider.WindowsNamedPipesNotAvailableError):
+        return None
+
+
 class SpawnHandler(NamedTuple):
-    """A handler for a spawned SSH agent.
+    """A handler for a spawned or interfaced SSH agent.
 
     Attributes:
         key:
@@ -307,7 +389,7 @@ class SpawnHandler(NamedTuple):
         spawn_func:
             The spawn function.
         agent_type:
-            The type of the spawned SSH agent.
+            The type of the spawned or interfaced SSH agent.
         agent_name:
             The (optional) display name for this handler.
 
@@ -315,7 +397,7 @@ class SpawnHandler(NamedTuple):
 
     key: str
     executable: str | None
-    spawn_func: SSHAgentSpawnFunc
+    spawn_func: SSHAgentSpawnFunc | SSHAgentInterfaceFunc
     agent_type: tests.data.KnownSSHAgent
     agent_name: str | None
 
@@ -335,7 +417,21 @@ spawn_handlers: dict[str, SpawnHandler] = {
         tests.data.KnownSSHAgent.OpenSSHAgent,
         "ssh-agent (OpenSSH)",
     ),
-    "stub_agent_with_address": (
+    "pageant": SpawnHandler(
+        "pageant",
+        None,
+        interface_pageant_on_the_annoying_os,
+        tests.data.KnownSSHAgent.Pageant,
+        "Pageant",
+    ),
+    "openssh-on-windows": SpawnHandler(
+        "openssh-on-windows",
+        None,
+        interface_openssh_agent_on_the_annoying_os,
+        tests.data.KnownSSHAgent.OpenSSHAgentOnWindows,
+        "ssh-agent (OpenSSH on Windows)",
+    ),
+    "stub_agent_with_address": SpawnHandler(
         "stub_agent_with_address",
         None,
         spawn_noop,
@@ -405,14 +501,24 @@ for key, handler in spawn_handlers.items():
             "environment variable.",
         ),
     ]
-    if key in {"unix-pageant", "openssh", "(system-agent)"}:
+    # Some agents require UNIX domain socket support.
+    if key in {"unix-pageant", "openssh"}:
         marks.append(
             pytest.mark.skipif(
                 not hasattr(socket, "AF_UNIX"),
                 reason="No Python or system support for UNIX domain sockets.",
             )
         )
+    # Others require Windows named pipe support.
+    if key in {"pageant", "openssh-on-windows"}:
+        marks.append(
+            pytest.mark.skipif(
+                not hasattr(ctypes, "WinDLL"),
+                reason="No Python or system support for Windows named pipes.",
+            )
+        )
     spawn_handlers_params.append(pytest.param(handler, id=key, marks=marks))
+
 
 Popen = TypeVar("Popen", bound=subprocess.Popen)
 
@@ -442,9 +548,9 @@ class CannotSpawnError(RuntimeError):
     """Cannot spawn the SSH agent."""
 
 
-def spawn_named_agent(
+def spawn_named_agent(  # noqa: C901
     executable: str | None,
-    spawn_func: SSHAgentSpawnFunc,
+    spawn_func: SSHAgentSpawnFunc | SSHAgentInterfaceFunc,
     agent_type: tests.data.KnownSSHAgent,
     agent_name: str,
 ) -> Iterator[tests.data.SpawnedSSHAgentInfo]:  # pragma: no cover [external]
@@ -504,24 +610,17 @@ def spawn_named_agent(
     exit_stack = contextlib.ExitStack()
     agent_env = os.environ.copy()
     ssh_auth_sock = agent_env.pop("SSH_AUTH_SOCK", None)
-    proc = spawn_func(
-        executable=shutil.which(executable)
-        if executable is not None
-        else None,
-        env=agent_env,
-    )
+    proc_or_socket = spawn_func(executable=executable, env=agent_env)
     with exit_stack:
-        if (
-            spawn_func is spawn_noop
-            and agent_type == tests.data.KnownSSHAgent.StubbedSSHAgent
-        ):
+        if agent_type == tests.data.KnownSSHAgent.StubbedSSHAgent:
             ssh_auth_sock = None
         elif spawn_func is spawn_noop:
-            ssh_auth_sock = os.environ["SSH_AUTH_SOCK"]
-        elif proc is None:  # pragma: no cover [external]
-            err_msg = f"Cannot spawn usable {agent_name}"
+            ssh_auth_sock = os.environ.get("SSH_AUTH_SOCK")
+        elif proc_or_socket is None:  # pragma: no cover [external]
+            err_msg = f"Cannot spawn or interface with usable {agent_name}"
             raise CannotSpawnError(err_msg)
-        else:
+        elif isinstance(proc_or_socket, subprocess.Popen):
+            proc = proc_or_socket
             exit_stack.enter_context(terminate_on_exit(proc))
             assert os.environ.get("SSH_AUTH_SOCK") == startup_ssh_auth_sock, (
                 f"SSH_AUTH_SOCK mismatch after spawning {agent_name}"
@@ -543,12 +642,8 @@ def spawn_named_agent(
                 err_msg = f"Cannot parse agent output: {pid_line!r}"
                 raise CannotSpawnError(err_msg)
         monkeypatch = exit_stack.enter_context(pytest.MonkeyPatch.context())
-        if ssh_auth_sock is not None:
-            monkeypatch.setenv("SSH_AUTH_SOCK", ssh_auth_sock)
-            client = exit_stack.enter_context(
-                ssh_agent.SSHAgentClient.ensure_agent_subcontext()
-            )
-        else:
+        if agent_type == tests.data.KnownSSHAgent.StubbedSSHAgent:
+            assert ssh_auth_sock is None
             monkeypatch.setenv(
                 "SSH_AUTH_SOCK",
                 tests.machinery.StubbedSSHAgentSocketWithAddress.ADDRESS,
@@ -566,6 +661,20 @@ def spawn_named_agent(
                     if "stub_agent_with_address_and_deterministic_dsa" in agent_name
                     else tests.machinery.StubbedSSHAgentSocketWithAddress()
                 )
+            )
+        elif (
+            not isinstance(proc_or_socket, subprocess.Popen)
+            and proc_or_socket is not None
+        ):
+            socket: _types.SSHAgentSocket = proc_or_socket
+            client = exit_stack.enter_context(
+                ssh_agent.SSHAgentClient.ensure_agent_subcontext(conn=socket)
+            )
+        else:
+            if ssh_auth_sock:
+                monkeypatch.setenv("SSH_AUTH_SOCK", ssh_auth_sock)
+            client = exit_stack.enter_context(
+                ssh_agent.SSHAgentClient.ensure_agent_subcontext()
             )
         # We sanity-test the connected SSH agent if it is not one of our
         # test agents, because allowing the user to run the test suite

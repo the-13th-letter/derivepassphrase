@@ -204,11 +204,17 @@ class SocketAddressAction(str, enum.Enum):
 
             For UNIX domain sockets, mangle the `SSH_AUTH_SOCK`
             environment variable.
+
+            For Windows named pipes, skip the test.  (Addresses are
+            fixed, so cannot be mangled.)
         UNSET_ADDRESS:
             Unset the socket address.
 
             For UNIX domain sockets, unset the `SSH_AUTH_SOCK`
             environment variable.
+
+            For Windows named pipes, skip the test.  (Adresses are
+            fixed, so cannot be unset.)
 
     """
 
@@ -225,6 +231,20 @@ class SocketAddressAction(str, enum.Enum):
         # matching.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         if self == self.MANGLE_ADDRESS:
+
+            def mangled_address(*_args: Any, **_kwargs: Any) -> NoReturn:
+                raise OSError(errno.ENOENT, os.strerror(errno.ENOENT))
+
+            monkeypatch.setattr(
+                socketprovider.WindowsNamedPipeHandle,
+                "for_pageant",
+                mangled_address,
+            )
+            monkeypatch.setattr(
+                socketprovider.WindowsNamedPipeHandle,
+                "for_openssh",
+                mangled_address,
+            )
             monkeypatch.setenv(
                 "SSH_AUTH_SOCK",
                 os.environ["SSH_AUTH_SOCK"] + "~"
@@ -232,6 +252,20 @@ class SocketAddressAction(str, enum.Enum):
                 else "/",
             )
         elif self == self.UNSET_ADDRESS:
+
+            def no_address(*_args: Any, **_kwargs: Any) -> NoReturn:
+                raise KeyError("SSH_AUTH_SOCK environment variable")  # noqa: EM101, TRY003
+
+            monkeypatch.setattr(
+                socketprovider.WindowsNamedPipeHandle,
+                "for_pageant",
+                no_address,
+            )
+            monkeypatch.setattr(
+                socketprovider.WindowsNamedPipeHandle,
+                "for_openssh",
+                no_address,
+            )
             monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
         else:
             raise AssertionError()

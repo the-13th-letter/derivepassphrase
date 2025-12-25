@@ -33,6 +33,7 @@ from derivepassphrase import _types, cli, ssh_agent
 from derivepassphrase._internals import (
     cli_helpers,
 )
+from derivepassphrase.ssh_agent import socketprovider
 from tests import data, machinery
 from tests.data import callables
 from tests.machinery import hypothesis as hypothesis_machinery
@@ -796,6 +797,16 @@ class TestStoringConfigurationFailures:
             error_text="Cannot find any running SSH agent",
             patch_suitable_ssh_keys=False,
         ) as monkeypatch:
+
+            def no_agent(*_args: Any, **_kwargs: Any) -> NoReturn:
+                raise KeyError("SSH_AUTH_SOCK environment variable")  # noqa: EM101, TRY003
+
+            monkeypatch.setattr(
+                socketprovider.WindowsNamedPipeHandle, "for_pageant", no_agent
+            )
+            monkeypatch.setattr(
+                socketprovider.WindowsNamedPipeHandle, "for_openssh", no_agent
+            )
             monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
 
     def test_fail_because_bad_ssh_agent_connection(
@@ -810,6 +821,20 @@ class TestStoringConfigurationFailures:
         ) as monkeypatch:
             cwd = pathlib.Path.cwd().resolve()
             monkeypatch.setenv("SSH_AUTH_SOCK", str(cwd))
+
+            def mangled_address(*_args: Any, **_kwargs: Any) -> NoReturn:
+                raise OSError(errno.ENOENT, os.strerror(errno.ENOENT))
+
+            monkeypatch.setattr(
+                socketprovider.WindowsNamedPipeHandle,
+                "for_pageant",
+                mangled_address,
+            )
+            monkeypatch.setattr(
+                socketprovider.WindowsNamedPipeHandle,
+                "for_openssh",
+                mangled_address,
+            )
 
     @Parametrize.TRY_RACE_FREE_IMPLEMENTATION
     def test_fail_because_read_only_file(

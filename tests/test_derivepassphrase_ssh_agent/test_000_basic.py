@@ -80,14 +80,14 @@ class Parametrize(types.SimpleNamespace):
             pytest.param(
                 [
                     importlib.metadata.EntryPoint(
-                        name=data.posix_entry.key,
+                        name=data.ssh_auth_sock_on_posix_entry.key,
                         group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
-                        value="tests.data: posix_entry",
+                        value="tests.data: ssh_auth_sock_on_posix_entry",
                     ),
                     importlib.metadata.EntryPoint(
-                        name=data.the_annoying_os_entry.key,
+                        name=data.pageant_on_the_annoying_os_entry.key,
                         group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
-                        value="tests.data: the_annoying_os_entry",
+                        value="tests.data: pageant_on_the_annoying_os_entry",
                     ),
                 ],
                 id="existing-entries",
@@ -110,7 +110,7 @@ class Parametrize(types.SimpleNamespace):
         ],
     )
     EXISTING_REGISTRY_ENTRIES = pytest.mark.parametrize(
-        "existing", ["posix", "the_annoying_os"]
+        "existing", ["ssh_auth_sock_on_posix", "pageant_on_the_annoying_os"]
     )
     SSH_STRING_EXCEPTIONS = pytest.mark.parametrize(
         ["input", "exc_type", "exc_pattern"],
@@ -818,10 +818,10 @@ class TestSSHAgentSocketProviderRegistry:
     ) -> None:
         """Resolving a non-existant entry fails."""
         new_registry = {
-            "posix": socketprovider.SocketProvider.registry["posix"],
-            "the_annoying_os": socketprovider.SocketProvider.registry[
+            "posix": socketprovider.SocketProvider.resolve("posix"),
+            "the_annoying_os": socketprovider.SocketProvider.resolve(
                 "the_annoying_os"
-            ],
+            ),
         }
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setattr(
@@ -840,10 +840,10 @@ class TestSSHAgentSocketProviderRegistry:
 
         names = ["spam", "ham", "eggs", "parrot"]
         new_registry = {
-            "posix": socketprovider.SocketProvider.registry["posix"],
-            "the_annoying_os": socketprovider.SocketProvider.registry[
+            "posix": socketprovider.SocketProvider.resolve("posix"),
+            "the_annoying_os": socketprovider.SocketProvider.resolve(
                 "the_annoying_os"
-            ],
+            ),
         }
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setattr(
@@ -873,12 +873,14 @@ class TestSSHAgentSocketProviderRegistry:
 
         provider = socketprovider.SocketProvider.resolve(existing)
         new_registry = {
-            "posix": socketprovider.SocketProvider.registry["posix"],
-            "the_annoying_os": socketprovider.SocketProvider.registry[
-                "the_annoying_os"
-            ],
-            "unix_domain": "posix",
-            "the_annoying_os_named_pipe": "the_annoying_os",
+            "ssh_auth_sock_on_posix": socketprovider.SocketProvider.resolve(
+                "ssh_auth_sock_on_posix"
+            ),
+            "pageant_on_the_annoying_os": socketprovider.SocketProvider.resolve(
+                "pageant_on_the_annoying_os"
+            ),
+            "posix": "ssh_auth_sock_on_posix",
+            "the_annoying_os": "pageant_on_the_annoying_os",
         }
         names = [
             k
