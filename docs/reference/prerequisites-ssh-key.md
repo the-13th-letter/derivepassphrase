@@ -11,8 +11,9 @@ Using `derivepassphrase vault` with an SSH key requires:
 
 SSH agents are usually packaged as part of SSH client distributions.
 `ssh-agent` from [OpenSSH][] and Pageant from [PuTTY][] are known to
-work. `gpg-agent` (v2) from [GnuPG][] is also known to work, but comes
-with caveats; see notes below.
+work.
+`gpg-agent` (v2) from [GnuPG][] is also known to work, but comes with
+caveats; see notes below.
 
 If in doubt, we recommend OpenSSH because it is the <i>de-facto</i>
 canonical SSH agent implementation.
@@ -20,9 +21,11 @@ canonical SSH agent implementation.
 !!! note "Agent-specific features"
 
     * OpenSSH's `ssh-agent` supports limiting the time the agent holds
-      the key in memory ("key lifetime").  We recommend its usage.
+      the key in memory ("key lifetime").
+      We recommend its usage.
     * `ssh-agent` and GnuPG's `gpg-agent` support requiring confirmation
-      upon each use for a specific key.  We recommend its usage as well.
+      upon each use for a specific key.
+      We recommend its usage as well.
 
 <section markdown id=agent-specific-notes>
 
@@ -31,25 +34,27 @@ canonical SSH agent implementation.
     === "GnuPG/`gpg-agent`"
 
         * `gpg-agent` v2.0 and later uses a *persistent* database of
-          known keys, SSH or otherwise.  "Adding" a key to the agent
-          actually means *importing* it, and requires choosing an
-          "import passphrase" to protect the key on disk, in the
-          persistent database.  `gpg-agent` will cache the import
-          passphrase in memory, and if that cache entry expires, then
-          the *import passphrase* must be provided to unlock the key.
+          known keys, SSH or otherwise.
+          "Adding" a key to the agent actually means *importing* it, and
+          requires choosing an "import passphrase" to protect the key on
+          disk, in the persistent database.
+          `gpg-agent` will cache the import passphrase in memory, and if
+          that cache entry expires, then the *import passphrase* must be
+          provided to unlock the key.
 
         * The GnuPG distribution does not contain tools to generate
           native SSH keys or interactively add keys to a running
           `gpg-agent`, because its purpose is to expose keys in
           a different format (OpenPGP) to other (agent-compatible) SSH
-          clients.  A third-party tool (such as a full SSH client
-          distribution) is necessary to load/import native SSH keys into
-          `gpg-agent`.
+          clients.
+          A third-party tool (such as a full SSH client distribution) is
+          necessary to load/import native SSH keys into `gpg-agent`.
 
         * As a design consequence of the persistent database,
           `gpg-agent` always lists all known SSH keys as available in
-          the agent.  It is impossible to remove an SSH key from
-          `gpg-agent` using standard SSH agent operations.
+          the agent.
+          It is impossible to remove an SSH key from `gpg-agent` using
+          standard SSH agent operations.
 
         * `gpg-agent` does not advertise its communication socket by
           default, contrary to other SSH agents, so it must be manually
@@ -67,29 +72,30 @@ canonical SSH agent implementation.
                 `gpg-agent` on Windows contains a native emulation of
                 UNIX domain sockets by the `assuan` library, which GnuPG
                 internally uses for network connectivity and
-                inter-process communication.  No specific configuration
-                is necessary, and the agent address can be directly
-                obtained with `gpgconf`:
+                inter-process communication.
+                No specific configuration is necessary, and the agent
+                address can be directly obtained with `gpgconf`:
 
                 ~~~~ console
                 $ gpgconf --list-dirs agent-ssh-socket
                 ~~~~
 
-                This mode, sadly, is not currently supported.  The
-                system is specific to GnuPG/`libassuan`, and unlikely to
-                be deployed widely enough to make implementing this
-                a priority for us… at least, relative to the other, more
-                common interprocess communication channels for SSH
-                agents on Windows.
+                This mode, sadly, is not currently supported.
+                The system is specific to GnuPG/`libassuan`, and
+                unlikely to be deployed widely enough to make
+                implementing this a priority for us… at least, relative
+                to the other, more common interprocess communication
+                channels for SSH agents on Windows.
 
             === "Windows (OpenSSH emulation)"
 
                 From v2.4 onwards, `gpg-agent` supports masquerading as
                 OpenSSH's `ssh-agent` on Windows, by starting the agent
                 with the `--enable-win32-openssh-support` command-line
-                argument.  (Usually, this would be added to the
-                `gpg-agent` configuration file instead of being manually
-                supplied on the command-line.)
+                argument.
+                (Usually, this would be added to the `gpg-agent`
+                configuration file instead of being manually supplied on
+                the command-line.)
 
                 [This mode, sadly, is not currently
                 supported.](#python-support)
@@ -105,29 +111,32 @@ canonical SSH agent implementation.
 
     The two major SSH agents on Windows (PuTTY/Pageant and OpenSSH) use
     <i>Windows named pipes</i> for communication, and Python on Windows
-    does not inherently support named pipes.  Since no comprehensive
-    third-party Python modules to interface with named pipes appear to
-    exist, teaching `derivepassphrase` to use Windows named pipes
-    requires us developers to write the code to interface the Windows
-    system libraries ourselves.  Development on this started after the
-    release of version 0.5, but since this is not our area of expertise,
-    and because the pre-0.5 design hard-codes the UNIX style of looking
-    up and connecting to an SSH agent, development progress on this
-    front has been much slower than usual.
+    does not inherently support named pipes.
+    Since no comprehensive third-party Python modules to interface with
+    named pipes appear to exist, teaching `derivepassphrase` to use
+    Windows named pipes requires us developers to write the code to
+    interface the Windows system libraries ourselves.
+    Development on this started after the release of version 0.5, but
+    since this is not our area of expertise, and because the pre-0.5
+    design hard-codes the UNIX style of looking up and connecting to an
+    SSH agent, development progress on this front has been much slower
+    than usual.
 
 On non-Windows operating systems, the SSH agent is expected to advertise
 its communication socket via the `SSH_AUTH_SOCK` environment variable,
-which is common procedure.  Therefore, [your Python installation must
-support UNIX domain sockets][socket.AF_UNIX].
+which is common procedure.
+Therefore, [your Python installation must support UNIX domain
+sockets][socket.AF_UNIX].
 
 `derivepassphrase vault --version` will report on supported and on
 unavailable features, including "master SSH key":[^1]
 
 [^1]: This indicates support in principle, on this
     hardware/software/system combination, for interfacing with an SSH
-    agent.  At runtime, this could still fail, e.g. because the SSH
-    agent isn't actually running, because `derivepassphrase` is trying
-    to connect to the wrong address, etc.
+    agent.
+    At runtime, this could still fail, e.g. because the SSH agent isn't
+    actually running, because `derivepassphrase` is trying to connect to
+    the wrong address, etc.
 
 === "supported"
 
@@ -155,9 +164,10 @@ unavailable features, including "master SSH key":[^1]
 
 For an SSH key to be usable by `derivepassphrase`, the SSH agent must
 always generate the same signature for the same input, i.e. the
-signature must be deterministic for this key type.  Commonly used SSH
-key types (as of August 2025) include [ECDSA][], [Ed25519][], [RSA][],
-and, somewhat less commonly, [Ed448][] and [DSA][].
+signature must be deterministic for this key type.
+Commonly used SSH key types (as of August 2025) include [ECDSA][],
+[Ed25519][], [RSA][], and, somewhat less commonly, [Ed448][] and
+[DSA][].
 
   [RSA]: https://en.wikipedia.org/wiki/RSA_(cryptosystem)
   [DSA]: https://en.wikipedia.org/wiki/Digital_Signature_Algorithm
@@ -172,22 +182,24 @@ and, somewhat less commonly, [Ed448][] and [DSA][].
 * DSA and ECDSA signatures require choosing a value specific to each
   signature (a "cryptographic nonce"), which must be unpredictable.
   Typical DSA/ECDSA implementations therefore generate a suitably large
-  random number as the nonce.  This makes signatures non-deterministic,
-  and thus unsuitable for `derivepassphrase`.
+  random number as the nonce.
+  This makes signatures non-deterministic, and thus unsuitable for
+  `derivepassphrase`.
 
     ??? info "Exception: PuTTY/Pageant and RFC 6979"
 
         [RFC 6979][] specifies a method to *calculate* the nonce from
-        the DSA/ECDSA key and the message to be signed.  DSA/ECDSA
-        signatures from SSH agents implementing RFC 6979 are therefore
-        deterministic, and thus *also* suitable for `derivepassphrase`.
+        the DSA/ECDSA key and the message to be signed.
+        DSA/ECDSA signatures from SSH agents implementing RFC 6979 are
+        therefore deterministic, and thus *also* suitable for
+        `derivepassphrase`.
         Pageant 0.81 implements RFC 6979.
 
         !!! warning "Warning: Pageant < 0.81"
 
             Pageant 0.80 and earlier uses a different, homegrown method
-            to calculate the nonce deterministically.  Those versions
-            are *also* prinicipally suitable for use with
+            to calculate the nonce deterministically.
+            Those versions are *also* prinicipally suitable for use with
             `derivepassphrase`, but **they generate different signatures
             -- and different derived passphrases -- than Pageant 0.81
             and later**.
@@ -209,8 +221,9 @@ and, somewhat less commonly, [Ed448][] and [DSA][].
 
 If you do not yet have a (supported) SSH key, we recommend Ed25519 for
 maximum speed and reasonable availability, otherwise RSA for maximum
-availability.  We do not in general recommend Ed448 because it is not
-widely implemented (as of August 2025).
+availability.
+We do not in general recommend Ed448 because it is not widely
+implemented (as of August 2025).
 
 ??? example "Generating new SSH keys for `derivepassphrase`"
 
@@ -262,15 +275,16 @@ widely implemented (as of August 2025).
 
     === "GnuPG"
 
-        Not supported natively.  A different SSH client distribution
-        such as OpenSSH or PuTTY is necessary to create SSH keys
-        specifically.
+        Not supported natively.
+        A different SSH client distribution such as OpenSSH or PuTTY is
+        necessary to create SSH keys specifically.
 
         Alternatively, GnuPG supports reusing keys in its native OpenPGP
         format for SSH as long as the underlying key type is compatible.
         First, obtain GnuPG's internal identifier (the "keygrip") for
-        the correct key you may want to use.  (Warning: OpenPGP subkeys
-        have a different keygrip, so be sure to use the correct one.)
+        the correct key you may want to use.
+        (Warning: OpenPGP subkeys have a different keygrip, so be sure
+        to use the correct one.)
 
         ~~~~ console
         $ gpg --list-keys --with-keygrip sample-key@example.com

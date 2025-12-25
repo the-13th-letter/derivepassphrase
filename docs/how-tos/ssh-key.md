@@ -19,8 +19,8 @@
 
 Assuming the prerequisites are satisfied, ensure that the SSH agent is
 running, the SSH key is loaded into the agent, and the `SSH_AUTH_SOCK`
-environment variable is correctly set up.  The exact commands depend on
-the SSH agent in use.
+environment variable is correctly set up.
+The exact commands depend on the SSH agent in use.
 
 === "OpenSSH"
 
@@ -49,8 +49,9 @@ the SSH agent in use.
     Enter passphrase to load key 'vault key': 
     ~~~~
 
-    (Your key filename and key comment will likely differ.  The agent
-    should automatically shut down once this terminal session is over.)
+    (Your key filename and key comment will likely differ.
+    The agent should automatically shut down once this terminal session
+    is over.)
 
 === "GnuPG"
 
