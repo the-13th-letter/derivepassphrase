@@ -533,7 +533,8 @@ for key, handler in spawn_handlers.items():
     marks = [
         pytest.mark.skipif(
             not is_agent_permitted(handler[2]),
-            reason="agent excluded via PERMITTED_AGENTS environment variable",
+            reason="SSH agent excluded via PERMITTED_AGENTS "
+            "environment variable.",
         ),
     ]
     if key in {"pageant", "ssh-agent", "(system)"}:
@@ -657,8 +658,15 @@ def spawn_ssh_agent(
             monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
         try:
             yield from spawn_named_agent(*request.param)
-        except (KeyError, OSError, CannotSpawnError) as exc:
-            pytest.skip(exc.args[0])
+        except KeyError as exc:
+            pytest.skip(
+                f"The environment variable {exc.args[0]!r} was not found"
+                if exc.__class__ is KeyError
+                else exc.args[0]
+            )
+        except (OSError, CannotSpawnError) as exc:
+            name = request.param.agent_name or request.param.key
+            pytest.skip(f"Cannot spawn {name}: {exc}")
         return
 
 

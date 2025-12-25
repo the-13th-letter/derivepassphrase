@@ -761,7 +761,7 @@ class SocketProvider:
             dist = (
                 entry_point.dist.name  # type: ignore[union-attr]
                 if getattr(entry_point, "dist", None) is not None
-                else None
+                else "<unknown>"
             )
             origin = origins.get(key, "derivepassphrase")
             if not callable(provider_entry.provider):

@@ -235,7 +235,10 @@ class SocketAddressAction(str, enum.Enum):
             pass
         elif self == self.MANGLE_SSH_AUTH_SOCK:
             monkeypatch.setenv(
-                "SSH_AUTH_SOCK", os.environ["SSH_AUTH_SOCK"] + "~"
+                "SSH_AUTH_SOCK",
+                os.environ["SSH_AUTH_SOCK"] + "~"
+                if "SSH_AUTH_SOCK" in os.environ
+                else "/",
             )
         elif self == self.UNSET_SSH_AUTH_SOCK:
             monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
@@ -477,21 +480,21 @@ class Parametrize(types.SimpleNamespace):
             ),
             pytest.param(
                 None,
-                SocketAddressAction.UNSET_SSH_AUTH_SOCK,
-                None,
-                SignAction.FAIL,
-                "Cannot find any running SSH agent",
-                [],
-                id="agent-address-missing",
-            ),
-            pytest.param(
-                None,
                 SocketAddressAction.MANGLE_SSH_AUTH_SOCK,
                 None,
                 SignAction.FAIL,
                 "Cannot connect to the SSH agent",
                 [],
                 id="agent-address-mangled",
+            ),
+            pytest.param(
+                None,
+                SocketAddressAction.UNSET_SSH_AUTH_SOCK,
+                None,
+                SignAction.FAIL,
+                "Cannot find any running SSH agent",
+                [],
+                id="agent-address-missing",
             ),
             pytest.param(
                 None,

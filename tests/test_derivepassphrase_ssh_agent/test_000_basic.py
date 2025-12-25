@@ -889,6 +889,10 @@ class TestSSHAgentSocketProviderRegistry:
             monkeypatch.setattr(
                 socketprovider.SocketProvider, "registry", new_registry
             )
+            assert names, (
+                f"Existing SSH agent socket provider entry "
+                f"{existing!r} is not existing?!"
+            )
             assert not all(
                 map(socketprovider.SocketProvider.registry.__contains__, names)
             )
