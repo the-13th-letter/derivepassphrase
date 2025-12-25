@@ -882,6 +882,8 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
     # `SSHAgentClient.list_keys`.  There is thus little point in
     # repeating the very same sanity test here, on an agent that was
     # already sanity-tested.
+    #
+    # (But see below, too.)
 
     def prepare_payload(
         payload: bytes | bytearray,
@@ -959,6 +961,27 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
                 pass
             else:  # pragma: no cover [external]
                 successfully_loaded_keys.add(key_type)
+        if (
+            agent_type != data.KnownSSHAgent.StubbedSSHAgent
+            and not successfully_loaded_keys
+        ):  # pragma: no cover [external]
+            pytest.skip("Failed to load any test keys at all into the agent.")
+        # Sanity-test the agent.  It makes sense to do this here (unlike
+        # at the top of this fixture), because we ignore errors when
+        # adding keys above, but badly behaved SSH agents such as the
+        # Annoying OS port of OpenSSH 10.0p1 (Dec 2025) may have already
+        # closed the connection.
+        try:
+            client.list_keys()
+        except (
+            EOFError,
+            OSError,
+            ssh_agent.SSHAgentFailedError,
+        ):  # pragma: no cover [external]
+            pytest.skip(
+                "The agent became unusable during test fixture setup.  "
+                "(Sanity check failed.)"
+            )
         yield client
     finally:
         for key_type, key_struct in tests.data.ALL_KEYS.items():
