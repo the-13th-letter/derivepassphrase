@@ -805,8 +805,8 @@ SocketProvider.registry.update({
     "ssh_auth_sock_on_the_annoying_os": SocketProvider.windows_named_pipe_ssh_auth_sock,  # noqa: E501
     # known instances
     "stub_agent": None,
-    "stub_with_address": None,
-    "stub_with_address_and_deterministic_dsa": None,
+    "stub_agent_with_address": None,
+    "stub_agent_with_address_and_deterministic_dsa": None,
     # aliases
     "posix": "ssh_auth_sock_on_posix",
     "ssh_auth_sock": "ssh_auth_sock_on_posix",

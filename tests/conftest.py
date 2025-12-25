@@ -306,13 +306,13 @@ spawn_handlers: dict[str, tuple[str, SpawnFunc, tests.data.KnownSSHAgent]] = {
         spawn_openssh_agent_on_posix,
         tests.data.KnownSSHAgent.OpenSSHAgent,
     ),
-    "stub_agent": (
-        "stub_agent",
+    "stub_agent_with_address": (
+        "stub_agent_with_address",
         spawn_noop,
         tests.data.KnownSSHAgent.StubbedSSHAgent,
     ),
-    "stub_agent_with_extensions": (
-        "stub_agent_with_extensions",
+    "stub_agent_with_address_and_deterministic_dsa": (
+        "stub_agent_with_address_and_deterministic_dsa",
         spawn_noop,
         tests.data.KnownSSHAgent.StubbedSSHAgent,
     ),
@@ -454,14 +454,14 @@ def spawn_named_agent(
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient,
                 "SOCKET_PROVIDERS",
-                ["stub_with_address_and_deterministic_dsa"]
-                if exec_name == "stub_agent_with_extensions"
-                else ["stub_with_address"],
+                ["stub_agent_with_address_and_deterministic_dsa"]
+                if exec_name == "stub_agent_with_address_and_deterministic_dsa"
+                else ["stub_agent_with_address"],
             )
             client = exit_stack.enter_context(
                 ssh_agent.SSHAgentClient.ensure_agent_subcontext(
                     tests.machinery.StubbedSSHAgentSocketWithAddressAndDeterministicDSA()
-                    if exec_name == "stub_agent_with_extensions"
+                    if exec_name == "stub_agent_with_address_and_deterministic_dsa"
                     else tests.machinery.StubbedSSHAgentSocketWithAddress()
                 )
             )
@@ -579,14 +579,14 @@ def running_ssh_agent(  # pragma: no cover [external]
                 monkeypatch.setattr(
                     ssh_agent.SSHAgentClient,
                     "SOCKET_PROVIDERS",
-                    ["stub_with_address"],
+                    ["stub_agent_with_address"],
                 )
                 monkeypatch.setenv(
                     "SSH_AUTH_SOCK",
                     tests.machinery.StubbedSSHAgentSocketWithAddress.ADDRESS,
                 )
                 yield tests.data.RunningSSHAgentInfo(
-                    tests.machinery.StubbedSSHAgentSocketWithAddress,
+                    tests.machinery.StubbedSSHAgentSocketWithAddressAndDeterministicDSA,
                     tests.data.KnownSSHAgent.StubbedSSHAgent,
                 )
             else:
