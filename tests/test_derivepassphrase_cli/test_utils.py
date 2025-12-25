@@ -199,26 +199,22 @@ class SocketAddressAction(str, enum.Enum):
     """Test fixture settings for the SSH agent socket address.
 
     Attributes:
-        MANGLE_WINDOWS_NAMED_PIPE:
-            Mangle the address for the Windows named pipe endpoint.
-        MANGLE_SSH_AUTH_SOCK:
-            Mangle the address for the UNIX domain socket (the
-            `SSH_AUTH_SOCK` environment variable).
-        UNSET_WINDOWS_NAMED_PIPE:
-            Unset the address for the Windows named pipe endpoint.
-        UNSET_SSH_AUTH_SOCK:
-            Unset the `SSH_AUTH_SOCK` environment variable (the address
-            for the UNIX domain socket).
+        MANGLE_ADDRESS:
+            Mangle the socket address.
+
+            For UNIX domain sockets, mangle the `SSH_AUTH_SOCK`
+            environment variable.
+        UNSET_ADDRESS:
+            Unset the socket address.
+
+            For UNIX domain sockets, unset the `SSH_AUTH_SOCK`
+            environment variable.
 
     """
 
-    MANGLE_WINDOWS_NAMED_PIPE = enum.auto()
+    MANGLE_ADDRESS = enum.auto()
     """"""
-    MANGLE_SSH_AUTH_SOCK = enum.auto()
-    """"""
-    UNSET_WINDOWS_NAMED_PIPE = enum.auto()
-    """"""
-    UNSET_SSH_AUTH_SOCK = enum.auto()
+    UNSET_ADDRESS = enum.auto()
     """"""
 
     def __call__(
@@ -228,19 +224,14 @@ class SocketAddressAction(str, enum.Enum):
         # TODO(the-13th-letter): Rewrite using structural pattern
         # matching.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        if self in {
-            self.MANGLE_WINDOWS_NAMED_PIPE,
-            self.UNSET_WINDOWS_NAMED_PIPE,
-        }:  # pragma: no cover [unused]
-            pass
-        elif self == self.MANGLE_SSH_AUTH_SOCK:
+        if self == self.MANGLE_ADDRESS:
             monkeypatch.setenv(
                 "SSH_AUTH_SOCK",
                 os.environ["SSH_AUTH_SOCK"] + "~"
                 if "SSH_AUTH_SOCK" in os.environ
                 else "/",
             )
-        elif self == self.UNSET_SSH_AUTH_SOCK:
+        elif self == self.UNSET_ADDRESS:
             monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
         else:
             raise AssertionError()
@@ -480,7 +471,7 @@ class Parametrize(types.SimpleNamespace):
             ),
             pytest.param(
                 None,
-                SocketAddressAction.MANGLE_SSH_AUTH_SOCK,
+                SocketAddressAction.MANGLE_ADDRESS,
                 None,
                 SignAction.FAIL,
                 "Cannot connect to the SSH agent",
@@ -489,7 +480,7 @@ class Parametrize(types.SimpleNamespace):
             ),
             pytest.param(
                 None,
-                SocketAddressAction.UNSET_SSH_AUTH_SOCK,
+                SocketAddressAction.UNSET_ADDRESS,
                 None,
                 SignAction.FAIL,
                 "Cannot find any running SSH agent",

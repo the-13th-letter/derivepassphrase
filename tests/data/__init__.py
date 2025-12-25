@@ -163,10 +163,11 @@ class KnownSSHAgent(str, enum.Enum):
     Attributes:
         UNKNOWN (str):
             Not a known agent, or not known statically.
-        Pageant (str):
-            The agent from Simon Tatham's PuTTY suite.
+        UNIXPageant (str):
+            The agent from Simon Tatham's PuTTY suite (on
+            UNIX/BSD/POSIX).
         OpenSSHAgent (str):
-            The agent from OpenBSD's OpenSSH suite.
+            The agent from OpenBSD's OpenSSH suite (on UNIX/BSD/POSIX).
         StubbedSSHAgent (str):
             The stubbed, fake agent pseudo-socket defined in this test
             suite.
@@ -175,7 +176,7 @@ class KnownSSHAgent(str, enum.Enum):
 
     UNKNOWN = "(unknown)"
     """"""
-    Pageant = "Pageant"
+    UNIXPageant = "UNIXPageant"
     """"""
     OpenSSHAgent = "OpenSSHAgent"
     """"""

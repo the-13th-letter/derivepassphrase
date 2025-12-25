@@ -153,7 +153,7 @@ def skip_if_no_af_unix_support() -> None:  # pragma: no cover [external]
         pytest.skip("No Python or system support for UNIX domain sockets.")
 
 
-class SpawnFunc(Protocol):
+class SSHAgentSpawnFunc(Protocol):
     """Spawns an SSH agent, if possible."""
 
     def __call__(
@@ -315,21 +315,21 @@ class SpawnHandler(NamedTuple):
 
     key: str
     executable: str | None
-    spawn_func: SpawnFunc
+    spawn_func: SSHAgentSpawnFunc
     agent_type: tests.data.KnownSSHAgent
     agent_name: str | None
 
 
 spawn_handlers: dict[str, SpawnHandler] = {
-    "pageant": SpawnHandler(
-        "pageant",
+    "unix-pageant": SpawnHandler(
+        "unix-pageant",
         None,
         spawn_pageant_on_posix,
-        tests.data.KnownSSHAgent.Pageant,
+        tests.data.KnownSSHAgent.UNIXPageant,
         "Pageant (UNIX)",
     ),
-    "ssh-agent": SpawnHandler(
-        "ssh-agent",
+    "openssh": SpawnHandler(
+        "openssh",
         None,
         spawn_openssh_agent_on_posix,
         tests.data.KnownSSHAgent.OpenSSHAgent,
@@ -350,8 +350,8 @@ spawn_handlers: dict[str, SpawnHandler] = {
         "stub_agent_with_address_and_deterministic_dsa "
         "(derivepassphrase test suite)",
     ),
-    "(system)": SpawnHandler(
-        "(system)",
+    "(system-agent)": SpawnHandler(
+        "(system-agent)",
         None,
         spawn_noop,
         tests.data.KnownSSHAgent.UNKNOWN,
@@ -392,7 +392,7 @@ class CannotSpawnError(RuntimeError):
 
 def spawn_named_agent(
     executable: str | None,
-    spawn_func: SpawnFunc,
+    spawn_func: SSHAgentSpawnFunc,
     agent_type: tests.data.KnownSSHAgent,
     agent_name: str,
 ) -> Iterator[tests.data.SpawnedSSHAgentInfo]:  # pragma: no cover [external]
@@ -587,7 +587,7 @@ for key, handler in spawn_handlers.items():
             "environment variable.",
         ),
     ]
-    if key in {"pageant", "ssh-agent", "(system)"}:
+    if key in {"unix-pageant", "openssh", "(system-agent)"}:
         marks.append(
             pytest.mark.skipif(
                 not hasattr(socket, "AF_UNIX"),
@@ -824,12 +824,12 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
                         pair.key for pair in client.list_keys()
                     })
                     if (
-                        agent_type == tests.data.KnownSSHAgent.Pageant
+                        agent_type == tests.data.KnownSSHAgent.UNIXPageant
                         and key_struct.public_key_data in current_loaded_keys
                     ):
                         pass
                     elif (
-                        agent_type == tests.data.KnownSSHAgent.Pageant
+                        agent_type == tests.data.KnownSSHAgent.UNIXPageant
                         and not isolated
                     ):
                         request_code, payload = prepare_payload(
