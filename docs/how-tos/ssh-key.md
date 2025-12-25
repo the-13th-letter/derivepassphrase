@@ -18,59 +18,136 @@
 ## Configuring `derivepassphrase vault` to use an SSH key
 
 Assuming the prerequisites are satisfied, ensure that the SSH agent is
-running, the SSH key is loaded into the agent, and the `SSH_AUTH_SOCK`
-environment variable is correctly set up.
+running, the SSH key is loaded into the agent, and, on UNIX systems,
+that the `SSH_AUTH_SOCK` environment variable is correctly set up.
 The exact commands depend on the SSH agent in use.
 
 === "OpenSSH"
 
-    ~~~~ console title="Typical setup commands: starting the agent and setting up SSH_AUTH_SOCK"
-    $ eval `ssh-agent -s`
-    Agent pid 12345
-    ~~~~
+    === "on UNIX"
 
-    (The process ID emitted above is helpful for signalling the agent
-    later, e.g. for termination.)
+        ~~~~ console title="Typical setup commands: starting the agent and setting up SSH_AUTH_SOCK"
+        $ eval `ssh-agent -s`
+        Agent pid 12345
+        ~~~~
 
-    ~~~~ console title="Typical setup commands: loading the key into the agent, with 900s timeout and requiring confirmation"
-    $ ssh-add -t 900 -c ~/.ssh/my-vault-ed25519-key
-    Enter passphrase for /home/user/.ssh/my-vault-ed25519-key (will confirm each use): 
-    Identity added: /home/user/.ssh/my-vault-ed25519-key (vault key)
-    Lifetime set to 900 seconds
-    The user must confirm each use of the key
-    ~~~~
+        (The process ID emitted above is helpful for signalling the agent
+        later, e.g. for termination.)
 
-    (Your key filename and key comment will likely differ.)
+        ~~~~ console title="Typical setup commands: loading the key into the agent, with 900s timeout and requiring confirmation"
+        $ ssh-add -t 900 -c ~/.ssh/my-vault-ed25519-key
+        Enter passphrase for /home/user/.ssh/my-vault-ed25519-key (will confirm each use): 
+        Identity added: /home/user/.ssh/my-vault-ed25519-key (vault key)
+        Lifetime set to 900 seconds
+        The user must confirm each use of the key
+        ~~~~
+
+        (Your key filename and key comment will likely differ.)
+
+    === "on Windows"
+
+        ([Using OpenSSH on Windows is possible, but currently *not
+        recommended*; we recommend Pageant
+        instead.][OPENSSH_ON_WINDOWS_LIMITATIONS]
+        Pageant has priority over OpenSSH: if both are running,
+        `derivepassphrase vault` will connect to Pageant.)
+
+        The agent is started as a system service.
+        This only needs to be set up once.
+
+        <small>([Source: OpenSSH-on-Windows
+        documentation][OPENSSH_ON_WINDOWS_DOC].)</small>
+
+        ~~~~ pwsh-session title="Typical setup commands (PowerShell, as Administrator): starting the agent"
+        PS> Get-Service ssh-agent | Set-Service -StartupType Automatic
+        PS> Start-Service ssh-agent
+        ~~~~
+
+        Load the keys into the agent.
+        This only needs to be done once.
+        The agent stores the key material in a reusable, per-user
+        Windows security context.
+        Unlike on UNIX, the Windows port of OpenSSH does not support key
+        timeouts or key usage confirmation prompts.
+
+        ~~~~ pwsh-session title="Further setup commands (Powershell, as User): loading the key into the agent"
+        PS> ssh-add "C:\Users\YourUsernameHere\Documents\my-vault-ed25519-key"
+        Enter passphrase for C:\Users\YourUsernameHere\Documents\my-vault-ed25519-key:
+        Identity added: C:\Users\YourUsernameHere\Documents\my-vault-ed25519-key (vault key)
+        ~~~~
+
+        (Your key filename and key comment will likely differ.)
+
+        [OPENSSH_ON_WINDOWS_LIMITATIONS]: ../reference/prerequisites-ssh-key.md#agent-specific-notes
+        [OPENSSH_ON_WINDOWS_DOC]: https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_keymanagement#user-key-generation
 
 === "PuTTY"
 
-    ~~~~ console title="Typical setup commands: starting the agent and loading the key"
-    $ eval `pageant -T ~/.ssh/my-vault-ed25519-key.ppk`
-    Enter passphrase to load key 'vault key': 
-    ~~~~
+    === "on Windows"
 
-    (Your key filename and key comment will likely differ.
-    The agent should automatically shut down once this terminal session
-    is over.)
+        Start Pageant; this adds the Pageant icon to the Windows task
+        bar.
+        Then add the key via the right-click context menu, "Add key" or
+        "Add key (encrypted)".
+
+        Adding the key via "Add key (encrypted)" makes the key material
+        manually "lockable" and "unlockable" by decrypting and
+        re-encrypting it, meaning that the key cannot be used by
+        malicious clients while encrypted.
+        This can be used to partially alleviate the lack of support for
+        the "key timeout" constraint.
+        The "Add key (encrypted)" mode is thus *recommended*.
+
+    === "on UNIX"
+
+        ~~~~ console title="Typical setup commands: starting the agent and loading the key"
+        $ eval `pageant -T ~/.ssh/my-vault-ed25519-key.ppk`
+        Enter passphrase to load key 'vault key': 
+        ~~~~
+
+        (Your key filename and key comment will likely differ.
+        The agent should automatically shut down once this terminal
+        session is over.)
 
 === "GnuPG"
 
-    ~~~~ console title="Typical setup commands: enabling SSH agent support in GnuPG"
-    $ # This is equivalent to passing --enable-ssh-support upon agent
-    $ # startup.
-    $ echo enable-ssh-support:0:1 | gpgconf --change-options gpg-agent
-    ~~~~
+    === "on UNIX"
+
+        ~~~~ console title="Typical setup commands: enabling SSH agent support in GnuPG"
+        $ # This is equivalent to passing --enable-ssh-support upon agent
+        $ # startup.
+        $ echo enable-ssh-support:0:1 | gpgconf --change-options gpg-agent
+        ~~~~
+
+    === "on Windows"
+
+        ~~~~ pwsh-session title="Typical setup commands (PowerShell): enabling SSH agent support in GnuPG"
+        PS> # This is equivalent to passing --enable-ssh-support upon agent
+        PS> # startup.
+        PS> echo enable-ssh-support:0:1 | gpgconf --change-options gpg-agent
+        ~~~~
 
     (Loading native SSH keys into `gpg-agent` requires a separate SSH
     agent client such as OpenSSH; see the [agent-specific notes in the
     prerequisites][PREREQ_AGENT_SPECIFIC_NOTES].)
 
-    ~~~~ console title="Typical setup commands: loading the key into the agent with the OpenSSH tools"
-    $ ssh-add -c ~/.ssh/my-vault-ed25519-key
-    Enter passphrase for /home/user/.ssh/my-vault-ed25519-key (will confirm each use): 
-    Identity added: /home/user/.ssh/my-vault-ed25519-key (vault key)
-    The user must confirm each use of the key
-    ~~~~
+    === "on UNIX"
+
+        ~~~~ console title="Typical setup commands: loading the key into the agent with the OpenSSH tools"
+        $ ssh-add -c ~/.ssh/my-vault-ed25519-key
+        Enter passphrase for /home/user/.ssh/my-vault-ed25519-key (will confirm each use): 
+        Identity added: /home/user/.ssh/my-vault-ed25519-key (vault key)
+        The user must confirm each use of the key
+        ~~~~
+
+    === "on Windows"
+
+        ~~~~ console title="Typical setup commands (PowerShell): loading the key into the agent with the OpenSSH tools"
+        $ ssh-add "C:\Users\YourUsernameHere\Documents\my-vault-ed25519-key"
+        Enter passphrase for C:\Users\YourUsernameHere\Documents\my-vault-ed25519-key (will confirm each use): 
+        Identity added: C:\Users\YourUsernameHere\Documents\my-vault-ed25519-key (vault key)
+        The user must confirm each use of the key
+        ~~~~
 
     (Your key filename and key comment may differ.)
 

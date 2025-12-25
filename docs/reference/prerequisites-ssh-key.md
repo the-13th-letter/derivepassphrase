@@ -10,26 +10,56 @@ Using `derivepassphrase vault` with an SSH key requires:
 ### A running SSH agent { #ssh-agent }
 
 SSH agents are usually packaged as part of SSH client distributions.
-`ssh-agent` from [OpenSSH][] and Pageant from [PuTTY][] are known to
-work.
+Pageant from [PuTTY][] is known to work, on both UNIX and Windows.
+`ssh-agent` from [OpenSSH][] is known to work well on UNIX, and
+somewhat poorly on Windows; see notes below.
 `gpg-agent` (v2) from [GnuPG][] is also known to work, but comes with
-caveats; see notes below.
+caveats; again, see notes below.
 
-If in doubt, we recommend OpenSSH because it is the <i>de-facto</i>
-canonical SSH agent implementation.
+If in doubt, we recommend OpenSSH on UNIX and Pageant on Windows,
+because they are the <i>de-facto</i> canonical SSH agent implementation
+on their respective operating system.
 
 !!! note "Agent-specific features"
 
     * OpenSSH's `ssh-agent` supports limiting the time the agent holds
-      the key in memory ("key lifetime").
+      the key in memory ("key lifetime"), on UNIX only.
       We recommend its usage.
     * `ssh-agent` and GnuPG's `gpg-agent` support requiring confirmation
       upon each use for a specific key.
+      (Again, for `ssh-agent` only on UNIX.)
       We recommend its usage as well.
 
 <section markdown id=agent-specific-notes>
 
 !!! note "Other agent-specific notes"
+
+    === "OpenSSH on Windows"
+
+        Using OpenSSH on Windows with `derivepassphrase vault` is
+        possible, but currently *not recommended*.
+        [The Windows port of OpenSSH lacks support for key constraints
+        [1]][OPENSSH_ON_WINDOWS_NO_KEY_CONSTRAINTS_1]
+        [[2]][OPENSSH_ON_WINDOWS_NO_KEY_CONSTRAINTS_2], which are the
+        main advantage OpenSSH had over Pageant.
+        Without this functionality, Pageant is the better choice: more
+        supported key formats, manually lockable and unlockable key
+        material in the agent, and no Administrator credentials needed
+        to configure the system.
+
+        Additionally, the ported SSH agent implements the agent
+        protocol incorrectly because it terminates the connection when
+        encountering an unsupported request, instead of returning an
+        error code.
+        (The original agent, on UNIX, implements the protocol
+        correctly.)
+        This makes it difficult for `derivepassphrase vault` to
+        correctly *detect* or *verify* that it is talking to the
+        OpenSSH agent on Windows, instead of merely *assuming* it is
+        doing so.
+
+        [OPENSSH_ON_WINDOWS_NO_KEY_CONSTRAINTS_1]: https://github.com/PowerShell/Win32-OpenSSH/issues/1056#issuecomment-362494167 "Issue #1056: ssh-agent should support '-c' and '-t' options of ssh-add"
+        [OPENSSH_ON_WINDOWS_NO_KEY_CONSTRAINTS_2]: https://github.com/PowerShell/Win32-OpenSSH/issues/2314#issuecomment-2529160589 'Issue #2314: Adding key with confirmation option to ssh-agent gives "agent refused operation"'
 
     === "GnuPG/`gpg-agent`"
 
@@ -97,30 +127,23 @@ canonical SSH agent implementation.
                 configuration file instead of being manually supplied on
                 the command-line.)
 
-                [This mode, sadly, is not currently
-                supported.](#python-support)
+                This mode is untested.
+                We, the `derivepassphrase` authors, do not know how to
+                run `gpg-agent` on Windows with masquerading as OpenSSH
+                enabled: the steps outlined in the official
+                documentation for `gpg-agent` do not work as advertised.
+                [We have asked for clarification on GnuPG's developer
+                mailing list.][GPG_AGENT_ON_WINDOWS_WTF]
+
+                [GPG_AGENT_ON_WINDOWS_WTF]: https://lists.gnupg.org/pipermail/gnupg-devel/2025-December/036116.html
 
 </section>
 
 ### A Python installation that can talk to the SSH agent { #python-support }
 
-!!! bug "Windows is currently *not* supported"
-
-    <i>→ Bug entry:</i> [Support PuTTY/Pageant (and maybe
-    OpenSSH/`ssh-agent`) on Windows][BUG_WINDOWS_SSH_AGENT_SUPPORT]
-
-    The two major SSH agents on Windows (PuTTY/Pageant and OpenSSH) use
-    <i>Windows named pipes</i> for communication, and Python on Windows
-    does not inherently support named pipes.
-    Since no comprehensive third-party Python modules to interface with
-    named pipes appear to exist, teaching `derivepassphrase` to use
-    Windows named pipes requires us developers to write the code to
-    interface the Windows system libraries ourselves.
-    Development on this started after the release of version 0.5, but
-    since this is not our area of expertise, and because the pre-0.5
-    design hard-codes the UNIX style of looking up and connecting to an
-    SSH agent, development progress on this front has been much slower
-    than usual.
+As of version 0.6, Windows is supported.
+[Your Python installation must support interfacing with the Windows
+system DLLs.][ctypes.WinDLL]
 
 On non-Windows operating systems, the SSH agent is expected to advertise
 its communication socket via the `SSH_AUTH_SOCK` environment variable,
