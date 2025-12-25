@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Protocol, TypeVar
 import hypothesis
 import packaging.version
 import pytest
+from typing_extensions import NamedTuple
 
 import tests.data
 import tests.data.callables
@@ -295,28 +296,67 @@ def spawn_noop(  # pragma: no cover [unused]
     """Placeholder function. Does nothing."""
 
 
-spawn_handlers: dict[str, tuple[str, SpawnFunc, tests.data.KnownSSHAgent]] = {
-    "pageant": (
+class SpawnHandler(NamedTuple):
+    """A handler for a spawned SSH agent.
+
+    Attributes:
+        key:
+            The key under which this handler is registered.
+        executable:
+            The (optional) full path to the executable.
+        spawn_func:
+            The spawn function.
+        agent_type:
+            The type of the spawned SSH agent.
+        agent_name:
+            The (optional) display name for this handler.
+
+    """
+
+    key: str
+    executable: str | None
+    spawn_func: SpawnFunc
+    agent_type: tests.data.KnownSSHAgent
+    agent_name: str | None
+
+
+spawn_handlers: dict[str, SpawnHandler] = {
+    "pageant": SpawnHandler(
         "pageant",
+        None,
         spawn_pageant_on_posix,
         tests.data.KnownSSHAgent.Pageant,
+        "Pageant (UNIX)",
     ),
-    "ssh-agent": (
+    "ssh-agent": SpawnHandler(
         "ssh-agent",
+        None,
         spawn_openssh_agent_on_posix,
         tests.data.KnownSSHAgent.OpenSSHAgent,
+        "ssh-agent (OpenSSH)",
     ),
     "stub_agent_with_address": (
         "stub_agent_with_address",
+        None,
         spawn_noop,
         tests.data.KnownSSHAgent.StubbedSSHAgent,
+        "stub_agent_with_address (derivepassphrase test suite)",
     ),
-    "stub_agent_with_address_and_deterministic_dsa": (
+    "stub_agent_with_address_and_deterministic_dsa": SpawnHandler(
         "stub_agent_with_address_and_deterministic_dsa",
+        None,
         spawn_noop,
         tests.data.KnownSSHAgent.StubbedSSHAgent,
+        "stub_agent_with_address_and_deterministic_dsa "
+        "(derivepassphrase test suite)",
     ),
-    "(system)": ("(system)", spawn_noop, tests.data.KnownSSHAgent.UNKNOWN),
+    "(system)": SpawnHandler(
+        "(system)",
+        None,
+        spawn_noop,
+        tests.data.KnownSSHAgent.UNKNOWN,
+        None,
+    ),
 }
 """
 The standard registry of agent spawning functions.
@@ -351,9 +391,10 @@ class CannotSpawnError(RuntimeError):
 
 
 def spawn_named_agent(
-    exec_name: str,
+    executable: str | None,
     spawn_func: SpawnFunc,
     agent_type: tests.data.KnownSSHAgent,
+    agent_name: str,
 ) -> Iterator[tests.data.SpawnedSSHAgentInfo]:  # pragma: no cover [external]
     """Spawn the named SSH agent and check that it is operational.
 
@@ -369,12 +410,16 @@ def spawn_named_agent(
     there.
 
     Args:
-        exec_name:
-            The executable to spawn.
+        executable:
+            The full path of the executable to spawn.  If not given, we
+            attempt to spawn the agent under its conventional executable
+            name.
         spawn_func:
             The agent-specific spawn function.
         agent_type:
             The agent type.
+        agent_name:
+            The agent's display name.
 
     Yields:
         A 3-tuple containing the agent type, an SSH agent client
@@ -402,12 +447,17 @@ def spawn_named_agent(
     # Here, we verify at most major steps that SSH_AUTH_SOCK didn't
     # change under our nose.
     assert os.environ.get("SSH_AUTH_SOCK") == startup_ssh_auth_sock, (
-        f"SSH_AUTH_SOCK mismatch when checking for spawnable {exec_name}"
+        f"SSH_AUTH_SOCK mismatch when checking for spawnable {agent_name}"
     )
     exit_stack = contextlib.ExitStack()
     agent_env = os.environ.copy()
     ssh_auth_sock = agent_env.pop("SSH_AUTH_SOCK", None)
-    proc = spawn_func(executable=shutil.which(exec_name), env=agent_env)
+    proc = spawn_func(
+        executable=shutil.which(executable)
+        if executable is not None
+        else None,
+        env=agent_env,
+    )
     with exit_stack:
         if (
             spawn_func is spawn_noop
@@ -417,12 +467,12 @@ def spawn_named_agent(
         elif spawn_func is spawn_noop:
             ssh_auth_sock = os.environ["SSH_AUTH_SOCK"]
         elif proc is None:  # pragma: no cover [external]
-            err_msg = f"Cannot spawn usable {exec_name}"
+            err_msg = f"Cannot spawn usable {agent_name}"
             raise CannotSpawnError(err_msg)
         else:
             exit_stack.enter_context(terminate_on_exit(proc))
             assert os.environ.get("SSH_AUTH_SOCK") == startup_ssh_auth_sock, (
-                f"SSH_AUTH_SOCK mismatch after spawning {exec_name}"
+                f"SSH_AUTH_SOCK mismatch after spawning {agent_name}"
             )
             assert proc.stdout is not None
             ssh_auth_sock_line = proc.stdout.readline()
@@ -455,13 +505,13 @@ def spawn_named_agent(
                 ssh_agent.SSHAgentClient,
                 "SOCKET_PROVIDERS",
                 ["stub_agent_with_address_and_deterministic_dsa"]
-                if exec_name == "stub_agent_with_address_and_deterministic_dsa"
+                if "stub_agent_with_address_and_deterministic_dsa" in agent_name
                 else ["stub_agent_with_address"],
             )
             client = exit_stack.enter_context(
                 ssh_agent.SSHAgentClient.ensure_agent_subcontext(
                     tests.machinery.StubbedSSHAgentSocketWithAddressAndDeterministicDSA()
-                    if exec_name == "stub_agent_with_address_and_deterministic_dsa"
+                    if "stub_agent_with_address_and_deterministic_dsa" in agent_name
                     else tests.machinery.StubbedSSHAgentSocketWithAddress()
                 )
             )
@@ -491,7 +541,7 @@ def spawn_named_agent(
             agent_type, client, spawn_func is not spawn_noop
         )
     assert os.environ.get("SSH_AUTH_SOCK", None) == startup_ssh_auth_sock, (
-        f"SSH_AUTH_SOCK mismatch after tearing down {exec_name}"
+        f"SSH_AUTH_SOCK mismatch after tearing down {agent_name}"
     )
 
 
@@ -532,7 +582,7 @@ skip marks.)  Used by some test fixtures.
 for key, handler in spawn_handlers.items():
     marks = [
         pytest.mark.skipif(
-            not is_agent_permitted(handler[2]),
+            not is_agent_permitted(handler.agent_type),
             reason="SSH agent excluded via PERMITTED_AGENTS "
             "environment variable.",
         ),
@@ -607,14 +657,17 @@ def running_ssh_agent(  # pragma: no cover [external]
             monkeypatch.setenv("SSH_AUTH_SOCK", startup_ssh_auth_sock)
         else:
             monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
-        for exec_name, spawn_func, agent_type in spawn_handlers.values():
-            if not is_agent_permitted(agent_type):
+        for handler in spawn_handlers.values():
+            if not is_agent_permitted(handler.agent_type):
                 continue
             try:
                 for _agent_info in spawn_named_agent(
-                    exec_name, spawn_func, agent_type
+                    executable=handler.executable,
+                    spawn_func=handler.spawn_func,
+                    agent_type=handler.agent_type,
+                    agent_name=handler.agent_name or handler.key,
                 ):
-                    yield from prepare_environment(agent_type)
+                    yield from prepare_environment(handler.agent_type)
             except (KeyError, OSError, CannotSpawnError):
                 continue
             return
@@ -657,7 +710,12 @@ def spawn_ssh_agent(
         else:  # pragma: no cover [external]
             monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
         try:
-            yield from spawn_named_agent(*request.param)
+            yield from spawn_named_agent(
+                executable=request.param.executable,
+                spawn_func=request.param.spawn_func,
+                agent_type=request.param.agent_type,
+                agent_name=request.param.agent_name or request.param.key,
+            )
         except KeyError as exc:
             pytest.skip(
                 f"The environment variable {exc.args[0]!r} was not found"
