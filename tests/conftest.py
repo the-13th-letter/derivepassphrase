@@ -362,6 +362,58 @@ spawn_handlers: dict[str, SpawnHandler] = {
 The standard registry of agent spawning functions.
 """
 
+
+def is_agent_permitted(
+    agent_type: tests.data.KnownSSHAgent,
+) -> bool:  # pragma: no cover [external]
+    """May the given SSH agent be spawned by the test harness?
+
+    If the environment variable `PERMITTED_SSH_AGENTS` is given, it
+    names a comma-separated list of known SSH agent names that the test
+    harness may spawn.  Invalid names are silently ignored.  If not
+    given, or empty, then any agent may be spawned.
+
+    (To not allow any agent to be spawned, specify a single comma as the
+    list.  But see below.)
+
+    The stubbed agents cannot be restricted in this manner, as the test
+    suite depends on their availability.
+
+    """
+    if not os.environ.get("PERMITTED_SSH_AGENTS"):
+        return True
+    permitted_agents = {tests.data.KnownSSHAgent.StubbedSSHAgent}
+    permitted_agents.update({
+        tests.data.KnownSSHAgent(x)
+        for x in os.environ["PERMITTED_SSH_AGENTS"].split(",")
+        if x in tests.data.KnownSSHAgent.__members__
+    })
+    return agent_type in permitted_agents
+
+
+spawn_handlers_params: list[Sequence] = []
+"""
+The standard registry of agent spawning functions, annotated as
+a `pytest` parameter set.  (In particular, this includes the conditional
+skip marks.)  Used by some test fixtures.
+"""
+for key, handler in spawn_handlers.items():
+    marks = [
+        pytest.mark.skipif(
+            not is_agent_permitted(handler.agent_type),
+            reason="SSH agent excluded via PERMITTED_AGENTS "
+            "environment variable.",
+        ),
+    ]
+    if key in {"unix-pageant", "openssh", "(system-agent)"}:
+        marks.append(
+            pytest.mark.skipif(
+                not hasattr(socket, "AF_UNIX"),
+                reason="No Python or system support for UNIX domain sockets.",
+            )
+        )
+    spawn_handlers_params.append(pytest.param(handler, id=key, marks=marks))
+
 Popen = TypeVar("Popen", bound=subprocess.Popen)
 
 
@@ -543,58 +595,6 @@ def spawn_named_agent(
     assert os.environ.get("SSH_AUTH_SOCK", None) == startup_ssh_auth_sock, (
         f"SSH_AUTH_SOCK mismatch after tearing down {agent_name}"
     )
-
-
-def is_agent_permitted(
-    agent_type: tests.data.KnownSSHAgent,
-) -> bool:  # pragma: no cover [external]
-    """May the given SSH agent be spawned by the test harness?
-
-    If the environment variable `PERMITTED_SSH_AGENTS` is given, it
-    names a comma-separated list of known SSH agent names that the test
-    harness may spawn.  Invalid names are silently ignored.  If not
-    given, or empty, then any agent may be spawned.
-
-    (To not allow any agent to be spawned, specify a single comma as the
-    list.  But see below.)
-
-    The stubbed agents cannot be restricted in this manner, as the test
-    suite depends on their availability.
-
-    """
-    if not os.environ.get("PERMITTED_SSH_AGENTS"):
-        return True
-    permitted_agents = {tests.data.KnownSSHAgent.StubbedSSHAgent}
-    permitted_agents.update({
-        tests.data.KnownSSHAgent(x)
-        for x in os.environ["PERMITTED_SSH_AGENTS"].split(",")
-        if x in tests.data.KnownSSHAgent.__members__
-    })
-    return agent_type in permitted_agents
-
-
-spawn_handlers_params: list[Sequence] = []
-"""
-The standard registry of agent spawning functions, annotated as
-a `pytest` parameter set.  (In particular, this includes the conditional
-skip marks.)  Used by some test fixtures.
-"""
-for key, handler in spawn_handlers.items():
-    marks = [
-        pytest.mark.skipif(
-            not is_agent_permitted(handler.agent_type),
-            reason="SSH agent excluded via PERMITTED_AGENTS "
-            "environment variable.",
-        ),
-    ]
-    if key in {"unix-pageant", "openssh", "(system-agent)"}:
-        marks.append(
-            pytest.mark.skipif(
-                not hasattr(socket, "AF_UNIX"),
-                reason="No Python or system support for UNIX domain sockets.",
-            )
-        )
-    spawn_handlers_params.append(pytest.param(handler, id=key, marks=marks))
 
 
 @pytest.fixture
