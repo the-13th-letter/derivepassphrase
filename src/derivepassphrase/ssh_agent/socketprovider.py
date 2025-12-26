@@ -28,9 +28,14 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import ClassVar
 
-    from typing_extensions import Any, Buffer, Literal, Self
+    from typing_extensions import Any, Buffer, Literal, Self, TypeVar
 
     from derivepassphrase import _types
+
+    SSHAgentSocketProviderT = TypeVar(
+        "SSHAgentSocketProviderT", bound=_types.SSHAgentSocketProvider
+    )
+    """A parametrized SSH agent socket provider."""
 
     kernel32: ctypes.WinDLL  # type: ignore[name-defined]
     crypt32: ctypes.WinDLL  # type: ignore[name-defined]
@@ -605,9 +610,7 @@ class SocketProvider:
         cls,
         name: str,
         *aliases: str,
-    ) -> Callable[
-        [_types.SSHAgentSocketProvider], _types.SSHAgentSocketProvider
-    ]:
+    ) -> Callable[[SSHAgentSocketProviderT], SSHAgentSocketProviderT]:
         """Register a callable as an SSH agent socket provider (decorator).
 
         Attempting to re-register an existing alias, or a name with an
@@ -626,9 +629,7 @@ class SocketProvider:
 
         """
 
-        def decorator(
-            f: _types.SSHAgentSocketProvider,
-        ) -> _types.SSHAgentSocketProvider:
+        def decorator(f: SSHAgentSocketProviderT) -> SSHAgentSocketProviderT:
             """Register a callable as an SSH agent socket provider.
 
             Attempting to re-register an existing alias, or a name with
