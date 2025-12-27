@@ -843,6 +843,24 @@ def _prepare_payload(
     isolated: bool = True,
     time_to_live: int = 30,
 ) -> tuple[_types.SSH_AGENTC, bytes]:
+    """Return a full payload for an "add key" request to the agent.
+
+    For isolated agents, return a standard
+    [`_types.SSH_AGENTC.ADD_IDENTITY`][] request payload.  For
+    non-isolated agents, return a
+    [`_types.SSH_AGENTC.ADD_ID_CONSTRAINED`][] request payload with the
+    specified time-to-live value.
+
+    Args:
+        payload:
+            The private key to upload, already formatted suitably.
+        isolated:
+            `True` if the agent is isolated, `False` otherwise.
+        time_to_live:
+            The amount of seconds to hold the key in the agent, if not
+            isolated.
+
+    """
     return_code = (
         _types.SSH_AGENTC.ADD_IDENTITY
         if isolated
@@ -858,10 +876,25 @@ def _prepare_payload(
 
 def _load_key_optimistically(
     spawned_agent_info: data.SpawnedSSHAgentInfo,
-    key_type: str,
+    key_struct: data.SSHTestKey,
 ) -> bool:
+    """Load a test key optimistically into the spawned agent.
+
+    Load the key with a time-to-live constraint (if isolated) or not, as
+    appropriate.  If that fails because this agent does not support key
+    constraints, retry it without constraints.
+
+    Args:
+        spawned_agent_info: Info on the spawned agent.
+        key_struct: The struct for the SSH test key to upload.
+
+    Returns:
+        `True` if the key was successfully uploaded, `False` otherwise.
+        Retrying an upload because key constraints are not supported
+        still counts as successfully uploaded.
+
+    """
     agent_type, client, isolated = spawned_agent_info
-    key_struct = data.ALL_KEYS[key_type]
     private_key_data = key_struct.private_key_blob
     request_code, payload = _prepare_payload(
         private_key_data, isolated=isolated, time_to_live=30
@@ -874,11 +907,10 @@ def _load_key_optimistically(
                 response_code=_types.SSH_AGENT.SUCCESS,
             )
         except ssh_agent.SSHAgentFailedError:  # pragma: no cover [external]
-            # Pageant can fail to accept a key for two separate
-            # reasons:
+            # Pageant can fail to accept a key for two separate reasons:
             #
-            # - Pageant refuses to accept a key it already holds
-            #   in memory.  Verify this by listing keys.
+            # - Pageant refuses to accept a key it already holds in
+            #   memory.  Verify this by listing keys.
             # - Pageant does not support key constraints (see
             #   references below).
             #
@@ -943,7 +975,7 @@ def ssh_agent_client_with_test_keys_loaded(
             skip this test.
 
     Warning:
-        It is the fixture's responsibility to clean up the SSH agent
+        It is this fixture's responsibility to clean up the SSH agent
         client after the test.  Closing the client's socket connection
         beforehand (e.g. by using the client as a context manager) may
         lead to exceptions being thrown upon fixture teardown.
@@ -965,7 +997,7 @@ def ssh_agent_client_with_test_keys_loaded(
         successfully_loaded_keys = {
             key_type
             for key_type, key_struct in data.ALL_KEYS.items()
-            if _load_key_optimistically(spawn_ssh_agent, key_type)
+            if _load_key_optimistically(spawn_ssh_agent, key_struct)
         }
         if (
             agent_type != data.KnownSSHAgent.StubbedSSHAgent
