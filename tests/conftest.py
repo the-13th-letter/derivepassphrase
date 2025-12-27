@@ -1022,10 +1022,9 @@ def ssh_agent_client_with_test_keys_loaded(
             )
         yield client
     finally:
-        for key_type, key_struct in data.ALL_KEYS.items():
-            if not isolated and (
-                key_type in successfully_loaded_keys
-            ):  # pragma: no cover [external]
+        if not isolated:  # pragma: no cover [external]
+            for key_type in successfully_loaded_keys:
+                key_struct = data.ALL_KEYS[key_type]
                 # The public key blob is the base64-encoded part in
                 # the "public key line".
                 public_key = base64.standard_b64decode(
