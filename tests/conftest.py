@@ -650,13 +650,15 @@ def spawn_named_agent(  # noqa: C901
                 ssh_agent.SSHAgentClient,
                 "SOCKET_PROVIDERS",
                 ["stub_agent_with_address_and_deterministic_dsa"]
-                if "stub_agent_with_address_and_deterministic_dsa" in agent_name
+                if "stub_agent_with_address_and_deterministic_dsa"
+                in agent_name
                 else ["stub_agent_with_address"],
             )
             client = exit_stack.enter_context(
                 ssh_agent.SSHAgentClient.ensure_agent_subcontext(
                     machinery.StubbedSSHAgentSocketWithAddressAndDeterministicDSA()
-                    if "stub_agent_with_address_and_deterministic_dsa" in agent_name
+                    if "stub_agent_with_address_and_deterministic_dsa"
+                    in agent_name
                     else machinery.StubbedSSHAgentSocketWithAddress()
                 )
             )
@@ -836,85 +838,87 @@ def spawn_ssh_agent(
 
 
 def _prepare_payload(
-        payload: bytes | bytearray,
-        *,
-        isolated: bool = True,
-        time_to_live: int = 30,
-    ) -> tuple[_types.SSH_AGENTC, bytes]:
-        return_code = (
-            _types.SSH_AGENTC.ADD_IDENTITY
-            if isolated
-            else _types.SSH_AGENTC.ADD_ID_CONSTRAINED
-        )
-        lifetime_constraint = (
-            b""
-            if isolated
-            else b"\x01" + ssh_agent.SSHAgentClient.uint32(time_to_live)
-        )
-        return (return_code, bytes(payload) + lifetime_constraint)
+    payload: bytes | bytearray,
+    *,
+    isolated: bool = True,
+    time_to_live: int = 30,
+) -> tuple[_types.SSH_AGENTC, bytes]:
+    return_code = (
+        _types.SSH_AGENTC.ADD_IDENTITY
+        if isolated
+        else _types.SSH_AGENTC.ADD_ID_CONSTRAINED
+    )
+    lifetime_constraint = (
+        b""
+        if isolated
+        else b"\x01" + ssh_agent.SSHAgentClient.uint32(time_to_live)
+    )
+    return (return_code, bytes(payload) + lifetime_constraint)
 
 
-def _load_keys_optimistically(spawned_agent_info: data.SpawnedSSHAgentInfo) -> set[str]:
-        successfully_loaded_keys: set[str] = set()
-        for key_type, key_struct in data.ALL_KEYS.items():
-            agent_type, client, isolated = spawned_agent_info
-            private_key_data = key_struct.private_key_blob
-            if private_key_data is None:  # pragma: no cover [failsafe]
-                continue
-            request_code, payload = _prepare_payload(
-                private_key_data, isolated=isolated, time_to_live=30
-            )
+def _load_keys_optimistically(
+    spawned_agent_info: data.SpawnedSSHAgentInfo,
+) -> set[str]:
+    successfully_loaded_keys: set[str] = set()
+    for key_type, key_struct in data.ALL_KEYS.items():
+        agent_type, client, isolated = spawned_agent_info
+        private_key_data = key_struct.private_key_blob
+        if private_key_data is None:  # pragma: no cover [failsafe]
+            continue
+        request_code, payload = _prepare_payload(
+            private_key_data, isolated=isolated, time_to_live=30
+        )
+        try:
             try:
-                try:
+                client.request(
+                    request_code,
+                    payload,
+                    response_code=_types.SSH_AGENT.SUCCESS,
+                )
+            except (
+                ssh_agent.SSHAgentFailedError
+            ):  # pragma: no cover [external]
+                # Pageant can fail to accept a key for two separate
+                # reasons:
+                #
+                # - Pageant refuses to accept a key it already holds
+                #   in memory.  Verify this by listing keys.
+                # - Pageant does not support key constraints (see
+                #   references below).
+                #
+                # https://www.chiark.greenend.org.uk/~sgtatham/putty/wishlist/pageant-timeout.html
+                # https://www.chiark.greenend.org.uk/~sgtatham/putty/wishlist/pageant-key-confirm.html
+                current_loaded_keys = frozenset({
+                    pair.key for pair in client.list_keys()
+                })
+                if (
+                    agent_type == data.KnownSSHAgent.UNIXPageant
+                    and key_struct.public_key_data in current_loaded_keys
+                ):
+                    pass
+                elif (
+                    agent_type == data.KnownSSHAgent.UNIXPageant
+                    and not isolated
+                ):
+                    request_code, payload = _prepare_payload(
+                        private_key_data, isolated=True
+                    )
                     client.request(
                         request_code,
                         payload,
                         response_code=_types.SSH_AGENT.SUCCESS,
                     )
-                except (
-                    ssh_agent.SSHAgentFailedError
-                ):  # pragma: no cover [external]
-                    # Pageant can fail to accept a key for two separate
-                    # reasons:
-                    #
-                    # - Pageant refuses to accept a key it already holds
-                    #   in memory.  Verify this by listing keys.
-                    # - Pageant does not support key constraints (see
-                    #   references below).
-                    #
-                    # https://www.chiark.greenend.org.uk/~sgtatham/putty/wishlist/pageant-timeout.html
-                    # https://www.chiark.greenend.org.uk/~sgtatham/putty/wishlist/pageant-key-confirm.html
-                    current_loaded_keys = frozenset({
-                        pair.key for pair in client.list_keys()
-                    })
-                    if (
-                        agent_type == data.KnownSSHAgent.UNIXPageant
-                        and key_struct.public_key_data in current_loaded_keys
-                    ):
-                        pass
-                    elif (
-                        agent_type == data.KnownSSHAgent.UNIXPageant
-                        and not isolated
-                    ):
-                        request_code, payload = _prepare_payload(
-                            private_key_data, isolated=True
-                        )
-                        client.request(
-                            request_code,
-                            payload,
-                            response_code=_types.SSH_AGENT.SUCCESS,
-                        )
-                    else:
-                        raise
-            except (
-                EOFError,
-                OSError,
-                ssh_agent.SSHAgentFailedError,
-            ):  # pragma: no cover [external]
-                pass
-            else:  # pragma: no cover [external]
-                successfully_loaded_keys.add(key_type)
-        return successfully_loaded_keys
+                else:
+                    raise
+        except (
+            EOFError,
+            OSError,
+            ssh_agent.SSHAgentFailedError,
+        ):  # pragma: no cover [external]
+            pass
+        else:  # pragma: no cover [external]
+            successfully_loaded_keys.add(key_type)
+    return successfully_loaded_keys
 
 
 @pytest.fixture
