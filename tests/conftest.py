@@ -348,7 +348,7 @@ def interface_pageant_on_the_annoying_os(
     del executable, env
     try:
         return socketprovider.SocketProvider.windows_named_pipe_for_pageant()
-    except (OSError, socketprovider.WindowsNamedPipesNotAvailableError):
+    except socketprovider.WindowsNamedPipesNotAvailableError:
         return None
 
 
@@ -373,7 +373,7 @@ def interface_openssh_agent_on_the_annoying_os(
     del executable, env
     try:
         return socketprovider.SocketProvider.windows_named_pipe_for_openssh()
-    except (OSError, socketprovider.WindowsNamedPipesNotAvailableError):
+    except socketprovider.WindowsNamedPipesNotAvailableError:
         return None
 
 
