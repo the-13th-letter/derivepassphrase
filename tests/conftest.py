@@ -920,11 +920,16 @@ def _load_key_optimistically(
                 pair.key for pair in client.list_keys()
             })
             if (
-                agent_type == data.KnownSSHAgent.UNIXPageant
+                agent_type
+                in {data.KnownSSHAgent.UNIXPageant, data.KnownSSHAgent.Pageant}
                 and key_struct.public_key_data in current_loaded_keys
             ):
                 pass
-            elif agent_type == data.KnownSSHAgent.UNIXPageant and not isolated:
+            elif (
+                agent_type
+                in {data.KnownSSHAgent.UNIXPageant, data.KnownSSHAgent.Pageant}
+                and not isolated
+            ):
                 request_code, payload = _prepare_payload(
                     private_key_data, isolated=True
                 )
