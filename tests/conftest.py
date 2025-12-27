@@ -856,15 +856,13 @@ def _prepare_payload(
     return (return_code, bytes(payload) + lifetime_constraint)
 
 
-def _load_keys_optimistically(
+def _load_key_optimistically(
     spawned_agent_info: data.SpawnedSSHAgentInfo,
-) -> set[str]:
-    successfully_loaded_keys: set[str] = set()
-    for key_type, key_struct in data.ALL_KEYS.items():
+    key_type: str,
+) -> bool:
         agent_type, client, isolated = spawned_agent_info
+        key_struct = data.ALL_KEYS[key_type]
         private_key_data = key_struct.private_key_blob
-        if private_key_data is None:  # pragma: no cover [failsafe]
-            continue
         request_code, payload = _prepare_payload(
             private_key_data, isolated=isolated, time_to_live=30
         )
@@ -915,10 +913,9 @@ def _load_keys_optimistically(
             OSError,
             ssh_agent.SSHAgentFailedError,
         ):  # pragma: no cover [external]
-            pass
+            return False
         else:  # pragma: no cover [external]
-            successfully_loaded_keys.add(key_type)
-    return successfully_loaded_keys
+            return True
 
 
 @pytest.fixture
@@ -970,7 +967,11 @@ def ssh_agent_client_with_test_keys_loaded(
     # (But see below, too.)
 
     try:
-        successfully_loaded_keys = _load_keys_optimistically(spawn_ssh_agent)
+        successfully_loaded_keys = {
+            key_type
+            for key_type, key_struct in data.ALL_KEYS.items()
+            if _load_key_optimistically(spawn_ssh_agent, key_type)
+        }
         if (
             agent_type != data.KnownSSHAgent.StubbedSSHAgent
             and not successfully_loaded_keys
