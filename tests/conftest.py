@@ -860,62 +860,57 @@ def _load_key_optimistically(
     spawned_agent_info: data.SpawnedSSHAgentInfo,
     key_type: str,
 ) -> bool:
-        agent_type, client, isolated = spawned_agent_info
-        key_struct = data.ALL_KEYS[key_type]
-        private_key_data = key_struct.private_key_blob
-        request_code, payload = _prepare_payload(
-            private_key_data, isolated=isolated, time_to_live=30
-        )
+    agent_type, client, isolated = spawned_agent_info
+    key_struct = data.ALL_KEYS[key_type]
+    private_key_data = key_struct.private_key_blob
+    request_code, payload = _prepare_payload(
+        private_key_data, isolated=isolated, time_to_live=30
+    )
+    try:
         try:
-            try:
+            client.request(
+                request_code,
+                payload,
+                response_code=_types.SSH_AGENT.SUCCESS,
+            )
+        except ssh_agent.SSHAgentFailedError:  # pragma: no cover [external]
+            # Pageant can fail to accept a key for two separate
+            # reasons:
+            #
+            # - Pageant refuses to accept a key it already holds
+            #   in memory.  Verify this by listing keys.
+            # - Pageant does not support key constraints (see
+            #   references below).
+            #
+            # https://www.chiark.greenend.org.uk/~sgtatham/putty/wishlist/pageant-timeout.html
+            # https://www.chiark.greenend.org.uk/~sgtatham/putty/wishlist/pageant-key-confirm.html
+            current_loaded_keys = frozenset({
+                pair.key for pair in client.list_keys()
+            })
+            if (
+                agent_type == data.KnownSSHAgent.UNIXPageant
+                and key_struct.public_key_data in current_loaded_keys
+            ):
+                pass
+            elif agent_type == data.KnownSSHAgent.UNIXPageant and not isolated:
+                request_code, payload = _prepare_payload(
+                    private_key_data, isolated=True
+                )
                 client.request(
                     request_code,
                     payload,
                     response_code=_types.SSH_AGENT.SUCCESS,
                 )
-            except (
-                ssh_agent.SSHAgentFailedError
-            ):  # pragma: no cover [external]
-                # Pageant can fail to accept a key for two separate
-                # reasons:
-                #
-                # - Pageant refuses to accept a key it already holds
-                #   in memory.  Verify this by listing keys.
-                # - Pageant does not support key constraints (see
-                #   references below).
-                #
-                # https://www.chiark.greenend.org.uk/~sgtatham/putty/wishlist/pageant-timeout.html
-                # https://www.chiark.greenend.org.uk/~sgtatham/putty/wishlist/pageant-key-confirm.html
-                current_loaded_keys = frozenset({
-                    pair.key for pair in client.list_keys()
-                })
-                if (
-                    agent_type == data.KnownSSHAgent.UNIXPageant
-                    and key_struct.public_key_data in current_loaded_keys
-                ):
-                    pass
-                elif (
-                    agent_type == data.KnownSSHAgent.UNIXPageant
-                    and not isolated
-                ):
-                    request_code, payload = _prepare_payload(
-                        private_key_data, isolated=True
-                    )
-                    client.request(
-                        request_code,
-                        payload,
-                        response_code=_types.SSH_AGENT.SUCCESS,
-                    )
-                else:
-                    raise
-        except (
-            EOFError,
-            OSError,
-            ssh_agent.SSHAgentFailedError,
-        ):  # pragma: no cover [external]
-            return False
-        else:  # pragma: no cover [external]
-            return True
+            else:
+                raise
+    except (
+        EOFError,
+        OSError,
+        ssh_agent.SSHAgentFailedError,
+    ):  # pragma: no cover [external]
+        return False
+    else:  # pragma: no cover [external]
+        return True
 
 
 @pytest.fixture
