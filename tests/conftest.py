@@ -699,7 +699,11 @@ def spawn_named_agent(  # noqa: C901
                 msg = f'agent failed the "list keys" sanity test: {exc!r}'
                 raise CannotSpawnError(msg) from exc
         yield data.SpawnedSSHAgentInfo(
-            agent_type, client, spawn_func is not spawn_noop
+            agent_type,
+            client,
+            spawn_func is not spawn_noop
+            if isinstance(proc_or_socket, subprocess.Popen)
+            else False,
         )
     assert os.environ.get("SSH_AUTH_SOCK", None) == startup_ssh_auth_sock, (
         f"SSH_AUTH_SOCK mismatch after tearing down {agent_name}"
