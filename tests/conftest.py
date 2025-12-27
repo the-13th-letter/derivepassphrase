@@ -883,7 +883,7 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
     #
     # (But see below, too.)
 
-    def prepare_payload(
+    def _prepare_payload(
         payload: bytes | bytearray,
         *,
         isolated: bool = True,
@@ -901,12 +901,14 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
         )
         return (return_code, bytes(payload) + lifetime_constraint)
 
+    spawned_agent_info = spawn_ssh_agent
     try:
         for key_type, key_struct in data.ALL_KEYS.items():
+            agent_type, client, isolated = spawned_agent_info
             private_key_data = key_struct.private_key_blob
             if private_key_data is None:  # pragma: no cover [failsafe]
                 continue
-            request_code, payload = prepare_payload(
+            request_code, payload = _prepare_payload(
                 private_key_data, isolated=isolated, time_to_live=30
             )
             try:
@@ -941,7 +943,7 @@ def ssh_agent_client_with_test_keys_loaded(  # noqa: C901
                         agent_type == data.KnownSSHAgent.UNIXPageant
                         and not isolated
                     ):
-                        request_code, payload = prepare_payload(
+                        request_code, payload = _prepare_payload(
                             private_key_data, isolated=True
                         )
                         client.request(
