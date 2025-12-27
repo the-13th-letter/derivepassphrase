@@ -36,8 +36,27 @@ HEAD_LEN = 4
 class TrailingDataError(RuntimeError):
     """The result contained trailing data."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self, raw: bytes | bytearray = b"", trailing: bytes | bytearray = b""
+    ) -> None:
         super().__init__("Overlong response from SSH agent")
+        self.raw = bytes(raw)
+        self.trailing = bytes(trailing)
+
+    def __str__(self) -> str:  # pragma: no cover [debug]
+        if self.raw or self.trailing:
+            return (
+                f"Overlong response from SSH agent: "
+                f"raw = {self.raw!r}, trailing = {self.trailing!r}"
+            )
+        return super().__str__()
+
+    def __repr__(self) -> str:  # pragma: no cover [debug]
+        """"""  # noqa: D419
+        return (
+            f"{self.__class__.__name__}"
+            f"(raw={self.raw!r}, trailing={self.trailing!r})"
+        )
 
 
 class SSHAgentFailedError(RuntimeError):
@@ -575,7 +594,9 @@ class SSHAgentClient:
             # Both `key` and `comment` are not wrapped as SSH strings.
             keys.append(_types.SSHKeyCommentPair(key, comment))
         if response_stream:
-            raise TrailingDataError
+            raise TrailingDataError(
+                raw=response, trailing=bytes(response_stream)
+            )
         return keys
 
     def sign(
