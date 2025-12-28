@@ -28,7 +28,14 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import ClassVar
 
-    from typing_extensions import Any, Buffer, Literal, Self, TypeVar
+    from typing_extensions import (
+        Any,
+        Buffer,
+        Literal,
+        Self,
+        TypeAlias,
+        TypeVar,
+    )
 
     from derivepassphrase import _types
 
@@ -53,9 +60,43 @@ if TYPE_CHECKING:
         ],
         HANDLE,
     ]
-    ReadFile: Callable[[HANDLE, LPCVOID, DWORD, LPDWORD, None], BOOL]
-    WriteFile: Callable[[HANDLE, LPCVOID, DWORD, LPDWORD, None], BOOL]
+    ReadFile: Callable[[HANDLE, LPCVOID, DWORD, LPDWORD, LPOVERLAPPED], BOOL]
+    WriteFile: Callable[[HANDLE, LPCVOID, DWORD, LPDWORD, LPOVERLAPPED], BOOL]
     CloseHandle: Callable[[HANDLE], BOOL]
+    GetOverlappedResult: Callable[[HANDLE, LPOVERLAPPED, LPDWORD, BOOL], BOOL]
+    CreateEvent: Callable[[None, BOOL, BOOL, None], HANDLE]
+
+
+class _OverlappedDummyStruct(ctypes.Structure):
+    """The DUMMYSTRUCTNAME structure in the definition of OVERLAPPED."""
+
+    _fields_ = (("Offset", DWORD), ("OffsetHigh", DWORD))
+
+
+class _OverlappedDummyUnion(ctypes.Union):
+    """The DUMMYUNIONNAME union in the definition of OVERLAPPED."""
+
+    _fields_ = (
+        ("DUMMYSTRUCTNAME", _OverlappedDummyStruct),
+        ("Pointer", ctypes.c_void_p),
+    )
+
+
+class OVERLAPPED(ctypes.Structure):
+    """The data structure for overlapped (async) I/O on The Annoying OS."""
+
+    _fields_ = (
+        ("Internal", ctypes.POINTER(ctypes.c_ulong)),
+        ("InternalHigh", ctypes.POINTER(ctypes.c_ulong)),
+        ("DUMMYUNIONNAME", _OverlappedDummyUnion),
+        ("hEvent", HANDLE),
+    )
+
+
+if TYPE_CHECKING:
+    LPOVERLAPPED: TypeAlias = ctypes._Pointer[OVERLAPPED]  # noqa: SLF001
+else:
+    LPOVERLAPPED = ctypes.POINTER(OVERLAPPED)
 
 __all__ = ("SocketProvider",)
 
@@ -90,6 +131,7 @@ GENERIC_WRITE = 0x40000000
 
 FILE_SHARE_READ = 0x00000001
 FILE_SHARE_WRITE = 0x00000002
+FILE_FLAG_OVERLAPPED = 0x40000000
 
 OPEN_EXISTING = 0x3
 
@@ -101,6 +143,7 @@ CRYPTPROTECTMEMORY_CROSS_PROCESS = 0x1
 PIPE_PREFIX = "//./pipe/".replace("/", "\\")
 
 ERROR_PIPE_BUSY = 231
+ERROR_IO_PENDING = 997
 
 
 # The type checker and the standard library use different
@@ -172,6 +215,8 @@ try:  # pragma: unless the-annoying-os no cover
     ReadFile = kernel32.ReadFile  # type: ignore[attr-defined]
     WriteFile = kernel32.WriteFile  # type: ignore[attr-defined]
     CloseHandle = kernel32.CloseHandle  # type: ignore[attr-defined]
+    GetOverlappedResult = kernel32.GetOverlappedResult  # type: ignore[attr-defined]
+    CreateEvent = kernel32.CreateEventW  # type: ignore[attr-defined]
 except (
     AttributeError,
     FileNotFoundError,
@@ -203,7 +248,7 @@ except (
         lpBuffer: LPVOID,  # noqa: N803
         nNumberOfBytesToRead: DWORD,  # noqa: N803
         lpNumberOfBytesRead: LPDWORD,  # noqa: N803
-        lpOverlapped: None,  # noqa: N803
+        lpOverlapped: LPOVERLAPPED,  # noqa: N803
     ) -> BOOL:  # pragma: no cover [external]
         del (
             hFile,
@@ -219,7 +264,7 @@ except (
         lpBuffer: LPVOID,  # noqa: N803
         nNumberOfBytesToWrite: DWORD,  # noqa: N803
         lpNumberOfBytesWritten: LPDWORD,  # noqa: N803
-        lpOverlapped: None,  # noqa: N803
+        lpOverlapped: LPOVERLAPPED,  # noqa: N803
     ) -> BOOL:  # pragma: no cover [external]
         del (
             hFile,
@@ -236,6 +281,24 @@ except (
         del hHandle
         raise OSError(errno.ENOTSUP, os.strerror(errno.ENOTSUP))
 
+    def GetOverlappedResult(  # noqa: N802
+        hFile: HANDLE,  # noqa: N803
+        lpOverlapped: LPOVERLAPPED,  # noqa: N803
+        lpNumberOfBytesTransferred: LPDWORD,  # noqa: N803
+        bWait: BOOL,  # noqa: N803
+    ) -> BOOL:  # pragma: no cover [external]
+        del hFile, lpOverlapped, lpNumberOfBytesTransferred, bWait
+        raise OSError(errno.ENOTSUP, os.strerror(errno.ENOTSUP))
+
+    def CreateEvent(  # noqa: N802
+        lpEventAttributes: None,  # noqa: N803
+        bManualReset: BOOL,  # noqa: N803
+        bInitialState: BOOL,  # noqa: N803
+        lpName: None,  # noqa: N803
+    ) -> HANDLE:
+        del lpEventAttributes, bManualReset, bInitialState, lpName
+        raise OSError(errno.ENOTSUP, os.strerror(errno.ENOTSUP))
+
 
 else:  # pragma: unless the-annoying-os no cover
     CreateFile.argtypes = [  # type: ignore[attr-defined]
@@ -250,28 +313,45 @@ else:  # pragma: unless the-annoying-os no cover
         # We always pass None/NULL.
         HANDLE,
     ]
+    CreateEvent.argtypes = [
+        # Actually, LPSECURITY_ATTRIBUTES, but we always pass
+        # None/NULL.
+        ctypes.c_void_p,
+        BOOL,
+        BOOL,
+        # We always pass None/NULL.
+        LPCWSTR,
+    ]
     CreateFile.restype = HANDLE  # type: ignore[attr-defined]
+    CreateEvent.restype = HANDLE  # type: ignore[attr-defined]
     CreateFile.errcheck = _errcheck  # type: ignore[assignment, attr-defined]
+    CreateEvent.errcheck = _errcheck  # type: ignore[assignment, attr-defined]
     ReadFile.argtypes = [  # type: ignore[attr-defined]
         HANDLE,
         LPVOID,
         DWORD,
         LPDWORD,
-        # Actually, LPOVERLAPPED, but we always pass None/NULL.
-        ctypes.c_void_p,
+        LPOVERLAPPED,
     ]
     WriteFile.argtypes = [  # type: ignore[attr-defined]
         HANDLE,
         LPVOID,
         DWORD,
         LPDWORD,
-        # Actually, LPOVERLAPPED, but we always pass None/NULL.
-        ctypes.c_void_p,
+        LPOVERLAPPED,
     ]
     CloseHandle.argtypes = [HANDLE]  # type: ignore[attr-defined]
+    GetOverlappedResult.argtypes = [
+        HANDLE,
+        LPOVERLAPPED,
+        LPDWORD,
+        # We always pass True.
+        BOOL,
+    ]
     ReadFile.restype = BOOL  # type: ignore[attr-defined]
     WriteFile.restype = BOOL  # type: ignore[attr-defined]
     CloseHandle.restype = BOOL  # type: ignore[attr-defined]
+    GetOverlappedResult.restype = BOOL  # type: ignore[attr-defined]
 
 
 class WindowsNamedPipeHandle:
@@ -314,7 +394,7 @@ class WindowsNamedPipeHandle:
                     ctypes.c_ulong(FILE_SHARE_READ | FILE_SHARE_WRITE),
                     None,
                     ctypes.c_ulong(OPEN_EXISTING),
-                    ctypes.c_ulong(0),
+                    ctypes.c_ulong(FILE_FLAG_OVERLAPPED),
                     None,
                 )
             except BlockingIOError:  # pragma: no cover [external]
@@ -344,17 +424,31 @@ class WindowsNamedPipeHandle:
         buffer = (ctypes.c_char * 65536)()
         while data > 0:
             block_size = min(max(0, data), 65536)
-            success = ReadFile(
-                self.handle,
-                ctypes.cast(ctypes.byref(buffer), ctypes.c_void_p),
-                DWORD(block_size),
-                ctypes.cast(ctypes.byref(read_count), LPDWORD),
-                None,
-            )
-            if (
-                not success or read_count.value == 0
-            ):  # pragma: no cover [external]
-                raise ctypes.WinError()  # type: ignore[attr-defined]
+            wait_event = CreateEvent(None, BOOL(True), BOOL(False), None)  # noqa: FBT003
+            try:
+                overlapped_struct = OVERLAPPED(hEvent=wait_event)
+                success = ReadFile(
+                    self.handle,
+                    ctypes.cast(ctypes.byref(buffer), ctypes.c_void_p),
+                    DWORD(block_size),
+                    ctypes.cast(ctypes.byref(read_count), LPDWORD),
+                    ctypes.cast(ctypes.byref(overlapped_struct), LPOVERLAPPED),
+                )
+                if not success and ctypes.GetLastError() == ERROR_IO_PENDING:
+                    success = GetOverlappedResult(
+                        self.handle,
+                        ctypes.cast(
+                            ctypes.byref(overlapped_struct), LPOVERLAPPED
+                        ),
+                        ctypes.cast(ctypes.byref(read_count), LPDWORD),
+                        BOOL(True),  # noqa: FBT003
+                    )
+                if (
+                    not success or read_count.value == 0
+                ):  # pragma: no cover [external]
+                    raise ctypes.WinError()  # type: ignore[attr-defined]
+            finally:
+                CloseHandle(wait_event)
             result.extend(buffer.raw[:block_size])
             data -= read_count.value
             read_count.value = 0
@@ -369,17 +463,29 @@ class WindowsNamedPipeHandle:
         for i, x in enumerate(data):
             databuf[i] = ctypes.c_char(x)
         write_count = DWORD(0)
-        success = WriteFile(
-            self.handle,
-            ctypes.cast(ctypes.byref(databuf), ctypes.c_void_p),
-            DWORD(len(data)),
-            ctypes.cast(ctypes.byref(write_count), LPDWORD),
-            None,
-        )
-        if (
-            not success or write_count.value == 0
-        ):  # pragma: no cover [external]
-            raise ctypes.WinError()  # type: ignore[attr-defined]
+        wait_event = CreateEvent(None, BOOL(True), BOOL(False), None)  # noqa: FBT003
+        try:
+            overlapped_struct = OVERLAPPED(hEvent=wait_event)
+            success = WriteFile(
+                self.handle,
+                ctypes.cast(ctypes.byref(databuf), ctypes.c_void_p),
+                DWORD(len(data)),
+                ctypes.cast(ctypes.byref(write_count), LPDWORD),
+                ctypes.cast(ctypes.byref(overlapped_struct), LPOVERLAPPED),
+            )
+            if not success and ctypes.GetLastError() == ERROR_IO_PENDING:
+                success = GetOverlappedResult(
+                    self.handle,
+                    ctypes.cast(ctypes.byref(overlapped_struct), LPOVERLAPPED),
+                    ctypes.cast(ctypes.byref(write_count), LPDWORD),
+                    BOOL(True),  # noqa: FBT003
+                )
+            if (
+                not success or write_count.value == 0
+            ):  # pragma: no cover [external]
+                raise ctypes.WinError()  # type: ignore[attr-defined]
+        finally:
+            CloseHandle(wait_event)
 
     @classmethod
     def for_openssh(cls) -> Self:
