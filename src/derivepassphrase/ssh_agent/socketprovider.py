@@ -100,6 +100,8 @@ CRYPTPROTECTMEMORY_CROSS_PROCESS = 0x1
 
 PIPE_PREFIX = "//./pipe/".replace("/", "\\")
 
+ERROR_PIPE_BUSY = 231
+
 
 # The type checker and the standard library use different
 # (finer-grained?) types and type definitions on The Annoying Operating
@@ -295,15 +297,24 @@ class WindowsNamedPipeHandle:
         """
         if not name.replace("/", "\\").startswith(PIPE_PREFIX):
             raise ValueError(errno.EINVAL, os.strerror(errno.EINVAL))
-        self.handle: HANDLE | None = CreateFile(
-            ctypes.c_wchar_p(name),
-            ctypes.c_ulong(GENERIC_READ | GENERIC_WRITE),
-            ctypes.c_ulong(FILE_SHARE_READ | FILE_SHARE_WRITE),
-            None,
-            ctypes.c_ulong(OPEN_EXISTING),
-            ctypes.c_ulong(0),
-            None,
-        )
+        self.handle: HANDLE | None = None
+        while self.handle is None:
+            try:
+                self.handle = CreateFile(
+                    ctypes.c_wchar_p(name),
+                    ctypes.c_ulong(GENERIC_READ | GENERIC_WRITE),
+                    ctypes.c_ulong(FILE_SHARE_READ | FILE_SHARE_WRITE),
+                    None,
+                    ctypes.c_ulong(OPEN_EXISTING),
+                    ctypes.c_ulong(0),
+                    None,
+                )
+            except BlockingIOError:  # pragma: no cover [external]
+                continue  # retry
+            except OSError as exc:  # pragma: no cover [external]
+                if getattr(exc, "winerror", None) == ERROR_PIPE_BUSY:
+                    continue  # retry
+                raise
 
     def __enter__(self) -> Self:
         return self
