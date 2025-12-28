@@ -140,6 +140,7 @@ except (
         cbDataIn: DWORD,  # noqa: N803
         dwFlags: DWORD,  # noqa: N803
     ) -> BOOL:  # pragma: no cover [external]
+        del pDataIn, cbDataIn, dwFlags
         raise NotImplementedError
 
 else:  # pragma: unless the-annoying-os no cover
@@ -228,6 +229,13 @@ except (
             lpOverlapped,
         )
         raise OSError(errno.ENOTSUP, os.strerror(errno.ENOTSUP))
+
+    def CloseHandle(  # noqa: N802
+        hHandle: HANDLE,  # noqa: N803
+    ) -> BOOL:  # pragma: no cover [external]
+        del hHandle
+        raise OSError(errno.ENOTSUP, os.strerror(errno.ENOTSUP))
+
 
 else:  # pragma: unless the-annoying-os no cover
     CreateFile.argtypes = [  # type: ignore[attr-defined]
