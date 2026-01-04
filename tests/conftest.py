@@ -11,6 +11,7 @@ import datetime
 import importlib
 import importlib.util
 import os
+import shutil
 import socket
 import subprocess
 import sys
@@ -240,8 +241,12 @@ def spawn_pageant_on_posix(  # pragma: no cover [external]
         subprocess.
 
     """
-    if executable is None or os.name == "nt":  # pragma: no cover [external]
+    if os.name == "nt":  # pragma: no cover [external]
         return None
+    if executable is None:  # pragma: no cover [external]
+        executable = shutil.which("pageant")
+        if executable is None:
+            return None
 
     # Apparently, Pageant 0.81 and lower running in debug mode does
     # not actively flush its output.  As a result, the first two
@@ -307,8 +312,12 @@ def spawn_openssh_agent_on_posix(  # pragma: no cover [external]
         subprocess.
 
     """
-    if executable is None or os.name == "nt":  # pragma: no cover [external]
+    if os.name == "nt":  # pragma: no cover [external]
         return None
+    if executable is None:  # pragma: no cover [external]
+        executable = shutil.which("ssh-agent")
+        if executable is None:
+            return None
     return subprocess.Popen(
         ["ssh-agent", "-D", "-s"],
         executable=executable,
