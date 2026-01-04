@@ -32,6 +32,7 @@ if TYPE_CHECKING:
         Any,
         Buffer,
         Literal,
+        Protocol,
         Self,
         TypeAlias,
         TypeVar,
@@ -65,6 +66,12 @@ if TYPE_CHECKING:
     CloseHandle: Callable[[HANDLE], BOOL]
     GetOverlappedResult: Callable[[HANDLE, LPOVERLAPPED, LPDWORD, BOOL], BOOL]
     CreateEvent: Callable[[None, BOOL, BOOL, None], HANDLE]
+
+    class WinErrorProtocol(Protocol):
+        def __call__(self, err: int | None = None, /) -> OSError: ...
+
+    GetLastError: Callable[[], int]
+    WinError: WinErrorProtocol
 
 
 class _OverlappedDummyStruct(ctypes.Structure):
@@ -170,13 +177,29 @@ ERROR_IO_PENDING = 997
 try:  # pragma: unless the-annoying-os no cover
     import ctypes
 
+    GetLastError = ctypes.GetLastError  # type: ignore[attr-defined]
+    WinError = ctypes.WinError  # type: ignore[attr-defined]
+except (
+    AttributeError,
+    FileNotFoundError,
+    ImportError,
+):  # pragma: unless posix no cover
+
+    def GetLastError() -> int:  # noqa: N802  # pragma: no cover [failsafe]
+        raise NotImplementedError
+
+    def WinError(err: int | None = None, /) -> OSError:  # noqa: N802  # pragma: no cover [failsafe]
+        raise NotImplementedError
+
+
+try:  # pragma: unless the-annoying-os no cover
     crypt32 = ctypes.WinDLL("crypt32.dll")  # type: ignore[attr-defined]
     CryptProtectMemory = crypt32.CryptProtectMemory  # type: ignore[attr-defined]
 except (
     AttributeError,
     FileNotFoundError,
     ImportError,
-):  # pragma unless posix no cover
+):  # pragma: unless posix no cover
 
     def CryptProtectMemory(  # noqa: N802
         pDataIn: LPVOID,  # noqa: N803
@@ -204,7 +227,7 @@ def _errcheck(
     result_value = HANDLE(result).value
     invalid_value = HANDLE(INVALID_HANDLE_VALUE).value
     if result_value == invalid_value:
-        raise ctypes.WinError()  # type: ignore[attr-defined]
+        raise WinError()
     assert result_value is not None  # for the type checker
     return result_value
 
@@ -295,7 +318,7 @@ except (
         bManualReset: BOOL,  # noqa: N803
         bInitialState: BOOL,  # noqa: N803
         lpName: None,  # noqa: N803
-    ) -> HANDLE:
+    ) -> HANDLE:  # pragma: no cover [external]
         del lpEventAttributes, bManualReset, bInitialState, lpName
         raise OSError(errno.ENOTSUP, os.strerror(errno.ENOTSUP))
 
@@ -313,7 +336,7 @@ else:  # pragma: unless the-annoying-os no cover
         # We always pass None/NULL.
         HANDLE,
     ]
-    CreateEvent.argtypes = [
+    CreateEvent.argtypes = [  # type: ignore[attr-defined]
         # Actually, LPSECURITY_ATTRIBUTES, but we always pass
         # None/NULL.
         ctypes.c_void_p,
@@ -341,7 +364,7 @@ else:  # pragma: unless the-annoying-os no cover
         LPOVERLAPPED,
     ]
     CloseHandle.argtypes = [HANDLE]  # type: ignore[attr-defined]
-    GetOverlappedResult.argtypes = [
+    GetOverlappedResult.argtypes = [  # type: ignore[attr-defined]
         HANDLE,
         LPOVERLAPPED,
         LPDWORD,
@@ -366,7 +389,9 @@ class WindowsNamedPipeHandle:
 
     _IO_ON_CLOSED_FILE = "I/O operation on closed file."
 
-    def __init__(self, name: str) -> None:
+    def __init__(
+        self, name: str
+    ) -> None:  # pragma: unless the-annoying-os no cover
         """Create a named pipe handle.
 
         Args:
@@ -404,10 +429,12 @@ class WindowsNamedPipeHandle:
                     continue  # retry
                 raise
 
-    def __enter__(self) -> Self:
+    def __enter__(self) -> Self:  # pragma: unless the-annoying-os no cover
         return self
 
-    def __exit__(self, *args: object) -> Literal[False]:
+    def __exit__(
+        self, *args: object
+    ) -> Literal[False]:  # pragma: unless the-annoying-os no cover
         try:
             if self.handle is not None:
                 CloseHandle(self.handle)
@@ -415,7 +442,9 @@ class WindowsNamedPipeHandle:
         finally:
             self.handle = None
 
-    def recv(self, data: int, flags: int = 0, /) -> bytes:
+    def recv(
+        self, data: int, flags: int = 0, /
+    ) -> bytes:  # pragma: unless the-annoying-os no cover
         if self.handle is None:
             raise ValueError(self._IO_ON_CLOSED_FILE)
         del flags
@@ -434,7 +463,7 @@ class WindowsNamedPipeHandle:
                     ctypes.cast(ctypes.byref(read_count), LPDWORD),
                     ctypes.cast(ctypes.byref(overlapped_struct), LPOVERLAPPED),
                 )
-                if not success and ctypes.GetLastError() == ERROR_IO_PENDING:
+                if not success and GetLastError() == ERROR_IO_PENDING:
                     success = GetOverlappedResult(
                         self.handle,
                         ctypes.cast(
@@ -446,7 +475,7 @@ class WindowsNamedPipeHandle:
                 if (
                     not success or read_count.value == 0
                 ):  # pragma: no cover [external]
-                    raise ctypes.WinError()  # type: ignore[attr-defined]
+                    raise WinError()
             finally:
                 CloseHandle(wait_event)
             result.extend(buffer.raw[:block_size])
@@ -454,7 +483,9 @@ class WindowsNamedPipeHandle:
             read_count.value = 0
         return bytes(result)
 
-    def sendall(self, data: Buffer, flags: int = 0, /) -> None:
+    def sendall(
+        self, data: Buffer, flags: int = 0, /
+    ) -> None:  # pragma: unless the-annoying-os no cover
         if self.handle is None:
             raise ValueError(self._IO_ON_CLOSED_FILE)
         del flags
@@ -473,7 +504,7 @@ class WindowsNamedPipeHandle:
                 ctypes.cast(ctypes.byref(write_count), LPDWORD),
                 ctypes.cast(ctypes.byref(overlapped_struct), LPOVERLAPPED),
             )
-            if not success and ctypes.GetLastError() == ERROR_IO_PENDING:
+            if not success and GetLastError() == ERROR_IO_PENDING:
                 success = GetOverlappedResult(
                     self.handle,
                     ctypes.cast(ctypes.byref(overlapped_struct), LPOVERLAPPED),
@@ -483,12 +514,12 @@ class WindowsNamedPipeHandle:
             if (
                 not success or write_count.value == 0
             ):  # pragma: no cover [external]
-                raise ctypes.WinError()  # type: ignore[attr-defined]
+                raise WinError()
         finally:
             CloseHandle(wait_event)
 
     @classmethod
-    def for_openssh(cls) -> Self:
+    def for_openssh(cls) -> Self:  # pragma: unless the-annoying-os no cover
         """Construct a named pipe for use with OpenSSH on The Annoying OS.
 
         Returns:
@@ -498,7 +529,7 @@ class WindowsNamedPipeHandle:
         return cls(f"{PIPE_PREFIX}openssh-ssh-agent")
 
     @classmethod
-    def for_pageant(cls) -> Self:
+    def for_pageant(cls) -> Self:  # pragma: unless the-annoying-os no cover
         """Construct a named pipe for use with Pageant.
 
         Returns:
@@ -511,7 +542,7 @@ class WindowsNamedPipeHandle:
     def pageant_named_pipe_name(
         *,
         require_cryptprotectmemory: bool = False,
-    ) -> str:
+    ) -> str:  # pragma: unless the-annoying-os no cover
         """Return the pipe name that Pageant on The Annoying OS would use.
 
         Args:

@@ -232,7 +232,9 @@ class SocketAddressAction(str, enum.Enum):
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         if self == self.MANGLE_ADDRESS:
 
-            def mangled_address(*_args: Any, **_kwargs: Any) -> NoReturn:
+            def mangled_address(
+                *_args: Any, **_kwargs: Any
+            ) -> NoReturn:  # pragma: no cover [failsafe]
                 raise OSError(errno.ENOENT, os.strerror(errno.ENOENT))
 
             monkeypatch.setattr(
@@ -253,8 +255,10 @@ class SocketAddressAction(str, enum.Enum):
             )
         elif self == self.UNSET_ADDRESS:
 
-            def no_address(*_args: Any, **_kwargs: Any) -> NoReturn:
-                raise KeyError("SSH_AUTH_SOCK environment variable")  # noqa: EM101, TRY003
+            def no_address(
+                *_args: Any, **_kwargs: Any
+            ) -> NoReturn:  # pragma: no cover [failsafe]
+                raise KeyError("SSH_AUTH_SOCK")  # noqa: EM101
 
             monkeypatch.setattr(
                 socketprovider.WindowsNamedPipeHandle,

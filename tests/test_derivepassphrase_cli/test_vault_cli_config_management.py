@@ -798,8 +798,10 @@ class TestStoringConfigurationFailures:
             patch_suitable_ssh_keys=False,
         ) as monkeypatch:
 
-            def no_agent(*_args: Any, **_kwargs: Any) -> NoReturn:
-                raise KeyError("SSH_AUTH_SOCK environment variable")  # noqa: EM101, TRY003
+            def no_agent(
+                *_args: Any, **_kwargs: Any
+            ) -> NoReturn:  # pragma: no cover [failsafe]
+                raise KeyError("SSH_AUTH_SOCK")  # noqa: EM101
 
             monkeypatch.setattr(
                 socketprovider.WindowsNamedPipeHandle, "for_pageant", no_agent
@@ -822,7 +824,9 @@ class TestStoringConfigurationFailures:
             cwd = pathlib.Path.cwd().resolve()
             monkeypatch.setenv("SSH_AUTH_SOCK", str(cwd))
 
-            def mangled_address(*_args: Any, **_kwargs: Any) -> NoReturn:
+            def mangled_address(
+                *_args: Any, **_kwargs: Any
+            ) -> NoReturn:  # pragma: no cover [failsafe]
                 raise OSError(errno.ENOENT, os.strerror(errno.ENOENT))
 
             monkeypatch.setattr(
