@@ -26,6 +26,7 @@ from derivepassphrase import _types, ssh_agent
 from derivepassphrase.ssh_agent import socketprovider
 from tests import data, machinery
 from tests.data import callables
+from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
@@ -509,6 +510,12 @@ for key, handler in spawn_handlers.items():
             "environment variable.",
         ),
     ]
+    # Mark non-isolated agents as, well, using non-isolated agents.
+    # Assume by default that an agent is potentially non-isolated unless
+    # we can be absolutely sure it is isolated, by design.  (The "stub"
+    # agents fall into the latter category.)
+    if handler.agent_type != data.KnownSSHAgent.StubbedSSHAgent:
+        marks.append(pytest_machinery.non_isolated_agent_use)
     # Some agents require UNIX domain socket support.
     if key in {"unix-pageant", "openssh"}:
         marks.append(
@@ -719,8 +726,21 @@ def spawn_named_agent(  # noqa: C901
     )
 
 
-@pytest.fixture
+# Hack: We cannot associate markers with fixtures (the pytest devs say
+# there are many unresolved questions when it comes to fixture and
+# marker overriding in such a case), so we fake this by trivially
+# parametrizing the fixture.  (The parametrizations *can* contain the
+# necessary marks.)
+@pytest.fixture(
+    params=[
+        pytest.param(
+            "non_isolated_agent_use",
+            marks=pytest_machinery.non_isolated_agent_use,
+        )
+    ]
+)
 def running_ssh_agent(  # pragma: no cover [external]
+    request: pytest.FixtureRequest,
 ) -> Iterator[data.RunningSSHAgentInfo]:
     """Ensure a running SSH agent, if possible, as a pytest fixture.
 
@@ -742,6 +762,7 @@ def running_ssh_agent(  # pragma: no cover [external]
             If no agent is running or can be spawned, skip this test.
 
     """
+    del request
 
     def prepare_environment(
         agent_type: data.KnownSSHAgent,

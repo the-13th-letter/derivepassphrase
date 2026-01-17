@@ -151,6 +151,30 @@ All current heavy duty tests are integration tests.
 """
 
 
+non_isolated_agent_use = pytest.mark.xdist_group("non_isolated_agent_use")
+"""
+A cached `pytest` mark, for use with xdist's "loadgroup" scheduling,
+that marks a test as part of the group of tests that use a potentially
+non-isolated agent, and thus need to be run serially, in the same worker
+(because of the setup and teardown).
+
+This is a pessimistic approach: all agent use is marked with this mark
+*unless* we know for sure that this constellation is guaranteed safe.
+To date, this is only the case for the fake agents from this very test
+suite.
+
+The use of this mark is, if not outright a hack, at least an abuse of
+xdist features.  The "correct" way to handle this situation is to employ
+a lock, but we have had bad experiences with trying to do this in
+a portable way without adding oodles of extra code (that also needs to be
+tested), or effectively forcing *everything* into serial execution.  It
+also only works because we have precisely one group, and because we have
+no work stealing (at least, not with the only scheduler that honors
+`xdist_group`).  In particular, it bars us from adding more groups or
+grouping along different criteria.
+"""
+
+
 # Parameter sets
 # ==============
 
