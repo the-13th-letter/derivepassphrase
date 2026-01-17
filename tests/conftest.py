@@ -7,17 +7,12 @@ from __future__ import annotations
 import base64
 import contextlib
 import ctypes
-import datetime
-import importlib
-import importlib.util
 import os
 import shutil
 import socket
 import subprocess
-import sys
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
-import hypothesis
 import packaging.version
 import pytest
 from typing_extensions import NamedTuple
@@ -26,92 +21,13 @@ from derivepassphrase import _types, ssh_agent
 from derivepassphrase.ssh_agent import socketprovider
 from tests import data, machinery
 from tests.data import callables
+from tests.machinery import hypothesis as hypothesis_machinery
 from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
 
 startup_ssh_auth_sock = os.environ.get("SSH_AUTH_SOCK", None)
-
-
-def _hypothesis_settings_setup() -> None:
-    """
-    Ensure sensible hypothesis settings if running under coverage.
-
-    In our tests, the sys.monitoring tracer slows down execution speed
-    by a factor of roughly 3, the C tracer by roughly 2.5, and the
-    Python tracer by roughly 40.  Ensure that hypothesis default
-    timeouts apply relative to this *new* execution speed, not the old
-    one.
-
-    In any case, we *also* reduce the state machine step count to 32
-    steps per run, because the current state machines defined in the
-    tests rather benefit from broad testing rather than deep testing.
-
-    """
-    settings = hypothesis.settings()
-    slowdown: float | None = None
-    if (
-        importlib.util.find_spec("coverage") is not None
-        and settings.deadline is not None
-        and settings.deadline.total_seconds() < 1.0
-    ):  # pragma: no cover [external]
-        ctracer_class = (
-            importlib.import_module("coverage.tracer").CTracer
-            if importlib.util.find_spec("coverage.tracer") is not None
-            else type(None)
-        )
-        pytracer_class = importlib.import_module("coverage.pytracer").PyTracer
-        if (
-            getattr(sys, "monitoring", None) is not None
-            and sys.monitoring.get_tool(sys.monitoring.COVERAGE_ID)
-            == "coverage.py"
-        ):
-            slowdown = 3.0
-        elif (
-            trace_func := getattr(sys, "gettrace", lambda: None)()
-        ) is not None and isinstance(trace_func, ctracer_class):
-            slowdown = 2.5
-        elif (
-            trace_func is not None
-            and hasattr(trace_func, "__self__")
-            and isinstance(trace_func.__self__, pytracer_class)
-        ):
-            slowdown = 8.0
-    settings = hypothesis.settings(
-        deadline=slowdown * settings.deadline
-        if slowdown
-        else settings.deadline,
-        stateful_step_count=32,
-        suppress_health_check=(hypothesis.HealthCheck.too_slow,),
-    )
-    hypothesis.settings.register_profile("default", settings)
-    hypothesis.settings.register_profile(
-        "dev", derandomize=True, max_examples=10
-    )
-    hypothesis.settings.register_profile(
-        "debug",
-        parent=hypothesis.settings.get_profile("dev"),
-        verbosity=hypothesis.Verbosity.verbose,
-    )
-    hypothesis.settings.register_profile(
-        "flaky",
-        deadline=(
-            settings.deadline - settings.deadline // 4
-            if settings.deadline is not None
-            else datetime.timedelta(milliseconds=150)
-        ),
-    )
-    ci_profile = hypothesis.settings.get_profile("ci")
-    hypothesis.settings.register_profile(
-        "intense",
-        parent=ci_profile,
-        derandomize=False,
-        max_examples=10 * ci_profile.max_examples,
-    )
-
-
-_hypothesis_settings_setup()
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -123,6 +39,7 @@ def pytest_configure(config: pytest.Config) -> None:
             "mark test as a slow, heavy-duty test (e.g., an integration test)"
         ),
     )
+    hypothesis_machinery._hypothesis_settings_setup()
 
 
 # https://docs.pytest.org/en/stable/explanation/fixtures.html#a-note-about-fixture-cleanup

@@ -844,6 +844,7 @@ def run_actions_handler(
 
 @hypothesis.settings(
     stateful_step_count=hypothesis_machinery.get_concurrency_step_count(),
+    max_examples=hypothesis_machinery.get_process_spawning_state_machine_examples_count(),
     deadline=None,
 )
 class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):
