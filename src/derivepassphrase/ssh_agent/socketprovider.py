@@ -409,7 +409,8 @@ class WindowsNamedPipeHandle:
 
         """
         if not name.replace("/", "\\").startswith(PIPE_PREFIX):
-            raise ValueError(errno.EINVAL, os.strerror(errno.EINVAL))
+            msg = f"Invalid named pipe address: {name!r}"
+            raise ValueError(msg)
         self.handle: HANDLE | None = None
         while self.handle is None:
             try:
@@ -463,7 +464,9 @@ class WindowsNamedPipeHandle:
                     ctypes.cast(ctypes.byref(read_count), LPDWORD),
                     ctypes.cast(ctypes.byref(overlapped_struct), LPOVERLAPPED),
                 )
-                if not success and GetLastError() == ERROR_IO_PENDING:
+                if (
+                    not success and GetLastError() == ERROR_IO_PENDING
+                ):  # pragma: no cover [external]
                     success = GetOverlappedResult(
                         self.handle,
                         ctypes.cast(
