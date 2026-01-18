@@ -822,7 +822,10 @@ class TestStoringConfigurationFailures:
             patch_suitable_ssh_keys=False,
         ) as monkeypatch:
             cwd = pathlib.Path.cwd().resolve()
-            monkeypatch.setenv("SSH_AUTH_SOCK", str(cwd))
+            monkeypatch.setenv(
+                "SSH_AUTH_SOCK",
+                socketprovider.PIPE_PREFIX if os.name == "nt" else str(cwd),
+            )
 
             def mangled_address(
                 *_args: Any, **_kwargs: Any

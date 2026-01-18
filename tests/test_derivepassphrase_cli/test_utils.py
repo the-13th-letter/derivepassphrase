@@ -251,6 +251,8 @@ class SocketAddressAction(str, enum.Enum):
                 "SSH_AUTH_SOCK",
                 os.environ["SSH_AUTH_SOCK"] + "~"
                 if "SSH_AUTH_SOCK" in os.environ
+                else socketprovider.PIPE_PREFIX
+                if os.name == "nt"
                 else "/",
             )
         elif self == self.UNSET_ADDRESS:
