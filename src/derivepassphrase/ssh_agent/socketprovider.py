@@ -409,7 +409,7 @@ class WindowsNamedPipeHandle:
 
         """
         if not name.replace("/", "\\").startswith(PIPE_PREFIX):
-            msg = f"Invalid named pipe address: {name!r}"
+            msg = f"Invalid named pipe name: {name!r}"
             raise ValueError(msg)
         self.handle: HANDLE | None = None
         while self.handle is None:
@@ -652,29 +652,50 @@ class SocketProvider:
 
     @staticmethod
     def _windows_named_pipe(
-        pipe_name: _WindowsNamedPipeSocketAddress | str,
+        pipe_name: _WindowsNamedPipeSocketAddress | str | None,
     ) -> _types.SSHAgentSocket:
-        """Return a socket wrapper around a Windows named pipe.
+        r"""Return a socket wrapper around a Windows named pipe.
+
+        Args:
+            pipe_name:
+                The named pipe's name, or a well-known named pipe socket
+                address, or `None` to look up the true name in
+                `SSH_AUTH_SOCK`.  In the latter case, the `SSH_AUTH_SOCK`
+                environment variable is assumed to contain a valid named
+                pipe name, i.e., a path starting with `\\.\pipe\` or
+                `//./pipe/`.
 
         Raises:
+            KeyError:
+                The `SSH_AUTH_SOCK` environment variable was not found.
             OSError:
                 There was an error setting up a connection to the agent.
+            ValueError:
+                The path clearly does not name a valid named pipe name.
             WindowsNamedPipesNotAvailableError:
                 This Python version does not support Windows named
                 pipes.
 
         """
+        # We must raise WindowsNamedPipesNotAvailableError in preference
+        # to other errors, so we must duplicate the system support check
+        # here (even though WindowsNamedPipeHandle would raise as well).
         if not hasattr(ctypes, "WinDLL"):
             msg = "This Python version does not support Windows named pipes."
             raise WindowsNamedPipesNotAvailableError(msg)
         else:  # noqa: RET506  # pragma: unless the-annoying-os no cover
             # TODO(the-13th-letter): Rewrite using structural pattern
-            # matching.
+            # matching (3 cases).
             # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
             if pipe_name == _WindowsNamedPipeSocketAddress.PAGEANT:
                 return WindowsNamedPipeHandle.for_pageant()
             if pipe_name == _WindowsNamedPipeSocketAddress.OPENSSH:
                 return WindowsNamedPipeHandle.for_openssh()
+            if pipe_name is None:  # pragma: no branch
+                pipe_name = os.environ["SSH_AUTH_SOCK"]
+            if not pipe_name.replace("/", "\\").startswith(PIPE_PREFIX):
+                msg = f"Invalid named pipe name: {pipe_name!r}"
+                raise ValueError(msg)
             return WindowsNamedPipeHandle(pipe_name)
 
     @classmethod
@@ -728,11 +749,7 @@ class SocketProvider:
                 pipes.
 
         """
-        address = os.environ["SSH_AUTH_SOCK"]
-        if not address.replace("/", "\\").startswith(PIPE_PREFIX):
-            msg = f"Invalid named pipe name: {address!r}"
-            raise ValueError(msg)
-        return cls._windows_named_pipe(address)
+        return cls._windows_named_pipe(None)
 
     registry: ClassVar[
         dict[str, _types.SSHAgentSocketProvider | str | None]
