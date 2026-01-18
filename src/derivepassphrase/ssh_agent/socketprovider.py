@@ -429,6 +429,7 @@ class WindowsNamedPipeHandle:
                 if getattr(exc, "winerror", None) == ERROR_PIPE_BUSY:
                     continue  # retry
                 raise
+        self._name = name
 
     def __enter__(self) -> Self:  # pragma: unless the-annoying-os no cover
         return self
@@ -520,6 +521,10 @@ class WindowsNamedPipeHandle:
                 raise WinError()
         finally:
             CloseHandle(wait_event)
+
+    def named_pipe_name(self) -> str:
+        """Return the named pipe name this socket is connected to."""
+        return self._name
 
     @classmethod
     def for_openssh(cls) -> Self:  # pragma: unless the-annoying-os no cover
@@ -653,7 +658,7 @@ class SocketProvider:
     @staticmethod
     def _windows_named_pipe(
         pipe_name: _WindowsNamedPipeSocketAddress | str | None,
-    ) -> _types.SSHAgentSocket:
+    ) -> WindowsNamedPipeHandle:
         r"""Return a socket wrapper around a Windows named pipe.
 
         Args:
@@ -699,7 +704,7 @@ class SocketProvider:
             return WindowsNamedPipeHandle(pipe_name)
 
     @classmethod
-    def windows_named_pipe_for_pageant(cls) -> _types.SSHAgentSocket:
+    def windows_named_pipe_for_pageant(cls) -> WindowsNamedPipeHandle:
         """Return a socket wrapper connected to Pageant on The Annoying OS.
 
         Raises:
@@ -713,7 +718,7 @@ class SocketProvider:
         return cls._windows_named_pipe(_WindowsNamedPipeSocketAddress.PAGEANT)
 
     @classmethod
-    def windows_named_pipe_for_openssh(cls) -> _types.SSHAgentSocket:
+    def windows_named_pipe_for_openssh(cls) -> WindowsNamedPipeHandle:
         """Return a socket wrapper connected to the OpenSSH agent on The Annoying OS.
 
         Raises:
@@ -728,7 +733,7 @@ class SocketProvider:
         return cls._windows_named_pipe(_WindowsNamedPipeSocketAddress.OPENSSH)
 
     @classmethod
-    def windows_named_pipe_ssh_auth_sock(cls) -> _types.SSHAgentSocket:
+    def windows_named_pipe_ssh_auth_sock(cls) -> WindowsNamedPipeHandle:
         r"""Return a socket wrapper connected to the agent in `SSH_AUTH_SOCK`.
 
         The `SSH_AUTH_SOCK` environment variable is assumed to contain
