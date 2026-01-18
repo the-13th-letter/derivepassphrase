@@ -393,8 +393,8 @@ is already registered with a different callable.
 """
 
 faulty_entry_alias_exists = _types.SSHAgentSocketProviderEntry(
-    socketprovider.SocketProvider.resolve("posix"),
-    "posix",
+    socketprovider.SocketProvider.resolve("ssh_auth_sock_on_posix"),
+    "ssh_auth_sock_on_posix",
     ("unix_domain", "the_annoying_os"),
 )
 """
