@@ -968,7 +968,7 @@ SocketProvider.registry.update({
     "posix": "ssh_auth_sock_on_posix",
     "ssh_auth_sock": "ssh_auth_sock_on_posix",
     "unix_domain": "ssh_auth_sock_on_posix",
-    "the_annoying_os": "pageant_on_the_annoying_os",
+    "the_annoying_os": "ssh_auth_sock_on_the_annoying_os",
     "the_annoying_os_named_pipe": "the_annoying_os",
     "windows": "the_annoying_os",
     "windows_named_pipe": "the_annoying_os",
