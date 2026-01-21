@@ -18,138 +18,229 @@
 ## Configuring `derivepassphrase vault` to use an SSH key
 
 Assuming the prerequisites are satisfied, ensure that the SSH agent is
-running, the SSH key is loaded into the agent, and, on UNIX systems,
-that the `SSH_AUTH_SOCK` environment variable is correctly set up.
+running, the SSH key is loaded into the agent, and that
+`derivepassphrase` knows how to obtain the agent's socket address:
+
+- On UNIX systems, the `SSH_AUTH_SOCK` environment variable must be
+  correctly set up.
+- On Windows systems, by default, the `SSH_AUTH_SOCK` environment
+  variable must be correctly set up.
+  Alternatively, `derivepassphrase` can be explicitly configured to
+  connect to OpenSSH or Pageant (PuTTY) without consulting
+  `SSH_AUTH_SOCK`, in which case OpenSSH or Pageant must be running.
+
 The exact commands depend on the SSH agent in use.
 
-=== "OpenSSH"
+!!! info "Setup commands"
 
-    === "on UNIX"
+    === "OpenSSH"
 
-        ~~~~ console title="Typical setup commands: starting the agent and setting up SSH_AUTH_SOCK"
-        $ eval `ssh-agent -s`
-        Agent pid 12345
-        ~~~~
+        === "on UNIX"
 
-        (The process ID emitted above is helpful for signalling the agent
-        later, e.g. for termination.)
+            ~~~~ console title="Typical setup commands: starting the agent and setting up SSH_AUTH_SOCK"
+            $ eval `ssh-agent -s`
+            Agent pid 12345
+            ~~~~
 
-        ~~~~ console title="Typical setup commands: loading the key into the agent, with 900s timeout and requiring confirmation"
-        $ ssh-add -t 900 -c ~/.ssh/my-vault-ed25519-key
-        Enter passphrase for /home/user/.ssh/my-vault-ed25519-key (will confirm each use): 
-        Identity added: /home/user/.ssh/my-vault-ed25519-key (vault key)
-        Lifetime set to 900 seconds
-        The user must confirm each use of the key
-        ~~~~
+            (The process ID emitted above is helpful for signalling the agent
+            later, e.g. for termination.)
 
-        (Your key filename and key comment will likely differ.)
+            ~~~~ console title="Typical setup commands: loading the key into the agent, with 900s timeout and requiring confirmation"
+            $ ssh-add -t 900 -c ~/.ssh/my-vault-ed25519-key
+            Enter passphrase for /home/user/.ssh/my-vault-ed25519-key (will confirm each use): 
+            Identity added: /home/user/.ssh/my-vault-ed25519-key (vault key)
+            Lifetime set to 900 seconds
+            The user must confirm each use of the key
+            ~~~~
 
-    === "on Windows"
+            (Your key filename and key comment will likely differ.)
 
-        ([Using OpenSSH on Windows is possible, but currently *not
-        recommended*; we recommend Pageant
-        instead.][OPENSSH_ON_WINDOWS_LIMITATIONS]
-        Pageant has priority over OpenSSH: if both are running,
-        `derivepassphrase vault` will connect to Pageant.)
+        === "on Windows"
 
-        The agent is started as a system service.
-        This only needs to be set up once.
+            ([Using OpenSSH on Windows is possible, but currently *not
+            recommended*; we recommend Pageant
+            instead.][OPENSSH_ON_WINDOWS_LIMITATIONS])
 
-        <small>([Source: OpenSSH-on-Windows
-        documentation][OPENSSH_ON_WINDOWS_DOC].)</small>
+            The agent is started as a system service.
+            This only needs to be set up once.
 
-        ~~~~ pwsh-session title="Typical setup commands (PowerShell, as Administrator): starting the agent"
-        PS> Get-Service ssh-agent | Set-Service -StartupType Automatic
-        PS> Start-Service ssh-agent
-        ~~~~
+            <small>([Source: OpenSSH-on-Windows
+            documentation][OPENSSH_ON_WINDOWS_DOC].)</small>
 
-        Load the keys into the agent.
-        This only needs to be done once.
-        The agent stores the key material in a reusable, per-user
-        Windows security context.
-        Unlike on UNIX, the Windows port of OpenSSH does not support key
-        timeouts or key usage confirmation prompts.
+            ~~~~ pwsh-session title="Typical setup commands (PowerShell, as Administrator): starting the agent"
+            PS> Get-Service ssh-agent | Set-Service -StartupType Automatic
+            PS> Start-Service ssh-agent
+            ~~~~
 
-        ~~~~ pwsh-session title="Further setup commands (Powershell, as User): loading the key into the agent"
-        PS> ssh-add "C:\Users\YourUsernameHere\Documents\my-vault-ed25519-key"
-        Enter passphrase for C:\Users\YourUsernameHere\Documents\my-vault-ed25519-key:
-        Identity added: C:\Users\YourUsernameHere\Documents\my-vault-ed25519-key (vault key)
-        ~~~~
+            Load the keys into the agent.
+            This only needs to be done once.
+            The agent stores the key material in a reusable, per-user
+            Windows security context.
+            Unlike on UNIX, the Windows port of OpenSSH does not support key
+            timeouts or key usage confirmation prompts.
 
-        (Your key filename and key comment will likely differ.)
+            ~~~~ pwsh-session title="Further setup commands (Powershell, as User): loading the key into the agent"
+            PS> ssh-add "C:\Users\YourUsernameHere\Documents\my-vault-ed25519-key"
+            Enter passphrase for C:\Users\YourUsernameHere\Documents\my-vault-ed25519-key:
+            Identity added: C:\Users\YourUsernameHere\Documents\my-vault-ed25519-key (vault key)
+            ~~~~
 
-        [OPENSSH_ON_WINDOWS_LIMITATIONS]: ../reference/prerequisites-ssh-key.md#agent-specific-notes
-        [OPENSSH_ON_WINDOWS_DOC]: https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_keymanagement#user-key-generation
+            (Your key filename and key comment will likely differ.)
 
-=== "PuTTY"
+            Finally, inform `derivepassphrase` about the OpenSSH agent's
+            address:
 
-    === "on Windows"
+            === "`openssh_on_windows` socket provider"
 
-        Start Pageant; this adds the Pageant icon to the Windows task
-        bar.
-        Then add the key via the right-click context menu, "Add key" or
-        "Add key (encrypted)".
+                Edit the file
+                <code>C:\&#x200b;Users\&#x200b;&lt;username>&#x200b;AppData\&#x200b;Roaming\&#x200b;derivepassphrase\&#x200b;config.toml</code>
+                and set the key `vault.ssh-agent-socket-provider` to
+                `openssh_on_windows`:
 
-        Adding the key via "Add key (encrypted)" makes the key material
-        manually "lockable" and "unlockable" by decrypting and
-        re-encrypting it, meaning that the key cannot be used by
-        malicious clients while encrypted.
-        This can be used to partially alleviate the lack of support for
-        the "key timeout" constraint.
-        The "Add key (encrypted)" mode is thus *recommended*.
+                ~~~~ toml title="config.toml"
+                [vault]
+                ssh-agent-socket-provider = "openssh_on_windows"
+                ~~~~
 
-    === "on UNIX"
+            === "`SSH_AUTH_SOCK` on Windows (not recommended)"
 
-        ~~~~ console title="Typical setup commands: starting the agent and loading the key"
-        $ eval `pageant -T ~/.ssh/my-vault-ed25519-key.ppk`
-        Enter passphrase to load key 'vault key': 
-        ~~~~
+                (The "native" SSH agent socket provider must be in use.)
 
-        (Your key filename and key comment will likely differ.
-        The agent should automatically shut down once this terminal
-        session is over.)
+                ~~~~ pwsh-session title="Further setup commands (Powershell, as User): setting SSH_AUTH_SOCK"
+                PS> $env:SSH_AUTH_SOCK = "\\.\pipe\openssh-ssh-agent"
+                ~~~~
 
-=== "GnuPG"
+    === "PuTTY"
 
-    === "on UNIX"
+        === "on Windows"
 
-        ~~~~ console title="Typical setup commands: enabling SSH agent support in GnuPG"
-        $ # This is equivalent to passing --enable-ssh-support upon agent
-        $ # startup.
-        $ echo enable-ssh-support:0:1 | gpgconf --change-options gpg-agent
-        ~~~~
+            Start Pageant; this adds the Pageant icon to the Windows task
+            bar.
+            Then add the key via the right-click context menu, "Add key" or
+            "Add key (encrypted)".
 
-    === "on Windows"
+            Adding the key via "Add key (encrypted)" makes the key material
+            manually "lockable" and "unlockable" by decrypting and
+            re-encrypting it, meaning that the key cannot be used by
+            malicious clients while encrypted.
+            This can be used to partially alleviate the lack of support for
+            the "key timeout" constraint.
+            The "Add key (encrypted)" mode is thus *recommended*.
 
-        ~~~~ pwsh-session title="Typical setup commands (PowerShell): enabling SSH agent support in GnuPG"
-        PS> # This is equivalent to passing --enable-ssh-support upon agent
-        PS> # startup.
-        PS> echo enable-ssh-support:0:1 | gpgconf --change-options gpg-agent
-        ~~~~
+            Finally, inform `derivepassphrase` about the Pageant's address:
 
-    (Loading native SSH keys into `gpg-agent` requires a separate SSH
-    agent client such as OpenSSH; see the [agent-specific notes in the
-    prerequisites][PREREQ_AGENT_SPECIFIC_NOTES].)
+            === "`pageant_on_windows` socket provider"
 
-    === "on UNIX"
+                Edit the file
+                <code>C:\&#x200b;Users\&#x200b;&lt;username>&#x200b;AppData\&#x200b;Roaming\&#x200b;derivepassphrase\&#x200b;config.toml</code>
+                and set the key `vault.ssh-agent-socket-provider` to
+                `pageant_on_windows`:
 
-        ~~~~ console title="Typical setup commands: loading the key into the agent with the OpenSSH tools"
-        $ ssh-add -c ~/.ssh/my-vault-ed25519-key
-        Enter passphrase for /home/user/.ssh/my-vault-ed25519-key (will confirm each use): 
-        Identity added: /home/user/.ssh/my-vault-ed25519-key (vault key)
-        The user must confirm each use of the key
-        ~~~~
+                ~~~~ toml title="config.toml"
+                [vault]
+                ssh-agent-socket-provider = "pageant_on_windows"
+                ~~~~
 
-    === "on Windows"
+            === "`SSH_AUTH_SOCK` on Windows (not recommended)"
 
-        ~~~~ console title="Typical setup commands (PowerShell): loading the key into the agent with the OpenSSH tools"
-        $ ssh-add "C:\Users\YourUsernameHere\Documents\my-vault-ed25519-key"
-        Enter passphrase for C:\Users\YourUsernameHere\Documents\my-vault-ed25519-key (will confirm each use): 
-        Identity added: C:\Users\YourUsernameHere\Documents\my-vault-ed25519-key (vault key)
-        The user must confirm each use of the key
-        ~~~~
+                (The "native" SSH agent socket provider must be in use.)
 
-    (Your key filename and key comment may differ.)
+                Pageant's address is unfortunately not fixed.
+                To get Pageant to write out its socket address on startup,
+                start it with the `--openssh-config <filename>` option to
+                write an OpenSSH-compatible configuration snippet to
+                `<filename>`, which includes the address.
+
+                ~~~~ pwsh-session title="Further setup commands (Powershell, as User): setting SSH_AUTH_SOCK"
+                PS> pageant --openssh-config file.conf
+                PS> 
+                PS> # Now read file.conf to learn the address; it looks like
+                PS> # "\\.\pipe\pageant.<username>.0123456789abcdef..."
+                PS>
+                PS> $env:SSH_AUTH_SOCK = "\\.\pipe\pageant.YourUsernameHere.0123456789deadbeef..."
+                ~~~~
+
+        === "on UNIX"
+
+            ~~~~ console title="Typical setup commands: starting the agent and loading the key"
+            $ eval `pageant -T ~/.ssh/my-vault-ed25519-key.ppk`
+            Enter passphrase to load key 'vault key': 
+            ~~~~
+
+            (Your key filename and key comment will likely differ.
+            The agent should automatically shut down once this terminal
+            session is over.)
+
+    === "GnuPG"
+
+        === "on UNIX"
+
+            ~~~~ console title="Typical setup commands: enabling SSH agent support in GnuPG"
+            $ # This is equivalent to passing --enable-ssh-support upon agent
+            $ # startup.
+            $ echo enable-ssh-support:0:1 | gpgconf --change-options gpg-agent
+            $ # Then export the SSH_AUTH_SOCK environment variable appropriately.
+            $ export SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)"
+            ~~~~
+
+            (Loading native SSH keys into `gpg-agent` requires
+            a separate SSH agent client such as OpenSSH; see the
+            [agent-specific notes in the
+            prerequisites][PREREQ_AGENT_SPECIFIC_NOTES].)
+
+            ~~~~ console title="Typical setup commands: loading the key into the agent with the OpenSSH tools"
+            $ ssh-add -c ~/.ssh/my-vault-ed25519-key
+            Enter passphrase for /home/user/.ssh/my-vault-ed25519-key (will confirm each use): 
+            Identity added: /home/user/.ssh/my-vault-ed25519-key (vault key)
+            The user must confirm each use of the key
+            ~~~~
+
+            (Your key filename and key comment may differ.)
+
+        === "on Windows"
+
+            Edit the file `gpg-agent.conf` in the GnuPG home directory to
+            contain the line `enable-win32-openssh-support`, which is
+            equivalent to passing `--enable-win32-openssh-support` upon
+            agent startup.
+            This causes `gpg-agent` to masquerade as OpenSSH`s agent.
+
+            Then, inform `derivepassphrase` about the agent's address,
+            i.e., of the OpenSSH agent's socket address:
+
+            === "`openssh_on_windows` socket provider"
+
+                Edit the file
+                <code>C:\&#x200b;Users\&#x200b;&lt;username>&#x200b;AppData\&#x200b;Roaming\&#x200b;derivepassphrase\&#x200b;config.toml</code>
+                and set the key `vault.ssh-agent-socket-provider` to
+                `openssh_on_windows`:
+
+                ~~~~ toml title="config.toml"
+                [vault]
+                ssh-agent-socket-provider = "openssh_on_windows"
+                ~~~~
+
+            === "`SSH_AUTH_SOCK` on Windows (not recommended)"
+
+                (The "native" SSH agent socket provider must be in use.)
+
+                ~~~~ pwsh-session title="Further setup commands (Powershell, as User): setting SSH_AUTH_SOCK"
+                PS> $env:SSH_AUTH_SOCK = "\\.\pipe\openssh-ssh-agent"
+                ~~~~
+
+            (Loading native SSH keys into `gpg-agent` requires
+            a separate SSH agent client such as OpenSSH; see the
+            [agent-specific notes in the
+            prerequisites][PREREQ_AGENT_SPECIFIC_NOTES].)
+
+            ~~~~ console title="Typical setup commands (PowerShell): loading the key into the agent with the OpenSSH tools"
+            $ ssh-add "C:\Users\YourUsernameHere\Documents\my-vault-ed25519-key"
+            Enter passphrase for C:\Users\YourUsernameHere\Documents\my-vault-ed25519-key (will confirm each use): 
+            Identity added: C:\Users\YourUsernameHere\Documents\my-vault-ed25519-key (vault key)
+            The user must confirm each use of the key
+            ~~~~
+
+            (Your key filename and key comment may differ.)
 
 Next, configure `derivepassphrase vault` to use the loaded SSH key.
 
@@ -191,6 +282,9 @@ Next, configure `derivepassphrase vault` to use the loaded SSH key.
 
     → Tradeoffs between a master passphrase and a master SSH key,
     section "Should I use one master SSH key, or many keys?" (TODO)
+
+[OPENSSH_ON_WINDOWS_LIMITATIONS]: ../reference/prerequisites-ssh-key.md#agent-specific-notes
+[OPENSSH_ON_WINDOWS_DOC]: https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_keymanagement#user-key-generation
 
 [PREREQ]: ../reference/prerequisites-ssh-key.md
 [PREREQ_AGENT_SPECIFIC_NOTES]: ../reference/prerequisites-ssh-key.md#agent-specific-notes
