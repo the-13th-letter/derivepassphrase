@@ -857,7 +857,7 @@ class Feature(str, enum.Enum):
 
     @_feature_test_function
     @staticmethod
-    def _test_ssh_key() -> bool:
+    def _test_ssh_key() -> bool:  # pragma: no cover [external]
         """Return true if [`_types.Feature.SSH_KEY`][] is currently supported.
 
         We test this by attempting to construct an SSH agent client,

@@ -522,7 +522,9 @@ class WindowsNamedPipeHandle:
         finally:
             CloseHandle(wait_event)
 
-    def named_pipe_name(self) -> str:
+    def named_pipe_name(
+        self,
+    ) -> str:  # pragma: unless the-annoying-os no cover
         """Return the named pipe name this socket is connected to."""
         return self._name
 
