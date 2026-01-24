@@ -350,7 +350,7 @@ class SystemSupportAction(str, enum.Enum):
             monkeypatch.delattr(socket, "AF_UNIX", raising=False)
         elif self in {self.UNSET_WINDLL, self.UNSET_WINDLL_AND_ENSURE_USE}:
             self.check_or_ensure_use(
-                "the_annoying_os",
+                "windows",
                 monkeypatch=monkeypatch,
                 ensure_use=(self == self.UNSET_WINDLL_AND_ENSURE_USE),
             )

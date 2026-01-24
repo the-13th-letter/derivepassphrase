@@ -982,22 +982,18 @@ class SocketProvider:
 
 SocketProvider.registry.update({
     "ssh_auth_sock_on_posix": SocketProvider.unix_domain_ssh_auth_sock,
-    "pageant_on_the_annoying_os": SocketProvider.windows_named_pipe_for_pageant,  # noqa: E501
-    "openssh_on_the_annoying_os": SocketProvider.windows_named_pipe_for_openssh,  # noqa: E501
-    "ssh_auth_sock_on_the_annoying_os": SocketProvider.windows_named_pipe_ssh_auth_sock,  # noqa: E501
+    "pageant_on_windows": SocketProvider.windows_named_pipe_for_pageant,  # noqa: E501
+    "openssh_on_windows": SocketProvider.windows_named_pipe_for_openssh,  # noqa: E501
+    "ssh_auth_sock_on_windows": SocketProvider.windows_named_pipe_ssh_auth_sock,  # noqa: E501
     # known instances
     "stub_agent": None,
     "stub_agent_with_address": None,
     "stub_agent_with_address_and_deterministic_dsa": None,
     # aliases
-    "posix": "ssh_auth_sock_on_posix",
     "ssh_auth_sock": "ssh_auth_sock_on_posix",
     "unix_domain": "ssh_auth_sock_on_posix",
-    "the_annoying_os": "ssh_auth_sock_on_the_annoying_os",
-    "the_annoying_os_named_pipe": "the_annoying_os",
-    "windows": "the_annoying_os",
-    "windows_named_pipe": "the_annoying_os",
-    "pageant_on_windows": "pageant_on_the_annoying_os",
-    "openssh_on_windows": "openssh_on_the_annoying_os",
-    "native": "the_annoying_os" if os.name == "nt" else "posix",
+    "posix": "unix_domain",
+    "windows_named_pipe": "ssh_auth_sock_on_windows",
+    "windows": "windows_named_pipe",
+    "native": "windows" if os.name == "nt" else "posix",
 })

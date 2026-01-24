@@ -85,9 +85,9 @@ class Parametrize(types.SimpleNamespace):
                         value="tests.data: ssh_auth_sock_on_posix_entry",
                     ),
                     importlib.metadata.EntryPoint(
-                        name=data.pageant_on_the_annoying_os_entry.key,
+                        name=data.ssh_auth_sock_on_windows_entry.key,
                         group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
-                        value="tests.data: pageant_on_the_annoying_os_entry",
+                        value="tests.data: ssh_auth_sock_on_windows_entry",
                     ),
                 ],
                 id="existing-entries",
@@ -110,7 +110,7 @@ class Parametrize(types.SimpleNamespace):
         ],
     )
     EXISTING_REGISTRY_ENTRIES = pytest.mark.parametrize(
-        "existing", ["ssh_auth_sock_on_posix", "pageant_on_the_annoying_os"]
+        "existing", ["ssh_auth_sock_on_posix", "ssh_auth_sock_on_windows"]
     )
     SSH_STRING_EXCEPTIONS = pytest.mark.parametrize(
         ["input", "exc_type", "exc_pattern"],
@@ -789,29 +789,47 @@ class TestSSHAgentSocketProviderRegistry:
             stack.enter_context(pytest.raises(AssertionError))
             socketprovider.SocketProvider._find_all_ssh_agent_socket_providers()
 
-    def test_already_registered(
+    def test_overwriting_existing_entries(
         self,
     ) -> None:
-        """The registry forbids overwriting entries."""
+        """The registry forbids incompatibly overwriting entries."""
         registry = socketprovider.SocketProvider.registry.copy()
         resolve = socketprovider.SocketProvider.resolve
         register = socketprovider.SocketProvider.register
-        the_annoying_os = resolve("the_annoying_os")
-        posix = resolve("posix")
+
+        def ancestry_chain(name: str) -> Iterator[str]:
+            current: _types.SSHAgentSocketProvider | str | None = name
+            seen: set[_types.SSHAgentSocketProvider | str | None] = set()
+            while isinstance(current, str) and current not in seen:
+                yield current
+                seen.add(current)
+                current = registry[current]
+
+        # Entries with at least one level of alias resolving, and where each
+        # entry ultimately resolves to a different provider.  They needn't
+        # technically be leaves of the socket provider forest, but "leaves"
+        # emphasizes the quality we are looking for.
+        leaves = ["posix", "windows"]
+        assert all([isinstance(registry.get(leaf), str) for leaf in leaves]), (
+            "Registry is shaped incompatibly; cannot determine base entries"
+        )
+        bases = [resolve(leaf) for leaf in leaves]
+        names = [list(ancestry_chain(leaf)) for leaf in leaves]
+
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setattr(
                 socketprovider.SocketProvider, "registry", registry
             )
-            register("posix")(posix)
-            register("the_annoying_os")(the_annoying_os)
+            # Registering names with different values is forbidden...
             with pytest.raises(ValueError, match="already registered"):
-                register("posix")(the_annoying_os)
+                register(names[0][0])(bases[1])
             with pytest.raises(ValueError, match="already registered"):
-                register("the_annoying_os")(posix)
+                register(names[1][0])(bases[0])
+            # ...even if other names of the same registration are valid.
             with pytest.raises(ValueError, match="already registered"):
-                register("posix", "the_annoying_os_named_pipe")(posix)
+                register(names[0][0], names[1][1])(bases[0])
             with pytest.raises(ValueError, match="already registered"):
-                register("the_annoying_os", "unix_domain")(the_annoying_os)
+                register(names[1][0], names[0][1])(bases[1])
 
     def test_resolve_non_existant_entries(
         self,
@@ -819,9 +837,7 @@ class TestSSHAgentSocketProviderRegistry:
         """Resolving a non-existant entry fails."""
         new_registry = {
             "posix": socketprovider.SocketProvider.resolve("posix"),
-            "the_annoying_os": socketprovider.SocketProvider.resolve(
-                "the_annoying_os"
-            ),
+            "windows": socketprovider.SocketProvider.resolve("windows"),
         }
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setattr(
@@ -841,9 +857,7 @@ class TestSSHAgentSocketProviderRegistry:
         names = ["spam", "ham", "eggs", "parrot"]
         new_registry = {
             "posix": socketprovider.SocketProvider.resolve("posix"),
-            "the_annoying_os": socketprovider.SocketProvider.resolve(
-                "the_annoying_os"
-            ),
+            "windows": socketprovider.SocketProvider.resolve("windows"),
         }
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setattr(
@@ -876,11 +890,11 @@ class TestSSHAgentSocketProviderRegistry:
             "ssh_auth_sock_on_posix": socketprovider.SocketProvider.resolve(
                 "ssh_auth_sock_on_posix"
             ),
-            "pageant_on_the_annoying_os": socketprovider.SocketProvider.resolve(
-                "pageant_on_the_annoying_os"
+            "ssh_auth_sock_on_windows": socketprovider.SocketProvider.resolve(
+                "ssh_auth_sock_on_windows"
             ),
-            "posix": "ssh_auth_sock_on_posix",
-            "the_annoying_os": "pageant_on_the_annoying_os",
+            "unix_domain": "ssh_auth_sock_on_posix",
+            "windows_named_pipe": "ssh_auth_sock_on_windows",
         }
         names = [
             k
@@ -895,9 +909,15 @@ class TestSSHAgentSocketProviderRegistry:
                 f"Existing SSH agent socket provider entry "
                 f"{existing!r} is not existing?!"
             )
-            assert not all(
-                map(socketprovider.SocketProvider.registry.__contains__, names)
-            )
+            # TODO(the-13th-letter): Do we require, forbid, or not care
+            # if `names` discovers aliases not present in the mocked
+            # registry?  Currently, the "ssh_auth_sock" alias for
+            # "ssh_auth_sock_on_posix" would be discovered, but
+            # "ssh_auth_sock_on_windows" has no undiscovered aliases.
+            #
+            # assert not
+            # all(map(socketprovider.SocketProvider.registry.__contains__,
+            # names))
             assert (
                 socketprovider.SocketProvider.register(existing, *names)(
                     provider

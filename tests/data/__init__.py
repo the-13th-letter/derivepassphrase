@@ -363,15 +363,14 @@ The standard [`_types.SSHAgentSocketProviderEntry`][] for the UNIX
 domain socket handler on POSIX systems.
 """
 
-pageant_on_the_annoying_os_entry = _types.SSHAgentSocketProviderEntry(
-    socketprovider.SocketProvider.resolve("pageant_on_the_annoying_os"),
-    "pageant_on_the_annoying_os",
+ssh_auth_sock_on_windows_entry = _types.SSHAgentSocketProviderEntry(
+    socketprovider.SocketProvider.resolve("ssh_auth_sock_on_windows"),
+    "ssh_auth_sock_on_windows",
     (),
 )
 """
 The standard [`_types.SSHAgentSocketProviderEntry`][] for the Windows
-named pipe handler (connecting to Pageant) on The Annoying Operating
-System.
+named pipe handler on The Annoying Operating System.
 """
 
 faulty_entry_callable = _types.SSHAgentSocketProviderEntry(
@@ -385,7 +384,7 @@ is not a callable.
 """
 
 faulty_entry_name_exists = _types.SSHAgentSocketProviderEntry(
-    socketprovider.SocketProvider.resolve("the_annoying_os"), "posix", ()
+    socketprovider.SocketProvider.resolve("windows"), "posix", ()
 )
 """
 A faulty [`_types.SSHAgentSocketProviderEntry`][]: the indicated handler
@@ -395,7 +394,7 @@ is already registered with a different callable.
 faulty_entry_alias_exists = _types.SSHAgentSocketProviderEntry(
     socketprovider.SocketProvider.resolve("ssh_auth_sock_on_posix"),
     "ssh_auth_sock_on_posix",
-    ("unix_domain", "the_annoying_os"),
+    ("unix_domain", "windows_named_pipes"),
 )
 """
 A faulty [`_types.SSHAgentSocketProviderEntry`][]: the alias is already

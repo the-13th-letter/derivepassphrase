@@ -151,11 +151,19 @@ class SSHAgentSocketProviderRegistryStateMachine(
         self.registry: dict[
             str, _types.SSHAgentSocketProvider | str | None
         ] = {
-            "ssh_auth_sock_on_posix": self.orig_registry["ssh_auth_sock_on_posix"],
-            "pageant_on_the_annoying_os": self.orig_registry["pageant_on_the_annoying_os"],
-            "native": self.orig_registry["native"],
-            "posix": "ssh_auth_sock_on_posix",
-            "the_annoying_os": "pageant_on_the_annoying_os",
+            "ssh_auth_sock_on_posix": self.orig_registry[
+                "ssh_auth_sock_on_posix"
+            ],
+            "ssh_auth_sock_on_windows": self.orig_registry[
+                "ssh_auth_sock_on_windows"
+            ],
+            "native": (
+                "windows_named_pipe"
+                if self.orig_registry["native"] == "windows"
+                else "unix_domain"
+            ),
+            "unix_domain": "ssh_auth_sock_on_posix",
+            "windows_named_pipe": "windows_named_pipe",
         }
         self.monkeypatch.setattr(
             socketprovider.SocketProvider, "registry", self.registry
