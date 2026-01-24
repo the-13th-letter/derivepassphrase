@@ -24,6 +24,8 @@ from ctypes.wintypes import (  # type: ignore[attr-defined]
 )
 from typing import TYPE_CHECKING, cast
 
+from derivepassphrase import _types
+
 if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import ClassVar
@@ -37,8 +39,6 @@ if TYPE_CHECKING:
         TypeAlias,
         TypeVar,
     )
-
-    from derivepassphrase import _types
 
     SSHAgentSocketProviderT = TypeVar(
         "SSHAgentSocketProviderT", bound=_types.SSHAgentSocketProvider
@@ -982,20 +982,55 @@ class SocketProvider:
         cls.registry.update(entries.maps[0])
 
 
-SocketProvider.registry.update({
-    "ssh_auth_sock_on_posix": SocketProvider.unix_domain_ssh_auth_sock,
-    "pageant_on_windows": SocketProvider.windows_named_pipe_for_pageant,  # noqa: E501
-    "openssh_on_windows": SocketProvider.windows_named_pipe_for_openssh,  # noqa: E501
-    "ssh_auth_sock_on_windows": SocketProvider.windows_named_pipe_ssh_auth_sock,  # noqa: E501
+SocketProvider.registry.update([
+    (
+        _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX,
+        SocketProvider.unix_domain_ssh_auth_sock,
+    ),
+    (
+        _types.BuiltinSSHAgentSocketProvider.PAGEANT_ON_WINDOWS,
+        SocketProvider.windows_named_pipe_for_pageant,
+    ),
+    (
+        _types.BuiltinSSHAgentSocketProvider.OPENSSH_ON_WINDOWS,
+        SocketProvider.windows_named_pipe_for_openssh,
+    ),
+    (
+        _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_WINDOWS,
+        SocketProvider.windows_named_pipe_ssh_auth_sock,
+    ),
     # known instances
-    "stub_agent": None,
-    "stub_agent_with_address": None,
-    "stub_agent_with_address_and_deterministic_dsa": None,
+    (_types.BuiltinSSHAgentSocketProvider.STUB_AGENT, None),
+    (_types.BuiltinSSHAgentSocketProvider.STUB_AGENT_WITH_ADDRESS, None),
+    (
+        _types.BuiltinSSHAgentSocketProvider.STUB_AGENT_WITH_ADDRESS_AND_DETERMINISTIC_DSA,
+        None,
+    ),
     # aliases
-    "ssh_auth_sock": "ssh_auth_sock_on_posix",
-    "unix_domain": "ssh_auth_sock_on_posix",
-    "posix": "unix_domain",
-    "windows_named_pipe": "ssh_auth_sock_on_windows",
-    "windows": "windows_named_pipe",
-    "native": "windows" if os.name == "nt" else "posix",
-})
+    (
+        _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK,
+        _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX,
+    ),
+    (
+        _types.BuiltinSSHAgentSocketProvider.UNIX_DOMAIN,
+        _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX,
+    ),
+    (
+        _types.BuiltinSSHAgentSocketProvider.POSIX,
+        _types.BuiltinSSHAgentSocketProvider.UNIX_DOMAIN,
+    ),
+    (
+        _types.BuiltinSSHAgentSocketProvider.WINDOWS_NAMED_PIPE,
+        _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_WINDOWS,
+    ),
+    (
+        _types.BuiltinSSHAgentSocketProvider.WINDOWS,
+        _types.BuiltinSSHAgentSocketProvider.WINDOWS_NAMED_PIPE,
+    ),
+    (
+        _types.BuiltinSSHAgentSocketProvider.NATIVE,
+        _types.BuiltinSSHAgentSocketProvider.WINDOWS
+        if os.name == "nt"
+        else _types.BuiltinSSHAgentSocketProvider.POSIX,
+    ),
+])

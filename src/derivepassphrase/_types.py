@@ -864,30 +864,21 @@ class Feature(str, enum.Enum):
         reporting whether this can principally work, or not.
 
         """
-        import sys  # noqa: PLC0415
-
-        import exceptiongroup  # noqa: PLC0415
-
+        # Because BuiltinSSHAgentSocketProvider.test tests the same
+        # thing, just specific to a certain socket provider, we delegate
+        # to that test... not only out of laziness, but also out of
+        # consistency, avoiding two reimplementations of the same logic.
         from derivepassphrase import ssh_agent  # noqa: PLC0415
 
-        if sys.version_info < (3, 11):
-            from exceptiongroup import BaseExceptionGroup  # noqa: PLC0415
-
-        ret = True
-
-        def handle_notimplementederror(
-            _exc: BaseExceptionGroup,
-        ) -> None:  # pragma: no cover [unused]
-            nonlocal ret
-            ret = False
-
-        with exceptiongroup.catch({  # noqa: SIM117
-            NotImplementedError: handle_notimplementederror,
-            Exception: lambda _exc: None,
-        }):
-            with ssh_agent.SSHAgentClient.ensure_agent_subcontext():
-                pass
-        return ret
+        for provider_name in ssh_agent.SSHAgentClient.SOCKET_PROVIDERS:
+            try:
+                provider = BuiltinSSHAgentSocketProvider(provider_name)
+            except ValueError:
+                continue
+            else:
+                if provider.test():
+                    return True
+        return False
 
     def test(self, *_args: Any, **_kwargs: Any) -> bool:  # noqa: ANN401
         """Return true if this feature is enabled."""
@@ -1013,6 +1004,123 @@ class Subcommand(str, enum.Enum):
     def test(self, *_args: Any, **_kwargs: Any) -> bool:  # noqa: ANN401
         """Return true if this subcommand is enabled."""
         return self in {Subcommand.VAULT, Subcommand.EXPORT}
+
+    __str__ = str.__str__
+    __format__ = str.__format__  # type: ignore[assignment]
+
+
+class BuiltinSSHAgentSocketProvider(str, enum.Enum):
+    """SSH agent socket providers built into `derivepassphrase`.
+
+    Attributes:
+        SSH_AUTH_SOCK_ON_POSIX:
+            A socket provider (on POSIX) that queries the
+            `SSH_AUTH_SOCK` environment variable.
+        SSH_AUTH_SOCK_ON_WINDOWS:
+            A socket provider (on The Annoying OS, a.k.a. Microsoft
+            Windows) that queries the `SSH_AUTH_SOCK` environment
+            variable.
+        PAGEANT_ON_WINDOWS:
+            A socket provider (on The Annoying OS, a.k.a. Microsoft
+            Windows) that connects to Pageant's standard socket.  The
+            socket address is computed by the socket provider.
+        OPENSSH_ON_WINDOWS:
+            A socket provider (on The Annoying OS, a.k.a. Microsoft
+            Windows) that connects to OpenSSH on Windows's standard
+            socket.  The socket address is hardcoded by the socket
+            provider.
+        STUB_AGENT:
+            A basic fake agent's socket provider that only reacts to
+            known test keys.  Used by the test suite.
+        STUB_AGENT_WITH_ADDRESS:
+            A more orchestratable fake agent's socket provider, compared
+            to [`STUB_AGENT`][], that only reacts to known test keys.
+            Used by the test suite.
+        STUB_AGENT_WITH_ADDRESS_AND_DETERMINISTIC_DSA:
+            An elaborate fake agent's socket provider that only reacts
+            to known test keys.  Used by the test suite.
+        SSH_AUTH_SOCK:
+            A registry alias for [`SSH_AUTH_SOCK_ON_POSIX`][].
+        UNIX_DOMAIN:
+            A registry alias for [`SSH_AUTH_SOCK_ON_POSIX`][].
+        POSIX:
+            A registry alias for [`UNIX_DOMAIN`][].
+        WINDOWS_NAMED_PIPE:
+            A registry alias for [`SSH_AUTH_SOCK_ON_WINDOWS`][].
+        WINDOWS:
+            A registry alias for [`WINDOWS_NAMED_PIPE`][].
+        NATIVE:
+            A registry alias for [`WINDOWS`][] if on The Annoying OS, or
+            for [`POSIX`][] otherwise.
+
+    """
+
+    SSH_AUTH_SOCK_ON_POSIX = "ssh_auth_sock_on_posix"
+    """"""
+    SSH_AUTH_SOCK_ON_WINDOWS = "ssh_auth_sock_on_windows"
+    """"""
+    PAGEANT_ON_WINDOWS = "pageant_on_windows"
+    """"""
+    OPENSSH_ON_WINDOWS = "openssh_on_windows"
+    """"""
+
+    STUB_AGENT = "stub_agent"
+    """"""
+    STUB_AGENT_WITH_ADDRESS = "stub_agent_with_address"
+    """"""
+    STUB_AGENT_WITH_ADDRESS_AND_DETERMINISTIC_DSA = (
+        "stub_agent_with_address_and_deterministic_dsa"
+    )
+    """"""
+
+    SSH_AUTH_SOCK = "ssh_auth_sock"
+    """"""
+    UNIX_DOMAIN = "unix_domain"
+    """"""
+    POSIX = "posix"
+    """"""
+    WINDOWS_NAMED_PIPE = "windows_named_pipe"
+    """"""
+    WINDOWS = "windows"
+    """"""
+    NATIVE = "native"
+    """"""
+
+    def test(
+        self,
+        *_args: Any,  # noqa: ANN401
+        **_kwargs: Any,  # noqa: ANN401
+    ) -> bool:  # pragma: no cover [external]
+        """Return true if this SSH agent socket provider is available.
+
+        This works by actually attempting to connet to an agent via the
+        socket provider.
+
+        """
+        import sys  # noqa: PLC0415
+
+        import exceptiongroup  # noqa: PLC0415
+
+        from derivepassphrase import ssh_agent  # noqa: PLC0415
+
+        if sys.version_info < (3, 11):
+            from exceptiongroup import BaseExceptionGroup  # noqa: PLC0415
+
+        ret = True
+
+        def handle_notimplementederror(
+            _exc: BaseExceptionGroup,
+        ) -> None:  # pragma: no cover [unused]
+            nonlocal ret
+            ret = False
+
+        with exceptiongroup.catch({  # noqa: SIM117
+            NotImplementedError: handle_notimplementederror,
+            Exception: lambda _exc: None,
+        }):
+            with ssh_agent.SSHAgentClient.ensure_agent_subcontext(conn=[self]):
+                pass
+        return ret
 
     __str__ = str.__str__
     __format__ = str.__format__  # type: ignore[assignment]

@@ -110,7 +110,12 @@ class Parametrize(types.SimpleNamespace):
         ],
     )
     EXISTING_REGISTRY_ENTRIES = pytest.mark.parametrize(
-        "existing", ["ssh_auth_sock_on_posix", "ssh_auth_sock_on_windows"]
+        "existing",
+        [
+            _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX,
+            _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_WINDOWS,
+        ],
+        ids=str,
     )
     SSH_STRING_EXCEPTIONS = pytest.mark.parametrize(
         ["input", "exc_type", "exc_pattern"],
@@ -809,7 +814,10 @@ class TestSSHAgentSocketProviderRegistry:
         # entry ultimately resolves to a different provider.  They needn't
         # technically be leaves of the socket provider forest, but "leaves"
         # emphasizes the quality we are looking for.
-        leaves = ["posix", "windows"]
+        leaves = [
+            _types.BuiltinSSHAgentSocketProvider.POSIX,
+            _types.BuiltinSSHAgentSocketProvider.WINDOWS,
+        ]
         assert all([isinstance(registry.get(leaf), str) for leaf in leaves]), (
             "Registry is shaped incompatibly; cannot determine base entries"
         )
@@ -887,14 +895,14 @@ class TestSSHAgentSocketProviderRegistry:
 
         provider = socketprovider.SocketProvider.resolve(existing)
         new_registry = {
-            "ssh_auth_sock_on_posix": socketprovider.SocketProvider.resolve(
-                "ssh_auth_sock_on_posix"
+            _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX: socketprovider.SocketProvider.resolve(
+                _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX
             ),
-            "ssh_auth_sock_on_windows": socketprovider.SocketProvider.resolve(
-                "ssh_auth_sock_on_windows"
+            _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_WINDOWS: socketprovider.SocketProvider.resolve(
+                _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_WINDOWS
             ),
-            "unix_domain": "ssh_auth_sock_on_posix",
-            "windows_named_pipe": "ssh_auth_sock_on_windows",
+            _types.BuiltinSSHAgentSocketProvider.UNIX_DOMAIN: _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX,
+            _types.BuiltinSSHAgentSocketProvider.WINDOWS_NAMED_PIPE: _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_WINDOWS,
         }
         names = [
             k

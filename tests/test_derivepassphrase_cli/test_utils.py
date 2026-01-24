@@ -334,7 +334,7 @@ class SystemSupportAction(str, enum.Enum):
             )
         elif self in {self.UNSET_NATIVE, self.UNSET_NATIVE_AND_ENSURE_USE}:
             self.check_or_ensure_use(
-                "native",
+                _types.BuiltinSSHAgentSocketProvider.NATIVE,
                 monkeypatch=monkeypatch,
                 ensure_use=(self == self.UNSET_NATIVE_AND_ENSURE_USE),
             )
@@ -343,14 +343,14 @@ class SystemSupportAction(str, enum.Enum):
             monkeypatch.delattr(ctypes, "windll", raising=False)
         elif self in {self.UNSET_AF_UNIX, self.UNSET_AF_UNIX_AND_ENSURE_USE}:
             self.check_or_ensure_use(
-                "posix",
+                _types.BuiltinSSHAgentSocketProvider.POSIX,
                 monkeypatch=monkeypatch,
                 ensure_use=(self == self.UNSET_AF_UNIX_AND_ENSURE_USE),
             )
             monkeypatch.delattr(socket, "AF_UNIX", raising=False)
         elif self in {self.UNSET_WINDLL, self.UNSET_WINDLL_AND_ENSURE_USE}:
             self.check_or_ensure_use(
-                "windows",
+                _types.BuiltinSSHAgentSocketProvider.WINDOWS,
                 monkeypatch=monkeypatch,
                 ensure_use=(self == self.UNSET_WINDLL_AND_ENSURE_USE),
             )

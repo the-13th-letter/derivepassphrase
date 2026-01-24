@@ -7,16 +7,13 @@
 from __future__ import annotations
 
 import contextlib
-from typing import TYPE_CHECKING
 
 import pytest
 from hypothesis import stateful, strategies
 
+from derivepassphrase import _types
 from derivepassphrase.ssh_agent import socketprovider
 from tests.machinery import pytest as pytest_machinery
-
-if TYPE_CHECKING:
-    from derivepassphrase import _types
 
 # All tests in this module are heavy-duty tests.
 pytestmark = [pytest_machinery.heavy_duty]
@@ -151,19 +148,30 @@ class SSHAgentSocketProviderRegistryStateMachine(
         self.registry: dict[
             str, _types.SSHAgentSocketProvider | str | None
         ] = {
-            "ssh_auth_sock_on_posix": self.orig_registry[
-                "ssh_auth_sock_on_posix"
-            ],
-            "ssh_auth_sock_on_windows": self.orig_registry[
-                "ssh_auth_sock_on_windows"
-            ],
-            "native": (
-                "windows_named_pipe"
-                if self.orig_registry["native"] == "windows"
-                else "unix_domain"
+            _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX: (
+                self.orig_registry[
+                    _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX
+                ]
             ),
-            "unix_domain": "ssh_auth_sock_on_posix",
-            "windows_named_pipe": "windows_named_pipe",
+            _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_WINDOWS: (
+                self.orig_registry[
+                    _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_WINDOWS
+                ]
+            ),
+            _types.BuiltinSSHAgentSocketProvider.NATIVE: (
+                _types.BuiltinSSHAgentSocketProvider.WINDOWS_NAMED_PIPE
+                if self.orig_registry[
+                    _types.BuiltinSSHAgentSocketProvider.NATIVE
+                ]
+                == _types.BuiltinSSHAgentSocketProvider.WINDOWS
+                else _types.BuiltinSSHAgentSocketProvider.UNIX_DOMAIN
+            ),
+            _types.BuiltinSSHAgentSocketProvider.UNIX_DOMAIN: (
+                _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX
+            ),
+            _types.BuiltinSSHAgentSocketProvider.WINDOWS_NAMED_PIPE: (
+                _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_WINDOWS
+            ),
         }
         self.monkeypatch.setattr(
             socketprovider.SocketProvider, "registry", self.registry

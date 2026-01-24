@@ -354,8 +354,10 @@ class VaultTestConfig(NamedTuple):
 
 
 ssh_auth_sock_on_posix_entry = _types.SSHAgentSocketProviderEntry(
-    socketprovider.SocketProvider.resolve("ssh_auth_sock_on_posix"),
-    "ssh_auth_sock_on_posix",
+    socketprovider.SocketProvider.resolve(
+        _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX
+    ),
+    _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX,
     (),
 )
 """
@@ -364,8 +366,10 @@ domain socket handler on POSIX systems.
 """
 
 ssh_auth_sock_on_windows_entry = _types.SSHAgentSocketProviderEntry(
-    socketprovider.SocketProvider.resolve("ssh_auth_sock_on_windows"),
-    "ssh_auth_sock_on_windows",
+    socketprovider.SocketProvider.resolve(
+        _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_WINDOWS
+    ),
+    _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_WINDOWS,
     (),
 )
 """
@@ -384,7 +388,11 @@ is not a callable.
 """
 
 faulty_entry_name_exists = _types.SSHAgentSocketProviderEntry(
-    socketprovider.SocketProvider.resolve("windows"), "posix", ()
+    socketprovider.SocketProvider.resolve(
+        _types.BuiltinSSHAgentSocketProvider.WINDOWS
+    ),
+    _types.BuiltinSSHAgentSocketProvider.POSIX,
+    (),
 )
 """
 A faulty [`_types.SSHAgentSocketProviderEntry`][]: the indicated handler
@@ -392,9 +400,14 @@ is already registered with a different callable.
 """
 
 faulty_entry_alias_exists = _types.SSHAgentSocketProviderEntry(
-    socketprovider.SocketProvider.resolve("ssh_auth_sock_on_posix"),
-    "ssh_auth_sock_on_posix",
-    ("unix_domain", "windows_named_pipes"),
+    socketprovider.SocketProvider.resolve(
+        _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX
+    ),
+    _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX,
+    (
+        _types.BuiltinSSHAgentSocketProvider.UNIX_DOMAIN,
+        _types.BuiltinSSHAgentSocketProvider.WINDOWS_NAMED_PIPE,
+    ),
 )
 """
 A faulty [`_types.SSHAgentSocketProviderEntry`][]: the alias is already
