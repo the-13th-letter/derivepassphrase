@@ -1301,6 +1301,17 @@ class Label(enum.Enum):
         "PEP 508 extras:",
     )
     """"""
+    FEATURE_ITEM_ALIASES = commented(
+        "This is part of the version output, designating a list of names "
+        "as aliases to the previous entry.  "
+        "A comma-separated English list of items follows.  "
+        "This label, and the list of names, is included in parentheses: "
+        "`entry_name (aliases: alias1, alias2, ...)`.",
+    )(
+        "Label :: Info Message:: Table row header",
+        "aliases:",
+    )
+    """"""
     SUPPORTED_DERIVATION_SCHEMES = commented(
         "This is part of the version output, emitting lists of supported "
         "derivation schemes.  "
