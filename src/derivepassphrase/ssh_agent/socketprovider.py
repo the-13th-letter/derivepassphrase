@@ -10,7 +10,10 @@ import collections
 import ctypes
 import enum
 import errno
+import graphlib
 import hashlib
+import itertools
+import operator
 import os
 import socket
 from ctypes.wintypes import (  # type: ignore[attr-defined]
@@ -27,7 +30,8 @@ from typing import TYPE_CHECKING, cast
 from derivepassphrase import _types
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Mapping
+    from collections.abc import Set as AbstractSet
     from typing import ClassVar
 
     from typing_extensions import (
@@ -902,6 +906,59 @@ class SocketProvider:
             )
             raise NotImplementedError(msg)
         return ret
+
+    @classmethod
+    def grouped(cls) -> Mapping[str, AbstractSet[str]]:
+        """Calculate a mapping of canonical socket provider entries.
+
+        Specifically, determine the non-alias entries in the socket
+        provider registry, and map each such non-alias entry to its set
+        of aliases.
+
+        Returns:
+            A mapping of non-alias entry names to sets of alias entry
+            names.
+
+        Warning:
+            The results are undefined if the registry has been modified
+            by any means other than the [`register`][] decorator.
+
+        """
+        known_socket_provider_values = frozenset({
+            v for v in cls.registry.values() if not isinstance(v, str)
+        })
+        canonical: dict[str, str] = {}
+        sorter: graphlib.TopologicalSorter[
+            _types.SSHAgentSocketProvider | str | None
+        ] = graphlib.TopologicalSorter()
+        k: _types.SSHAgentSocketProvider | str | None
+        v: _types.SSHAgentSocketProvider | str | None
+        for k, v in cls.registry.items():
+            sorter.add(k, v)
+        sorter.prepare()
+        while sorter:
+            entries = sorter.get_ready()
+            for k in entries:
+                if not isinstance(k, str):
+                    assert k in known_socket_provider_values
+                    sorter.done(k)
+                    continue
+                v = cls.registry[k]
+                canonical[k] = (
+                    canonical[v]  # alias
+                    if isinstance(v, str)
+                    else k  # actual entry
+                )
+                sorter.done(k)
+
+        key_of_entry = operator.itemgetter(0)
+        by_value = operator.itemgetter(1)
+
+        sorted_entries = sorted(canonical.items(), key=by_value)
+        return {
+            k: frozenset(map(key_of_entry, v))
+            for k, v in itertools.groupby(sorted_entries, key=by_value)
+        }
 
     ENTRY_POINT_GROUP_NAME = "derivepassphrase.ssh_agent_socket_providers"
     """

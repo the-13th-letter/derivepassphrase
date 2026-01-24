@@ -1342,6 +1342,16 @@ class Label(enum.Enum):
         "Supported foreign configuration formats:",
     )
     """"""
+    SUPPORTED_SSH_AGENT_SOCKET_PROVIDERS = commented(
+        "This is part of the version output, emitting lists of supported "
+        "SSH agent socket providers.  "
+        "A comma-separated English list of items follows, "
+        "with standard English punctuation.",
+    )(
+        "Label :: Info Message:: Table row header",
+        "Supported SSH agent socket providers:",
+    )
+    """"""
     SUPPORTED_SUBCOMMANDS = commented(
         "This is part of the version output, emitting lists of supported "
         "subcommands.  "
@@ -1380,6 +1390,16 @@ class Label(enum.Enum):
     )(
         "Label :: Info Message:: Table row header",
         "Known foreign configuration formats:",
+    )
+    """"""
+    UNAVAILABLE_SSH_AGENT_SOCKET_PROVIDERS = commented(
+        "This is part of the version output, emitting lists of known, "
+        "unavailable SSH agent socket providers.  "
+        "A comma-separated English list of items follows, "
+        "with standard English punctuation.",
+    )(
+        "Label :: Info Message:: Table row header",
+        "Known SSH agent socket providers:",
     )
     """"""
     CONFIRM_THIS_CHOICE_PROMPT_TEXT = commented(

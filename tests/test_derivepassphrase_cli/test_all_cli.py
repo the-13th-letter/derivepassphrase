@@ -36,6 +36,7 @@ class VersionOutputData(NamedTuple):
     extras: frozenset[str]
     subcommands: frozenset[str]
     features: dict[str, bool]
+    ssh_agent_socket_providers: dict[str, bool]
 
 
 def _label_text(e: cli_messages.Label, /) -> str:
@@ -60,6 +61,12 @@ class KnownLineType(str, enum.Enum):
     )
     SUPPORTED_FEATURES = _label_text(cli_messages.Label.SUPPORTED_FEATURES)
     UNAVAILABLE_FEATURES = _label_text(cli_messages.Label.UNAVAILABLE_FEATURES)
+    SUPPORTED_SSH_AGENT_SOCKET_PROVIDERS = _label_text(
+        cli_messages.Label.SUPPORTED_SSH_AGENT_SOCKET_PROVIDERS
+    )
+    UNAVAILABLE_SSH_AGENT_SOCKET_PROVIDERS = _label_text(
+        cli_messages.Label.UNAVAILABLE_SSH_AGENT_SOCKET_PROVIDERS
+    )
     ENABLED_EXTRAS = _label_text(cli_messages.Label.ENABLED_PEP508_EXTRAS)
 
 
@@ -191,6 +198,7 @@ PEP 508 extras: export.
                     subcommands=frozenset(),
                     features={},
                     extras=frozenset({"export"}),
+                    ssh_agent_socket_providers={},
                 ),
                 id="derivepassphrase-0.4.0-export",
             ),
@@ -215,6 +223,7 @@ No PEP 508 extras are active.
                     subcommands=frozenset({"export", "vault"}),
                     features={},
                     extras=frozenset({}),
+                    ssh_agent_socket_providers={},
                 ),
                 id="derivepassphrase-0.5-plain",
             ),
@@ -237,6 +246,8 @@ Known foreign configuration formats: divination v3.141592,
 Supported subcommands: delete-all-files, dump-core.
 Supported features: delete-while-open.
 Known features: backups-are-nice-to-have.
+Supported SSH agent socket providers: agents-of-shield.
+Known SSH agent socket providers: agent-smith.
 PEP 508 extras: annoying-popups, delete-all-files,
     dump-core-depending-on-the-phase-of-the-moon.
 
@@ -269,6 +280,10 @@ PEP 508 extras: annoying-popups, delete-all-files,
                         "delete-all-files",
                         "dump-core-depending-on-the-phase-of-the-moon",
                     }),
+                    ssh_agent_socket_providers={
+                        "agents-of-shield": True,
+                        "agent-smith": False,
+                    },
                 ),
                 id="inventpassphrase",
             ),
@@ -305,6 +320,7 @@ Supported subcommands: export, spectre ({aliases!s} master-password, mpw),
                     }),
                     features={},
                     extras=frozenset(),
+                    ssh_agent_socket_providers={},
                 ),
                 id="aliases",
             ),
@@ -476,6 +492,7 @@ def parse_version_output(  # noqa: C901
     subcommands: set[str] = set()
     extras: set[str] = set()
     features: dict[str, bool] = {}
+    ssh_agent_socket_providers: dict[str, bool] = {}
     if len(paragraphs) < 2:  # pragma: no cover
         return VersionOutputData(
             derivation_schemes=schemes,
@@ -483,6 +500,7 @@ def parse_version_output(  # noqa: C901
             subcommands=frozenset(subcommands),
             extras=frozenset(extras),
             features=features,
+            ssh_agent_socket_providers=ssh_agent_socket_providers,
         )
     for line in paragraphs[1]:
         line_type, _, value = line.partition(":")
@@ -506,6 +524,15 @@ def parse_version_output(  # noqa: C901
                 features[item] = True
             elif line_type == KnownLineType.UNAVAILABLE_FEATURES:
                 features[item] = False
+            elif (
+                line_type == KnownLineType.SUPPORTED_SSH_AGENT_SOCKET_PROVIDERS
+            ):
+                ssh_agent_socket_providers[item] = True
+            elif (
+                line_type
+                == KnownLineType.UNAVAILABLE_SSH_AGENT_SOCKET_PROVIDERS
+            ):
+                ssh_agent_socket_providers[item] = False
             else:
                 raise AssertionError(  # noqa: TRY003
                     f"Unknown version info line type: {line_type!r}"  # noqa: EM102
@@ -516,6 +543,7 @@ def parse_version_output(  # noqa: C901
         subcommands=frozenset(subcommands),
         extras=frozenset(extras),
         features=features,
+        ssh_agent_socket_providers=ssh_agent_socket_providers,
     )
 
 

@@ -1122,6 +1122,14 @@ class BuiltinSSHAgentSocketProvider(str, enum.Enum):
                 pass
         return ret
 
+    def is_known_fake_agent(self, *_args: Any, **_kwargs: Any) -> bool:  # noqa: ANN401
+        """Return true if this SSH agent is a known fake agent."""
+        return self in {
+            BuiltinSSHAgentSocketProvider.STUB_AGENT,
+            BuiltinSSHAgentSocketProvider.STUB_AGENT_WITH_ADDRESS,
+            BuiltinSSHAgentSocketProvider.STUB_AGENT_WITH_ADDRESS_AND_DETERMINISTIC_DSA,
+        }
+
     __str__ = str.__str__
     __format__ = str.__format__  # type: ignore[assignment]
 
