@@ -460,8 +460,13 @@ for key, handler in spawn_handlers.items():
 Popen = TypeVar("Popen", bound=subprocess.Popen)
 
 
+# As of v0.6, all SSH agents we interact with on The Annoying OS are
+# interfaced, not spawned.  Therefore, this context manager is unused on
+# The Annoying OS.
 @contextlib.contextmanager
-def terminate_on_exit(proc: Popen) -> Iterator[Popen]:
+def terminate_on_exit(
+    proc: Popen,
+) -> Iterator[Popen]:  # pragma: unless posix no cover [unused]
     """Terminate and wait for the subprocess upon exiting the context.
 
     Args:

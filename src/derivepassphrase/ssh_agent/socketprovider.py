@@ -512,7 +512,9 @@ class WindowsNamedPipeHandle:
                 ctypes.cast(ctypes.byref(write_count), LPDWORD),
                 ctypes.cast(ctypes.byref(overlapped_struct), LPOVERLAPPED),
             )
-            if not success and GetLastError() == ERROR_IO_PENDING:
+            if (
+                not success and GetLastError() == ERROR_IO_PENDING
+            ):  # pragma: no cover [external]
                 success = GetOverlappedResult(
                     self.handle,
                     ctypes.cast(ctypes.byref(overlapped_struct), LPOVERLAPPED),
