@@ -27,7 +27,6 @@ from typing import TYPE_CHECKING
 import hypothesis
 import pytest
 from hypothesis import strategies
-from typing_extensions import Any
 
 from derivepassphrase import _types, cli, ssh_agent
 from derivepassphrase._internals import (
@@ -42,6 +41,8 @@ from tests.machinery import pytest as pytest_machinery
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from typing import NoReturn
+
+    from typing_extensions import Any
 
 DUMMY_SERVICE = data.DUMMY_SERVICE
 
@@ -879,15 +880,21 @@ class TestStoringConfigurationFailures:
             pass
 
     def test_fail_because_ssh_agent_has_no_keys_loaded(
-        self, spawn_ssh_agent: data.SpawnedSSHAgentInfo
+        self,
+        request: pytest.FixtureRequest,
+        spawn_ssh_agent: data.SpawnedSSHAgentInfo,
     ) -> None:
         """Not holding any SSH keys during `--config --key` fails."""
-        del spawn_ssh_agent
         with self._test(
             ["--key"],
             error_text="no keys suitable",
             patch_suitable_ssh_keys=False,
         ) as monkeypatch:
+            pytest_machinery.ensure_singleton_client_if_non_reentrant_agent(
+                request=request,
+                monkeypatch=monkeypatch,
+                client=spawn_ssh_agent.client,
+            )
 
             def func(
                 *_args: Any,
@@ -898,15 +905,21 @@ class TestStoringConfigurationFailures:
             monkeypatch.setattr(ssh_agent.SSHAgentClient, "list_keys", func)
 
     def test_store_config_fail_manual_ssh_agent_runtime_error(
-        self, spawn_ssh_agent: data.SpawnedSSHAgentInfo
+        self,
+        request: pytest.FixtureRequest,
+        spawn_ssh_agent: data.SpawnedSSHAgentInfo,
     ) -> None:
         """Triggering an error in the SSH agent during `--config --key` leads to failure."""
-        del spawn_ssh_agent
         with self._test(
             ["--key"],
             error_text="violates the communication protocol",
             patch_suitable_ssh_keys=False,
         ) as monkeypatch:
+            pytest_machinery.ensure_singleton_client_if_non_reentrant_agent(
+                request=request,
+                monkeypatch=monkeypatch,
+                client=spawn_ssh_agent.client,
+            )
 
             def raiser(*_args: Any, **_kwargs: Any) -> None:
                 raise ssh_agent.TrailingDataError()
@@ -914,13 +927,19 @@ class TestStoringConfigurationFailures:
             monkeypatch.setattr(ssh_agent.SSHAgentClient, "list_keys", raiser)
 
     def test_store_config_fail_manual_ssh_agent_refuses(
-        self, spawn_ssh_agent: data.SpawnedSSHAgentInfo
+        self,
+        request: pytest.FixtureRequest,
+        spawn_ssh_agent: data.SpawnedSSHAgentInfo,
     ) -> None:
         """The SSH agent refusing during `--config --key` leads to failure."""
-        del spawn_ssh_agent
         with self._test(
             ["--key"], error_text="refused to", patch_suitable_ssh_keys=False
         ) as monkeypatch:
+            pytest_machinery.ensure_singleton_client_if_non_reentrant_agent(
+                request=request,
+                monkeypatch=monkeypatch,
+                client=spawn_ssh_agent.client,
+            )
 
             def func(*_args: Any, **_kwargs: Any) -> NoReturn:
                 raise ssh_agent.SSHAgentFailedError(

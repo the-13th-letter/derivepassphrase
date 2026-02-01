@@ -37,6 +37,9 @@ def pytest_configure(config: pytest.Config) -> None:
         (
             "heavy_duty: "
             "mark test as a slow, heavy-duty test (e.g., an integration test)"
+            "\n"
+            "non_reentrant_agent: "
+            "mark the agent (fixture output) as non-reentrant"
         ),
     )
     hypothesis_machinery._hypothesis_settings_setup()
@@ -390,6 +393,58 @@ The standard registry of agent spawning functions.
 """
 
 
+def external_agent_restriction(
+    agent_type: data.KnownSSHAgent,
+    env_var: str,
+    *,
+    default: bool = True,
+) -> bool:  # pragma: no cover [external]
+    """Classify an SSH agent according to some environment variable.
+
+    Look up the given SSH agent type in a certain environment variable,
+    and report on whether the agent type is listed in that variable.
+    This can be used to check if the agent is e.g. in a list of
+    permitted agents, or if it is in the list of agents requiring
+    special workarounds.  Invalid agent type names are silently ignored.
+
+    If the environment variable is empty, return a default value.
+
+    By design, the stubbed agents have a fixed classification (the
+    default value), unaffected by the environment variable.
+
+    Args:
+        agent_type:
+            The agent type to classify.
+        env_var:
+            The environment variable in which to look up the agent type
+            name.
+        default:
+            The value to return if the environment variable is unset, or
+            if a stub agent is to be classified.
+
+    Returns:
+        If the agent type is not a stub agent, and the environment
+        variable is non-empty, then `True` if the agent type is
+        mentioned in the environment variable, and `False` otherwise;
+        the default value otherwise.
+
+    See also:
+        [`is_agent_permitted`][] and [`is_agent_non_reentrant`][], which
+        make use of this function internally.
+
+    """
+    if agent_type == data.KnownSSHAgent.StubbedSSHAgent:
+        return default
+    if not os.environ.get(env_var):
+        return default
+    marked_agents = {
+        data.KnownSSHAgent(x)
+        for x in os.environ[env_var].split(",")
+        if x in data.KnownSSHAgent.__members__
+    }
+    return agent_type in marked_agents
+
+
 def is_agent_permitted(
     agent_type: data.KnownSSHAgent,
 ) -> bool:  # pragma: no cover [external]
@@ -407,15 +462,35 @@ def is_agent_permitted(
     suite depends on their availability.
 
     """
-    if not os.environ.get("PERMITTED_SSH_AGENTS"):
-        return True
-    permitted_agents = {data.KnownSSHAgent.StubbedSSHAgent}
-    permitted_agents.update({
-        data.KnownSSHAgent(x)
-        for x in os.environ["PERMITTED_SSH_AGENTS"].split(",")
-        if x in data.KnownSSHAgent.__members__
-    })
-    return agent_type in permitted_agents
+    return external_agent_restriction(
+        agent_type, "PERMITTED_SSH_AGENTS", default=True
+    )
+
+
+def is_agent_non_reentrant(
+    agent_type: data.KnownSSHAgent,
+) -> bool:  # pragma: no cover [external]
+    """Is the given SSH agent assumed to be non-reentrant?
+
+    If the environment variable `NON_REENTRANT_SSH_AGENTS` is given, it
+    names a comma-separated list of known SSH agent names that are
+    assumed to be non-reentrant, i.e., where the SSH agent cannot
+    tolerate multiple clients connecting to it at the same time, and
+    thus no client for the same agent may be constructed while another
+    one is already connected.  Invalid names are silently ignored.  If
+    not given, or empty, then all agents are considered reentrant, i.e.,
+    all agents are not considered non-reentrant.
+
+    (To consider all agents non-reentrant, specify a single comma as the
+    list.  But see below.)
+
+    The stubbed agents cannot be influenced in this manner, as the test
+    suite depends on their reentrancy.
+
+    """
+    return external_agent_restriction(
+        agent_type, "NON_REENTRANT_SSH_AGENTS", default=False
+    )
 
 
 spawn_handlers_params: list[Sequence] = []
@@ -432,6 +507,13 @@ for key, handler in spawn_handlers.items():
             "environment variable.",
         ),
     ]
+    # Allow agents to be marked as non-reentrant.  Workaround for an
+    # issue with GnuPG 2.4.8 on The Annoying OS when `gpg-agent`
+    # masquerades as OpenSSH's `ssh-agent`.
+    if is_agent_non_reentrant(
+        handler.agent_type
+    ):  # pragma: no cover [external]
+        marks.append(pytest.mark.non_reentrant_agent)
     # Mark non-isolated agents as, well, using non-isolated agents.
     # Assume by default that an agent is potentially non-isolated unless
     # we can be absolutely sure it is isolated, by design.  (The "stub"

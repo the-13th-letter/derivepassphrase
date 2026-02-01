@@ -34,6 +34,7 @@ from typing_extensions import assert_never, overload
 
 import tests.data
 import tests.machinery
+from derivepassphrase import _types, ssh_agent
 from derivepassphrase._internals import cli_helpers, cli_machinery
 from derivepassphrase.ssh_agent import socketprovider
 
@@ -547,3 +548,56 @@ def isolated_vault_exporter_config(
             yield
         finally:
             cli_helpers.config_filename("write lock").unlink(missing_ok=True)
+
+
+def ensure_singleton_client_if_non_reentrant_agent(
+    *,
+    request: pytest.FixtureRequest,
+    monkeypatch: pytest.MonkeyPatch,
+    client: ssh_agent.SSHAgentClient,
+) -> None:
+    """Mangle SSH agent construction if the spawned agent is non-reentrant.
+
+    Monkeypatch a suitable environment to ensure that constructing a new
+    SSH agent client -- usually via the
+    [`ssh_agent.SSHAgentClient.ensure_agent_subcontext`][] context
+    manager -- doesn't really construct a new client, in case the agent
+    is non-reentrant.
+
+    Agent reentrancy is determined by the presence of the
+    `non_reentrant_agent` mark.  We change nothing if the agent is
+    actually reentrant.
+
+    Args:
+        request:
+            The `pytest` request fixture.  Needed to get the active
+            markers on this test function execution, which detail
+            whether the agent is potentially non-reentrant.
+        monkeypatch:
+            A monkeypatching context to enrich.
+        client:
+            The singleton SSH agent client that is to be used.
+
+    """
+    if (
+        request.node.get_closest_marker("non_reentrant_agent") is not None
+    ):  # pragma: no cover [external]
+        real_ensure_agent_subcontext = (
+            ssh_agent.SSHAgentClient.ensure_agent_subcontext
+        )
+
+        def ensure_agent_subcontext(
+            conn: ssh_agent.SSHAgentClient
+            | _types.SSHAgentSocket
+            | Sequence[str]
+            | None = None,
+        ) -> contextlib.AbstractContextManager[ssh_agent.SSHAgentClient]:
+            if isinstance(conn, ssh_agent.SSHAgentClient):
+                return real_ensure_agent_subcontext(conn)
+            return real_ensure_agent_subcontext(client)
+
+        monkeypatch.setattr(
+            ssh_agent.SSHAgentClient,
+            "ensure_agent_subcontext",
+            ensure_agent_subcontext,
+        )

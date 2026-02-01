@@ -29,7 +29,6 @@ import click
 import hypothesis
 import pytest
 from hypothesis import strategies
-from typing_extensions import Any
 
 from derivepassphrase import _types, cli, ssh_agent, vault
 from derivepassphrase._internals import (
@@ -45,6 +44,8 @@ from tests.machinery import pytest as pytest_machinery
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator
     from typing import NoReturn
+
+    from typing_extensions import Any
 
 
 DUMMY_SERVICE = data.DUMMY_SERVICE
@@ -480,6 +481,7 @@ class Parametrize(types.SimpleNamespace):
             "sign_action",
             "pattern",
             "warnings_patterns",
+            "tests_construction_failure",
         ],
         [
             pytest.param(
@@ -489,6 +491,7 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "not loaded into the agent",
                 [],
+                False,
                 id="key-not-loaded",
             ),
             pytest.param(
@@ -498,6 +501,7 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "SSH agent failed to or refused to",
                 [],
+                False,
                 id="list-keys-refused",
             ),
             pytest.param(
@@ -507,6 +511,7 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "SSH agent failed to or refused to",
                 [],
+                False,
                 id="list-keys-protocol-error",
             ),
             pytest.param(
@@ -516,6 +521,7 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "Cannot connect to the SSH agent",
                 [],
+                True,
                 id="agent-address-mangled",
             ),
             pytest.param(
@@ -525,6 +531,7 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "Cannot find any running SSH agent",
                 [],
+                True,
                 id="agent-address-missing",
             ),
             pytest.param(
@@ -534,6 +541,7 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "does not support communicating with it",
                 [],
+                True,
                 id="no-native-agent-available",
             ),
             pytest.param(
@@ -543,6 +551,7 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "does not support communicating with it",
                 [],
+                True,
                 id="no-agents-in-agent-provider-list",
             ),
             pytest.param(
@@ -552,6 +561,7 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "does not support communicating with it",
                 ["Cannot connect to an SSH agent via UNIX domain sockets"],
+                True,
                 id="no-unix-domain-sockets",
             ),
             pytest.param(
@@ -561,6 +571,7 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "does not support communicating with it",
                 ["Cannot connect to an SSH agent via Windows named pipes"],
+                True,
                 id="no-windows-named-pipes",
             ),
             pytest.param(
@@ -570,6 +581,7 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL_RUNTIME,
                 "violates the communication protocol",
                 [],
+                False,
                 id="sign-violates-protocol",
             ),
         ],
@@ -1466,6 +1478,7 @@ class TestMisc:
     @Parametrize.KEY_TO_PHRASE_SETTINGS
     def test_key_to_phrase(
         self,
+        request: pytest.FixtureRequest,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
         list_keys_action: ListKeysAction | None,
         system_support_action: SystemSupportAction | None,
@@ -1473,6 +1486,7 @@ class TestMisc:
         sign_action: SignAction,
         pattern: str,
         warnings_patterns: list[str],
+        tests_construction_failure: bool,
     ) -> None:
         """All errors in [`cli_helpers.key_to_phrase`][] are handled."""
 
@@ -1496,6 +1510,7 @@ class TestMisc:
                 ssh_agent_client_with_test_keys_loaded.list_keys()
             )
             loaded_key = base64.standard_b64encode(loaded_keys[0][0])
+
             monkeypatch.setattr(ssh_agent.SSHAgentClient, "sign", sign_action)
             if list_keys_action:
                 monkeypatch.setattr(
@@ -1505,6 +1520,14 @@ class TestMisc:
                 address_action(monkeypatch)
             if system_support_action:
                 system_support_action(monkeypatch)
+
+            if not tests_construction_failure:
+                pytest_machinery.ensure_singleton_client_if_non_reentrant_agent(
+                    request=request,
+                    monkeypatch=monkeypatch,
+                    client=ssh_agent_client_with_test_keys_loaded,
+                )
+
             with pytest.raises(ErrCallback, match=pattern) as excinfo:
                 cli_helpers.key_to_phrase(
                     loaded_key, error_callback=err, warning_callback=warn
