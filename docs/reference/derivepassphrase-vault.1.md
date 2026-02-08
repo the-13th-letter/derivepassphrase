@@ -322,12 +322,12 @@ This is a property specific to the key type, and sometimes the agent used:
     Select an SSH key from the available suitable SSH keys in the running SSH agent, then generate a passphrase for the `example.com` service using the previously selected SSH key.
     The passphrase will have (standard) length 20, and at least nine characters will be uppercase characters and at least another nine characters will be lowercase characters.
 
-??? example "`derivepassphrase example.com vault --key --upper 9 --lower 9 --number 9`"
+??? example "`derivepassphrase vault --key --upper 9 --lower 9 --number 9 example.com`"
 
     Attempt to generate a passphrase as in the previous example.
     This example will <em>error out</em>, because the passphrase constraints require at least 27 characters and the standard passphrase length 20 cannot accomodate this.
 
-??? example "`derivepassphrase --config vault --key --upper 9 --lower 9 --space 2`"
+??? example "`derivepassphrase vault --config --key --upper 9 --lower 9 --space 2`"
 
     After selecting an SSH key, configure the default settings to use exactly nine uppercase characters, nine lowercase characters, and two spaces for each generated passphrase.
     (The specific service settings, or the command-line invocation, can still override these settings.)
