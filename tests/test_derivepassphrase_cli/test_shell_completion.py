@@ -226,6 +226,7 @@ class Parametrize(types.SimpleNamespace):
                     "--vault-legacy-editor-interface",
                     "--print-notes-before",
                     "--print-notes-after",
+                    "--ssh-agent-socket-provider",
                 }),
                 id="derivepassphrase-vault",
             ),
