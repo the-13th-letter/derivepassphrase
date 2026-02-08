@@ -2361,6 +2361,16 @@ class ErrMsgTemplate(enum.Enum):
         "The requested SSH key is not loaded into the agent.",
     )
     """"""
+    UNKNOWN_SSH_AGENT_SOCKET_PROVIDER = commented(
+        "The provider is already put in ASCII quotes, and sanitized "
+        "so that it is safe to emit to the terminal.",
+    )(
+        "Error message",
+        "The SSH agent socket provider {provider} is not in "
+        "derivepassphrase's provider registry.",
+        flags="python-brace-format",
+    )
+    """"""
     USER_ABORTED_EDIT = commented(
         "The user requested to edit the notes for a service, "
         "but aborted the request mid-editing.",

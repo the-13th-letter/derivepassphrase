@@ -711,6 +711,34 @@ def prompt_for_selection(
     return 0
 
 
+def handle_nosuchprovidererror(
+    error_callback: Callable[..., NoReturn],
+    warning_callback: Callable[..., None],
+) -> Callable[[BaseExceptionGroup], NoReturn]:
+    """Generate a handler for socketprovider.NoSuchProviderException in try-except*.
+
+    Returns a function emitting a standard user-facing message.
+
+    """  # noqa: DOC201, E501
+    del warning_callback
+
+    def handle_nosuchprovidererror(excgroup: BaseExceptionGroup) -> NoReturn:
+        subset = excgroup.subgroup(socketprovider.NoSuchProviderError)
+        provider_name = (
+            ascii(subset.exceptions[0].args[0])
+            if subset is not None
+            else "(null)"
+        )
+        error_callback(
+            _msg.TranslatedString(
+                _msg.ErrMsgTemplate.UNKNOWN_SSH_AGENT_SOCKET_PROVIDER,
+                provider=provider_name,
+            )
+        )
+
+    return handle_nosuchprovidererror
+
+
 def handle_keyerror(
     error_callback: Callable[..., NoReturn],
     warning_callback: Callable[..., None],
@@ -886,6 +914,9 @@ def select_ssh_key(
         raise AssertionError()
 
     with exceptiongroup.catch({
+        socketprovider.NoSuchProviderError: handle_nosuchprovidererror(
+            error_callback, warning_callback
+        ),
         KeyError: handle_keyerror(error_callback, warning_callback),
         LookupError: handle_lookuperror,
         NotImplementedError: handle_notimplementederror(
@@ -1171,6 +1202,9 @@ def key_to_phrase(
     """
     key = base64.standard_b64decode(key)
     with exceptiongroup.catch({  # noqa: SIM117
+        socketprovider.NoSuchProviderError: handle_nosuchprovidererror(
+            error_callback, warning_callback
+        ),
         KeyError: handle_keyerror(error_callback, warning_callback),
         NotImplementedError: handle_notimplementederror(
             error_callback, warning_callback
