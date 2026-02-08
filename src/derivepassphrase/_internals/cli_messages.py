@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: 2025 Marco Ricci <software@the13thletter.info>
+# SPDX-FileCopyrightText: 2026 Marco Ricci <software@the13thletter.info>
 #
-# SPDX-Licence-Identifier: MIT
+# SPDX-Licence-Identifier: Zlib
 
 """Messages for the command-line interface of `derivepassphrase`.
 
