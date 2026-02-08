@@ -1476,7 +1476,7 @@ class TestMisc:
                 )
 
     @Parametrize.KEY_TO_PHRASE_SETTINGS
-    def test_key_to_phrase(
+    def test_key_to_phrase(  # noqa: C901
         self,
         request: pytest.FixtureRequest,
         ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,

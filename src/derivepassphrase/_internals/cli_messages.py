@@ -2346,7 +2346,7 @@ class ErrMsgTemplate(enum.Enum):
     SET_AND_UNSET_SAME_SETTING = commented(
         "The rephrasing "
         '"Attempted to unset and set the same setting '
-        '(--unset={setting} --{setting}=...) at the same time."'
+        '(--unset={setting} --{setting}=...) at the same time." '
         "may or may not be more suitable as a basis for translation instead.",
     )(
         "Error message",

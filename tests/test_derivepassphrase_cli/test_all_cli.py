@@ -402,7 +402,9 @@ def tokenize_version_output_item_listing(
             alias_list = match.group("alias_list")
             assert alias_list, "item listing tokenizer is inconsistent"
             assert alias_list.strip(), "item listing tokenizer is inconsistent"
-            assert alias_list.lstrip() == alias_list, "item listing tokenizer is inconsistent"
+            assert alias_list.lstrip() == alias_list, (
+                "item listing tokenizer is inconsistent"
+            )
             yield from tokenize_version_output_item_listing(
                 alias_list.strip(), is_alias_annotation=True
             )
