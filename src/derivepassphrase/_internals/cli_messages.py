@@ -902,6 +902,15 @@ class Label(enum.Enum):
         "PATH",
     )
     """"""
+    VAULT_COMPATIBILITY_METAVAR_SSH_AGENT_SOCKET_PROVIDER = commented(
+        "This metavar is used in "
+        "Label.DERIVEPASSPHRASE_VAULT_SSH_AGENT_SOCKET_PROVIDER_HELP_TEXT, "
+        'yielding e.g. "Use PROVIDER as the SSH agent socket provider.".  ',
+    )(
+        "Label :: Help text :: Metavar :: vault",
+        "PROVIDER",
+    )
+    """"""
     VAULT_METAVAR_SERVICE = commented(
         'This metavar is used as "service_metavar" in multiple help texts, '
         "such as Label.DERIVEPASSPHRASE_VAULT_CONFIG_HELP_TEXT, "
@@ -1119,6 +1128,15 @@ class Label(enum.Enum):
         "Label :: Help text :: One-line description",
         "Restrict runs of identical characters to at most {metavar} "
         "characters.",
+        flags="python-brace-format",
+    )
+    """"""
+    DERIVEPASSPHRASE_VAULT_SSH_AGENT_SOCKET_PROVIDER_HELP_TEXT = commented(
+        "The metavar is"
+        "Label.VAULT_COMPATIBILITY_METAVAR_SSH_AGENT_SOCKET_PROVIDER.",
+    )(
+        "Label :: Help text :: One-line description",
+        "Use {metavar} as the SSH agent socket provider.",
         flags="python-brace-format",
     )
     """"""

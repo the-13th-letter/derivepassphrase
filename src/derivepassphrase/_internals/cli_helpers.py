@@ -26,6 +26,7 @@ import shlex
 import sys
 import threading
 import unicodedata
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, cast
 
 import click
@@ -48,7 +49,6 @@ if TYPE_CHECKING:
     from collections.abc import (
         Iterator,
         Mapping,
-        Sequence,
     )
     from contextlib import AbstractContextManager
     from typing import (
@@ -1066,6 +1066,68 @@ def check_for_misleading_passphrase(
                 stacklevel=2,
                 extra={"color": ctx.color if ctx is not None else None},
             )
+
+
+def get_configured_connection_hint(
+    conn: ssh_agent.SSHAgentClient
+    | _types.SSHAgentSocket
+    | Sequence[str]
+    | None = None,
+    /,
+    *,
+    main_config: dict[str, Any],
+) -> ssh_agent.SSHAgentClient | _types.SSHAgentSocket | Sequence[str] | None:
+    """Return a suitable connection hint for the SSH agent client.
+
+    If a connection hint is already known, return that connection hint.
+    Otherwise, look up configured SSH agent socket providers in the user
+    configuration and return those as a hint, if possible.
+
+    Args:
+        conn:
+            An optional connection hint to the SSH agent, to be used if
+            non-trivial.
+        main_config:
+            The parsed main user configuration.
+
+    Returns:
+        A connection hint suitable for use with
+        [`ssh_agent.SSHAgentClient.ensure_agent_subcontext`][].
+
+    """
+
+    def handle_return_value(
+        val: ssh_agent.SSHAgentClient
+        | _types.SSHAgentSocket
+        | str
+        | Sequence[str]
+        | None,
+    ) -> (
+        ssh_agent.SSHAgentClient | _types.SSHAgentSocket | Sequence[str] | None
+    ):  # pragma: no cover [external]
+        # A separate function, to easily exclude it from coverage,
+        # because it's just type handling, which the type checker
+        # already checks.
+        #
+        # Strings should be packed into singleton tuples, and general
+        # sequences should be turned into readonly tuples.  All other
+        # types of values can be passed through.  But because strings
+        # are sequences as well, we need to check for strings
+        # separately.
+        if isinstance(val, str):
+            return (val,)
+        if isinstance(val, Sequence):
+            return tuple(val)
+        return val
+
+    return handle_return_value(
+        conn
+        if conn is not None
+        else cast(
+            "str | Sequence[str] | None",
+            main_config.get("vault", {}).get("ssh-agent-socket-provider"),
+        )
+    )
 
 
 def key_to_phrase(
