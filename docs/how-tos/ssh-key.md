@@ -19,15 +19,23 @@
 
 Assuming the prerequisites are satisfied, ensure that the SSH agent is
 running, the SSH key is loaded into the agent, and that
-`derivepassphrase` knows how to obtain the agent's socket address:
+`derivepassphrase` can <i>discover</i> the agent:
 
-- On UNIX systems, the `SSH_AUTH_SOCK` environment variable must be
-  correctly set up.
-- On Windows systems, by default, the `SSH_AUTH_SOCK` environment
-  variable must be correctly set up.
-  Alternatively, `derivepassphrase` can be explicitly configured to
-  connect to OpenSSH or Pageant (PuTTY) without consulting
-  `SSH_AUTH_SOCK`, in which case OpenSSH or Pageant must be running.
+!!! info "Making the SSH agent discoverable"
+
+    === "on UNIX"
+
+        …the `SSH_AUTH_SOCK` environment variable must be correctly set up.
+
+    === "on Windows"
+
+        …by default, the `SSH_AUTH_SOCK` environment variable must be
+        correctly set up.
+
+        Alternatively, `derivepassphrase` can be explicitly configured to
+        connect to OpenSSH or Pageant (PuTTY) directly, without consulting
+        `SSH_AUTH_SOCK`.
+        In that case, the respective agent must be running.
 
 The exact commands depend on the SSH agent in use.
 
@@ -114,6 +122,17 @@ The exact commands depend on the SSH agent in use.
 
         === "on Windows"
 
+            <div style="float: right;">
+
+            <figure markdown>
+            ![A CRT monitor wearing a spy hat.][PAGEANT_ICON]{ width="96" loading=lazy }
+            <figcaption>
+            The `pageant` icon
+            </figcaption>
+            </figure>
+
+            </div>
+
             Start Pageant; this adds the Pageant icon to the Windows task
             bar.
             Then add the key via the right-click context menu, "Add key" or
@@ -124,10 +143,10 @@ The exact commands depend on the SSH agent in use.
             re-encrypting it, meaning that the key cannot be used by
             malicious clients while encrypted.
             This can be used to partially alleviate the lack of support for
-            the "key timeout" constraint.
+            the "key timeout" and "confirm on use" constraint.
             The "Add key (encrypted)" mode is thus *recommended*.
 
-            Finally, inform `derivepassphrase` about the Pageant's address:
+            Finally, inform `derivepassphrase` about Pageant's address:
 
             === "`pageant_on_windows` socket provider"
 
@@ -244,47 +263,60 @@ The exact commands depend on the SSH agent in use.
 
 Next, configure `derivepassphrase vault` to use the loaded SSH key.
 
-=== "global key"
+!!! quote ""
 
-    ~~~~ console
-    $ derivepassphrase vault --config -k
-    Suitable SSH keys:
-    [1] ssh-rsa ...feXycsvJZ2uaYRjMdZeJGNAnHLUGLkBscw5aI8=  test key without passphrase
-    [2] ssh-ed448 ...BQ72ZgtPMckdzabiz7JbM/b0JzcRzGLMsbwA=  test key without passphrase
-    [3] ssh-ed25519 ...gJIXw//Mkhv5MEwidwcakUGCekJD/vCEml2  test key without passphrase
-    Your selection? (1-3, leave empty to abort): 3
-    ~~~~
+    === "global key"
 
-    (The prompt text will be "Use this key?" instead if there is only one
-    suitable key.)
+        ~~~~ console
+        $ derivepassphrase vault --config -k
+        Suitable SSH keys:
+        [1] ssh-rsa ...feXycsvJZ2uaYRjMdZeJGNAnHLUGLkBscw5aI8=  test key without passphrase
+        [2] ssh-ed448 ...BQ72ZgtPMckdzabiz7JbM/b0JzcRzGLMsbwA=  test key without passphrase
+        [3] ssh-ed25519 ...gJIXw//Mkhv5MEwidwcakUGCekJD/vCEml2  test key without passphrase
+        Your selection? (1-3, leave empty to abort): 3
+        ~~~~
 
-    Now `derivepassphrase vault` will automatically use the configured
-    key globally, even without the `-k`/`--key` option.
+        (The prompt text will be "Use this key?" instead if there is only one
+        suitable key.)
 
-=== "key specifically for <var>SERVICE</var>"
+        Now `derivepassphrase vault` will automatically use the configured
+        key globally, even without the `-k`/`--key` option.
 
-    ~~~~ console
-    $ derivepassphrase vault --config -k SERVICE
-    Suitable SSH keys:
-    [1] ssh-rsa ...feXycsvJZ2uaYRjMdZeJGNAnHLUGLkBscw5aI8=  test key without passphrase
-    [2] ssh-ed448 ...BQ72ZgtPMckdzabiz7JbM/b0JzcRzGLMsbwA=  test key without passphrase
-    [3] ssh-ed25519 ...gJIXw//Mkhv5MEwidwcakUGCekJD/vCEml2  test key without passphrase
-    Your selection? (1-3, leave empty to abort): 3
-    ~~~~
+    === "key specifically for <var>SERVICE</var>"
 
-    (The prompt text will be "Use this key?" instead if there is only one
-    suitable key.)
+        ~~~~ console
+        $ derivepassphrase vault --config -k SERVICE
+        Suitable SSH keys:
+        [1] ssh-rsa ...feXycsvJZ2uaYRjMdZeJGNAnHLUGLkBscw5aI8=  test key without passphrase
+        [2] ssh-ed448 ...BQ72ZgtPMckdzabiz7JbM/b0JzcRzGLMsbwA=  test key without passphrase
+        [3] ssh-ed25519 ...gJIXw//Mkhv5MEwidwcakUGCekJD/vCEml2  test key without passphrase
+        Your selection? (1-3, leave empty to abort): 3
+        ~~~~
 
-    Now `derivepassphrase vault` will automatically use the configured
-    key for <var>SERVICE</var>, even without the `-k`/`--key` option.
+        (The prompt text will be "Use this key?" instead if there is only one
+        suitable key.)
+
+        Now `derivepassphrase vault` will automatically use the configured
+        key for <var>SERVICE</var>, even without the `-k`/`--key` option.
 
 !!! abstract "Further reading"
 
     → Tradeoffs between a master passphrase and a master SSH key,
     section "Should I use one master SSH key, or many keys?" (TODO)
 
+<aside markdown>
+
+??? abstract "Image credits"
+
+    - The `pageant` logo is part of the PuTTY software package, generated from source files contained within.
+      [License][PUTTY_ICONS_LICENSE]
+
+</aside>
+
 [OPENSSH_ON_WINDOWS_LIMITATIONS]: ../reference/prerequisites-ssh-key.md#agent-specific-notes
 [OPENSSH_ON_WINDOWS_DOC]: https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_keymanagement#user-key-generation
+[PAGEANT_ICON]: ../tutorials/pageant.svg
+[PUTTY_ICONS_LICENSE]: https://git.tartarus.org/?p=simon/putty.git;a=blob;f=LICENCE;h=091556577ce55d3502f121460668c5495de91baa;hb=refs/tags/0.83 "License for the PuTTY software suite (and icons)"
 
 [PREREQ]: ../reference/prerequisites-ssh-key.md
 [PREREQ_AGENT_SPECIFIC_NOTES]: ../reference/prerequisites-ssh-key.md#agent-specific-notes

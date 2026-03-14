@@ -48,79 +48,81 @@ Without support for SSH keys, this tutorial cannot be completed.
 `derivepassphrase` cannot generate SSH keys or do SSH key operations itself; instead, it relies on widespread and well-tested third-party software such as OpenSSH or PuTTY for this purpose.
 We need to install such software as well.
 
-=== "UNIX (and Cygwin/MSYS, WSL, and Git for Windows)"
+!!! info "Setup steps"
 
-    You likely already have OpenSSH installed, or can easily install them via your package manager or via [the official OpenSSH distribution][OPENSSH].
-    We only need access to the `ssh-agent`, `ssh-add` and `ssh-keygen` client tools; in particular, we do not need the OpenSSH server.
+    === "UNIX (and Cygwin/MSYS, WSL, and Git for Windows)"
 
-    ~~~~ shell-session title="Getting the version number of the installed OpenSSH client tools"
-    $ ssh -V
-    OpenSSH_10.2p1, OpenSSL 3.5.4 30 Sep 2025
-    ~~~~
+        You likely already have OpenSSH installed, or can easily install them via your package manager or via [the official OpenSSH distribution][OPENSSH].
+        We only need access to the `ssh-agent`, `ssh-add` and `ssh-keygen` client tools; in particular, we do not need the OpenSSH server.
 
-    Start an SSH agent if none is running yet.
-    (Some desktop environments automatically launch an agent on startup.)
-    We can check this via `ssh-add -l`.
-
-    === "Could not open a connection…"
-
-        ~~~~ shell-session
-        $ ssh-add -l
-        Could not open a connection to your authentication agent.
+        ~~~~ shell-session title="Getting the version number of the installed OpenSSH client tools"
+        $ ssh -V
+        OpenSSH_10.2p1, OpenSSL 3.5.4 30 Sep 2025
         ~~~~
 
-        The agent is not running.
-        So start an agent manually:
+        Start an SSH agent if none is running yet.
+        (Some desktop environments automatically launch an agent on startup.)
+        We can check this via `ssh-add -l`.
 
-        ~~~~ shell-session
-        $ eval "$(ssh-agent -s)"
-        ~~~~
+        === "&quot;Could not open a connection…&quot;"
 
-        and arrange for it to be shut down upon exiting this shell session:
+            ~~~~ shell-session
+            $ ssh-add -l
+            Could not open a connection to your authentication agent.
+            ~~~~
 
-        ~~~~ shell-session
-        $ trap "kill $SSH_AGENT_PID" 0
-        ~~~~
+            The agent is not running.
+            So start an agent manually:
 
-    === "The agent has no identities."
+            ~~~~ shell-session
+            $ eval "$(ssh-agent -s)"
+            ~~~~
 
-        ~~~~ shell-session
-        $ ssh-add -l
-        The agent has no identities.
-        ~~~~
+            and arrange for it to be shut down upon exiting this shell session:
 
-        The agent is already running.
+            ~~~~ shell-session
+            $ trap "kill $SSH_AGENT_PID" 0
+            ~~~~
 
-    === "(numbers, random characters, …)"
+        === "&quot;The agent has no identities.&quot;"
 
-        ~~~~ shell-session
-        $ ssh-add -l
-        256 SHA256:0h+WAokssfhzfzVyuMLJlIcWyCtk5WiXI8BHyhXYxC0  (ED25519)
-        3072 SHA256:1OHE0HrVlaSzJn2aQXQIKRu0tfO1CEMefy95K2Bt0xA  (RSA)
-        ~~~~
+            ~~~~ shell-session
+            $ ssh-add -l
+            The agent has no identities.
+            ~~~~
 
-        (… or similar output, perhaps with text.)
+            The agent is already running.
 
-        The agent is running, and already contains some keys.
+        === "random gibberish"
 
-=== "Windows"
+            ~~~~ shell-session
+            $ ssh-add -l
+            256 SHA256:0h+WAokssfhzfzVyuMLJlIcWyCtk5WiXI8BHyhXYxC0  (ED25519)
+            3072 SHA256:1OHE0HrVlaSzJn2aQXQIKRu0tfO1CEMefy95K2Bt0xA  (RSA)
+            ~~~~
 
-    <div style="float: right;">
+            (… or similar output, perhaps with text.)
 
-    <figure markdown>
-    ![A CRT monitor wearing a spy hat.][PAGEANT_ICON]{ width="96" }
-    <figcaption>
-    [The `pageant` icon][PUTTY_ICON_HISTORY]
-    </figcaption>
-    </figure>
+            The agent is running, and already contains some keys.
 
-    </div>
+    === "Windows"
 
-    Install PuTTY e.g. from [the official PuTTY distribution][PUTTY] website, or from the Microsoft Store (if supported).
-    We only need access to the `pageant` and `puttygen` tools.
+        <div style="float: right;">
 
-    Start `pageant` if it isn't running yet.
-    An icon of a CRT computer monitor wearing a black hat should appear in the task bar.
+        <figure markdown>
+        ![A CRT monitor wearing a spy hat.][PAGEANT_ICON]{ width="96" loading=lazy }
+        <figcaption>
+        [The `pageant` icon][PUTTY_ICON_HISTORY]
+        </figcaption>
+        </figure>
+
+        </div>
+
+        Install PuTTY e.g. from [the official PuTTY distribution][PUTTY] website, or from the Microsoft Store (if supported).
+        We only need access to the `pageant` and `puttygen` tools.
+
+        Start `pageant` if it isn't running yet.
+        An icon of a CRT computer monitor wearing a black hat should appear in the task bar.
 
 [PAGEANT_ICON]: pageant.svg
 [PUTTY_ICON_HISTORY]: https://www.chiark.greenend.org.uk/~sgtatham/quasiblog/putty-icons/
@@ -135,48 +137,68 @@ We need to install such software as well.
 ??? warning "Operational risk: reusing &quot;login&quot; SSH keys for passphrase derivation"
 
     SSH keys are typically used as access tokens for logging in on a remote system.
-    You are **discouraged** from reusing such an existing "login" key for passphrase derivation.
-    A master SSH key is a **long-lived secret**, and should **never need to be rotated, unless compromised or lost**.
+    You are **strongly discouraged** from reusing such an existing "login" key for passphrase derivation.
+    A master SSH key is a **long-lived secret**, and should **never need to be rotated[^key-rotation-def], unless compromised or lost**.
     Rotating a master SSH key means **forcibly changing all passphrases that are derived from this key**.
-    By contrast, a login SSH key is an access token, and may be rotated for other policy-related reasons (e.g. "upgrades" to a different algorithm, consolidation of multiple keys into a smaller set of new keys, or artificially introduced key expiry).
+    By contrast, a login SSH key is an access token, and may be rotated for other policy-related reasons (e.g. algorithm or key size upgrades, key consolidation, …).
+
+    Beyond key rotation, reusing an existing login key also means that, when compromised, **all your logins *and* all your passphrases will be affected**.
+
+[^key-rotation-def]: <dfn>key rotation</dfn>: the exchange of a cryptographic key against a newer one, for the same purpose/access/capabilities as the old one, as a matter of policy, to artificially limit the scope of the old key.
+    Usually done on a schedule.
+    Typical policy reasons include protection against loss of access to the key material, and upgrades to different algorithms or key sizes (where possible).
 
 We generate a new Ed25519-type key for use with `derivepassphrase`.
 
-=== "UNIX (and Cygwin/MSYS, WSL, and Git for Windows)"
+!!! info "Generating a key (operating system-specific)"
 
-    We store the key as `my-vault-ed25519-key` in `~/.ssh`, using the comment "vault key".
+    === "UNIX (and Cygwin/MSYS, WSL, and Git for Windows)"
 
-    ~~~~ shell-session
-    $ ssh-keygen -t ed25519 -f ~/.ssh/my-vault-ed25519-key -C "vault key"
-    Generating public/private ed25519 key pair.
-    Enter passphrase for ".../.ssh/my-vault-ed25519-key" (empty for no passphrase): 
-    Enter same passphrase again: 
-    Your identification has been saved in .../.ssh/my-vault-ed25519-key
-    Your public key has been saved in .../.ssh/my-vault-ed25519-key.pub
-    The key fingerprint is:
-    SHA256:0h+WAokssfhzfzVyuMLJlIcWyCtk5WiXI8BHyhXYxC0 vault key
-    The key's randomart image is:
-    +--[ED25519 256]--+
-    |o B=+            |
-    |.=oE = .         |
-    |.oX @ +          |
-    | = + o * . .     |
-    |  + o * S B      |
-    |   + * + O o     |
-    |      * o .      |
-    |       o         |
-    |                 |
-    +----[SHA256]-----+
-    ~~~~
+        We store the key as `my-vault-ed25519-key` in `~/.ssh`, using the comment "vault key".
 
-=== "Windows"
+        ~~~~ shell-session
+        $ ssh-keygen -t ed25519 -f ~/.ssh/my-vault-ed25519-key -C "vault key"
+        Generating public/private ed25519 key pair.
+        Enter passphrase for ".../.ssh/my-vault-ed25519-key" (empty for no passphrase): 
+        Enter same passphrase again: 
+        Your identification has been saved in .../.ssh/my-vault-ed25519-key
+        Your public key has been saved in .../.ssh/my-vault-ed25519-key.pub
+        The key fingerprint is:
+        SHA256:0h+WAokssfhzfzVyuMLJlIcWyCtk5WiXI8BHyhXYxC0 vault key
+        The key's randomart image is:
+        +--[ED25519 256]--+
+        |o B=+            |
+        |.=oE = .         |
+        |.oX @ +          |
+        | = + o * . .     |
+        |  + o * S B      |
+        |   + * + O o     |
+        |      * o .      |
+        |       o         |
+        |                 |
+        +----[SHA256]-----+
+        ~~~~
 
-    Start `puttygen`.
-    Under "Parameters", as "Type of key to generate", select **EdDSA**, and as "Curve to use for generating this key", select **Ed25519 (256 bits)**.
-    Then, under "Actions", select "Generate", and follow the on-screen instructions.
-    Set the comment to "vault key", and set a strong key passphrase (*recommended*).
-    Finally, select "Save private key", and store the key as `my-vault-ed25519-key.ppk` in `My Documents`.
-    We can now close `puttygen`.
+    === "Windows"
+
+        Start `puttygen`.
+        Under "Parameters", as "Type of key to generate", select **EdDSA**, and as "Curve to use for generating this key", select **Ed25519 (255 bits)**.
+        Then, under "Actions", select "Generate", and follow the on-screen instructions.
+
+        <figure markdown>
+        ![puttygen's key generation parameters][PUTTYGEN_KEY_PARAMETERS]{ loading=lazy }
+        </figure>
+
+        Set the comment to "vault key", and set a strong key passphrase (*recommended*).
+        Finally, select "Save private key", and store the key as `my-vault-ed25519-key.ppk` in `My Documents`.
+        We can now close `puttygen`.
+
+        <figure markdown>
+        ![puttygen after key generation][PUTTYGEN_KEY_GENERATION]{ loading=lazy }
+        </figure>
+
+[PUTTYGEN_KEY_PARAMETERS]: puttygen-key-parameters.png
+[PUTTYGEN_KEY_GENERATION]: puttygen-key-generation.png
 
 <section id="sample-key" markdown>
 
@@ -198,27 +220,42 @@ We generate a new Ed25519-type key for use with `derivepassphrase`.
 We then need to load the key into the agent, so that `derivepassphrase` can interact with it.
 The key will persist as long as the agent is running, and will need to be re-added the next time the agent is started.
 
-=== "UNIX (and Cygwin/MSYS, WSL, and Git for Windows)"
+!!! info "Loading the key into the agent (operating system-specific)"
 
-    We instruct the agent to pop up a confirmation prompt each time the key is used, as a safety precaution.
+    === "UNIX (and Cygwin/MSYS, WSL, and Git for Windows)"
 
-    ~~~~ shell-session
-    $ ssh-add -c ~/.ssh/my-vault-ed25519-key
-    Enter passphrase for .../.ssh/my-vault-ed25519-key (will confirm each use):
-    Identity added: .../.ssh/my-vault-ed25519-key (vault key)
-    The user must confirm each use of the key
-    ~~~~
+        We instruct the agent to pop up a confirmation prompt each time the key is used, as a safety precaution.
 
-=== "Windows"
+        ~~~~ shell-session
+        $ ssh-add -c ~/.ssh/my-vault-ed25519-key
+        Enter passphrase for .../.ssh/my-vault-ed25519-key (will confirm each use):
+        Identity added: .../.ssh/my-vault-ed25519-key (vault key)
+        The user must confirm each use of the key
+        ~~~~
 
-    Right-click on the `pageant` icon (the CRT computer monitor with the black hat) in the Windows task bar, then select "Add key (encrypted)".
-    Select `my-vault-ed25519-key.ppk` in `My Documents`.
-    The key should now be loaded.
-    Double-click on the `pageant` icon, or right-click and then select "View keys", to bring up the list of keys `pageant` is currently holding in memory.
-    The Ed25519 key we just created should be listed there, along with the "vault key" comment.
+        Now each call to `derivepassphrase vault` using this SSH key (only when deriving a passphrase) will ellicit a confirmation prompt by the agent.
+        Conversely, any confirmation prompt for this key *at other times* originates from a *different* program, and is therefore suspicious and should not be granted.
+        (See operational risks above.)
 
-    Upon first use of the key, `pageant` will issue a passphrase prompt for the key passphrase.
-    The key will be unlocked, and thus usable without prompts, until it is re-encrypted in the "View keys" menu.
+    === "Windows"
+
+        Open `pageant`'s context menu (via right-click), then select "Add key (encrypted)".
+        In the file chooser dialog that opens, select `my-vault-ed25519-key.ppk` in `My Documents`.
+        The key should now be loaded.
+
+        <figure markdown>
+        ![pageant context menu][PAGEANT_CONTEXT_MENU]{ loading=lazy }
+        </figure>
+
+        To verify this, select "View keys" from `pageant`'s context menu to bring up the list of keys `pageant` is currently holding in memory.
+        The Ed25519 key we just created should be listed there, along with the "vault key" comment.
+
+        Upon first use of the key, `pageant` will issue a passphrase prompt for the key passphrase.
+        The key will be unlocked, and thus usable without prompts, until it is re-encrypted in the "View keys" menu.
+        Re-encrypt/lock the key whenever you are done using it with `derivepassphrase` to minimize the time window during which the key is accessible to other programs.
+        (See operational risks above.)
+
+[PAGEANT_CONTEXT_MENU]: pageant-context-menu.png
 
 ## Reconfiguring the accounts
 
@@ -250,28 +287,30 @@ Passphrase: [[I am an insecure master passphrase, but easy to type.]]
 We first reconfigure the `email` account to use the master SSH key.
 `derivepassphrase` presents us with a key selector for all SSH keys suitable for passphrase derivation, including the one we generated earlier.
 
-=== "Only one suitable key"
+!!! quote ""
 
-    We confirm the selection.
+    === "Only one suitable key"
 
-    ~~~~ shell-session
-    $ derivepassphrase vault --config -k email
-    Suitable SSH keys:
-    [1] ssh-ed25519 ...gm1gJIXw//Mkhv5MEwidwcakUGCekJD/vCEml2  vault key
-    Use this key? [[yes]]
-    ~~~~
+        We confirm the selection.
 
-=== "Multiple suitable keys"
+        ~~~~ shell-session
+        $ derivepassphrase vault --config -k email
+        Suitable SSH keys:
+        [1] ssh-ed25519 ...gm1gJIXw//Mkhv5MEwidwcakUGCekJD/vCEml2  vault key
+        Use this key? [[yes]]
+        ~~~~
 
-    We choose the correct key.
+    === "Multiple suitable keys"
 
-    ~~~~ shell-session
-    $ derivepassphrase vault --config -k email
-    Suitable SSH keys:
-    [1] ssh-ed25519 ...gm1gJIXw//Mkhv5MEwidwcakUGCekJD/vCEml2  vault key
-    [2] ssh-rsa ...YAWfeXycsvJZ2uaYRjMdZeJGNAnHLUGLkBscw5aI8=  some other key
-    Your selection? (1-2, leave empty to abort): [[1]]
-    ~~~~
+        We choose the correct key.
+
+        ~~~~ shell-session
+        $ derivepassphrase vault --config -k email
+        Suitable SSH keys:
+        [1] ssh-ed25519 ...gm1gJIXw//Mkhv5MEwidwcakUGCekJD/vCEml2  vault key
+        [2] ssh-rsa ...YAWfeXycsvJZ2uaYRjMdZeJGNAnHLUGLkBscw5aI8=  some other key
+        Your selection? (1-2, leave empty to abort): [[1]]
+        ~~~~
 
 We confirm that the reconfiguring has worked because the configuration for the `email` service now references the key we selected earlier.
 
@@ -302,24 +341,26 @@ To get the other two services to use the master SSH key as well, we *could* reco
 However, that is unnecessarily repetitive.
 Instead, we will set up `derivepassphrase` to use this master SSH key by default.
 
-=== "Only one suitable key"
+!!! quote ""
 
-    ~~~~ shell-session
-    $ derivepassphrase vault --config -k
-    Suitable SSH keys:
-    [1] ssh-ed25519 ...gm1gJIXw//Mkhv5MEwidwcakUGCekJD/vCEml2  vault key
-    Use this key? [[yes]]
-    ~~~~
+    === "Only one suitable key"
 
-=== "Multiple suitable keys"
+        ~~~~ shell-session
+        $ derivepassphrase vault --config -k
+        Suitable SSH keys:
+        [1] ssh-ed25519 ...gm1gJIXw//Mkhv5MEwidwcakUGCekJD/vCEml2  vault key
+        Use this key? [[yes]]
+        ~~~~
 
-    ~~~~ shell-session
-    $ derivepassphrase vault --config -k
-    Suitable SSH keys:
-    [1] ssh-ed25519 ...gm1gJIXw//Mkhv5MEwidwcakUGCekJD/vCEml2  vault key
-    [2] ssh-rsa ...YAWfeXycsvJZ2uaYRjMdZeJGNAnHLUGLkBscw5aI8=  some other key
-    Your selection? (1-2, leave empty to abort): [[1]]
-    ~~~~
+    === "Multiple suitable keys"
+
+        ~~~~ shell-session
+        $ derivepassphrase vault --config -k
+        Suitable SSH keys:
+        [1] ssh-ed25519 ...gm1gJIXw//Mkhv5MEwidwcakUGCekJD/vCEml2  vault key
+        [2] ssh-rsa ...YAWfeXycsvJZ2uaYRjMdZeJGNAnHLUGLkBscw5aI8=  some other key
+        Your selection? (1-2, leave empty to abort): [[1]]
+        ~~~~
 
 The selected key will then appear in the `global` section of the configuration.
 
@@ -387,8 +428,19 @@ pEY-qg7n
 
 This completes the tutorial.
 
+<aside markdown>
+
+??? abstract "Image credits"
+
+    - The `pageant` logo is part of the PuTTY software package, generated from source files contained within.
+      [License][PUTTY_ICONS_LICENSE]
+
+</aside>
+
 [BASIC_SETUP_PASSPHRASE]: basic-setup-passphrase.md
 [PREREQ_SSH_KEY]: ../reference/prerequisites-ssh-key.md#ssh-key
 
 [OPENSSH]: https://www.openssh.org/
 [PUTTY]: https://putty.software/
+
+[PUTTY_ICONS_LICENSE]: https://git.tartarus.org/?p=simon/putty.git;a=blob;f=LICENCE;h=091556577ce55d3502f121460668c5495de91baa;hb=refs/tags/0.83 "License for the PuTTY software suite (and icons)"
