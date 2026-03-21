@@ -86,7 +86,7 @@ class Strategies:
             config2.pop(key, None)  # type: ignore[misc]
         return config2
 
-    # Prefer this explicit composite strategy oven `strategies.builds`
+    # Prefer this explicit composite strategy over `strategies.builds`
     # because the type checker can better introspect this.
     @strategies.composite
     @staticmethod

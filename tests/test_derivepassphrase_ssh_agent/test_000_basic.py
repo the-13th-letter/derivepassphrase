@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import base64
 import contextlib
+import ctypes
 import importlib.metadata
 import io
 import re
@@ -30,7 +31,7 @@ from tests.data import callables
 from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, Mapping
+    from collections.abc import Callable, Iterable, Iterator, Mapping
 
     from typing_extensions import Any, Literal
 
@@ -211,6 +212,14 @@ class Parametrize(types.SimpleNamespace):
         [
             pytest.param(16777216, b"\x01\x00\x00\x00", id="16777216"),
         ],
+    )
+    IO_OPERATIONS_ON_HANDLES = pytest.mark.parametrize(
+        "io_operation",
+        [
+            lambda handle: handle.recv(1),
+            lambda handle: handle.sendall(b"Hello, world!"),
+        ],
+        ids=["recv", "sendall"],
     )
     SIGN_ERROR_RESPONSES = pytest.mark.parametrize(
         [
@@ -409,6 +418,31 @@ class Parametrize(types.SimpleNamespace):
     )
 
 
+class Strategies:
+    """Common hypothesis data generation strategies."""
+
+    @staticmethod
+    def select_invalid_pipe_names(candidate: str) -> bool:
+        """Select candidate strings that are invalid named pipe names."""
+        candidate = candidate.lower().replace("/", "\\")
+        return not candidate.startswith(socketprovider.PIPE_PREFIX)
+
+    @classmethod
+    def bad_named_pipe_names(cls) -> strategies.SearchStrategy[str]:
+        r"""Generate invalid names for Windows named pipes.
+
+        Invalid named pipe names do not lie below the `\\.\pipe\` path.
+        They also may or may not contain characters that are invalid
+        in paths on The Annoying OS.
+
+        """
+        # This is an environment string on The Annoying OS, so it must
+        # at least be a non-empty C string, i.e., without embedded NULs.
+        return strategies.text(
+            alphabet=strategies.characters(min_codepoint=1), min_size=1
+        ).filter(cls.select_invalid_pipe_names)
+
+
 class TestStaticFunctionality:
     """Test the static functionality of the `ssh_agent` module."""
 
@@ -474,24 +508,6 @@ class TestShellExportScriptParsing:
         else:
             with pytest.raises(ValueError, match="Cannot parse sh line:"):
                 callables.parse_sh_export_line(line, env_name=env_name)
-
-
-class TestGracefulFailureForSSHAuthSock:
-    """Test the `posix` socket provider if `SSH_AUTH_SOCK` is unset."""
-
-    def test_constructor_posix_no_ssh_auth_sock(
-        self,
-        skip_if_no_af_unix_support: None,
-    ) -> None:
-        """Abort if the running agent cannot be located on POSIX."""
-        del skip_if_no_af_unix_support
-        posix_handler = socketprovider.SocketProvider.resolve("posix")
-        with pytest.MonkeyPatch.context() as monkeypatch:
-            monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
-            with pytest.raises(
-                KeyError, match="SSH_AUTH_SOCK environment variable"
-            ):
-                posix_handler()
 
 
 class TestSSHProtocolDatatypes(TestStaticFunctionality):
@@ -1383,3 +1399,111 @@ class TestAgentErrorResponses:
                 match=r"Malformed response|does not match request",
             ):
                 client.query_extensions()
+
+
+class TestSSHAgentSocketProviderFailures:
+    """Test SSH agent socket provider-specific failures."""
+
+    def test_posix_provider_no_ssh_auth_sock(
+        self,
+        skip_if_no_af_unix_support: None,
+    ) -> None:
+        """For `posix`, fail if the running agent cannot be located."""
+        del skip_if_no_af_unix_support
+        provider = socketprovider.SocketProvider.resolve("posix")
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
+            with pytest.raises(
+                KeyError, match="SSH_AUTH_SOCK environment variable"
+            ):
+                provider()
+
+    @pytest.mark.skipif(
+        not hasattr(ctypes, "WinDLL"),
+        reason="not relevant to systems without Windows named pipe support",
+    )
+    @hypothesis.given(named_pipe_name=Strategies.bad_named_pipe_names())
+    def test_ssh_auth_sock_on_windows_provider_bad_named_pipe_name(
+        self,
+        named_pipe_name: str,
+    ) -> None:
+        """For `ssh_auth_sock_on_windows`, fail for bad named pipe names."""
+        provider = socketprovider.SocketProvider.resolve(
+            "ssh_auth_sock_on_windows"
+        )
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setenv("SSH_AUTH_SOCK", named_pipe_name)
+            with pytest.raises(ValueError, match="Invalid named pipe name"):
+                provider()
+
+
+class TestWindowsNamedPipeHandle:
+    """Test the WindowsNamedPipeHandle wrapper class.
+
+    Even works on other operating systems, because the relevant parts
+    are stubbed out anyway.
+
+    """
+
+    DUMMY_ADDRESS = f"{socketprovider.PIPE_PREFIX}dummy-address"
+    IO_ON_CLOSED_HANDLE_PATTERN = re.escape(
+        socketprovider.WindowsNamedPipeHandle._IO_ON_CLOSED_FILE
+    )
+
+    @hypothesis.given(named_pipe_name=Strategies.bad_named_pipe_names())
+    def test_constructor_bad_named_pipe_name(
+        self,
+        named_pipe_name: str,
+    ) -> None:
+        """The constructor fails for bad named pipe names."""
+        with pytest.raises(ValueError, match="Invalid named pipe name"):  # noqa: SIM117
+            with socketprovider.WindowsNamedPipeHandle(named_pipe_name):
+                pass
+
+    @contextlib.contextmanager
+    def stub_createfile_and_closehandle(
+        self,
+    ) -> Iterator[None]:
+        singleton = object()
+
+        def create_file(*_args: Any, **_kwargs: Any) -> object:
+            return singleton
+
+        def close_handle(*_args: Any, **_kwargs: Any) -> bool:
+            return True
+
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(socketprovider, "CreateFile", create_file)
+            monkeypatch.setattr(socketprovider, "CloseHandle", close_handle)
+            yield
+
+    @Parametrize.IO_OPERATIONS_ON_HANDLES
+    def test_closed_handle_cannot_be_operated_on(
+        self,
+        io_operation: Callable[[Any], Any],
+    ) -> None:
+        """Operating on a closed handle fails."""
+        with self.stub_createfile_and_closehandle():
+            handle = socketprovider.WindowsNamedPipeHandle(self.DUMMY_ADDRESS)
+            with handle:
+                pass  # close the handle
+            with pytest.raises(
+                ValueError, match=self.IO_ON_CLOSED_HANDLE_PATTERN
+            ):
+                io_operation(handle)
+
+    @Parametrize.IO_OPERATIONS_ON_HANDLES
+    def test_handle_is_non_reentrant(
+        self,
+        io_operation: Callable[[Any], Any],
+    ) -> None:
+        """The handler cannot be sensibly used in nested `with` blocks."""
+        with self.stub_createfile_and_closehandle():
+            handle = socketprovider.WindowsNamedPipeHandle(self.DUMMY_ADDRESS)
+            with handle:
+                with handle:
+                    pass  # close the handle
+                with pytest.raises(
+                    ValueError, match=self.IO_ON_CLOSED_HANDLE_PATTERN
+                ):
+                    io_operation(handle)
