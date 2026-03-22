@@ -1074,20 +1074,34 @@ def ssh_agent_client_with_test_keys_loaded(
             )
         yield client
     finally:
-        if not isolated:  # pragma: no cover [external]
-            for key_type in successfully_loaded_keys:
-                key_struct = data.ALL_KEYS[key_type]
-                # The public key blob is the base64-encoded part in
-                # the "public key line".
-                public_key = base64.standard_b64decode(
-                    key_struct.public_key.split(None, 2)[1]
-                )
-                request_code = _types.SSH_AGENTC.REMOVE_IDENTITY
-                client.request(
-                    request_code,
-                    public_key,
-                    response_code=frozenset({
-                        _types.SSH_AGENT.SUCCESS,
-                        _types.SSH_AGENT.FAILURE,
-                    }),
-                )
+        request_code = _types.SSH_AGENTC.REMOVE_IDENTITY
+        # For isolated agents, we have full control over the loaded key
+        # set, and thus expect to successfully unload every key. For
+        # non-isolated agents, the user or another process may load or
+        # unload keys in the meantime, so we cannot assume that the
+        # operation will succeed.
+        response_code = (
+            frozenset({_types.SSH_AGENT.SUCCESS})
+            if isolated
+            else frozenset({
+                _types.SSH_AGENT.SUCCESS,
+                _types.SSH_AGENT.FAILURE,
+            })
+        )
+        for key_type in successfully_loaded_keys:
+            key_struct = data.ALL_KEYS[key_type]
+            # The public key blob is the base64-encoded part in
+            # the "public key line".
+            public_key = base64.standard_b64decode(
+                key_struct.public_key.split(None, 2)[1]
+            )
+            # Though unnecessary for isolated agents, unloading the key
+            # is vital functionality for non-isolated agents.  We thus
+            # always unload keys, and use the "isolated agent" case as
+            # a smoke test for the more brittle "non-isolated agent"
+            # case.
+            client.request(
+                request_code,
+                ssh_agent.SSHAgentClient.string(public_key),
+                response_code=response_code,
+            )
