@@ -3,7 +3,8 @@
   - The error message "Cannot connect to an SSH agent because this Python
     version does not support UNIX domain sockets." (code: `NO_AF_UNIX`) now
     reads "Cannot connect to an SSH agent because this Python version does
-    not support communicating with it." and a new code (`NO_AGENT_SUPPORT`).
+    not support communicating with it." and has a new code
+    (`NO_AGENT_SUPPORT`).
     `derivepassphrase` may also try out certain communication channels
     (depending on the installation environment), and issue warnings relating
     to its failure to establish communication on those channels, before
