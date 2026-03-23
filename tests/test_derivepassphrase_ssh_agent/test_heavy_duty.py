@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Marco Ricci <software@the13thletter.info>
+# SPDX-FileCopyrightText: 2026 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: Zlib
 
@@ -7,16 +7,13 @@
 from __future__ import annotations
 
 import contextlib
-from typing import TYPE_CHECKING
 
 import pytest
 from hypothesis import stateful, strategies
 
+from derivepassphrase import _types
 from derivepassphrase.ssh_agent import socketprovider
 from tests.machinery import pytest as pytest_machinery
-
-if TYPE_CHECKING:
-    from derivepassphrase import _types
 
 # All tests in this module are heavy-duty tests.
 pytestmark = [pytest_machinery.heavy_duty]
@@ -151,11 +148,30 @@ class SSHAgentSocketProviderRegistryStateMachine(
         self.registry: dict[
             str, _types.SSHAgentSocketProvider | str | None
         ] = {
-            "posix": self.orig_registry["posix"],
-            "the_annoying_os": self.orig_registry["the_annoying_os"],
-            "native": self.orig_registry["native"],
-            "unix_domain": "posix",
-            "the_annoying_os_named_pipe": "the_annoying_os",
+            _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX: (
+                self.orig_registry[
+                    _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX
+                ]
+            ),
+            _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_WINDOWS: (
+                self.orig_registry[
+                    _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_WINDOWS
+                ]
+            ),
+            _types.BuiltinSSHAgentSocketProvider.NATIVE: (
+                _types.BuiltinSSHAgentSocketProvider.WINDOWS_NAMED_PIPE
+                if self.orig_registry[
+                    _types.BuiltinSSHAgentSocketProvider.NATIVE
+                ]
+                == _types.BuiltinSSHAgentSocketProvider.WINDOWS
+                else _types.BuiltinSSHAgentSocketProvider.UNIX_DOMAIN
+            ),
+            _types.BuiltinSSHAgentSocketProvider.UNIX_DOMAIN: (
+                _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX
+            ),
+            _types.BuiltinSSHAgentSocketProvider.WINDOWS_NAMED_PIPE: (
+                _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_WINDOWS
+            ),
         }
         self.monkeypatch.setattr(
             socketprovider.SocketProvider, "registry", self.registry

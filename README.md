@@ -12,7 +12,10 @@ The derivation is also *deterministic*, given the same inputs, thus the resultin
 
 The service name and constraints themselves also need not be kept secret; the latter are usually stored in a world-readable file to ease repeated entry of passphrase constraints.
 
+(`derivepassphrase` currently is a `vault` reimplementation, but also plans to [support other passphrase derivation schemes][OTHER_DERIVATION_SCHEMES] in the future.)
+
 [VAULT]: https://www.npmjs.com/package/vault
+[OTHER_DERIVATION_SCHEMES]: https://the13thletter.info/derivepassphrase/0.x/wishlist/other-derivation-schemes/ "Wish entry: Consider implementing passphrase schemes other than vault's"
 
 -----
 
@@ -22,7 +25,7 @@ The service name and constraints themselves also need not be kept secret; the la
 (`pip` is distributed with Python 3 by default.)
 
 `derivepassphrase` requires Python 3.9 or higher as well as the [typing-extensions package][TYPING_EXTENSIONS] for its core functionality and programmatic interface, and [`click`][CLICK] 8.1 or higher for its command-line interface.
-On Python 3.9 and 3.10 only, `derivepassphrase` additionally requires the [tomli package][TOMLI].
+Some old Python versions also require backports for the Python standard library: the [`tomli` package][TOMLI] for Python 3.9 and 3.10, and the [`exceptiongroup` backport][EXCEPTIONGROUP] for Python 3.9, 3.10 and 3.11.
 The installer should take care of installing these dependencies automatically for you.
 Using the `export vault` subcommand additionally requires the [cryptography package][CRYPTOGRAPHY], version 38.0 or newer.
 This must be separately requested at installation, via the `export` extra.
@@ -51,6 +54,7 @@ This must be separately requested at installation, via the `export` extra.
 [TYPING_EXTENSIONS]: https://pypi.org/project/typing-extensions/
 [CLICK]: https://pypi.org/project/click/
 [TOMLI]: https://pypi.org/project/tomli/
+[EXCEPTIONGROUP]: https://pypi.org/project/exceptiongroup/
 [CRYPTOGRAPHY]: https://pypi.org/project/cryptography/
 [VENV]: https://docs.python.org/3/library/venv.html
 
@@ -87,8 +91,8 @@ JKeet7GeBpxysOgdCEJo6UzmP8A0Ih
 
 ### SSH agent support
 
-On UNIX-like systems with OpenSSH or PuTTY installed, you can use an Ed25519, Ed448 or RSA key from the agent instead of a master passphrase.
-([On Windows there are problems establishing communication channels with the agent.][BUG_WINDOWS_SSH_AGENT_SUPPORT])
+On systems with OpenSSH or PuTTY installed, you can use an Ed25519, Ed448 or RSA key from the agent instead of a master passphrase.
+(Though see [agent-specific notes][AGENT_SPECIFIC_NOTES] for commentary.)
 
 ```` shell-session
 $ derivepassphrase vault -k my-email-account
@@ -114,7 +118,7 @@ $ derivepassphrase vault my-email-account
 oXDGCvMhLWPQyCzYtaobOq2Wh9olYj
 ````
 
-[BUG_WINDOWS_SSH_AGENT_SUPPORT]: https://the13thletter.info/derivepassphrase/0.x/wishlist/windows-ssh-agent-support/ "Bug entry: Support PuTTY/Pageant (and maybe OpenSSH/ssh-agent) on Windows"
+[AGENT_SPECIFIC_NOTES]: https://the13thletter.info/derivepassphrase/0.x/reference/prerequisites-ssh-key/#agent-specific-notes "Prerequisites for using derivepassphrase vault with an SSH key: agent-specific notes"
 
 ## License
 

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Marco Ricci <software@the13thletter.info>
+# SPDX-FileCopyrightText: 2026 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: Zlib
 
@@ -163,10 +163,17 @@ class KnownSSHAgent(str, enum.Enum):
     Attributes:
         UNKNOWN (str):
             Not a known agent, or not known statically.
-        Pageant (str):
-            The agent from Simon Tatham's PuTTY suite.
+        UNIXPageant (str):
+            The agent from Simon Tatham's PuTTY suite (on
+            UNIX/BSD/POSIX).
         OpenSSHAgent (str):
-            The agent from OpenBSD's OpenSSH suite.
+            The agent from OpenBSD's OpenSSH suite (on UNIX/BSD/POSIX).
+        Pageant (str):
+            The agent from Simon Tatham's PuTTY suite (on The Annoying
+            OS).
+        OpenSSHAgentOnWindows (str):
+            The agent from OpenBSD's OpenSSH suite (PowerShell/Windows
+            version, on The Annoying OS).
         StubbedSSHAgent (str):
             The stubbed, fake agent pseudo-socket defined in this test
             suite.
@@ -175,9 +182,13 @@ class KnownSSHAgent(str, enum.Enum):
 
     UNKNOWN = "(unknown)"
     """"""
-    Pageant = "Pageant"
+    UNIXPageant = "UNIXPageant"
     """"""
     OpenSSHAgent = "OpenSSHAgent"
+    """"""
+    Pageant = "Pageant"
+    """"""
+    OpenSSHAgentOnWindows = "OpenSSHAgentOnWindows"
     """"""
     StubbedSSHAgent = "StubbedSSHAgent"
     """"""
@@ -342,22 +353,28 @@ class VaultTestConfig(NamedTuple):
 # ------------------------------
 
 
-posix_entry = _types.SSHAgentSocketProviderEntry(
-    socketprovider.SocketProvider.resolve("posix"), "posix", ()
+ssh_auth_sock_on_posix_entry = _types.SSHAgentSocketProviderEntry(
+    socketprovider.SocketProvider.resolve(
+        _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX
+    ),
+    _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX,
+    (),
 )
 """
 The standard [`_types.SSHAgentSocketProviderEntry`][] for the UNIX
 domain socket handler on POSIX systems.
 """
 
-the_annoying_os_entry = _types.SSHAgentSocketProviderEntry(
-    socketprovider.SocketProvider.resolve("the_annoying_os"),
-    "the_annoying_os",
+ssh_auth_sock_on_windows_entry = _types.SSHAgentSocketProviderEntry(
+    socketprovider.SocketProvider.resolve(
+        _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_WINDOWS
+    ),
+    _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_WINDOWS,
     (),
 )
 """
-The standard [`_types.SSHAgentSocketProviderEntry`][] for the named pipe
-handler on The Annoying Operating System.
+The standard [`_types.SSHAgentSocketProviderEntry`][] for the Windows
+named pipe handler on The Annoying Operating System.
 """
 
 faulty_entry_callable = _types.SSHAgentSocketProviderEntry(
@@ -371,7 +388,11 @@ is not a callable.
 """
 
 faulty_entry_name_exists = _types.SSHAgentSocketProviderEntry(
-    socketprovider.SocketProvider.resolve("the_annoying_os"), "posix", ()
+    socketprovider.SocketProvider.resolve(
+        _types.BuiltinSSHAgentSocketProvider.WINDOWS
+    ),
+    _types.BuiltinSSHAgentSocketProvider.POSIX,
+    (),
 )
 """
 A faulty [`_types.SSHAgentSocketProviderEntry`][]: the indicated handler
@@ -379,9 +400,14 @@ is already registered with a different callable.
 """
 
 faulty_entry_alias_exists = _types.SSHAgentSocketProviderEntry(
-    socketprovider.SocketProvider.resolve("posix"),
-    "posix",
-    ("unix_domain", "the_annoying_os"),
+    socketprovider.SocketProvider.resolve(
+        _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX
+    ),
+    _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX,
+    (
+        _types.BuiltinSSHAgentSocketProvider.UNIX_DOMAIN,
+        _types.BuiltinSSHAgentSocketProvider.WINDOWS_NAMED_PIPE,
+    ),
 )
 """
 A faulty [`_types.SSHAgentSocketProviderEntry`][]: the alias is already

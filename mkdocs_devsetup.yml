@@ -11,6 +11,7 @@ nav:
   - Tutorials & Examples:
     - tutorials/index.md
     - tutorials/basic-setup-passphrase.md
+    - tutorials/basic-setup-ssh-key.md
   - How-Tos:
     - how-tos/index.md
     - how-tos/ssh-key.md

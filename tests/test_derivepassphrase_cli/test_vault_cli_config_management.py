@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Marco Ricci <software@the13thletter.info>
+# SPDX-FileCopyrightText: 2026 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: Zlib
 
@@ -27,12 +27,12 @@ from typing import TYPE_CHECKING
 import hypothesis
 import pytest
 from hypothesis import strategies
-from typing_extensions import Any
 
 from derivepassphrase import _types, cli, ssh_agent
 from derivepassphrase._internals import (
     cli_helpers,
 )
+from derivepassphrase.ssh_agent import socketprovider
 from tests import data, machinery
 from tests.data import callables
 from tests.machinery import hypothesis as hypothesis_machinery
@@ -41,6 +41,8 @@ from tests.machinery import pytest as pytest_machinery
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from typing import NoReturn
+
+    from typing_extensions import Any
 
 DUMMY_SERVICE = data.DUMMY_SERVICE
 
@@ -796,6 +798,18 @@ class TestStoringConfigurationFailures:
             error_text="Cannot find any running SSH agent",
             patch_suitable_ssh_keys=False,
         ) as monkeypatch:
+
+            def no_agent(
+                *_args: Any, **_kwargs: Any
+            ) -> NoReturn:  # pragma: no cover [failsafe]
+                raise KeyError("SSH_AUTH_SOCK")  # noqa: EM101
+
+            monkeypatch.setattr(
+                socketprovider.WindowsNamedPipeHandle, "for_pageant", no_agent
+            )
+            monkeypatch.setattr(
+                socketprovider.WindowsNamedPipeHandle, "for_openssh", no_agent
+            )
             monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
 
     def test_fail_because_bad_ssh_agent_connection(
@@ -809,7 +823,26 @@ class TestStoringConfigurationFailures:
             patch_suitable_ssh_keys=False,
         ) as monkeypatch:
             cwd = pathlib.Path.cwd().resolve()
-            monkeypatch.setenv("SSH_AUTH_SOCK", str(cwd))
+            monkeypatch.setenv(
+                "SSH_AUTH_SOCK",
+                socketprovider.PIPE_PREFIX if os.name == "nt" else str(cwd),
+            )
+
+            def mangled_address(
+                *_args: Any, **_kwargs: Any
+            ) -> NoReturn:  # pragma: no cover [failsafe]
+                raise OSError(errno.ENOENT, os.strerror(errno.ENOENT))
+
+            monkeypatch.setattr(
+                socketprovider.WindowsNamedPipeHandle,
+                "for_pageant",
+                mangled_address,
+            )
+            monkeypatch.setattr(
+                socketprovider.WindowsNamedPipeHandle,
+                "for_openssh",
+                mangled_address,
+            )
 
     @Parametrize.TRY_RACE_FREE_IMPLEMENTATION
     def test_fail_because_read_only_file(
@@ -847,15 +880,21 @@ class TestStoringConfigurationFailures:
             pass
 
     def test_fail_because_ssh_agent_has_no_keys_loaded(
-        self, spawn_ssh_agent: data.SpawnedSSHAgentInfo
+        self,
+        request: pytest.FixtureRequest,
+        spawn_ssh_agent: data.SpawnedSSHAgentInfo,
     ) -> None:
         """Not holding any SSH keys during `--config --key` fails."""
-        del spawn_ssh_agent
         with self._test(
             ["--key"],
             error_text="no keys suitable",
             patch_suitable_ssh_keys=False,
         ) as monkeypatch:
+            pytest_machinery.ensure_singleton_client_if_non_reentrant_agent(
+                request=request,
+                monkeypatch=monkeypatch,
+                client=spawn_ssh_agent.client,
+            )
 
             def func(
                 *_args: Any,
@@ -866,15 +905,21 @@ class TestStoringConfigurationFailures:
             monkeypatch.setattr(ssh_agent.SSHAgentClient, "list_keys", func)
 
     def test_store_config_fail_manual_ssh_agent_runtime_error(
-        self, spawn_ssh_agent: data.SpawnedSSHAgentInfo
+        self,
+        request: pytest.FixtureRequest,
+        spawn_ssh_agent: data.SpawnedSSHAgentInfo,
     ) -> None:
         """Triggering an error in the SSH agent during `--config --key` leads to failure."""
-        del spawn_ssh_agent
         with self._test(
             ["--key"],
             error_text="violates the communication protocol",
             patch_suitable_ssh_keys=False,
         ) as monkeypatch:
+            pytest_machinery.ensure_singleton_client_if_non_reentrant_agent(
+                request=request,
+                monkeypatch=monkeypatch,
+                client=spawn_ssh_agent.client,
+            )
 
             def raiser(*_args: Any, **_kwargs: Any) -> None:
                 raise ssh_agent.TrailingDataError()
@@ -882,13 +927,19 @@ class TestStoringConfigurationFailures:
             monkeypatch.setattr(ssh_agent.SSHAgentClient, "list_keys", raiser)
 
     def test_store_config_fail_manual_ssh_agent_refuses(
-        self, spawn_ssh_agent: data.SpawnedSSHAgentInfo
+        self,
+        request: pytest.FixtureRequest,
+        spawn_ssh_agent: data.SpawnedSSHAgentInfo,
     ) -> None:
         """The SSH agent refusing during `--config --key` leads to failure."""
-        del spawn_ssh_agent
         with self._test(
             ["--key"], error_text="refused to", patch_suitable_ssh_keys=False
         ) as monkeypatch:
+            pytest_machinery.ensure_singleton_client_if_non_reentrant_agent(
+                request=request,
+                monkeypatch=monkeypatch,
+                client=spawn_ssh_agent.client,
+            )
 
             def func(*_args: Any, **_kwargs: Any) -> NoReturn:
                 raise ssh_agent.SSHAgentFailedError(

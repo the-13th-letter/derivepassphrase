@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Marco Ricci <software@the13thletter.info>
+# SPDX-FileCopyrightText: 2026 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: Zlib
 
@@ -17,6 +17,11 @@ All similar-minded code requiring only plain `pytest` lives in [the
 from __future__ import annotations
 
 import copy
+import datetime
+import importlib
+import importlib.util
+import math
+import sys
 from typing import TYPE_CHECKING
 
 import hypothesis
@@ -33,6 +38,93 @@ if TYPE_CHECKING:
 
 # Hypothesis settings management
 # ==============================
+
+
+def _hypothesis_settings_setup() -> None:
+    """
+    Ensure sensible hypothesis settings if running under coverage.
+
+    In our tests, the sys.monitoring tracer slows down execution speed
+    by a factor of roughly 3, the C tracer by roughly 2.5, and the
+    Python tracer by roughly 40.  Ensure that hypothesis default
+    timeouts apply relative to this *new* execution speed, not the old
+    one.
+
+    In any case, we *also* reduce the state machine step count to 32
+    steps per run, because the current state machines defined in the
+    tests rather benefit from broad testing rather than deep testing.
+
+    This setup function is idempotent: if it detects that the profiles
+    have already been registered, then it silently does nothing.
+
+    """
+    try:
+        hypothesis.settings.get_profile("intense")
+    except hypothesis.errors.InvalidArgument:  # pragma: no cover [external]
+        pass
+    else:  # pragma: no cover [external]
+        return
+
+    settings = hypothesis.settings()
+    slowdown: float | None = None
+    if (
+        importlib.util.find_spec("coverage") is not None
+        and settings.deadline is not None
+        and settings.deadline.total_seconds() < 1.0
+    ):  # pragma: no cover [external]
+        ctracer_class = (
+            importlib.import_module("coverage.tracer").CTracer
+            if importlib.util.find_spec("coverage.tracer") is not None
+            else type(None)
+        )
+        pytracer_class = importlib.import_module("coverage.pytracer").PyTracer
+        if (
+            getattr(sys, "monitoring", None) is not None
+            and sys.monitoring.get_tool(sys.monitoring.COVERAGE_ID)
+            == "coverage.py"
+        ):
+            slowdown = 3.0
+        elif (
+            trace_func := getattr(sys, "gettrace", lambda: None)()
+        ) is not None and isinstance(trace_func, ctracer_class):
+            slowdown = 2.5
+        elif (
+            trace_func is not None
+            and hasattr(trace_func, "__self__")
+            and isinstance(trace_func.__self__, pytracer_class)
+        ):
+            slowdown = 8.0
+    settings = hypothesis.settings(
+        deadline=slowdown * settings.deadline
+        if slowdown
+        else settings.deadline,
+        stateful_step_count=32,
+        suppress_health_check=(hypothesis.HealthCheck.too_slow,),
+    )
+    hypothesis.settings.register_profile("default", settings)
+    hypothesis.settings.register_profile(
+        "dev", derandomize=True, max_examples=10
+    )
+    hypothesis.settings.register_profile(
+        "debug",
+        parent=hypothesis.settings.get_profile("dev"),
+        verbosity=hypothesis.Verbosity.verbose,
+    )
+    hypothesis.settings.register_profile(
+        "flaky",
+        deadline=(
+            settings.deadline - settings.deadline // 4
+            if settings.deadline is not None
+            else datetime.timedelta(milliseconds=150)
+        ),
+    )
+    ci_profile = hypothesis.settings.get_profile("ci")
+    hypothesis.settings.register_profile(
+        "intense",
+        parent=ci_profile,
+        derandomize=False,
+        max_examples=10 * ci_profile.max_examples,
+    )
 
 
 def get_concurrency_step_count(
@@ -53,6 +145,58 @@ def get_concurrency_step_count(
     if settings is None:  # pragma: no cover
         settings = hypothesis.settings()
     return min(machinery.get_concurrency_limit(), settings.stateful_step_count)
+
+
+def get_process_spawning_state_machine_examples_count(
+    settings: hypothesis.settings | None = None,
+) -> int:
+    """Return the examples count for process-spawning state machines.
+
+    That is, return the desired `max_examples` setting for state
+    machines that spawn processes as part of their operation.  Since
+    Python 3.14, process spawning is no longer cheap by default on *any*
+    of the main operating systems (they all default to the "forkserver"
+    or "spawn" startup methods), and on The Annoying OS, process
+    spawning is inherently expensive.  Therefore, we want to limit the
+    examples count by default, and require the user to opt-in to the
+    original naive example count explicitly.
+
+    If the "intense" profile is in effect, or something with even higher
+    `max_examples` and `stateful_step_count`, then we return the
+    unaltered example count for the *default* profile.  Otherwise, we
+    return the square root of the `max_examples` setting (rounded down).
+    We *never* return a value below the "dev" profile's example count:
+    any lower computed example count is increased to the "dev" profile's
+    example count.
+
+    Args:
+        settings:
+            The hypothesis settings for a specific tests.  If not given,
+            then the current profile will be queried directly.
+
+    """
+    if settings is None:  # pragma: no cover
+        settings = hypothesis.settings()
+
+    # Ensure the "intense" profile exists.
+    _hypothesis_settings_setup()
+
+    these_values = (settings.max_examples, settings.stateful_step_count)
+    intense_profile = hypothesis.settings.get_profile("intense")
+    intense_values = (
+        intense_profile.max_examples,
+        intense_profile.stateful_step_count,
+    )
+    min_count = hypothesis.settings.get_profile("dev").max_examples
+    high_count = hypothesis.settings.get_profile("default").max_examples
+    we_are_intense = (
+        these_values[0] >= intense_values[0]
+        and these_values[1] >= intense_values[1]
+    )
+    return max(
+        min_count,
+        high_count if we_are_intense else math.isqrt(settings.max_examples),
+    )
 
 
 # Hypothesis strategies

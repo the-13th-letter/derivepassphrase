@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Marco Ricci <software@the13thletter.info>
+# SPDX-FileCopyrightText: 2026 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: Zlib
 
@@ -26,6 +26,7 @@ import shlex
 import sys
 import threading
 import unicodedata
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, cast
 
 import click
@@ -48,7 +49,6 @@ if TYPE_CHECKING:
     from collections.abc import (
         Iterator,
         Mapping,
-        Sequence,
     )
     from contextlib import AbstractContextManager
     from typing import (
@@ -711,6 +711,34 @@ def prompt_for_selection(
     return 0
 
 
+def handle_nosuchprovidererror(
+    error_callback: Callable[..., NoReturn],
+    warning_callback: Callable[..., None],
+) -> Callable[[BaseExceptionGroup], NoReturn]:
+    """Generate a handler for socketprovider.NoSuchProviderException in try-except*.
+
+    Returns a function emitting a standard user-facing message.
+
+    """  # noqa: DOC201, E501
+    del warning_callback
+
+    def handle_nosuchprovidererror(excgroup: BaseExceptionGroup) -> NoReturn:
+        subset = excgroup.subgroup(socketprovider.NoSuchProviderError)
+        provider_name = (
+            ascii(subset.exceptions[0].args[0])
+            if subset is not None
+            else "(null)"
+        )
+        error_callback(
+            _msg.TranslatedString(
+                _msg.ErrMsgTemplate.UNKNOWN_SSH_AGENT_SOCKET_PROVIDER,
+                provider=provider_name,
+            )
+        )
+
+    return handle_nosuchprovidererror
+
+
 def handle_keyerror(
     error_callback: Callable[..., NoReturn],
     warning_callback: Callable[..., None],
@@ -741,16 +769,20 @@ def handle_notimplementederror(
     """  # noqa: DOC201
 
     def handle_notimplementederror(excgroup: BaseExceptionGroup) -> NoReturn:
-        if excgroup.subgroup(socketprovider.AfUnixNotAvailableError):
-            warning_callback(
-                _msg.TranslatedString(_msg.WarnMsgTemplate.NO_AF_UNIX)
-            )
         if excgroup.subgroup(
-            socketprovider.TheAnnoyingOsNamedPipesNotAvailableError
+            socketprovider.UnixDomainSocketsNotAvailableError
         ):
             warning_callback(
                 _msg.TranslatedString(
-                    _msg.WarnMsgTemplate.NO_ANNOYING_OS_NAMED_PIPES
+                    _msg.WarnMsgTemplate.NO_UNIX_DOMAIN_SOCKETS
+                )
+            )
+        if excgroup.subgroup(
+            socketprovider.WindowsNamedPipesNotAvailableError
+        ):
+            warning_callback(
+                _msg.TranslatedString(
+                    _msg.WarnMsgTemplate.NO_WINDOWS_NAMED_PIPES
                 )
             )
         error_callback(
@@ -882,6 +914,9 @@ def select_ssh_key(
         raise AssertionError()
 
     with exceptiongroup.catch({
+        socketprovider.NoSuchProviderError: handle_nosuchprovidererror(
+            error_callback, warning_callback
+        ),
         KeyError: handle_keyerror(error_callback, warning_callback),
         LookupError: handle_lookuperror,
         NotImplementedError: handle_notimplementederror(
@@ -1064,6 +1099,68 @@ def check_for_misleading_passphrase(
             )
 
 
+def get_configured_connection_hint(
+    conn: ssh_agent.SSHAgentClient
+    | _types.SSHAgentSocket
+    | Sequence[str]
+    | None = None,
+    /,
+    *,
+    main_config: dict[str, Any],
+) -> ssh_agent.SSHAgentClient | _types.SSHAgentSocket | Sequence[str] | None:
+    """Return a suitable connection hint for the SSH agent client.
+
+    If a connection hint is already known, return that connection hint.
+    Otherwise, look up configured SSH agent socket providers in the user
+    configuration and return those as a hint, if possible.
+
+    Args:
+        conn:
+            An optional connection hint to the SSH agent, to be used if
+            non-trivial.
+        main_config:
+            The parsed main user configuration.
+
+    Returns:
+        A connection hint suitable for use with
+        [`ssh_agent.SSHAgentClient.ensure_agent_subcontext`][].
+
+    """
+
+    def handle_return_value(
+        val: ssh_agent.SSHAgentClient
+        | _types.SSHAgentSocket
+        | str
+        | Sequence[str]
+        | None,
+    ) -> (
+        ssh_agent.SSHAgentClient | _types.SSHAgentSocket | Sequence[str] | None
+    ):  # pragma: no cover [external]
+        # A separate function, to easily exclude it from coverage,
+        # because it's just type handling, which the type checker
+        # already checks.
+        #
+        # Strings should be packed into singleton tuples, and general
+        # sequences should be turned into readonly tuples.  All other
+        # types of values can be passed through.  But because strings
+        # are sequences as well, we need to check for strings
+        # separately.
+        if isinstance(val, str):
+            return (val,)
+        if isinstance(val, Sequence):
+            return tuple(val)
+        return val
+
+    return handle_return_value(
+        conn
+        if conn is not None
+        else cast(
+            "str | Sequence[str] | None",
+            main_config.get("vault", {}).get("ssh-agent-socket-provider"),
+        )
+    )
+
+
 def key_to_phrase(
     key: str | Buffer,
     /,
@@ -1105,6 +1202,9 @@ def key_to_phrase(
     """
     key = base64.standard_b64decode(key)
     with exceptiongroup.catch({  # noqa: SIM117
+        socketprovider.NoSuchProviderError: handle_nosuchprovidererror(
+            error_callback, warning_callback
+        ),
         KeyError: handle_keyerror(error_callback, warning_callback),
         NotImplementedError: handle_notimplementederror(
             error_callback, warning_callback

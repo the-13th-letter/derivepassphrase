@@ -40,19 +40,46 @@ We will assume the following three services with the following passphrase polici
 
 ## Installing `derivepassphrase`
 
+??? note "Note: Shell Notation"
+
+    `derivepassphrase` is a command-line application: it runs in the system shell, such as `/bin/sh` on UNIX and Powershell on Windows.
+
+    In the following shell session transcripts, `$` and '>' denote the <b>prompt</b> from the system shell for user input.
+    Type in *the remainder* of line, but not the prompt itself.
+    Other lines are *output lines*, which should appear on your shell.
+
+    For Windows-specific commands, we use the `PS>` prompt; otherwise, we use UNIX-style `$` and `>` prompts.
+
 You will need Python 3, and a package installer such as `pip` (bundled with Python), `pipx`, `uv`, etc.
 
 ---
 
 === "pip"
 
-    With `pip`, using a "virtual enviroment" at `~/.venv` to avoid clobbering our system configuration:
+    With `pip`, using a "virtual enviroment" in a user-specific configuration directory to avoid clobbering our system configuration:
 
-    ~~~~ shell-session
-    $ python3 -m venv ~/.venv
-    $ . ~/.venv/bin/activate
-    $ pip install derivepassphrase
-    ~~~~
+    === "UNIX (and Cygwin/MSYS, WSL, and Git for Windows)"
+
+        The configuration directory is `.venv` within our home directory, i.e., `~/.venv`.
+
+        ~~~~ shell-session
+        $ python3 -m venv ~/.venv
+        $ . ~/.venv/bin/activate
+        $ pip install derivepassphrase
+        ~~~~
+
+        If the `pip` step complains that there is no such command, use `python3 -m pip install derivepassphrase` instead.
+
+    === "Windows"
+
+        The configuration directory is `.venv` within our application data directory, i.e., `C:\Users\<name>\AppData\Roaming\.venv`.
+
+        ~~~~ pwsh-session
+        PS> python -m venv %APPDATA%\.venv
+        PS> & %APPDATA%\.venv\Scripts\Activate.ps1
+        PS> python -m pip install derivepassphrase
+
+    Note that `derivepassphrase` will only be available in shell sessions where the virtual environment has been activated (in step 2 above).
 
 === "pipx"
 
@@ -207,7 +234,7 @@ r?9\XQR&
 Then we attempt to set the work passphrase to `r?9\XQR&`… but our employer's identity management system returns an error: `illegal character: &`.
 What happened?
 
-### Complication 1: What is a (permitted) "special character"?
+### Complication 1: What is a (permitted) "special character"?  {#special-character}
 
 `derivepassphrase` considers the characters `!"#$%&'()*+,./:;<=>?@[\]^{|}~-_'` to be permitted special characters.
 Other service providers may permit other characters (quite rare) or fewer characters (quite common).
@@ -229,7 +256,7 @@ it90-HPO
 This works.
 For now.
 
-### Complication 2: How to implement passphrase rotation?
+### Complication 2: How to implement passphrase rotation?  {#passphrase-rotation}
 
 `derivepassphrase` can only ever derive one passphrase per configuration, so passphrase rotation cannot be accomplished by reusing the same configuration.
 So some part of the configuration---generally the service name---needs to change upon each rotation.
@@ -274,3 +301,7 @@ Passphrase: [[I am an insecure master passphrase, but easy to type.]]
 ~~~~
 
 This completes the tutorial.
+
+As a next step, you may want to [configure the accounts to use a master SSH key instead][BASIC_SETUP_SSH_KEY].
+
+[BASIC_SETUP_SSH_KEY]: basic-setup-ssh-key.md "Tutorial: Using a master SSH key with derivepassphrase vault on existing accounts"

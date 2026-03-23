@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: 2025 Marco Ricci <software@the13thletter.info>
+# SPDX-FileCopyrightText: 2026 Marco Ricci <software@the13thletter.info>
 #
-# SPDX-Licence-Identifier: MIT
+# SPDX-Licence-Identifier: Zlib
 
 """Messages for the command-line interface of `derivepassphrase`.
 
@@ -902,6 +902,15 @@ class Label(enum.Enum):
         "PATH",
     )
     """"""
+    VAULT_COMPATIBILITY_METAVAR_SSH_AGENT_SOCKET_PROVIDER = commented(
+        "This metavar is used in "
+        "Label.DERIVEPASSPHRASE_VAULT_SSH_AGENT_SOCKET_PROVIDER_HELP_TEXT, "
+        'yielding e.g. "Use PROVIDER as the SSH agent socket provider.".  ',
+    )(
+        "Label :: Help text :: Metavar :: vault",
+        "PROVIDER",
+    )
+    """"""
     VAULT_METAVAR_SERVICE = commented(
         'This metavar is used as "service_metavar" in multiple help texts, '
         "such as Label.DERIVEPASSPHRASE_VAULT_CONFIG_HELP_TEXT, "
@@ -1122,6 +1131,15 @@ class Label(enum.Enum):
         flags="python-brace-format",
     )
     """"""
+    DERIVEPASSPHRASE_VAULT_SSH_AGENT_SOCKET_PROVIDER_HELP_TEXT = commented(
+        "The metavar is"
+        "Label.VAULT_COMPATIBILITY_METAVAR_SSH_AGENT_SOCKET_PROVIDER.",
+    )(
+        "Label :: Help text :: One-line description",
+        "Use {metavar} as the SSH agent socket provider.",
+        flags="python-brace-format",
+    )
+    """"""
     DERIVEPASSPHRASE_VAULT_SPACE_HELP_TEXT = commented(
         "The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.",
     )(
@@ -1301,6 +1319,17 @@ class Label(enum.Enum):
         "PEP 508 extras:",
     )
     """"""
+    FEATURE_ITEM_ALIASES = commented(
+        "This is part of the version output, designating a list of names "
+        "as aliases to the previous entry.  "
+        "A comma-separated English list of items follows.  "
+        "This label, and the list of names, is included in parentheses: "
+        "`entry_name (aliases: alias1, alias2, ...)`.",
+    )(
+        "Label :: Info Message:: Table row header",
+        "aliases:",
+    )
+    """"""
     SUPPORTED_DERIVATION_SCHEMES = commented(
         "This is part of the version output, emitting lists of supported "
         "derivation schemes.  "
@@ -1329,6 +1358,16 @@ class Label(enum.Enum):
     )(
         "Label :: Info Message:: Table row header",
         "Supported foreign configuration formats:",
+    )
+    """"""
+    SUPPORTED_SSH_AGENT_SOCKET_PROVIDERS = commented(
+        "This is part of the version output, emitting lists of supported "
+        "SSH agent socket providers.  "
+        "A comma-separated English list of items follows, "
+        "with standard English punctuation.",
+    )(
+        "Label :: Info Message:: Table row header",
+        "Supported SSH agent socket providers:",
     )
     """"""
     SUPPORTED_SUBCOMMANDS = commented(
@@ -1369,6 +1408,16 @@ class Label(enum.Enum):
     )(
         "Label :: Info Message:: Table row header",
         "Known foreign configuration formats:",
+    )
+    """"""
+    UNAVAILABLE_SSH_AGENT_SOCKET_PROVIDERS = commented(
+        "This is part of the version output, emitting lists of known, "
+        "unavailable SSH agent socket providers.  "
+        "A comma-separated English list of items follows, "
+        "with standard English punctuation.",
+    )(
+        "Label :: Info Message:: Table row header",
+        "Known SSH agent socket providers:",
     )
     """"""
     CONFIRM_THIS_CHOICE_PROMPT_TEXT = commented(
@@ -1953,7 +2002,7 @@ class WarnMsgTemplate(enum.Enum):
         "aborting mid-edit, and because the notes were actually changed.",
         flags="python-brace-format",
     )
-    NO_AF_UNIX = commented(
+    NO_UNIX_DOMAIN_SOCKETS = commented(
         "",
     )(
         "Warning message",
@@ -1961,7 +2010,7 @@ class WarnMsgTemplate(enum.Enum):
         "because this Python version does not support them.",
     )
     """"""
-    NO_ANNOYING_OS_NAMED_PIPES = commented(
+    NO_WINDOWS_NAMED_PIPES = commented(
         "",
     )(
         "Warning message",
@@ -2297,7 +2346,7 @@ class ErrMsgTemplate(enum.Enum):
     SET_AND_UNSET_SAME_SETTING = commented(
         "The rephrasing "
         '"Attempted to unset and set the same setting '
-        '(--unset={setting} --{setting}=...) at the same time."'
+        '(--unset={setting} --{setting}=...) at the same time." '
         "may or may not be more suitable as a basis for translation instead.",
     )(
         "Error message",
@@ -2310,6 +2359,16 @@ class ErrMsgTemplate(enum.Enum):
     )(
         "Error message",
         "The requested SSH key is not loaded into the agent.",
+    )
+    """"""
+    UNKNOWN_SSH_AGENT_SOCKET_PROVIDER = commented(
+        "The provider is already put in ASCII quotes, and sanitized "
+        "so that it is safe to emit to the terminal.",
+    )(
+        "Error message",
+        "The SSH agent socket provider {provider} is not in "
+        "derivepassphrase's provider registry.",
+        flags="python-brace-format",
     )
     """"""
     USER_ABORTED_EDIT = commented(

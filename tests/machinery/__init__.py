@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Marco Ricci <software@the13thletter.info>
+# SPDX-FileCopyrightText: 2026 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: Zlib
 
@@ -594,7 +594,7 @@ class StubbedSSHAgentSocket:
 # ----------------
 
 
-@socketprovider.SocketProvider.register("stub_with_address")
+@socketprovider.SocketProvider.register("stub_agent_with_address")
 class StubbedSSHAgentSocketWithAddress(StubbedSSHAgentSocket):
     """A [`StubbedSSHAgentSocket`][] requiring a specific address."""
 
@@ -640,7 +640,7 @@ class StubbedSSHAgentSocketWithAddress(StubbedSSHAgentSocket):
 
 
 @socketprovider.SocketProvider.register(
-    "stub_with_address_and_deterministic_dsa"
+    "stub_agent_with_address_and_deterministic_dsa"
 )
 class StubbedSSHAgentSocketWithAddressAndDeterministicDSA(
     StubbedSSHAgentSocketWithAddress

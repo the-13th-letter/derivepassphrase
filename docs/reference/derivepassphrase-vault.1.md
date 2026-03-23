@@ -23,7 +23,7 @@ The derivation is also <em>deterministic</em>, given the same inputs, thus the r
 
 The service name and constraints themselves also need not be kept secret; the latter are usually stored in a world-readable file to ease repeated entry of passphrase constraints.
 
-In lieu of a master passphrase, a master SSH key can also be used if there is a reachable, running SSH agent currently holding this key and if the key type is supported.  (See ["SSH KEY SUITABILITY"](#ssh-key-suitability) and ["BUGS"](#bugs) below.)  This too is compatible with <i>vault</i>(1).
+In lieu of a master passphrase, a master SSH key can also be used if there is a reachable, running SSH agent currently holding this key and if the key type is supported.  (See ["SSH AGENT SOCKET PROVIDERS"](#ssh-agent-socket-providers), ["SSH KEY SUITABILITY"](#ssh-key-suitability) and ["BUGS"](#bugs) below.)  This too is compatible with <i>vault</i>(1).
 
 ## OPTIONS
 
@@ -46,6 +46,9 @@ All character constraints refer to ASCII printable characters only (space (`U+00
     The SSH key must also be <i>suitable</i> for this purpose; see ["SSH KEY SUITABILITY"](#ssh-key-suitability) for details.
 
     See also ["Configuration"](#configuration) for how this interacts with a stored passphrase or SSH key.
+
+    <b>derivepassphrase</b> uses so-called <i>SSH agent socket providers</i> to configure how it connects to the SSH agent.
+    See ["SSH AGENT SOCKET PROVIDERS"](#ssh-agent-socket-providers) for details.
 
 <b>-l</b> <var>n</var>, <b>-</b><b>-length</b> <var>n</var>
 :   Force the passphrase to have the length <var>n</var>.
@@ -181,6 +184,14 @@ The compatibility and extension options modify the behavior to enable additional
 
     (<i>vault</i>(1) behaves as if `--print-notes-after` were always given.)
 
+<b>-</b><b>-ssh-agent-socket-provider</b> <var>PROVIDER</var>
+:   When deriving a passphrase using an SSH key, use the named socket provider to connect to the SSH agent.
+    If not given, use the provider given in the configuration file, if any, else a platform-appropriate default provider.
+
+    (See ["SSH AGENT SOCKET PROVIDERS"](#ssh-agent-socket-providers) for details.)
+
+    (<i>vault</i>(1) behaves as if the built-in `ssh_auth_sock_on_unix` provider were always requested.)
+
 ### Other Options
 
 <b>-</b><b>-debug</b>
@@ -216,16 +227,58 @@ The script assumes a conforming <i>sh</i>(1), with support for "here" documents.
 
     **Do not run these emitted shell scripts directly without double-checking their output first!**
 
+## SSH AGENT SOCKET PROVIDERS
+
+An <dfn>SSH agent socket provider</dfn> is a named configuration (and associated support code) that teaches <b>derivepassphrase</b> how to connect to a specific SSH agent.
+Such providers can either be built-in, or contributed by third-party software, and may be dependent on a specific operating system and/or further third-party software.
+
+<b>derivepassphrase</b> ships with the following built-in providers:
+
+`ssh_auth_sock_on_posix`
+:   connects to an SSH agent named by the `SSH_AUTH_SOCK` enviroment variable, using UNIX domain sockets
+
+`ssh_auth_sock_on_windows`
+:   connects to an SSH agent named by the `SSH_AUTH_SOCK` enviroment variable, using Windows named pipes
+
+`openssh_on_windows`
+:   connects to the Powershell/"Win32" port of OpenSSH at its standard address, using Windows named pipes
+
+`pageant_on_windows`
+:   connects to Pageant on Windows at its standard address, using Windows named pipes
+
+and the following standard aliases:
+
+`unix_domain`
+:   alias for `ssh_auth_sock_on_posix`
+
+`windows_named_pipe`
+:   alias for `ssh_auth_sock_on_windows`
+
+`posix`
+:   alias for `unix_domain`
+
+`windows`
+:   alias for `windows_named_pipe`
+
+`native`
+:   alias for `posix` or `windows`, depending on the operating system
+
+(You are strongly advised to use a true provider name instead of an alias, if feasible.)
+
+The list of currently available and otherwise known SSH agent socket providers is part of the feature information emitted by `--version`.
+
 ## SSH KEY SUITABILITY
 
 An SSH key is <dfn>suitable</dfn> for use with <b>derivepassphrase vault</b> if the SSH agent guarantees that signatures produced with this key will be <em>deterministic</em>, given the same message to be signed.
 This is a property specific to the key type, and sometimes the agent used:
 
-  * RSA, Ed25519 and Ed448 keys are always suitable.
-    OpenSSH’s <i>ssh-agent</i>(1) supports only these keys as suitable keys.
+  * RSA, Ed25519 and Ed448 keys are always suitable, by design of the key type.
 
   * DSA and ECDSA keys are suitable if the SSH agent supports deterministic DSA signatures, e.g. by implementing RFC 6979.
-    PuTTY’s <i>pageant</i>(1) supports this, in addition to the always-suitable keys mentioned above.
+
+  * As of version 10.2 (October 2025), OpenSSH’s <i>ssh-agent</i>(1) supports only some of the always-suitable key types: RSA and Ed25519 keys.
+
+  * As of version 0.83 (February 2025), PuTTY’s <i>pageant</i>(1) supports all the key types mentioned above, including DSA and ECDSA keys via deterministic signatures.
 
 ## ENVIRONMENT
 
@@ -269,12 +322,12 @@ This is a property specific to the key type, and sometimes the agent used:
     Select an SSH key from the available suitable SSH keys in the running SSH agent, then generate a passphrase for the `example.com` service using the previously selected SSH key.
     The passphrase will have (standard) length 20, and at least nine characters will be uppercase characters and at least another nine characters will be lowercase characters.
 
-??? example "`derivepassphrase example.com vault --key --upper 9 --lower 9 --number 9`"
+??? example "`derivepassphrase vault --key --upper 9 --lower 9 --number 9 example.com`"
 
     Attempt to generate a passphrase as in the previous example.
     This example will <em>error out</em>, because the passphrase constraints require at least 27 characters and the standard passphrase length 20 cannot accomodate this.
 
-??? example "`derivepassphrase --config vault --key --upper 9 --lower 9 --space 2`"
+??? example "`derivepassphrase vault --config --key --upper 9 --lower 9 --space 2`"
 
     After selecting an SSH key, configure the default settings to use exactly nine uppercase characters, nine lowercase characters, and two spaces for each generated passphrase.
     (The specific service settings, or the command-line invocation, can still override these settings.)
@@ -390,6 +443,14 @@ The <b>derivepassphrase vault</b> utility exits 0 on success, and >0 if an error
 
     (Exactly what it says.)
 
+<!-- Message-ID: ErrMsgTemplate.UNKNOWN_SSH_AGENT_SOCKET_PROVIDER -->
+??? failure "`The SSH agent socket provider %s is not in derivepassphrase's provider registry.`"
+
+    The requested SSH agent socket provider is unknown to <b>derivepassphrase</b>.
+    The provider name may be misspelled, or it may be provided by an external software package that is not installed on this system.
+
+    The list of SSH agent socket providers currently known to <b>derivepassphrase</b> may be queried via <b>derivepassphrase vault <span>-</span>-version</b>.
+
 <!-- Message-ID: ErrMsgTemplate.USER_ABORTED_EDIT -->
 ??? failure "`Not saving any new notes: the user aborted the request.`"
 
@@ -495,7 +556,8 @@ The <b>derivepassphrase vault</b> utility exits 0 on success, and >0 if an error
     The <i>vault</i>(1) legacy editor interface is in use, which carries a high risk of accidentally losing or corrupting the old notes because a notes editing session cannot be aborted mid-editing.
     To guard against such accidental data loss, a backup copy of the old notes was saved to the <b>derivepassphrase</b> configuration directory.
 
-<!-- Message-ID: WarnMsgTemplate.NO_AF_UNIX -->
+<!-- Message-ID: WarnMsgTemplate.NO_UNIX_DOMAIN_SOCKETS -->
+<!-- Message-ID (mark only): WarnMsgTemplate.NO_AF_UNIX -->
 ??? warning "`Cannot connect to an SSH agent via UNIX domain sockets because this Python version does not support them.`"
 
     [Since v0.6.]
@@ -503,7 +565,8 @@ The <b>derivepassphrase vault</b> utility exits 0 on success, and >0 if an error
     (Only appears together with the error message "Cannot connect to an SSH agent because this Python version does not support communicating with it.".
     Other, similar messages about unsupported communication mechanisms may precede the error message.)
 
-<!-- Message-ID: WarnMsgTemplate.NO_ANNOYING_OS_NAMED_PIPES -->
+<!-- Message-ID: WarnMsgTemplate.NO_WINDOWS_NAMED_PIPES -->
+<!-- Message-ID (mark only): WarnMsgTemplate.NO_ANNOYING_OS_NAMED_PIPES -->
 ??? warning "`Cannot connect to an SSH agent via Windows named pipes because this Python version does not support them.`"
 
     [Since v0.6.]
@@ -554,5 +617,3 @@ Exceptions:
 
   * The defaults are dictated by <i>vault</i>(1), necessitating the ["Compatibility and extension options"](#compatibility-and-extension-options).
     (WONTFIX.)
-
-  * The Windows version does not support SSH keys because Python on Windows does not support the predominant type of inter-process communication used by SSH agents on Windows.

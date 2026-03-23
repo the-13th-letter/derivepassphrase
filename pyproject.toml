@@ -260,6 +260,20 @@ exclude_also = [
     '@(?:(?:pytest\.)?mark\.)?xfail\(',
     'class _Omitted:',
     'class _DummyModule:',
+
+    # If running only on POSIX, then you may want to enable the following
+    # exclusions for platform-specific code that will not trigger on POSIX:
+    #
+    # 'pragma: unless the-annoying-os no cover',
+
+    # If running only on The Annoying OS (Microsoft Windows), then you may
+    # want to enable the following exclusions for platform-specific code
+    # that will not trigger on The Annoying OS:
+    #
+    # 'pragma: unless posix no cover',
+    # '@(?:pytest_machinery\.)?skip_if_on_the_annoying_os',
+    # '@(?:pytest_machinery\.)?xfail_on_the_annoying_os',
+    # 'skip_if_no_af_unix_support: None,',
 ]
 
 # We use a bunch of "codes", similar to the "type: ignore" comments, as
@@ -302,6 +316,7 @@ omit = [
 dynamic_context = 'test_function'
 concurrency = ['thread', 'multiprocessing']
 sigterm = true
+relative_files = true
 
 [tool.hatch.build.targets.sdist]
 exclude = [
@@ -412,7 +427,7 @@ sqlite_cache = true
 enable_error_code = ['ignore-without-code']
 
 [tool.pytest.ini_options]
-addopts = '--doctest-modules --dist=worksteal --import-mode=importlib'
+addopts = '--doctest-modules --dist=loadgroup --import-mode=importlib'
 pythonpath = ['src']
 testpaths = ['src', 'tests']
 xfail_strict = true

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Marco Ricci <software@the13thletter.info>
+# SPDX-FileCopyrightText: 2026 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: Zlib
 
@@ -1143,11 +1143,39 @@ def vault_version_option_callback(
             _types.Feature.SSH_KEY,
         ]
         click.echo()
+
+        from derivepassphrase.ssh_agent import socketprovider  # noqa: PLC0415
+
+        socket_providers: dict[str, bool] = {}
+        for key, names in socketprovider.SocketProvider.grouped().items():
+            if isinstance(key, _types.BuiltinSSHAgentSocketProvider):
+                if not key.is_known_fake_agent():
+                    other_names = set(names) - {key}
+                    formatted_key = (
+                        "{key!s} ({aliases_key!s} {aliases})".format(
+                            key=key,
+                            aliases_key=_msg.TranslatedString(
+                                _msg.Label.FEATURE_ITEM_ALIASES
+                            ),
+                            aliases=", ".join(sorted(other_names, key=str)),
+                        )
+                        if other_names
+                        else str(key)
+                    )
+                    socket_providers[formatted_key] = key.test()
+            elif key:  # pragma: no cover [external]
+                socket_providers[key] = True
         version_info_types: dict[_msg.Label, list[str]] = {
             _msg.Label.SUPPORTED_FEATURES: [k for k in features if k.test()],
             _msg.Label.UNAVAILABLE_FEATURES: [
                 k for k in features if not k.test()
             ],
+            _msg.Label.SUPPORTED_SSH_AGENT_SOCKET_PROVIDERS: sorted(
+                k for k, v in socket_providers.items() if v
+            ),
+            _msg.Label.UNAVAILABLE_SSH_AGENT_SOCKET_PROVIDERS: sorted(
+                k for k, v in socket_providers.items() if not v
+            ),
         }
         print_version_info_types(version_info_types, ctx=ctx)
         ctx.exit()

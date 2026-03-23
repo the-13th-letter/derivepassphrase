@@ -81,6 +81,7 @@ key can also be used if there is a reachable, running
 .Tn SSH
 agent currently holding this key and if the key type is supported.
 (See
+.Sx "SSH AGENT SOCKET PROVIDERS" ,
 .Sx "SSH KEY SUITABILITY"
 and
 .Sx BUGS
@@ -156,6 +157,16 @@ See also
 for how this interacts with a stored passphrase or
 .Tn SSH
 key.
+.Pp
+.Nm derivepassphrase
+uses so-called
+.Dq Tn SSH No agent socket providers
+to configure how it connects to the
+.Tn SSH
+agent.
+See
+.Sx "SSH AGENT SOCKET PROVIDERS"
+for details.
 .
 .It Fl l Ar n , Fl \-length Ar n
 Force the passphrase to have the length
@@ -482,6 +493,25 @@ behaves as if
 .Fl \-print\-notes\-after
 were always given.)
 .
+.It Fl \-ssh\-agent\-socket\-provider Ar PROVIDER
+When deriving a passphrase using an SSH key, use the named socket provider
+to connect to the
+.Tn SSH
+agent.
+If not given, use the provider given in the configuration file, if any,
+else a platform-appropriate default provider.
+.Pp
+.
+(See
+.Sx "SSH AGENT SOCKET PROVIDERS"
+for details.)
+.Pp
+.
+.Xr ( vault 1
+behaves as if the built-in
+.Li ssh_auth_sock_on_unix
+provider were always requested.)
+.
 .El
 .
 .Ss Other options
@@ -556,6 +586,78 @@ Do not run these emitted shell scripts directly without double-checking
 their output first!
 .Ef
 .
+.Sh SSH AGENT SOCKET PROVIDERS
+.
+An
+.Dq Tn SSH No agent socket provider
+is a named configuration
+.Pq and associated support code
+that teaches
+.Nm derivepassphrase
+how to connect to a specific
+.Tn SSH
+agent.
+Such providers can either be built-in, or contributed by third-party software,
+and may be dependent on a specific operating system and/or further third-party
+software.
+.Pp
+.Nm derivepassphrase
+ships with the following built-in providers:
+.Bl -ohang -offset indent
+.It Li ssh_auth_sock_on_posix
+connects to an
+.Tn SSH
+agent named by the
+.Ev SSH_AUTH_SOCK
+environment variable, using
+.Tn UNIX
+domain sockets
+.It Li ssh_auth_sock_on_windows
+connects to an
+.Tn SSH
+agent named by the
+.Ev SSH_AUTH_SOCK
+environment variable, using Windows named pipes
+.It Li openssh_on_windows
+connects to the
+.Pf Powershell Pf / Dq Win32
+port of
+.Tn OpenSSH
+at its standard address, using Windows named pipes
+.It Li pageant_on_windows
+connects to Pageant on Windows at its standard address, using Windows named pipes
+.El
+.Pp
+and the following standard aliases:
+.Bl -ohang -offset indent
+.It Li unix_domain
+alias for
+.Li ssh_auth_sock_on_posix
+.It Li windows_named_pipe
+alias for
+.Li ssh_auth_sock_on_windows
+.It Li posix
+alias for
+.Li unix_domain
+.It Li windows
+alias for
+.Li windows_named_pipe
+.It Li native
+alias for
+.Li posix
+or
+.Li windows ,
+depending on the operating system
+.El
+.Pp
+(You are strongly advised to use a true provider name instead of an alias,
+if feasible.)
+.Pp
+The list of currently available and otherwise known
+.Tn SSH
+agent socket providers is part of the feature information emitted by
+.Fl \-version .
+.
 .Sh SSH KEY SUITABILITY
 .
 An
@@ -580,10 +682,7 @@ and sometimes the agent used:
 .Tn Ed25519
 and
 .Tn Ed448
-keys are always suitable.
-.Tn OpenSSH Ns No 's
-.Xr ssh-agent 1
-supports only these keys as suitable keys.
+keys are always suitable, by design of the key type.
 .
 .It
 .Tn DSA
@@ -595,9 +694,26 @@ agent supports deterministic
 .Tn DSA
 signatures, e.g. by implementing
 .Tn RFC 6979 .
+.
+.It
+As of version 10.2 (October 2025),
+.Tn OpenSSH Ns No 's
+.Xr ssh-agent 1
+supports only some of the always-suitable key types:
+.Tn RSA
+and
+.Tn Ed25519
+keys.
+.
+.It
+As of version 0.83 (February 2025),
 .Tn PuTTY Ns No 's
 .Xr pageant 1
-supports this, in addition to the always-suitable keys mentioned above.
+supports all key types mentioned above, including
+.Tn DSA
+and
+.Tn ECDSA
+keys via deterministic signatures.
 .
 .El
 .
@@ -879,6 +995,21 @@ agent must fulfill to be suitable.
 .
 (Exactly what it says.)
 .
+.\" Message-ID: ErrMsgTemplate.UNKNOWN_SSH_AGENT_SOCKET_PROVIDER
+.It The SSH agent socket provider %s is not in derivepassphrase's provider registry.
+The requested
+.Tn SSH
+agent socket provider is unknown to
+.Nm derivepassphrase .
+The provider name may be misspelled, or it may be provided by an external
+software package that is not installed on this system.
+.Pp
+The list of
+.Tn SSH agent socket providers currently known to
+.Nm derivepassphrase
+may be queried via
+.Li derivepassphrase vault Fl \-version .
+.
 .\" Message-ID: ErrMsgTemplate.USER_ABORTED_EDIT
 .It Not saving any new notes: the user aborted the request.
 (Exactly what it says.)
@@ -1025,8 +1156,8 @@ notes was saved to the
 .Nm derivepassphrase
 configuration directory.
 .
-.\" Message-ID: WarnMsgTemplate.NO_AF_UNIX
-.\" Message-ID (mark only): ErrMsgTemplate.NO_AF_UNIX
+.\" Message-ID: WarnMsgTemplate.NO_UNIX_DOMAIN_SOCKETS
+.\" Message-ID (mark only): WarnMsgTemplate.NO_AF_UNIX
 .It Cannot connect to an SSH agent via UNIX domain sockets because this Python version does not support them.
 We attempted to use
 .Tn UNIX
@@ -1042,7 +1173,8 @@ Other, similar messages about unsupported communication mechanisms may
 precede the error message.
 .Pc
 .
-.\" Message-ID: WarnMsgTemplate.NO_ANNOYING_OS_NAMED_PIPES
+.\" Message-ID: WarnMsgTemplate.NO_WINDOWS_NAMED_PIPES
+.\" Message-ID (mark only): WarnMsgTemplate.NO_ANNOYING_OS_NAMED_PIPES
 .It Cannot connect to an SSH agent via Windows named pipes because this Python version does not support them.
 We attempted to use
 .Tn Windows
@@ -1176,14 +1308,6 @@ The defaults are dictated by
 necessitating the
 .Sx Compatibility and extension options .
 .Pq WONTFIX.
-.
-.It
-The Windows version does not support
-.Tn SSH
-keys because Python on Windows does not support the predominant type of
-inter-process communication used by
-.Tn SSH
-agents on Windows.
 .
 .El
 .

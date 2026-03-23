@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Marco Ricci <software@the13thletter.info>
+# SPDX-FileCopyrightText: 2026 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: Zlib
 
@@ -86,7 +86,7 @@ class Strategies:
             config2.pop(key, None)  # type: ignore[misc]
         return config2
 
-    # Prefer this explicit composite strategy oven `strategies.builds`
+    # Prefer this explicit composite strategy over `strategies.builds`
     # because the type checker can better introspect this.
     @strategies.composite
     @staticmethod
@@ -844,6 +844,7 @@ def run_actions_handler(
 
 @hypothesis.settings(
     stateful_step_count=hypothesis_machinery.get_concurrency_step_count(),
+    max_examples=hypothesis_machinery.get_process_spawning_state_machine_examples_count(),
     deadline=None,
 )
 class FakeConfigurationMutexStateMachine(stateful.RuleBasedStateMachine):

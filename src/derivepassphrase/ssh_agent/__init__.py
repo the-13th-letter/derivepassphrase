@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Marco Ricci <software@the13thletter.info>
+# SPDX-FileCopyrightText: 2026 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: Zlib
 
@@ -36,8 +36,27 @@ HEAD_LEN = 4
 class TrailingDataError(RuntimeError):
     """The result contained trailing data."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self, raw: bytes | bytearray = b"", trailing: bytes | bytearray = b""
+    ) -> None:
         super().__init__("Overlong response from SSH agent")
+        self.raw = bytes(raw)
+        self.trailing = bytes(trailing)
+
+    def __str__(self) -> str:  # pragma: no cover [debug]
+        if self.raw or self.trailing:
+            return (
+                f"Overlong response from SSH agent: "
+                f"raw = {self.raw!r}, trailing = {self.trailing!r}"
+            )
+        return super().__str__()
+
+    def __repr__(self) -> str:  # pragma: no cover [debug]
+        """"""  # noqa: D419
+        return (
+            f"{self.__class__.__name__}"
+            f"(raw={self.raw!r}, trailing={self.trailing!r})"
+        )
 
 
 class SSHAgentFailedError(RuntimeError):
@@ -127,7 +146,28 @@ class SSHAgentClient:
 
         from derivepassphrase.ssh_agent import socketprovider  # noqa: PLC0415
 
-        if isinstance(socket, _socket.socket):
+        # On POSIX, the predominant type of communication channel is the
+        # UNIX domain socket, which in Python is represented as
+        # a `socket.socket` object.  This is (as of January 2026)
+        # unsupported on The Annoying OS: Only in Windows 10 (on some
+        # later builds at least) did Microsoft ship a partial
+        # implementation of named UNIX domain sockets in stream mode,
+        # but because of the limited scope Python does not provide
+        # bindings to this functionality.  (The Annoying OS has other
+        # predominant communication channels, but these are not
+        # represented as `socket.socket` objects.)
+        #
+        # Thus, for practical purposes, using a `socket.socket` object
+        # to interface a running SSH agent is not a valid code path on
+        # The Annoying OS.  The code path should therefore be marked as
+        # such.
+        #
+        # https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/
+        # https://github.com/microsoft/WSL/issues/4240
+        # https://github.com/python/cpython/issues/77589
+        if isinstance(
+            socket, _socket.socket
+        ):  # pragma: unless posix no cover [external]
             self._connection = socket
             # Test whether the socket is connected.
             self._connection.getpeername()
@@ -575,7 +615,9 @@ class SSHAgentClient:
             # Both `key` and `comment` are not wrapped as SSH strings.
             keys.append(_types.SSHKeyCommentPair(key, comment))
         if response_stream:
-            raise TrailingDataError
+            raise TrailingDataError(
+                raw=response, trailing=bytes(response_stream)
+            )
         return keys
 
     def sign(

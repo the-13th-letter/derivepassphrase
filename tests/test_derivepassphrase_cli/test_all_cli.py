@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Marco Ricci <software@the13thletter.info>
+# SPDX-FileCopyrightText: 2026 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: Zlib
 
@@ -15,6 +15,7 @@ import contextlib
 import enum
 import re
 import types
+from typing import TYPE_CHECKING
 
 import exceptiongroup
 import pytest
@@ -25,6 +26,9 @@ from derivepassphrase._internals import cli_messages
 from tests import machinery
 from tests.machinery import pytest as pytest_machinery
 
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
 
 class VersionOutputData(NamedTuple):
     derivation_schemes: dict[str, bool]
@@ -32,6 +36,7 @@ class VersionOutputData(NamedTuple):
     extras: frozenset[str]
     subcommands: frozenset[str]
     features: dict[str, bool]
+    ssh_agent_socket_providers: dict[str, bool]
 
 
 def _label_text(e: cli_messages.Label, /) -> str:
@@ -56,6 +61,12 @@ class KnownLineType(str, enum.Enum):
     )
     SUPPORTED_FEATURES = _label_text(cli_messages.Label.SUPPORTED_FEATURES)
     UNAVAILABLE_FEATURES = _label_text(cli_messages.Label.UNAVAILABLE_FEATURES)
+    SUPPORTED_SSH_AGENT_SOCKET_PROVIDERS = _label_text(
+        cli_messages.Label.SUPPORTED_SSH_AGENT_SOCKET_PROVIDERS
+    )
+    UNAVAILABLE_SSH_AGENT_SOCKET_PROVIDERS = _label_text(
+        cli_messages.Label.UNAVAILABLE_SSH_AGENT_SOCKET_PROVIDERS
+    )
     ENABLED_EXTRAS = _label_text(cli_messages.Label.ENABLED_PEP508_EXTRAS)
 
 
@@ -187,6 +198,7 @@ PEP 508 extras: export.
                     subcommands=frozenset(),
                     features={},
                     extras=frozenset({"export"}),
+                    ssh_agent_socket_providers={},
                 ),
                 id="derivepassphrase-0.4.0-export",
             ),
@@ -211,6 +223,7 @@ No PEP 508 extras are active.
                     subcommands=frozenset({"export", "vault"}),
                     features={},
                     extras=frozenset({}),
+                    ssh_agent_socket_providers={},
                 ),
                 id="derivepassphrase-0.5-plain",
             ),
@@ -233,6 +246,8 @@ Known foreign configuration formats: divination v3.141592,
 Supported subcommands: delete-all-files, dump-core.
 Supported features: delete-while-open.
 Known features: backups-are-nice-to-have.
+Supported SSH agent socket providers: agents-of-shield.
+Known SSH agent socket providers: agent-smith.
 PEP 508 extras: annoying-popups, delete-all-files,
     dump-core-depending-on-the-phase-of-the-moon.
 
@@ -265,12 +280,138 @@ PEP 508 extras: annoying-popups, delete-all-files,
                         "delete-all-files",
                         "dump-core-depending-on-the-phase-of-the-moon",
                     }),
+                    ssh_agent_socket_providers={
+                        "agents-of-shield": True,
+                        "agent-smith": False,
+                    },
                 ),
                 id="inventpassphrase",
+            ),
+            pytest.param(
+                """\
+derivepassphrase 1.0
+Using wishful-thinking 2.0.
+
+Supported derivation schemes: spectre ({aliases!s} master-password, mpw),
+    vault.
+Supported subcommands: export, spectre ({aliases!s} master-password, mpw),
+    vault.
+""".format(
+                    aliases=cli_messages.TranslatedString(
+                        cli_messages.Label.FEATURE_ITEM_ALIASES
+                    )
+                ),
+                "derivepassphrase",
+                "1.0",
+                VersionOutputData(
+                    derivation_schemes={
+                        "master-password": True,
+                        "mpw": True,
+                        "spectre": True,
+                        "vault": True,
+                    },
+                    foreign_configuration_formats={},
+                    subcommands=frozenset({
+                        "export",
+                        "master-password",
+                        "mpw",
+                        "spectre",
+                        "vault",
+                    }),
+                    features={},
+                    extras=frozenset(),
+                    ssh_agent_socket_providers={},
+                ),
+                id="aliases",
             ),
         ],
     )
     """Sample data for [`parse_version_output`][]."""
+
+
+def tokenize_version_output_item_listing(
+    line: str,
+    /,
+    *,
+    is_alias_annotation: bool = False,
+) -> Iterator[str]:
+    """Yield the next feature in a `--version` feature listing.
+
+    This is a regular expression-based parser (alluded to in
+    [`parse_version_output`][]) that yields the next item name or alias
+    it encounters.  (The output is indistinguishable for those two
+    types.)
+
+    We assume that continuation lines have already been reversed, i.e.,
+    that the whole input is on a single line.  We further assume that
+    the listing header has been removed, i.e., we are only processing
+    the raw list items.
+
+    Args:
+        line:
+            The input line, normalized as explained above.
+        is_alias_annotation:
+            If true, then the input line is contents of an alias
+            listing, and itself does not support aliases.  Otherwise,
+            aliases are supported.
+
+    Yields:
+        The next item name or alias.  There is no way to distinguish
+        these cases based on output alone.
+
+    """
+    chunk_re = re.compile(
+        r"""
+            # the item name
+            (?P<name>[^,()]+)
+            # whitespace
+            (?:[ ]*)
+            # the terminator
+            (?:,[ ]*|$)
+        """
+        if is_alias_annotation
+        else r"""
+            # the item name
+            (?P<name>[^,()]+)
+            # alias list
+            (?:[ ]+
+                # alias marker
+                \(
+                    {aliases_marker!s}
+                    [ ]+
+                    # the alias entries
+                    (?P<alias_list>[^()]+)
+                \)
+            )?
+            # the terminator
+            (?:,[ ]*|\.$)
+        """.format(
+            aliases_marker=cli_messages.TranslatedString(
+                cli_messages.Label.FEATURE_ITEM_ALIASES
+            )
+        ),
+        re.VERBOSE,
+    )
+    rest = line.strip()
+    while (match := chunk_re.match(rest)) is not None:
+        name = match.group("name")
+        assert name, "item listing tokenizer is inconsistent"
+        assert name.strip() == name, "item listing tokenizer is inconsistent"
+        yield name
+        if not is_alias_annotation and match.group("alias_list"):
+            alias_list = match.group("alias_list")
+            assert alias_list, "item listing tokenizer is inconsistent"
+            assert alias_list.strip(), "item listing tokenizer is inconsistent"
+            assert alias_list.lstrip() == alias_list, (
+                "item listing tokenizer is inconsistent"
+            )
+            yield from tokenize_version_output_item_listing(
+                alias_list.strip(), is_alias_annotation=True
+            )
+        rest = rest.removeprefix(match.group(0))
+    if rest:  # pragma: no cover [defensive]
+        msg = f"Trailing unparsable junk on {line!r}: {rest!r}"
+        raise ValueError(msg)
 
 
 def parse_version_output(  # noqa: C901
@@ -286,14 +427,23 @@ def parse_version_output(  # noqa: C901
     details the version number, and the version number of any major
     libraries in use.  The second paragraph details known and supported
     passphrase derivation schemes, foreign configuration formats,
-    subcommands and PEP 508 package extras.  For the schemes and
-    formats, there is a "supported" line for supported items, and
-    a "known" line for known but currently unsupported items (usually
-    because of missing dependencies), either of which may be empty and
-    thus omitted.  For extras, only active items are shown, and there is
-    a separate message for the "no extras active" case.  Item lists may
-    be spilled across multiple lines, but only at item boundaries, and
-    the continuation lines are then indented.
+    subcommands, SSH agent socket providers and PEP 508 package extras.
+
+    For the schemes, formats and socket providers, there is
+    a "supported" line for supported items, and a "known" line for known
+    but currently unsupported items (usually because of missing
+    dependencies), either of which may be empty and thus omitted.  For
+    extras, only active items are shown, and there is a separate message
+    for the "no extras active" case.  Items may be followed by a list of
+    aliases, explicitly marked as such.  Item lists may be spilled
+    across multiple lines, but only at item boundaries.  (The alias list
+    counts as part of the same item.)  The continuation lines are then
+    indented.
+
+    The list of aliases is formatted as `<name> (aliases: <alias1>,
+    <alias2>)`.  Only one level of aliases is supported, and neither
+    `<name>` nor `<alias>` must contain parentheses.  (Brackets and
+    braces are discouraged, but not expressly forbidden.)
 
     Args:
         version_output:
@@ -309,6 +459,9 @@ def parse_version_output(  # noqa: C901
 
     Examples:
         See [`Parametrize.VERSION_OUTPUT_DATA`][].
+
+    See also:
+        * [`tokenize_version_output_item_listing`][]
 
     """
     paragraphs: list[list[str]] = []
@@ -341,6 +494,7 @@ def parse_version_output(  # noqa: C901
     subcommands: set[str] = set()
     extras: set[str] = set()
     features: dict[str, bool] = {}
+    ssh_agent_socket_providers: dict[str, bool] = {}
     if len(paragraphs) < 2:  # pragma: no cover
         return VersionOutputData(
             derivation_schemes=schemes,
@@ -348,15 +502,14 @@ def parse_version_output(  # noqa: C901
             subcommands=frozenset(subcommands),
             extras=frozenset(extras),
             features=features,
+            ssh_agent_socket_providers=ssh_agent_socket_providers,
         )
     for line in paragraphs[1]:
         line_type, _, value = line.partition(":")
         if line_type == line:
             continue
-        for item_ in re.split(r"(?:, *|.$)", value):
+        for item_ in tokenize_version_output_item_listing(value):
             item = item_.strip()
-            if not item:
-                continue
             if line_type == KnownLineType.SUPPORTED_FOREIGN_CONFS:
                 formats[item] = True
             elif line_type == KnownLineType.UNAVAILABLE_FOREIGN_CONFS:
@@ -373,6 +526,15 @@ def parse_version_output(  # noqa: C901
                 features[item] = True
             elif line_type == KnownLineType.UNAVAILABLE_FEATURES:
                 features[item] = False
+            elif (
+                line_type == KnownLineType.SUPPORTED_SSH_AGENT_SOCKET_PROVIDERS
+            ):
+                ssh_agent_socket_providers[item] = True
+            elif (
+                line_type
+                == KnownLineType.UNAVAILABLE_SSH_AGENT_SOCKET_PROVIDERS
+            ):
+                ssh_agent_socket_providers[item] = False
             else:
                 raise AssertionError(  # noqa: TRY003
                     f"Unknown version info line type: {line_type!r}"  # noqa: EM102
@@ -383,6 +545,7 @@ def parse_version_output(  # noqa: C901
         subcommands=frozenset(subcommands),
         extras=frozenset(extras),
         features=features,
+        ssh_agent_socket_providers=ssh_agent_socket_providers,
     )
 
 

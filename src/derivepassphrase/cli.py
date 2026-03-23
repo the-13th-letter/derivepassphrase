@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Marco Ricci <software@the13thletter.info>
+# SPDX-FileCopyrightText: 2026 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: Zlib
 
@@ -1053,6 +1053,7 @@ class _VaultContext:  # noqa: PLR0904
         *,
         empty_service_permitted: bool,
         configuration: _types.VaultConfig | None = None,
+        main_config: dict[str, Any] | None = None,
     ) -> collections.ChainMap[str, Any]:
         """Query the master passphrase or master SSH key, if changed.
 
@@ -1076,6 +1077,9 @@ class _VaultContext:  # noqa: PLR0904
                 some callers need access to the full configuration *and*
                 need the slice within the effective configuration to
                 refer to the same object.
+            main_config:
+                The user configuration, parsed from disk.  If not given,
+                we read the configuration from disk ourselves.
 
         Returns:
             The effective configuration for the (possibly empty) given
@@ -1098,6 +1102,8 @@ class _VaultContext:  # noqa: PLR0904
         use_phrase = self.ctx.params["use_phrase"]
         if configuration is None:
             configuration = self.get_config()
+        if main_config is None:  # pragma: no cover [unused]
+            main_config = self.get_user_config()
         service_keys_on_commandline = {
             "length",
             "repeat",
@@ -1129,8 +1135,13 @@ class _VaultContext:  # noqa: PLR0904
             )
             raise click.UsageError(str(err_msg))
         if use_key:
+            conn = cli_helpers.get_configured_connection_hint(
+                self.ctx.params["ssh_agent_socket_provider"],
+                main_config=main_config,
+            )
             settings.maps[0]["key"] = base64.standard_b64encode(
                 cli_helpers.select_ssh_key(
+                    conn,
                     ctx=self.ctx,
                     error_callback=self.err,
                     warning_callback=self.warning,
@@ -1182,7 +1193,9 @@ class _VaultContext:  # noqa: PLR0904
         configuration = self.get_config()
         user_config = self.get_user_config()
         settings = self.run_subop_query_phrase_or_key_change(
-            configuration=configuration, empty_service_permitted=True
+            empty_service_permitted=True,
+            configuration=configuration,
+            main_config=user_config,
         )
         overrides = settings.maps[0]
         view: collections.ChainMap[str, Any]
@@ -1343,7 +1356,8 @@ class _VaultContext:  # noqa: PLR0904
         print_notes_before = self.ctx.params["print_notes_before"]
         user_config = self.get_user_config()
         settings = self.run_subop_query_phrase_or_key_change(
-            empty_service_permitted=False
+            empty_service_permitted=False,
+            main_config=user_config,
         )
         if use_phrase:
             try:
@@ -1370,18 +1384,28 @@ class _VaultContext:  # noqa: PLR0904
         # cases, set the phrase via vault.Vault.phrase_from_key if
         # a key is given.  Finally, if nothing is set, error out.
         if use_key:
+            conn = cli_helpers.get_configured_connection_hint(
+                self.ctx.params["ssh_agent_socket_provider"],
+                main_config=user_config,
+            )
             phrase = cli_helpers.key_to_phrase(
                 cast("str", overrides["key"]),
                 error_callback=self.err,
                 warning_callback=self.warning,
+                conn=conn,
             )
         elif use_phrase:
             phrase = cast("str", overrides["phrase"])
         elif settings.get("key"):
+            conn = cli_helpers.get_configured_connection_hint(
+                self.ctx.params["ssh_agent_socket_provider"],
+                main_config=user_config,
+            )
             phrase = cli_helpers.key_to_phrase(
                 cast("str", settings["key"]),
                 error_callback=self.err,
                 warning_callback=self.warning,
+                conn=conn,
             )
         elif settings.get("phrase"):
             phrase = cast("str", settings["phrase"])
@@ -1719,6 +1743,20 @@ class _VaultContext:  # noqa: PLR0904
     ),
     cls=cli_machinery.CompatibilityOption,
 )
+@click.option(
+    "--ssh-agent-socket-provider",
+    "ssh_agent_socket_provider",
+    metavar=_msg.TranslatedString(
+        _msg.Label.VAULT_COMPATIBILITY_METAVAR_SSH_AGENT_SOCKET_PROVIDER
+    ),
+    help=_msg.TranslatedString(
+        _msg.Label.DERIVEPASSPHRASE_VAULT_SSH_AGENT_SOCKET_PROVIDER_HELP_TEXT,
+        metavar=_msg.TranslatedString(
+            _msg.Label.VAULT_COMPATIBILITY_METAVAR_SSH_AGENT_SOCKET_PROVIDER
+        ),
+    ),
+    cls=cli_machinery.CompatibilityOption,
+)
 @cli_machinery.version_option(cli_machinery.vault_version_option_callback)
 @cli_machinery.color_forcing_pseudo_option
 @cli_machinery.standard_logging_options
@@ -1837,6 +1875,10 @@ def derivepassphrase_vault(
             Command-line arguments `--print-notes-before` (True) and
             `--print-notes-after` (False).  Controls whether the service
             notes (if any) are printed before the passphrase, or after.
+        ssh_agent_socket_provider (str):
+            Command-line argument `--ssh-agent-socket-provider`.  Names
+            an explicit SSH agent socket provider to use, overriding any
+            user configuration entries or platform defaults.
 
     """
     vault_context = _VaultContext(ctx)

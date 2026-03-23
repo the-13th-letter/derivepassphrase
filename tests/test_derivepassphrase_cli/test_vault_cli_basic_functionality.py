@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Marco Ricci <software@the13thletter.info>
+# SPDX-FileCopyrightText: 2026 Marco Ricci <software@the13thletter.info>
 #
 # SPDX-License-Identifier: Zlib
 
@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+import textwrap
 import types
 from typing import TYPE_CHECKING
 
@@ -18,6 +19,7 @@ from derivepassphrase import _types, cli, ssh_agent, vault
 from derivepassphrase._internals import (
     cli_helpers,
 )
+from derivepassphrase.ssh_agent import socketprovider
 from tests import data, machinery
 from tests.data import callables
 from tests.machinery import pytest as pytest_machinery
@@ -329,6 +331,16 @@ class Parametrize(types.SimpleNamespace):
     KEY_INDEX = pytest.mark.parametrize(
         "key_index", [1, 2, 3], ids=lambda i: f"index{i}"
     )
+    EXPLICIT_SSH_AGENT_SOCKET_PROVIDER = pytest.mark.parametrize(
+        ["on_command_line", "in_config"],
+        [
+            pytest.param(False, True, id="configuration_only"),
+            pytest.param(True, False, id="command_line_only"),
+            pytest.param(
+                True, True, id="command_line_overrides_configuration"
+            ),
+        ],
+    )
     VAULT_CHARSET_OPTION = pytest.mark.parametrize(
         "option",
         [
@@ -543,17 +555,20 @@ class TestPhraseBasic:
 class TestKeyBasic:
     """Tests for SSH key configuration: basic."""
 
-    def _test(
+    @contextlib.contextmanager
+    def _setup_environment(
         self,
-        command_line: list[str],
         /,
         *,
         config: _types.VaultConfig = {  # noqa: B006
-            "services": {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}
+            "services": {
+                DUMMY_SERVICE: {**DUMMY_CONFIG_SETTINGS},
+            },
         },
-        multiline: bool = False,
-        input: str | bytes | None = None,
-    ) -> None:
+        main_config_str: str | None = None,
+        registry: dict[str, _types.SSHAgentSocketProvider | str | None]
+        | None = None,
+    ) -> Iterator[machinery.CliRunner]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -565,6 +580,7 @@ class TestKeyBasic:
                     monkeypatch=monkeypatch,
                     runner=runner,
                     vault_config=config,
+                    main_config_str=main_config_str,
                 )
             )
             monkeypatch.setattr(
@@ -577,12 +593,20 @@ class TestKeyBasic:
                 "phrase_from_key",
                 callables.phrase_from_key,
             )
-            result = runner.invoke(
-                cli.derivepassphrase_vault,
-                command_line,
-                input=input,
-                catch_exceptions=False,
-            )
+            if registry is not None:
+                monkeypatch.setattr(
+                    socketprovider.SocketProvider, "registry", registry
+                )
+                monkeypatch.setattr(
+                    ssh_agent.SSHAgentClient,
+                    "SOCKET_PROVIDERS",
+                    ("incorrect",),
+                )
+            yield runner
+
+    def _check_result(
+        self, result: machinery.ReadableResult, /, *, multiline: bool = False
+    ) -> None:
         if multiline:
             assert result.clean_exit(), "expected clean exit"
         else:
@@ -602,6 +626,31 @@ class TestKeyBasic:
             "expected known output"
         )
 
+    def _test(
+        self,
+        command_line: list[str],
+        /,
+        *,
+        config: _types.VaultConfig = {  # noqa: B006
+            "services": {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}
+        },
+        main_config_str: str | None = None,
+        registry: dict[str, _types.SSHAgentSocketProvider | str | None]
+        | None = None,
+        multiline: bool = False,
+        input: str | bytes | None = None,
+    ) -> None:
+        with self._setup_environment(
+            config=config, main_config_str=main_config_str, registry=registry
+        ) as runner:
+            result = runner.invoke(
+                cli.derivepassphrase_vault,
+                command_line,
+                input=input,
+                catch_exceptions=False,
+            )
+        self._check_result(result, multiline=multiline)
+
     @Parametrize.CONFIG_WITH_KEY
     def test_key_from_config(
         self,
@@ -619,6 +668,102 @@ class TestKeyBasic:
         """An SSH key requested on the command-line will be used."""
         del running_ssh_agent
         self._test(["-k", "--", DUMMY_SERVICE], input="1\n", multiline=True)
+
+
+@pytest.fixture
+def provider_registry() -> dict[
+    str, _types.SSHAgentSocketProvider | str | None
+]:
+    """Set up a controlled SSH agent socket provider registry."""
+
+    def err() -> _types.SSHAgentSocket:
+        pytest.fail("Attempting to use the wrong SSH agent socket provider!")
+
+    return {
+        "correct": machinery.StubbedSSHAgentSocket,
+        "incorrect": err,
+    }
+
+
+class TestKeyExplicitSSHAgentSocketProvider(TestKeyBasic):
+    """Tests for SSH key configuration: explicit SSH agent socket providers."""
+
+    ARG = "--ssh-agent-socket-provider=correct"
+    ARG_NONEXISTANT = "--ssh-agent-socket-provider=nonexistant"
+    MAIN_CONFIG_STR = textwrap.dedent(r"""
+    [vault]
+    ssh-agent-socket-provider = "correct"
+    """)
+    WRONG_CONFIG_STR = textwrap.dedent(r"""
+    [vault]
+    ssh-agent-socket-provider = "incorrect"
+    """)
+    NONEXISTANT_CONFIG_STR = textwrap.dedent(r"""
+    [vault]
+    ssh-agent-socket-provider = "nonexistant"
+    """)
+
+    @Parametrize.EXPLICIT_SSH_AGENT_SOCKET_PROVIDER
+    @Parametrize.CONFIG_WITH_KEY
+    def test_explicit_ssh_agent_socket_provider(
+        self,
+        provider_registry: dict[
+            str, _types.SSHAgentSocketProvider | str | None
+        ],
+        config: _types.VaultConfig,
+        on_command_line: bool,
+        in_config: bool,
+    ) -> None:
+        args = [self.ARG] if on_command_line else []
+        main_config_str = (
+            self.WRONG_CONFIG_STR
+            if in_config and on_command_line
+            else self.MAIN_CONFIG_STR
+            if in_config
+            else None
+        )
+        self._test(
+            [*args, "--", DUMMY_SERVICE],
+            config=config,
+            registry=provider_registry,
+            main_config_str=main_config_str,
+        )
+
+    @Parametrize.EXPLICIT_SSH_AGENT_SOCKET_PROVIDER
+    @Parametrize.CONFIG_WITH_KEY
+    def test_explicit_ssh_agent_socket_provider_not_found(
+        self,
+        provider_registry: dict[
+            str, _types.SSHAgentSocketProvider | str | None
+        ],
+        config: _types.VaultConfig,
+        on_command_line: bool,
+        in_config: bool,
+    ) -> None:
+        assert "nonexistant" not in provider_registry, (
+            '"nonexistant" name actually found in registry?!'
+        )
+        args = [self.ARG_NONEXISTANT] if on_command_line else []
+        main_config_str = (
+            self.MAIN_CONFIG_STR
+            if in_config and on_command_line
+            else self.NONEXISTANT_CONFIG_STR
+            if in_config
+            else None
+        )
+        with self._setup_environment(
+            config=config,
+            registry=provider_registry,
+            main_config_str=main_config_str,
+        ) as runner:
+            result = runner.invoke(
+                cli.derivepassphrase_vault,
+                [*args, "--", DUMMY_SERVICE],
+                catch_exceptions=False,
+            )
+        assert result.error_exit(
+            error=" is not in derivepassphrase's provider registry."
+        )
 
 
 class TestPhraseAndKeyOverriding:
