@@ -4,7 +4,7 @@
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>wish</i><td>This is a request for an enhancement.
         <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 <b>0.1.2</b> 0.1.3
-        <tr><th scope=col>Fixed-in<td colspan=2><a href="https://github.com/the-13th-letter/derivepassphrase/commit/b4d8439fa4207b665ad8ea2217f21f807f603734">b4d8439fa4207b665ad8ea2217f21f807f603734</a> (0.2.0)
+        <tr><th scope=col>Fixed-in<td colspan=2><a href="https://git.schokokeks.org/derivepassphrase.git/commit/b4d8439fa4207b665ad8ea2217f21f807f603734">b4d8439fa4207b665ad8ea2217f21f807f603734</a> (0.2.0)
     </table>
 
 Support extracting stored configurations from [vault][] v0.2, from v0.3, and from [storeroom][]-backed configurations.

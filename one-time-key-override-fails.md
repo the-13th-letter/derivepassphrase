@@ -4,7 +4,7 @@
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>bug</i><td>This is clearly an actual problem we want fixed.
         <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 <b>0.1.2</b>
-        <tr><th scope=col>Fixed-in<td colspan=2><a href="https://github.com/the-13th-letter/derivepassphrase/commit/d000e7cbd2cfdfd86f614a9f65acea039baeff70">d000e7cbd2cfdfd86f614a9f65acea039baeff70</a> (0.1.3)
+        <tr><th scope=col>Fixed-in<td colspan=2><a href="https://git.schokokeks.org/derivepassphrase.git/commit/d000e7cbd2cfdfd86f614a9f65acea039baeff70">d000e7cbd2cfdfd86f614a9f65acea039baeff70</a> (0.1.3)
     </table>
 
 ````console-session

@@ -4,7 +4,7 @@
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>wish</i><td>This is a request for an enhancement.
         <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 0.1.2 0.1.3 <b>0.2.0</b>
-        <tr><th scope=col>Fixed-in<td colspan=2><a href="https://github.com/the-13th-letter/derivepassphrase/commit/dd606b3a051f0ba3bc76d0ef6e14ba3fb5d87298">dd606b3a051f0ba3bc76d0ef6e14ba3fb5d87298</a> (0.3.0)
+        <tr><th scope=col>Fixed-in<td colspan=2><a href="https://git.schokokeks.org/derivepassphrase.git/commit/dd606b3a051f0ba3bc76d0ef6e14ba3fb5d87298">dd606b3a051f0ba3bc76d0ef6e14ba3fb5d87298</a> (0.3.0)
     </table>
 
 When testing SSH agent-related functionality, currently the test suite will use whatever agent happens to be running (if any), and upload test keys to and issue test queries against said agent.  The test keys are re-uploaded in every test that uses them, with a fixed lifetime of 30 seconds.

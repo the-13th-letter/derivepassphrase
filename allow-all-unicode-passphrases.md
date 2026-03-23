@@ -4,7 +4,7 @@
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>bug</i><td>This is clearly an actual problem we want fixed.
         <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 0.1.2 <b>0.1.3</b>
-        <tr><th scope=col>Fixed-in<td colspan=2><a href="https://github.com/the-13th-letter/derivepassphrase/commit/aacd09bdcbdb01df7cb819396727d2427636b144">aacd09bdcbdb01df7cb819396727d2427636b144</a> (0.2.0)
+        <tr><th scope=col>Fixed-in<td colspan=2><a href="https://git.schokokeks.org/derivepassphrase.git/commit/aacd09bdcbdb01df7cb819396727d2427636b144">aacd09bdcbdb01df7cb819396727d2427636b144</a> (0.2.0)
     </table>
 
 In v0.1.x, `derivepassphrase` will accept a textual master passphrase if and only if it has a unique Unicode normalization form, i.e. if the NFC- and NFD-normalized forms of the master passphrase agree. This check was intended to safeguard against a passphrase from the configuration file being interpreted incorrectly by the `Vault` constructor (and subsequently generating the wrong passphrase) because it derived the wrong normalized form as the binary input string to the `vault` algorithm.
