@@ -8,7 +8,7 @@
       - [yet to be scheduled](index.md){: .unscheduled }
 
 ???+ bug "things to fix"
-      - [windows-ssh-agent-support][]{: .scheduled-next }
+    <i>no entries</i>
 
 ???+ wish "things to add"
       - [conventional-configurable-text-styling][]{: .unscheduled }
@@ -29,6 +29,7 @@
       - [remove-pageant-build-info-check][]{: .fixed }
       - [single-toplevel-module][]{: .fixed }
       - [test-filesystem-isolation][]{: .fixed }
+      - [windows-ssh-agent-support][]{: .fixed }
 
 ??? wish-success "things added"
 
