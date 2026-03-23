@@ -7,10 +7,10 @@
         <tr><th scope=col>Difficulty<td><i>tricky</i><td>Needs many tuits.
         <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 0.1.2 0.2.0 0.3.0 0.3.1 0.3.2 0.3.3 <b>0.4.0</b>
         <tr><th scope=col>Fixed-in<td colspan=2>[a4ad05723414662d9df1607034c5dd7d646f1b49](https://git.schokokeks.org/derivepassphrase.git/commit/a4ad05723414662d9df1607034c5dd7d646f1b49) (0.5)
-        <tr><th scope=col>Blocks<td colspan=2>[concurrency-testing-in-test-suite](concurrency-testing-in-test-suite.md)
+        <tr><th scope=col>Blocks<td colspan=2>[concurrency-testing-in-test-suite](concurrency-testing-in-test-suite.md){: .fixed }
     </table>
 
-`derivepassphrase` is not explicitly written with concurrency in mind. This may come around to bite us when the “free-threaded“ build of Python no becomes a main feature.
+`derivepassphrase` is not explicitly written with concurrency in mind. This may come around to bite us when the "free-threaded" build of Python becomes a main feature.
 
 Irrespective of that, it is a good idea anyway to have a clear picture on which parts of `derivepassphrase` are not threadsafe, and to which degree.
 

@@ -45,4 +45,4 @@ A bug report and a patch has been submitted to PuTTY on 2024-09-18, and receptio
 
 [The aforementioned patch has been added to PuTTY/Pageant](https://git.tartarus.org/?p=simon/putty.git;a=commit;h=fca6ce10dbf01e57ec4777b87faae8b38e53ff43), and will likely be part of PuTTY 0.82.
 
-Simon Tatham, PuTTY's principal author, has further clarified that he considers `derivepassphrase`'s handling to be an abuse of Pageant's debug mode, which was never intended to be machine-parsable. He is instead in favor of the new foreground mode for Pageant (as alluded to in https://github.com/the-13th-letter/derivepassphrase/issues/14#issue-2541165526) which is also due to become part of PuTTY 0.82.
+Simon Tatham, PuTTY's principal author, has further clarified that he considers `derivepassphrase`'s handling to be an abuse of Pageant's debug mode, which was never intended to be machine-parsable. He is instead in favor of the new foreground mode for Pageant (as alluded to in [remove-pageant-build-info-check](remove-pageant-build-info-check.md) which is also due to become part of PuTTY 0.82.

@@ -16,4 +16,4 @@ Once [concurrency-audit](concurrency-audit.md) is resolved, the thread-safety of
 
 --------
 
-This was implemented in 47376f4dcf2a2cc121df9b44b94b4036bf1bdb3b.
+This was implemented in [47376f4dcf2a2cc121df9b44b94b4036bf1bdb3b](https://git.schokokeks.org/derivepassphrase.git/commit/47376f4dcf2a2cc121df9b44b94b4036bf1bdb3b).

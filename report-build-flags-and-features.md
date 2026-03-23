@@ -15,4 +15,4 @@ A common way to implement this is to expand the `--version` output to include th
 
 --------
 
-This was implemented in commit 6741af2eaa6fba39717997292ec25baf5f1f4f20.
+This was implemented in commit [6741af2eaa6fba39717997292ec25baf5f1f4f20](https://git.schokokeks.org/derivepassphrase.git/commit/6741af2eaa6fba39717997292ec25baf5f1f4f20).
