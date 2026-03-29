@@ -19,7 +19,7 @@ Release checklist
     1.  `ruff format` / `hatch fmt -f`
     2.  `ruff check` / `hatch fmt -l`
     3.  `mypy` / `hatch run types:check`
-    4.  `coverage -m pytest ...` / `hatch test -acpqr` (set `PYTHON_CPU_COUNT` and `HYPOTHESIS_PROFILE`)
+    4.  `coverage -m pytest ...` / `hatch test -acpqr` (set `PYTHON_CPU_COUNT`, `HYPOTHESIS_PROFILE`, `PERMITTED_SSH_AGENTS` and `NON_REENTRANT_SSH_AGENTS` as appropriate)
     5.  move coverage database to different filename
 
 ???+ info "changelog"
