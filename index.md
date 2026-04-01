@@ -8,9 +8,10 @@
       - [yet to be scheduled](index.md){: .unscheduled }
 
 ???+ bug "things to fix"
-    <i>no entries</i>
+      - [remove-click][]{: .scheduled-next }
 
 ???+ wish "things to add"
+      - [no-strict-compatibility-mode][]{: .scheduled }
       - [conventional-configurable-text-styling][]{: .unscheduled }
       - [other-derivation-schemes][]{: .unscheduled }
 
@@ -53,11 +54,13 @@
   [fail-gracefully-without-af-unix]: fail-gracefully-without-af-unix.md
   [falsy-vault-config-values]: falsy-vault-config-values.md
   [no-stdlib-module-names]: no-stdlib-module-names.md
+  [no-strict-compatibility-mode]: no-strict-compatibility-mode.md
   [one-time-key-override-fails]: one-time-key-override-fails.md
   [other-derivation-schemes]: other-derivation-schemes.md
   [pretty-print-json]: pretty-print-json.md
   [print-service-notes]: print-service-notes.md
   [print-service-notes-above]: print-service-notes-above.md
+  [remove-click]: remove-click.md
   [remove-pageant-build-info-check]: remove-pageant-build-info-check.md
   [report-build-flags-and-features]: report-build-flags-and-features.md
   [scheme-specific-cli-and-config]: scheme-specific-cli-and-config.md
