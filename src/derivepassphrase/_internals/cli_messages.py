@@ -2004,7 +2004,7 @@ class WarnMsgTemplate(enum.Enum):
     )
     NO_UNIX_DOMAIN_SOCKETS = commented(
         'This is one of several "Cannot connect to an SSH agent via '
-        '<communication_channel_type> because this Python version '
+        "<communication_channel_type> because this Python version "
         'does not support them." messages issued '
         "when searching for an applicable SSH agent socket provider.  "
         "(WarnMsgTemplate.NO_WINDOWS_NAMED_PIPES, "
@@ -2022,7 +2022,7 @@ class WarnMsgTemplate(enum.Enum):
     """"""
     NO_WINDOWS_NAMED_PIPES = commented(
         'This is one of several "Cannot connect to an SSH agent via '
-        '<communication_channel_type> because this Python version '
+        "<communication_channel_type> because this Python version "
         'does not support them." messages issued '
         "when searching for an applicable SSH agent socket provider.  "
         "(WarnMsgTemplate.NO_UNIX_DOMAIN_SOCKETS, "
@@ -2289,8 +2289,8 @@ class ErrMsgTemplate(enum.Enum):
     )
     """"""
     NO_AGENT_SUPPORT = commented(
-        'This error message works in tandem with, '
-        'and is usually preceded by, one of several '
+        "This error message works in tandem with, "
+        "and is usually preceded by, one of several "
         '"Cannot connect to an SSH agent via <communication_channel_type> '
         'because this Python version does not support them." '
         "warning messages issued while searching for an applicable "
