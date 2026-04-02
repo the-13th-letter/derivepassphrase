@@ -1,16 +1,16 @@
 # German translation for derivepassphrase.
-# Copyright (C) 2025 Isabell Hoffstadt
-# Copyright (C) 2025 Marco Ricci
+# Copyright (C) 2025, 2026 Isabell Ricci
+# Copyright (C) 2025, 2026 Marco Ricci
 # This file is distributed under the same license as derivepassphrase.
-#
-# Isabell Hoffstadt, 2025.
-# Marco Ricci <software@the13thletter.info>, 2025.
+# 
+# Isabell Ricci, 2025, 2026.
+# Marco Ricci <software@the13thletter.info>, 2025, 2026.
 msgid ""
 msgstr ""
-"Project-Id-Version: derivepassphrase 0.5\n"
+"Project-Id-Version: derivepassphrase 0.6\n"
 "Report-Msgid-Bugs-To: software@the13thletter.info\n"
-"POT-Creation-Date: 2025-03-16 23:50+0100\n"
-"PO-Revision-Date: 2025-03-16 23:53+0100\n"
+"POT-Creation-Date: 2026-04-02 12:43+0200\n"
+"PO-Revision-Date: 2026-04-02 14:05+0200\n"
 "Last-Translator: Marco Ricci <software@the13thletter.info>\n"
 "Language-Team: German\n"
 "Language: de_DE\n"
@@ -276,6 +276,13 @@ msgctxt "Label :: Help text :: Metavar :: vault"
 msgid "PATH"
 msgstr "PFAD"
 
+#. TRANSLATORS: This metavar is used in Label.DERIVEPASSPHRASE_VAULT_SSH_AGENT_SOCKET_PROVIDER_HELP_TEXT, yielding e.g. "Use PROVIDER as the SSH agent socket provider.".
+#. 
+#. Message-ID: Label.VAULT_COMPATIBILITY_METAVAR_SSH_AGENT_SOCKET_PROVIDER
+msgctxt "Label :: Help text :: Metavar :: vault"
+msgid "PROVIDER"
+msgstr "ANBIETER"
+
 #. TRANSLATORS: This metavar is used as "service_metavar" in multiple help texts, such as Label.DERIVEPASSPHRASE_VAULT_CONFIG_HELP_TEXT, Label.DERIVEPASSPHRASE_VAULT_02, ErrMsgTemplate.SERVICE_REQUIRED, etc.  Sample texts are "Deriving a passphrase requires a SERVICE.", "save the given settings for SERVICE, or global" and "If operating on global settings, or importing/exporting settings, then SERVICE must be omitted."
 #. 
 #. Message-ID: Label.VAULT_METAVAR_SERVICE
@@ -474,6 +481,15 @@ msgctxt "Label :: Help text :: One-line description"
 msgid "Ensure at least {metavar} spaces."
 msgstr "Erwirke mindestens {metavar} Leerzeichen."
 
+#. TRANSLATORS: The metavar is Label.VAULT_COMPATIBILITY_METAVAR_SSH_AGENT_SOCKET_PROVIDER.
+#. 
+#. Message-ID: Label.DERIVEPASSPHRASE_VAULT_SSH_AGENT_SOCKET_PROVIDER_HELP_TEXT
+#, python-brace-format
+msgctxt "Label :: Help text :: One-line description"
+msgid "Use {metavar} as the SSH agent socket provider."
+msgstr ""
+"Verwende {metavar} als Anbieter für den Kommunikationskanal zum SSH-Agenten."
+
 #. TRANSLATORS: The metavar is Label.PASSPHRASE_GENERATION_METAVAR_NUMBER.
 #. 
 #. Message-ID: Label.DERIVEPASSPHRASE_VAULT_SYMBOL_HELP_TEXT
@@ -616,6 +632,13 @@ msgctxt "Label :: Info Message:: Table row header"
 msgid "PEP 508 extras:"
 msgstr "PEP 508 extras:"
 
+#. TRANSLATORS: This is part of the version output, designating a list of names as aliases to the previous entry.  A comma-separated English list of items follows.  This label, and the list of names, is included in parentheses: `entry_name (aliases: alias1, alias2, ...)`.
+#. 
+#. Message-ID: Label.FEATURE_ITEM_ALIASES
+msgctxt "Label :: Info Message:: Table row header"
+msgid "aliases:"
+msgstr "Aliase:"
+
 #. TRANSLATORS: This is part of the version output, emitting lists of supported derivation schemes.  A comma-separated English list of items follows, with standard English punctuation.
 #. 
 #. Message-ID: Label.SUPPORTED_DERIVATION_SCHEMES
@@ -636,6 +659,13 @@ msgstr "Unterstützte Zusatzfunktionalität:"
 msgctxt "Label :: Info Message:: Table row header"
 msgid "Supported foreign configuration formats:"
 msgstr "Unterstützte programmfremde Konfigurationsformate:"
+
+#. TRANSLATORS: This is part of the version output, emitting lists of supported SSH agent socket providers.  A comma-separated English list of items follows, with standard English punctuation.
+#. 
+#. Message-ID: Label.SUPPORTED_SSH_AGENT_SOCKET_PROVIDERS
+msgctxt "Label :: Info Message:: Table row header"
+msgid "Supported SSH agent socket providers:"
+msgstr "Unterstützte Anbieter für SSH-Agenten-Kommunikationskanäle:"
 
 #. TRANSLATORS: This is part of the version output, emitting lists of supported subcommands.  A comma-separated English list of items follows, with standard English punctuation.
 #. 
@@ -664,6 +694,13 @@ msgstr "Bekannte Zusatzfunktionalität:"
 msgctxt "Label :: Info Message:: Table row header"
 msgid "Known foreign configuration formats:"
 msgstr "Bekannte programmfremde Konfigurationsformate:"
+
+#. TRANSLATORS: This is part of the version output, emitting lists of known, unavailable SSH agent socket providers.  A comma-separated English list of items follows, with standard English punctuation.
+#. 
+#. Message-ID: Label.UNAVAILABLE_SSH_AGENT_SOCKET_PROVIDERS
+msgctxt "Label :: Info Message:: Table row header"
+msgid "Known SSH agent socket providers:"
+msgstr "Bekannte Anbieter für SSH-Agenten-Kommunikationskanäle:"
 
 #. TRANSLATORS: There is no support for "yes" or "no" in other languages than English, so it is advised that your translation makes it clear that only the strings "y", "yes", "n" or "no" are supported, even if the prompt becomes a bit longer.
 #. 
@@ -1161,6 +1198,28 @@ msgstr ""
 "mittendrin abgebrochen werden kann, andererseits weil die Notizen auch "
 "tatsächlich geändert wurden."
 
+#. TRANSLATORS: This is one of several "Cannot connect to an SSH agent via <communication_channel_type> because this Python version does not support them." messages issued when searching for an applicable SSH agent socket provider.  (WarnMsgTemplate.NO_WINDOWS_NAMED_PIPES, ErrMsgTemplate.NO_AGENT_SUPPORT.)  The user may see multiple such messages in immediate succession as socket providers are tried out one by one.  If feasible, translations of these messages should therefore be grammatically similar, so that the user can clearly recognize them as variants of essentially the same message.
+#. 
+#. Message-ID: WarnMsgTemplate.NO_UNIX_DOMAIN_SOCKETS
+msgctxt "Warning message"
+msgid ""
+"Cannot connect to an SSH agent via UNIX domain sockets because this Python "
+"version does not support them."
+msgstr ""
+"Kann nicht mit Hilfe von UNIX domain sockets mit einem SSH-Agenten "
+"verbinden, da die installierte Pythonversion diese nicht unterstützt."
+
+#. TRANSLATORS: This is one of several "Cannot connect to an SSH agent via <communication_channel_type> because this Python version does not support them." messages issued when searching for an applicable SSH agent socket provider.  (WarnMsgTemplate.NO_UNIX_DOMAIN_SOCKETS, ErrMsgTemplate.NO_AGENT_SUPPORT.)  The user may see multiple such messages in immediate succession as socket providers are tried out one by one.  If feasible, translations of these messages should therefore be grammatically similar, so that the user can clearly recognize them as variants of essentially the same message.
+#. 
+#. Message-ID: WarnMsgTemplate.NO_WINDOWS_NAMED_PIPES
+msgctxt "Warning message"
+msgid ""
+"Cannot connect to an SSH agent via Windows named pipes because this Python "
+"version does not support them."
+msgstr ""
+"Kann nicht mit Hilfe von Windows named pipes mit einem SSH-Agenten "
+"verbinden, da die installierte Pythonversion diese nicht unterstützt."
+
 #. TRANSLATORS: The key is a (vault) configuration key, in JSONPath syntax, typically "$.global" for the global passphrase or "$.services.service_name" or "$.services["service with spaces"]" for the services "service_name" and "service with spaces", respectively.  Alternatively, it may be the value of Label.SETTINGS_ORIGIN_INTERACTIVE if the passphrase was entered interactively.  The form is one of the four Unicode normalization forms: NFC, NFD, NFKC, NFKD.  The asterisks are not special.  Please feel free to substitute any other appropriate way to mark up emphasis of the word "displays".
 #. 
 #. Message-ID: WarnMsgTemplate.PASSPHRASE_NOT_NORMALIZED
@@ -1360,8 +1419,8 @@ msgctxt "Error message"
 msgid ""
 "Cannot parse {path!r} as a valid vault-native configuration file/directory."
 msgstr ""
-"Kann {path!r} nicht als valide vault-eigene Konfigurationsdatei bzw. "
-"-verzeichnis erkennen."
+"Kann {path!r} nicht als valide vault-eigene Konfigurationsdatei bzw. -"
+"verzeichnis erkennen."
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -1372,8 +1431,8 @@ msgid ""
 "Cannot parse {path!r} as a valid vault-native configuration file/directory: "
 "{error}: {filename!r}."
 msgstr ""
-"Kann {path!r} nicht als valide vault-eigene Konfigurationsdatei bzw. "
-"-verzeichnis erkennen: {error}: {filename!r}."
+"Kann {path!r} nicht als valide vault-eigene Konfigurationsdatei bzw. -"
+"verzeichnis erkennen: {error}: {filename!r}."
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -1384,8 +1443,8 @@ msgid ""
 "Cannot parse {path!r} as a valid vault-native configuration file/directory: "
 "{error}."
 msgstr ""
-"Kann {path!r} nicht als valide vault-eigene Konfigurationsdatei bzw. "
-"-verzeichnis erkennen: {error}."
+"Kann {path!r} nicht als valide vault-eigene Konfigurationsdatei bzw. -"
+"verzeichnis erkennen: {error}."
 
 #. TRANSLATORS: "error" is supplied by the operating system (errno/strerror).
 #. 
@@ -1459,14 +1518,16 @@ msgctxt "Error message"
 msgid "Cannot load the required Python module {module!r}."
 msgstr "Kann das benötigte Pythonmodul nicht laden: {module!r}."
 
-#. TRANSLATORS: Message-ID: ErrMsgTemplate.NO_AF_UNIX
+#. TRANSLATORS: This error message works in tandem with, and is usually preceded by, one of several "Cannot connect to an SSH agent via <communication_channel_type> because this Python version does not support them." warning messages issued while searching for an applicable SSH agent socket provider.  (WarnMsgTemplate.NO_UNIX_DOMAIN_SOCKETS, WarnMsgTemplate.NO_WINDOWS_NAMED_PIPES.)  If feasible, translations of these messages should therefore be grammatically similar, so that the user can clearly recognize them as variants of essentially the same message.
+#. 
+#. Message-ID: ErrMsgTemplate.NO_AGENT_SUPPORT
 msgctxt "Error message"
 msgid ""
 "Cannot connect to an SSH agent because this Python version does not support "
-"UNIX domain sockets."
+"communicating with it."
 msgstr ""
 "Kann nicht mit einem SSH-Agenten verbinden, da die installierte "
-"Pythonversion UNIX domain sockets nicht unterstützt."
+"Pythonversion keinen der relevanten Kommunikationskanäle unterstützt."
 
 #. TRANSLATORS: Message-ID: ErrMsgTemplate.NO_KEY_OR_PHRASE
 msgctxt "Error message"
@@ -1530,7 +1591,7 @@ msgid "Deriving a passphrase requires a {service_metavar}."
 msgstr ""
 "Zum Ableiten eines Dienstpasswortes ist der {service_metavar} unerlässlich."
 
-#. TRANSLATORS: The rephrasing "Attempted to unset and set the same setting (--unset={setting} --{setting}=...) at the same time."may or may not be more suitable as a basis for translation instead.
+#. TRANSLATORS: The rephrasing "Attempted to unset and set the same setting (--unset={setting} --{setting}=...) at the same time." may or may not be more suitable as a basis for translation instead.
 #. 
 #. Message-ID: ErrMsgTemplate.SET_AND_UNSET_SAME_SETTING
 #, python-brace-format
@@ -1543,6 +1604,18 @@ msgstr ""
 msgctxt "Error message"
 msgid "The requested SSH key is not loaded into the agent."
 msgstr "Der angeforderte SSH-Schlüssel liegt dem Agenten nicht vor."
+
+#. TRANSLATORS: The provider is already put in ASCII quotes, and sanitized so that it is safe to emit to the terminal.
+#. 
+#. Message-ID: ErrMsgTemplate.UNKNOWN_SSH_AGENT_SOCKET_PROVIDER
+#, python-brace-format
+msgctxt "Error message"
+msgid ""
+"The SSH agent socket provider {provider} is not in derivepassphrase's "
+"provider registry."
+msgstr ""
+"Der SSH-Agent-Socket-Anbieter {provider} ist nicht im Anbieterverzeichnis "
+"von derivepassphrase aufgeführt."
 
 #. TRANSLATORS: The user requested to edit the notes for a service, but aborted the request mid-editing.
 #. 
