@@ -40,8 +40,10 @@ Release checklist
 
 ???+ info "build documentation"
 
-    1.  `pypi-insiders server start` and `pypi-insiders update`, then maybe `hatch env remove docs`
+    1.  <del>`pypi-insiders server start` and `pypi-insiders update`, then maybe `hatch env remove docs`</del> <i>([no longer applicable as of October 2025][NO_PAWAMOY_INSIDERS])</i>
     2.  `hatch run docs:mike deploy 0.x latest`
+
+[NO_PAWAMOY_INSIDERS]: https://pawamoy.github.io/posts/sunsetting-the-sponsorware-strategy/
 
 ???+ info "publish"
 
