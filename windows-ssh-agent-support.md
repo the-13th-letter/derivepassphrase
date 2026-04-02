@@ -6,7 +6,7 @@
         <tr><th scope=col>Priority<td><i>high</i><td>This should be fixed in the next release.
         <tr><th scope=col>Difficulty<td><i>taxing</i><td>Needs external things we don't have: standards, users, et cetera.
         <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 0.1.2 0.1.3 <b>0.2.0</b> 0.3.0 0.3.1 0.3.2 0.3.3 0.4.0 0.5 0.5.1 0.5.2
-        <tr><th scope=col>Fixed-in<td colspan=2>[010e3e9c6c9d162d32d0fb2dd0bccbfd13747c42](https://git.schokokeks.org/derivepassphrase.git/010e3e9c6c9d162d32d0fb2dd0bccbfd13747c42)
+        <tr><th scope=col>Fixed-in<td colspan=2>[010e3e9c6c9d162d32d0fb2dd0bccbfd13747c42](https://git.schokokeks.org/derivepassphrase.git/010e3e9c6c9d162d32d0fb2dd0bccbfd13747c42) (0.6)
     </table>
 
 The SSH agent support in the default “vault” scheme originally assumed a UNIX host system, where all sensible SSH agent implementations use UNIX domain (`AF_UNIX`) sockets to connect the SSH client to the SSH agent, and expose the name of the socket in the `SSH_AUTH_SOCK` environment variable.

@@ -5,7 +5,7 @@
         <tr><th scope=col>Class<td><i>bug</i><td>This is clearly an actual problem we want fixed.
         <tr><th scope=col>Priority<td><i>high</i><td>This should be fixed in the next release.
         <tr><th scope=col>Difficulty<td><i>tricky</i><td>Needs many tuits.
-        <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 0.1.2 0.1.3 0.2.0 0.3.0 0.3.1 0.3.2 0.3.3 0.4.0 <b>0.5</b> 0.5.1 0.5.2
+        <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 0.1.2 0.1.3 0.2.0 0.3.0 0.3.1 0.3.2 0.3.3 0.4.0 <b>0.5</b> 0.5.1 0.5.2 0.6
     </table>
 
 [`click`][click], the library which `derivepassphrase` uses to implement its command-line interface, used to have a very stable and essentially unchanging <abbr title="application programming interface">API</abbr> (up until v8.1.8) due to a maintenance bottleneck.
