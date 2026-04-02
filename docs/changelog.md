@@ -51,6 +51,176 @@ specifically marked as such.)
 
 <!-- scriv changelog start -->
 
+## 0.6 (2026-04-02)  {#v0.6}
+
+### Added  {#added-in-v0.6}
+
+  - For `derivepassphrase vault`, in the SSH agent client, introduce a new
+    abstraction layer responsible for establishing the connection to the SSH
+    agent: "SSH agent socket providers".
+    Reframe the existing code for connecting to SSH agents on UNIX as
+    a standard socket provider, and reserve a second standard socket
+    provider, yet to be written, for <abbr title="Microsoft Windows">The
+    Annoying OS</abbr>.[^the-annoying-os]
+
+    (The system is based on Python package [entry
+    points][importlib.metadata.entry_points], and is open for third-party
+    developers to develop their own socket providers in case the standard
+    socket providers are insufficient.)
+
+  - `derivepassphrase vault --version` now defers testing for SSH agent
+    support (the "master SSH key" feature) to the SSH agent client
+    constructor, instead of examining the environment itself and drawing its
+    own conclusions.
+
+  - For `derivepassphrase vault`, support interacting with SSH agents on
+    <abbr title="Microsoft Windows">The Annoying OS</abbr>, using Windows
+    named pipes and the `SSH_AUTH_SOCK` environment variable.
+    Also support the two major SSH agents Pageant ([PuTTY][]) and
+    `ssh-agent` ([OpenSSH][]) specifically, without needing the user to
+    specify the address of the Windows named pipe.
+    [GnuPG][]'s `gpg-agent` (masquerading as OpenSSH's `ssh-agent`) is also
+    known to work.
+
+    This support is based on the [`ctypes.WinDLL`][] interface, and requires
+    access to the `kernel32.dll` library on <abbr title="Microsoft
+    Windows">The Annoying OS</abbr> at runtime.
+    `derivepassphrase vault --version` will reliably report whether this
+    feature -- the `windows_named_pipe`, `pageant_on_windows` and
+    `openssh_on_windows` SSH agent socket providers -- is available.
+
+    <b>Caveat</b>: On <abbr title="Microsoft Windows">The Annoying
+    OS</abbr>, the user or developer should [mark all SSH agents as
+    non-reentrant](#changed-in-v0.6-non-reentrant-ssh-agents) and run the
+    test suite without parallelization, because the test suite cannot spawn
+    isolated agents on <abbr title="Microsoft Windows">The Annoying
+    OS</abbr>.
+    The OpenSSH agent implementation interacts very badly with the feature
+    detection logic from the test suite, because it shuts down the
+    connection upon negative responses of any kind (in violation of the
+    protocol); the user or developer may want to use GnuPG's emulation
+    instead, or restrict themselves to PuTTY.
+    →[:material-bug:][BUG_WINDOWS_SSH_AGENT_SUPPORT]
+
+  - For `derivepassphrase vault`, support specifying the desired SSH agent
+    socket provider via the command-line option
+    `--ssh-agent-socket-provider` and via the configuration option
+    `ssh-agent-socket-provider` in the `vault` table.
+    The list of available providers can be queried with `derivepassphrase
+    vault --version`.
+    The command-line option takes precedence over the configuration option.
+
+  - For developers: Feature flags and similar enum values are now
+    self-testing, i.e., they include [their own code for testing whether they
+    are active/enabled/supported][derivepassphrase._types.FeatureTestEnum].
+
+### Changed  {#changed-in-v0.6}
+
+  - The error message "Cannot connect to an SSH agent because this Python
+    version does not support UNIX domain sockets." (code: `NO_AF_UNIX`) now
+    reads "Cannot connect to an SSH agent because this Python version does
+    not support communicating with it." and has a new code
+    (`NO_AGENT_SUPPORT`).
+    `derivepassphrase` may also try out certain communication channels
+    (depending on the installation environment), and issue warnings relating
+    to its failure to establish communication on those channels, before
+    issuing the above error.
+
+    The `NO_AF_UNIX` code is reused by the new warning message "Cannot
+    connect to an SSH agent via UNIX domain sockets because this Python
+    version does not support them.", which is one of the aforementioned
+    related warning messages.
+
+    The manpages document both the old and the new codes, with appropriate
+    notices.
+
+  - For developers: The internal helper function
+    `derivepassphrase._internals.cli_helpers.key_to_phrase` now takes
+    mandatory callback parameters to handle warning and error messages.
+    This is a side-effect of the "SSH agent socket providers" system, which
+    necessitates more complicated error and warning handling.
+
+    We considered making the callback parameters optional and supplying
+    a default handler that suppress warnings and exit on error, but then we
+    learned the hard way that those defaults make it too easy to suppress
+    warnings *by accident*, just because we forgot to supply a certain
+    function parameter.
+
+  - For developers: The test suite now distinguishes between
+    <dfn>isolated</dfn> SSH agents (spawned and managed by the test suite)
+    and non-isolated ones (spawned by the user, potentially in use by other
+    programs).
+
+    All tests involving SSH agents are included in a separate group, so that
+    the test harness distributes them to the same worker process.
+
+  - For developers: The test suite now supports <b
+    id="changed-in-v0.6-selective-ssh-agent-testing">selectively enabling
+    SSH agents to test with</b> via the `PERMITTED_SSH_AGENTS` environment
+    variable, which takes a comma-separated list of internal IDs of known
+    SSH agent implementations.
+    (Invalid entries are silently ignored.)
+    The test suite will only attempt to spawn or interface with agents of
+    permitted types, and skip tests otherwise.
+
+    Intended to avoid spawning certain SSH agents just because they are
+    installed, or spawning unrelated executables that are mistaken for
+    the respective SSH agent due to identical executable names.
+
+  - For developers: The test suite now supports <b
+    id="changed-in-v0.6-non-reentrant-ssh-agents">marking SSH agents as
+    non-reentrant</b> via the `NON_REENTRANT_SSH_AGENTS` environment
+    variable, which takes a comma-separated list of internal IDs of known
+    SSH agent implementations.
+    (Invalid entries are silently ignored.)
+    The test suite will avoid constructing multiple SSH agent clients
+    connecting to such an SSH agent by reusing client instances, or skipping
+    the test altogether.
+
+    Intended to avoid deadlocks with shared agent instances that do not
+    cleanly support multiple simultaneous clients.
+
+      - [GnuPG][] v2.4.8 appears to use a single thread to both accept
+        incoming SSH agent client connections and service them;
+        running two clients simultaneously blocks the second client from
+        connecting until the first client disconnects.
+        This precludes normal usage in the test suite, where the test suite
+        keeps a client connection to the agent open for the duration of the
+        test run (to upload test keys at the beginning and remove them at
+        the end).
+
+      - Pageant principally supports multiple simultaneous clients.
+        However, the test suite sporadically triggers errors where responses
+        from Pageant contain extra blocks of NUL characters, confusing
+        `derivepassphrase`.
+        We have not observed any such errors yet when treating Pageant as
+        non-reentrant.
+
+        (So far, we have *only* been able to trigger these errors during
+        test suite runs, not during instrumented calls specifically
+        attempting to trigger this behavior.
+        We are also unsure if this is a bug in Pageant, a bug in
+        `derivepassphrase`, a bug or a limitation in Python's [`ctypes`][]
+        implementation, or a bug or a limitation of Windows named pipes, or
+        perhaps some combination of the aforementioned.)
+
+### Fixed  {#fixed-in-v0.6}
+
+  - Officially and systematically test on Python 3.14.
+
+    Unofficial, non-systematic testing was already being done since v0.5.
+
+  - For developers: Refactor the test suite into more fine-grained modules,
+    and deduplicate code in the test methods in favor of parametrization.
+    Both measures should make the test suite easier to navigate and less
+    prone to copy-and-paste and code desynchronization mistakes.
+
+  - For developers: The manpage diagnostics helper scripts now explicitly
+    support documentation of message codes that exist only as marks in the
+    manpages, not in the program code.
+    This allows documenting message codes that have since been removed from
+    the program code.
+
 ## 0.5.2 (2025-08-03)  {#v0.5.2}
 
 ### Fixed  {#fixed-in-v0.5.2}
@@ -66,7 +236,7 @@ specifically marked as such.)
   - For developers: Fix some errors in the test suite (both code and
     dependency declaration) that cause the suite to fail to even start on
     <abbr title="Microsoft Windows">The Annoying
-    OS</abbr>.[^the-annoying-os]
+    OS</abbr>.
     These mistakes were already present in v0.5.
 
   - For developers: Fix a copy-and-paste error in the parsed data for the
@@ -642,6 +812,10 @@ specifically marked as such.)
 [towncrier]: https://pypi.org/project/towncrier/
 
 [RFC 6979]: https://www.rfc-editor.org/rfc/rfc6979
+
+[OpenSSH]: https://www.openssh.org
+[PuTTY]: https://putty.software
+[GnuPG]: https://gnupg.org
 
 [CLI]: reference/derivepassphrase.1.md
 [CLI_EXPORT]: reference/derivepassphrase-export.1.md
