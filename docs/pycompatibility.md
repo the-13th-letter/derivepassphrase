@@ -1,17 +1,33 @@
 # Compatibility of `derivepassphrase` with different Python versions
 
+## Python 3.15  {#py3.15}
+
+Not yet supported as of April 2026, because our development infrastructure does not provide any installations of Python 3.15 to test on.
+
 ## Python 3.14  {#py3.14}
 
-Not yet supported.
-As of 2025-01, Python 3.14 is still in alpha stage.
+Supported as of v0.5.1 (June 2025) without any known issues.
 
 ## Python 3.13  {#py3.13}
 
 Currently supported without any known issues.
 
+### After end-of-life {#after-eol-py3.13}
+
+After Python 3.13 reaches end-of-life, future `derivepassphrase` versions may make use of the following Python functionality:
+
+  * template strings
+
+The declared minimum required Python version will then be updated accordingly.
+
 ## Python 3.12  {#py3.12}
 
 Currently supported without any known issues.
+
+### After end-of-life {#after-eol-py3.12}
+
+Python 3.13 does not offer significantly different functionality than Python 3.12.
+There are thus no plans to make use of additional functionality once Python 3.12 reaches end-of-life.
 
 ## Python 3.11  {#py3.11}
 
@@ -23,6 +39,8 @@ After Python 3.11 reaches end-of-life, future `derivepassphrase` versions may ma
 
   * complex expressions in f-strings
   * type parameter syntax and the `type` statement
+
+The declared minimum required Python version will then be updated accordingly.
 
 ## Python 3.10  {#py3.10}
 
@@ -38,9 +56,11 @@ After Python 3.10 reaches end-of-life, future `derivepassphrase` versions may ma
   * exception notes
   * [`contextlib.chdir`][]
 
+The declared minimum required Python version will be then updated accordingly.
+
 ## Python 3.9  {#py3.9}
 
-Currently supported without any known issues.
+End-of-life since October 2025, but still supported at least until `derivepassphrase` v1.0, without any known issues.
 
 Some functionality requires backported libraries (`tomllib`/`tomli`).
 
@@ -51,10 +71,12 @@ After Python 3.9 reaches end-of-life, future `derivepassphrase` versions may mak
   * structural pattern matching (`match`/`case` blocks)
   * parenthesized `with` statements
 
+The declared minimum required Python version will be then updated accordingly.
+
 ## Python 3.8 and below  {#py3.8-and-below}
 
 These versions were never explicitly supported, neither in CPython nor in PyPy.
-The same versions as for [Python 3.9](#py3.9) may work, but this is untested.
+As of v0.6, Python 3.8 is known not to work due to standard library incompatibilities.
 
 ## PyPy
 

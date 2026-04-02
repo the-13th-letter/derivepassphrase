@@ -27,6 +27,7 @@
     connection upon negative responses of any kind (in violation of the
     protocol); the user or developer may want to use GnuPG's emulation
     instead, or restrict themselves to PuTTY.
+    →[:material-bug:][BUG_WINDOWS_SSH_AGENT_SUPPORT]
 
   - For `derivepassphrase vault`, support specifying the desired SSH agent
     socket provider via the command-line option
@@ -95,6 +96,8 @@
         `derivepassphrase`, a bug or a limitation in Python's [`ctypes`][]
         implementation, or a bug or a limitation of Windows named pipes, or
         perhaps some combination of the aforementioned.)
+
+[BUG_WINDOWS_SSH_AGENT_SUPPORT]: ../wishlist/windows-ssh-agent-support.md
 
 [OpenSSH]: https://www.openssh.org
 [PuTTY]: https://putty.software
