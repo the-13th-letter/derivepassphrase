@@ -1132,7 +1132,7 @@ class Label(enum.Enum):
     )
     """"""
     DERIVEPASSPHRASE_VAULT_SSH_AGENT_SOCKET_PROVIDER_HELP_TEXT = commented(
-        "The metavar is"
+        "The metavar is "
         "Label.VAULT_COMPATIBILITY_METAVAR_SSH_AGENT_SOCKET_PROVIDER.",
     )(
         "Label :: Help text :: One-line description",
@@ -2003,7 +2003,17 @@ class WarnMsgTemplate(enum.Enum):
         flags="python-brace-format",
     )
     NO_UNIX_DOMAIN_SOCKETS = commented(
-        "",
+        'This is one of several "Cannot connect to an SSH agent via '
+        '<communication_channel_type> because this Python version '
+        'does not support them." messages issued '
+        "when searching for an applicable SSH agent socket provider.  "
+        "(WarnMsgTemplate.NO_WINDOWS_NAMED_PIPES, "
+        "ErrMsgTemplate.NO_AGENT_SUPPORT.)  "
+        "The user may see multiple such messages in immediate succession "
+        "as socket providers are tried out one by one.  "
+        "If feasible, translations of these messages should therefore "
+        "be grammatically similar, so that the user can clearly "
+        "recognize them as variants of essentially the same message.",
     )(
         "Warning message",
         "Cannot connect to an SSH agent via UNIX domain sockets "
@@ -2011,7 +2021,17 @@ class WarnMsgTemplate(enum.Enum):
     )
     """"""
     NO_WINDOWS_NAMED_PIPES = commented(
-        "",
+        'This is one of several "Cannot connect to an SSH agent via '
+        '<communication_channel_type> because this Python version '
+        'does not support them." messages issued '
+        "when searching for an applicable SSH agent socket provider.  "
+        "(WarnMsgTemplate.NO_UNIX_DOMAIN_SOCKETS, "
+        "ErrMsgTemplate.NO_AGENT_SUPPORT.)  "
+        "The user may see multiple such messages in immediate succession "
+        "as socket providers are tried out one by one.  "
+        "If feasible, translations of these messages should therefore "
+        "be grammatically similar, so that the user can clearly "
+        "recognize them as variants of essentially the same message.",
     )(
         "Warning message",
         "Cannot connect to an SSH agent via Windows named pipes "
@@ -2269,7 +2289,17 @@ class ErrMsgTemplate(enum.Enum):
     )
     """"""
     NO_AGENT_SUPPORT = commented(
-        "",
+        'This error message works in tandem with, '
+        'and is usually preceded by, one of several '
+        '"Cannot connect to an SSH agent via <communication_channel_type> '
+        'because this Python version does not support them." '
+        "warning messages issued while searching for an applicable "
+        "SSH agent socket provider.  "
+        "(WarnMsgTemplate.NO_UNIX_DOMAIN_SOCKETS, "
+        "WarnMsgTemplate.NO_WINDOWS_NAMED_PIPES.)  "
+        "If feasible, translations of these messages should therefore "
+        "be grammatically similar, so that the user can clearly "
+        "recognize them as variants of essentially the same message.",
     )(
         "Error message",
         "Cannot connect to an SSH agent because this Python version "
