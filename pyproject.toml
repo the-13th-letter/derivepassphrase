@@ -102,6 +102,9 @@ export-dev-wheels = [
     # `cryptography` 44.0.0 does not publish wheels for PyPy 3.9
     # anymore.
     'cryptography < 44 ; python_version < "3.10" and platform_python_implementation == "PyPy"',
+    # `cryptography` 46.0.0 does not publish wheels for PyPy 3.10
+    # anymore.
+    'cryptography < 46 ; python_version < "3.11" and platform_python_implementation == "PyPy"',
     # `cryptography` 44.0.1 is the first version to publish wheels for
     # PyPy 3.11.
     'cryptography > 44.0.1 ; python_version >= "3.11" and platform_python_implementation == "PyPy"',
