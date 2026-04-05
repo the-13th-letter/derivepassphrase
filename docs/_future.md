@@ -49,7 +49,6 @@
 ### How-tos
 
 * How to choose a good service name
-* How to deal with "supported" and "unsupported" special characters (→ [TODO][BASIC_SETUP_PASSPHRASE])
 * How to deal with regular passphrase rotation/rollover (→ [TODO][BASIC_SETUP_PASSPHRASE])
 
 ### Reference
@@ -61,5 +60,4 @@
 * Why is `vault`'s `--repeat` option named this way if it counts occurrences, not repetitions?
 
 [BASIC_SETUP_PASSPHRASE]: tutorials/basic-setup-passphrase.md
-[BASIC_SETUP_SSH_KEY]: tutorials/basic-setup-ssh-key.md
 [HOW_TO_SSH_KEY]: how-tos/ssh-key.md

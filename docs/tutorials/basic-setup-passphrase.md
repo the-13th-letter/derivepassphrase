@@ -242,7 +242,7 @@ Other service providers may permit other characters (quite rare) or fewer charac
 
 !!! abstract "Further reading"
 
-    → How to deal with "supported" and "unsupported" special characters (TODO)
+    → [How to deal with "supported" and "unsupported" special characters][SUPPORTED_SPECIAL_CHARACTERS]
 
 For this case specifically, we restrict ourselves to the dashes as the only permitted special characters, and hope that this passes their passphrase policy.
 
@@ -305,3 +305,4 @@ This completes the tutorial.
 As a next step, you may want to [configure the accounts to use a master SSH key instead][BASIC_SETUP_SSH_KEY].
 
 [BASIC_SETUP_SSH_KEY]: basic-setup-ssh-key.md "Tutorial: Using a master SSH key with derivepassphrase vault on existing accounts"
+[SUPPORTED_SPECIAL_CHARACTERS]: ../how-tos/supported-special-characters.md
