@@ -55,8 +55,4 @@
 ### Explanation
 
 * Security aspects and other tradeoffs when using deterministic password generators
-* Should I use one master SSH key/master passphrase, or many? (→ [TODO][HOW_TO_SSH_KEY])
 * Why is `vault`'s `--repeat` option named this way if it counts occurrences, not repetitions?
-
-[BASIC_SETUP_PASSPHRASE]: tutorials/basic-setup-passphrase.md
-[HOW_TO_SSH_KEY]: how-tos/ssh-key.md

@@ -123,6 +123,7 @@ nav:
     - '"altered versions" license requirement': explanation/faq-altered-versions.md
     - '"interchangable passphrases" in vault': explanation/faq-vault-interchangable-passphrases.md
     - tradeoffs between passphrase & SSH key: explanation/tradeoffs-passphrase-ssh-key.md
+    - explanation/many-master-secrets.md
   - Changelog:
     - Changelog: changelog.md
     - Upgrade notes: upgrade-notes.md
