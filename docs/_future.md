@@ -49,7 +49,6 @@
 ### How-tos
 
 * How to choose a good service name
-* How to deal with regular passphrase rotation/rollover (→ [TODO][BASIC_SETUP_PASSPHRASE])
 
 ### Reference
 

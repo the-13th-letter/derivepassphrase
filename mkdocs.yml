@@ -101,6 +101,7 @@ nav:
     - how-tos/index.md
     - how-tos/ssh-key.md
     - how-tos/supported-special-characters.md
+    - how-tos/passphrase-rotation.md
   - Reference:
     - reference/index.md
     - Man pages:
