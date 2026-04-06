@@ -42,27 +42,17 @@
 
 (Categorized as per [the diataxis framework][DIATAXIS], but otherwise in no particular order.)
 
-
 [DIATAXIS]: https://diataxis.fr
 
 ### Tutorials
 
-* [Setting up `derivepassphrase vault` from scratch for three existing accounts, with a master passphrase](tutorials/basic-setup-passphrase.md)
-
 ### How-tos
 
-* [How to set up `derivepassphrase vault` with an SSH key](how-tos/ssh-key.md)
 * How to choose a good service name
-* How to edit a saved `derivepassphrase vault` configuration correctly
-* How to deal with "supported" and "unsupported" special characters
-* How to deal with regular passphrase rotation/rollover
 
 ### Reference
-
-* `derivepassphrase-vault.json`(<b>5</b>)
 
 ### Explanation
 
 * Security aspects and other tradeoffs when using deterministic password generators
-* Tradeoffs between a master passphrase and a master SSH key
 * Why is `vault`'s `--repeat` option named this way if it counts occurrences, not repetitions?

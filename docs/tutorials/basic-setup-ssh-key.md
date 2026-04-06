@@ -4,7 +4,7 @@
 
     → [Tutorial: Setting up `derivepassphrase vault` for three accounts, with a master passphrase][BASIC_SETUP_PASSPHRASE]
 
-    → Tradeoffs between a master passphrase and a master SSH key (TODO)
+    → [Tradeoffs between a master passphrase and a master SSH key][TRADEOFFS_PASSPHRASE_SSH_KEY]
 
 ## The scenario
 
@@ -439,6 +439,7 @@ This completes the tutorial.
 
 [BASIC_SETUP_PASSPHRASE]: basic-setup-passphrase.md
 [PREREQ_SSH_KEY]: ../reference/prerequisites-ssh-key.md#ssh-key
+[TRADEOFFS_PASSPHRASE_SSH_KEY]: ../explanation/tradeoffs-passphrase-ssh-key.md
 
 [OPENSSH]: https://www.openssh.org/
 [PUTTY]: https://putty.software/

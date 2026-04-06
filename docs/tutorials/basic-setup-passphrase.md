@@ -242,7 +242,7 @@ Other service providers may permit other characters (quite rare) or fewer charac
 
 !!! abstract "Further reading"
 
-    → How to deal with "supported" and "unsupported" special characters (TODO)
+    → [How to deal with "supported" and "unsupported" special characters][SUPPORTED_SPECIAL_CHARACTERS]
 
 For this case specifically, we restrict ourselves to the dashes as the only permitted special characters, and hope that this passes their passphrase policy.
 
@@ -263,7 +263,7 @@ So some part of the configuration---generally the service name---needs to change
 
 !!! abstract "Further reading"
 
-    → How to deal with regular passphrase rotation (TODO)
+    → [How to deal with regular passphrase rotation/rollover][PASSPHRASE_ROTATION]
 
 We choose to append a very coarse timestamp to the "base" service name `work`: the 4-digit year, a `Q`, and the "quarter" number (1, 2, 3 or 4).
 As of October 2024, this leads to the final service name `work-2024Q4`.
@@ -305,3 +305,5 @@ This completes the tutorial.
 As a next step, you may want to [configure the accounts to use a master SSH key instead][BASIC_SETUP_SSH_KEY].
 
 [BASIC_SETUP_SSH_KEY]: basic-setup-ssh-key.md "Tutorial: Using a master SSH key with derivepassphrase vault on existing accounts"
+[SUPPORTED_SPECIAL_CHARACTERS]: ../how-tos/supported-special-characters.md
+[PASSPHRASE_ROTATION]: ../how-tos/passphrase-rotation.md

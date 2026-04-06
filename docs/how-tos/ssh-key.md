@@ -2,7 +2,7 @@
 
 !!! abstract "See also"
 
-    → Tradeoffs between a master passphrase and a master SSH key (TODO)
+    → [Tradeoffs between a master passphrase and a master SSH key][TRADEOFFS_PASSPHRASE_SSH_KEY]
 
 ## Prerequisites
 
@@ -301,8 +301,7 @@ Next, configure `derivepassphrase vault` to use the loaded SSH key.
 
 !!! abstract "Further reading"
 
-    → Tradeoffs between a master passphrase and a master SSH key,
-    section "Should I use one master SSH key, or many keys?" (TODO)
+    → [Should I use one master SSH key/master passphrase, or many?][MANY_MASTER_SECRETS]
 
 <aside markdown>
 
@@ -320,3 +319,5 @@ Next, configure `derivepassphrase vault` to use the loaded SSH key.
 
 [PREREQ]: ../reference/prerequisites-ssh-key.md
 [PREREQ_AGENT_SPECIFIC_NOTES]: ../reference/prerequisites-ssh-key.md#agent-specific-notes
+[TRADEOFFS_PASSPHRASE_SSH_KEY]: ../explanation/tradeoffs-passphrase-ssh-key.md
+[MANY_MASTER_SECRETS]: ../explanation/many-master-secrets.md
