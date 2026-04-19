@@ -3,7 +3,7 @@
 ???+ wish-success "Wish details: Move `vault`-specific command-line interface into a separate CLI subcommand and matching configuration file"
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>wish</i><td>This is a request for an enhancement.
-        <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 0.1.2 0.1.3 <b>0.2.0</b>
+        <tr><th scope=col>Requested-in<td colspan=2>0.2.0
         <tr><th scope=col>Fixed-in<td colspan=2><a href="https://git.schokokeks.org/derivepassphrase.git/commit/69cf6a48483555dbcb4c8506673ef942fb008e18">69cf6a48483555dbcb4c8506673ef942fb008e18</a> (0.2.0)
         <tr><th scope=col>Blocks<td colspan=2>[exporter-script-as-subcommand](exporter-script-as-subcommand.md){: .fixed} [other-derivation-schemes](other-derivation-schemes.md)
     </table>

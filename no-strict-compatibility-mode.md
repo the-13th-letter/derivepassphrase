@@ -5,7 +5,7 @@
         <tr><th scope=col>Class<td><i>wish</i><td>This is a request for an enhancement.
         <tr><th scope=col>Priority<td><i>medium</i><td>This should be fixed one day.
         <tr><th scope=col>Difficulty<td><i>fun</i><td>Just needs tuits, and not many of them.
-        <tr><th scope=col>Present-in<td colspan=2>0.4.0 0.5 0.5.1 <b>0.5.2</b> 0.6
+        <tr><th scope=col>Requested-in<td colspan=2>0.5.2
     </table>
 
 `derivepassphrase vault` contains multiple options (e.g., `--modern-editor-interface`) that change its behavior in a manner incompatible with <i>vault</i>(1), but which the user may nevertheless want to select because the <i>vault</i>(1) behavior is surprising, inconsistent, etc.
