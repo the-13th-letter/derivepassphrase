@@ -42,6 +42,24 @@
       - [scheme-specific-cli-and-config][]{: .fixed }
       - [test-suite-isolated-ssh-agent][]{: .fixed }
 
+??? note "About this wishlist"
+
+    This is the list of bugs and wishes for `derivepassphrase`.
+    It uses the same terminology and style as [PuTTY's wishlist][PUTTY_WISHLIST].
+    By design, the list distinguishes solely between bugs and wishes, and focuses strongly on the facts, not on the plans for implementation.[^bug-tracking-concerns]
+    The entries are named, not numbered, and the summaries are written by hand.
+
+    The list is built statically; there is no interactive way to submit entries or commentary on an entry, or to run search queries against the entry database.
+    To submit entries or commentary, contact the authors directly; see the website imprint and the embedded author info in version control.
+    To run search queries or other automated queries against the entry database, check out the `wishlist` branch from version control and parse the entry files directly.
+
+    See also the [entry format specification][ENTRY_SPEC].
+
+[^bug-tracking-concerns]:
+    See also the essay [Separation of concerns in a bug tracker][BUG_TRACKING_CONCERNS] by PuTTY's principal author, Simon Tatham.
+    Like PuTTY, `derivepassphrase` is a "more serious free-software hobby project" developed by one principal author who also cannot definitively commit to any specific time plan.
+    As such, `derivepassphrase` also does not have a formal plans table (beyond the very coarse <b>Priority</b> field).
+
   [allow-all-unicode-passphrases]: allow-all-unicode-passphrases.md
   [amend-vault-config]: amend-vault-config.md
   [better-error-messages]: better-error-messages.md
@@ -68,3 +86,8 @@
   [test-filesystem-isolation]: test-filesystem-isolation.md
   [test-suite-isolated-ssh-agent]: test-suite-isolated-ssh-agent.md
   [windows-ssh-agent-support]: windows-ssh-agent-support.md
+
+  [ENTRY_SPEC]: spec.md
+
+  [PUTTY_WISHLIST]: https://www.chiark.greenend.org.uk/~sgtatham/putty/wishlist/ "PuTTY Known Bugs and Wish List"
+  [BUG_TRACKING_CONCERNS]: https://www.chiark.greenend.org.uk/~sgtatham/quasiblog/bugtracker-separate/ 'Simon Tatham: "Separation of concerns in a bug tracker"'
