@@ -8,9 +8,10 @@
       - [yet to be scheduled](index.md){: .unscheduled }
 
 ???+ bug "things to fix"
-      - [remove-click][]{: .scheduled-next }
+    <i>no entries</i>
 
 ???+ wish "things to add"
+      - [remove-click][]{: .scheduled-next }
       - [no-strict-compatibility-mode][]{: .scheduled }
       - [conventional-configurable-text-styling][]{: .unscheduled }
       - [other-derivation-schemes][]{: .unscheduled }

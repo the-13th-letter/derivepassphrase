@@ -1,11 +1,11 @@
-# `derivepassphrase` bug remove-click
+# `derivepassphrase` wish remove-click
 
-???+ bug "Bug details: Remove the dependency on `click`"
+???+ bug "Wish details: Remove the dependency on `click`"
     <table id="bug-summary" markdown>
-        <tr><th scope=col>Class<td><i>bug</i><td>This is clearly an actual problem we want fixed.
+        <tr><th scope=col>Class<td><i>wish</i><td>This is a request for an enhancement.
         <tr><th scope=col>Priority<td><i>high</i><td>This should be fixed in the next release.
         <tr><th scope=col>Difficulty<td><i>tricky</i><td>Needs many tuits.
-        <tr><th scope=col>Present-in<td colspan=2>0.1.0 0.1.1 0.1.2 0.1.3 0.2.0 0.3.0 0.3.1 0.3.2 0.3.3 0.4.0 <b>0.5</b> 0.5.1 0.5.2 0.6
+        <tr><th scope=col>Requested-in<td colspan=2>0.5
     </table>
 
 [`click`][click], the library which `derivepassphrase` uses to implement its command-line interface, used to have a very stable and essentially unchanging <abbr title="application programming interface">API</abbr> (up until v8.1.8) due to a maintenance bottleneck.
@@ -23,7 +23,6 @@ This difference in library design philosophy is not reconcilable with `derivepas
 The cost-benefit ratio of `click` v8.2.0+ is thus too high to justify its continued use.
 
 <b>Therefore</b>, remove `click` as a dependency, and reimplement the command-line interface and testing machinery without it.
-
 <b>Until then</b>, pin `click` to v8.1.8, the last version adhering to the <i lang=la>de facto</i> stable <abbr title="application programming interface">API</abbr>.
 
 [click]: https://pypi.org/project/click/
