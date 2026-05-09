@@ -26,6 +26,6 @@ The conventions in this regard are still in flux.**
 
 * * *
 
-These conventions must stabilize first.
+<b>Therefore</b>, <em>once the conventions for requesting and disabling text styling on TTY devices have stabilized</em>, support the then-established conventions and mechanisms.
 <b>Until then</b>, as a baseline, `derivepassphrase` shall emit device-independent output without color or text styling, in adherence to [Eric S. Raymond's Rule of Composition](http://www.catb.org/~esr/writings/taoup/html/ch01s06.html#id2877684).
 (Baseline implemented in [64b076508d85bc24a28e253d081b4f2bf95b552c](https://git.schokokeks.org/derivepassphrase.git/commit/64b076508d85bc24a28e253d081b4f2bf95b552c).)
