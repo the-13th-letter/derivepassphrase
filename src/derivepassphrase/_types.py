@@ -651,7 +651,7 @@ class SSHKeyCommentPair(NamedTuple, Generic[T_Buffer]):
         )
 
 
-class SSH_AGENTC(enum.Enum):  # noqa: N801
+class SSH_AGENTC(int, enum.Enum):  # noqa: N801
     """SSH agent protocol numbers: client requests.
 
     Attributes:
@@ -688,7 +688,7 @@ class SSH_AGENTC(enum.Enum):  # noqa: N801
     """"""
 
 
-class SSH_AGENT(enum.Enum):  # noqa: N801
+class SSH_AGENT(int, enum.Enum):  # noqa: N801
     """SSH agent protocol numbers: server replies.
 
     Attributes:

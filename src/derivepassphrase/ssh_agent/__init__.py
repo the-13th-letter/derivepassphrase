@@ -66,7 +66,7 @@ class SSHAgentFailedError(RuntimeError):
         # TODO(the-13th-letter): Rewrite using structural pattern matching.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         if self.args == (  # pragma: no branch
-            _types.SSH_AGENT.FAILURE.value,
+            _types.SSH_AGENT.FAILURE,
             b"",
         ):
             return "The SSH agent failed to complete the request"
@@ -539,14 +539,8 @@ class SSHAgentClient:
                 any of them.
 
         """
-        if isinstance(  # pragma: no branch
-            response_code, (int, _types.SSH_AGENT)
-        ):
+        if isinstance(response_code, int):  # pragma: no branch
             response_code = frozenset({response_code})
-        if response_code is not None:  # pragma: no branch
-            response_code = frozenset({
-                c if isinstance(c, int) else c.value for c in response_code
-            })
         payload = memoryview(payload)
         request_message = bytearray([
             code if isinstance(code, int) else code.value
@@ -679,7 +673,7 @@ class SSHAgentClient:
         return bytes(
             self.unstring(
                 self.request(
-                    _types.SSH_AGENTC.SIGN_REQUEST.value,
+                    _types.SSH_AGENTC.SIGN_REQUEST,
                     request_data,
                     response_code=_types.SSH_AGENT.SIGN_RESPONSE,
                 )

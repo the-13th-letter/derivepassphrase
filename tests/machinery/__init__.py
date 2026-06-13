@@ -384,7 +384,7 @@ class StubbedSSHAgentSocket:
         try:
             self.parse_client_request_and_dispatch()
         except ValueError:
-            payload = int.to_bytes(_types.SSH_AGENT.FAILURE.value, 1, "big")
+            payload = int.to_bytes(_types.SSH_AGENT.FAILURE, 1, "big")
             self.send_to_client.extend(int.to_bytes(len(payload), 4, "big"))
             self.send_to_client.extend(payload)
         finally:
@@ -490,7 +490,7 @@ class StubbedSSHAgentSocket:
             iterable of 8-bit integers.
 
         """
-        yield _types.SSH_AGENT.EXTENSION_RESPONSE.value
+        yield _types.SSH_AGENT.EXTENSION_RESPONSE
         yield from ssh_agent.SSHAgentClient.string(b"query")
         extension_answers = [
             b"query",
@@ -518,9 +518,9 @@ class StubbedSSHAgentSocket:
 
         """
         if list_extended:
-            yield _types.SSH_AGENT.SUCCESS.value
+            yield _types.SSH_AGENT.SUCCESS
         else:
-            yield _types.SSH_AGENT.IDENTITIES_ANSWER.value
+            yield _types.SSH_AGENT.IDENTITIES_ANSWER
         signature_classes = [
             tests.data.SSHTestKeyDeterministicSignatureClass.SPEC,
         ]
@@ -576,13 +576,13 @@ class StubbedSSHAgentSocket:
             if key.public_key_data == key_blob:
                 if spec in key.expected_signatures:
                     return int.to_bytes(
-                        _types.SSH_AGENT.SIGN_RESPONSE.value, 1, "big"
+                        _types.SSH_AGENT.SIGN_RESPONSE, 1, "big"
                     ) + ssh_agent.SSHAgentClient.string(
                         key.expected_signatures[spec].signature
                     )
                 if try_rfc6979 and rfc6979 in key.expected_signatures:
                     return int.to_bytes(
-                        _types.SSH_AGENT.SIGN_RESPONSE.value, 1, "big"
+                        _types.SSH_AGENT.SIGN_RESPONSE, 1, "big"
                     ) + ssh_agent.SSHAgentClient.string(
                         key.expected_signatures[rfc6979].signature
                     )

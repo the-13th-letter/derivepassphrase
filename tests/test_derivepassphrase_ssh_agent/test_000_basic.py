@@ -344,7 +344,9 @@ class Parametrize(types.SimpleNamespace):
                 _types.SSH_AGENT.SUCCESS,
                 ssh_agent.SSHAgentFailedError,
                 re.escape(
-                    f"[Code {_types.SSH_AGENT.IDENTITIES_ANSWER.value}]"
+                    "[Code {:d}]".format(  # noqa: UP032
+                        int(_types.SSH_AGENT.IDENTITIES_ANSWER)
+                    )
                 ),
                 id="REQUEST_IDENTITIES-expect-SUCCESS",
             ),
@@ -1215,22 +1217,22 @@ class TestAgentErrorResponses:
             response_code = (
                 frozenset({_types.SSH_AGENT.SUCCESS})
                 if response_code is None
-                else frozenset({_types.SSH_AGENT(response_code)})
-                if isinstance(response_code, (int, _types.SSH_AGENT))
-                else frozenset(map(_types.SSH_AGENT, response_code))
+                else frozenset({response_code})
+                if isinstance(response_code, int)
+                else response_code
             )
             response_ = request_response_map.get(
                 self.Request(request_code, bytes(payload))
             ) or request_response_map.get(self.Request(request_code, None))
             if response_ is None:  # pragma: no cover [failsafe]
                 raise ssh_agent.SSHAgentFailedError(
-                    _types.SSH_AGENT.FAILURE.value,
+                    _types.SSH_AGENT.FAILURE,
                     "No prepared response for the request "
                     f"({request_code!r}, {payload!r})".encode(),
                 )
             code, response = response_
             if code not in response_code:
-                raise ssh_agent.SSHAgentFailedError(code.value, response)
+                raise ssh_agent.SSHAgentFailedError(code, response)
             return response
 
         return request

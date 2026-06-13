@@ -160,9 +160,7 @@ class ListKeysAction(str, enum.Enum):
         if self == self.EMPTY:
             return []
         if self == self.FAIL:
-            raise ssh_agent.SSHAgentFailedError(
-                _types.SSH_AGENT.FAILURE.value, b""
-            )
+            raise ssh_agent.SSHAgentFailedError(_types.SSH_AGENT.FAILURE, b"")
         if self == self.FAIL_RUNTIME:
             raise ssh_agent.TrailingDataError()
         raise AssertionError()
@@ -188,9 +186,7 @@ class SignAction(str, enum.Enum):
         # matching.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         if self == self.FAIL:
-            raise ssh_agent.SSHAgentFailedError(
-                _types.SSH_AGENT.FAILURE.value, b""
-            )
+            raise ssh_agent.SSHAgentFailedError(_types.SSH_AGENT.FAILURE, b"")
         if self == self.FAIL_RUNTIME:
             raise ssh_agent.TrailingDataError()
         raise AssertionError()
