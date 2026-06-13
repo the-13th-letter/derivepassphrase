@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import base64
-import collections
 import contextlib
 import ctypes
 import importlib.metadata
@@ -16,7 +15,7 @@ import re
 import socket
 import sys
 import types
-from typing import TYPE_CHECKING, Final, NamedTuple
+from typing import TYPE_CHECKING, Final
 
 import click
 import hypothesis
@@ -34,7 +33,7 @@ from tests.machinery import pytest as pytest_machinery
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Mapping, Sequence
 
-    from typing_extensions import Any, Literal, Self
+    from typing_extensions import Any, Literal
 
 if sys.version_info < (3, 11):
     from exceptiongroup import ExceptionGroup
@@ -1159,116 +1158,13 @@ class TestOtherConstructorFeatures:
 class TestAgentErrorResponses:
     """Test actually talking to the SSH agent: errors from the SSH agent."""
 
-    class Request(NamedTuple):
-        """A request for the SSH agent protocol.
-
-        Attributes:
-            code:
-                The expected request code.
-            payload:
-                The expected payload.  Optional.
-
-        """
-
-        code: _types.SSH_AGENTC | int
-        """"""
-        payload: bytes
-        """"""
-
-    class Response(NamedTuple):
-        """A response for the SSH agent protocol.
-
-        Attributes:
-            code:
-                The desired response code.
-            payload:
-                The desired response payload.
-
-        """
-
-        code: _types.SSH_AGENT | int
-        """"""
-        payload: bytes
-        """"""
-
-    class _RequestResponseIOQueue:
-        """A response queue for the SSH agent protocol.
-
-        This queue wraps a map of request messages
-        ([`Request`][TestAgentErrorResponses.Request]) to multiple
-        response messages
-        ([`Response`][TestAgentErrorResponses.Response]).  Whenever
-        [`_request_message`][] is called with a payload that matches
-        a [`Request`][TestAgentErrorResponses.Response] from the map,
-        the corresponding [`Response`][TestAgentErrorResponses.Response]
-        objects are added to the queue, to be read by subsequent
-        [`_response_pair`][] calls.
-
-        Use this agent stub implementation if you are modelling
-        well-formed requests and responses, without network errors or
-        protocol framing errors.  If the latter are needed, a custom SSH
-        agent implementation may be necessary.
-
-        The queue is a context manager.  When entered or exited, it
-        verifies that the queue is empty.
-
-        """
-
-        def __init__(
-            self,
-            request_responses_mapping: Mapping[
-                TestAgentErrorResponses.Request,
-                Sequence[TestAgentErrorResponses.Response],
-            ],
-        ) -> None:
-            self.responses_map = request_responses_mapping
-            self.queue: collections.deque[TestAgentErrorResponses.Response] = (
-                collections.deque()
-            )
-
-        def __bool__(self) -> bool:
-            return bool(self.queue)
-
-        def __enter__(self) -> Self:
-            assert not self, (
-                f"Agent I/O queue already has contents: {self.queue!r}"
-            )
-            return self
-
-        def __exit__(
-            self,
-            exc_type: type[BaseException] | None,
-            exc_value: BaseException | None,
-            exc_tb: types.TracebackType | None,
-        ) -> Literal[False]:
-            if (exc_type, exc_value, exc_tb) != (None, None, None):
-                return False
-            assert not self, (
-                f"Agent I/O queue still has contents: {self.queue!r}"
-            )
-            return False
-
-        def _send_request_message(
-            self,
-            request_code: int | _types.SSH_AGENTC,
-            payload: bytes | bytearray,
-        ) -> None:
-            req = TestAgentErrorResponses.Request(request_code, bytes(payload))
-            assert req in self.responses_map, (
-                f"No prepared response for the request {req!r}"
-            )
-            self.queue.extend(self.responses_map[req])
-
-        def _get_response_pair(
-            self,
-        ) -> tuple[int | _types.SSH_AGENT, bytes | bytearray]:
-            assert self.queue, "No more responses left to replay"
-            response = self.queue.popleft()
-            return response.code, response.payload
-
     @contextlib.contextmanager
     def _setup_agent_and_request_handler(
-        self, request_responses_map: Mapping[Request, Sequence[Response]], /
+        self,
+        request_responses_map: Mapping[
+            data.AgentProtocolRequest, Sequence[data.AgentProtocolResponse]
+        ],
+        /,
     ) -> Iterator[tuple[pytest.MonkeyPatch, ssh_agent.SSHAgentClient]]:
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -1278,7 +1174,7 @@ class TestAgentErrorResponses:
             client = stack.enter_context(
                 ssh_agent.SSHAgentClient.ensure_agent_subcontext()
             )
-            agent_io_queue = self._RequestResponseIOQueue(
+            agent_io_queue = machinery.AgentProtocolResponseQueue(
                 request_responses_map
             )
             stack.enter_context(agent_io_queue)
@@ -1337,9 +1233,9 @@ class TestAgentErrorResponses:
         """
         del running_ssh_agent
         with self._setup_agent_and_request_handler({
-            self.Request(_types.SSH_AGENTC.REQUEST_IDENTITIES, b""): [
-                self.Response(response_code, response)
-            ],
+            data.AgentProtocolRequest(
+                _types.SSH_AGENTC.REQUEST_IDENTITIES, b""
+            ): [data.AgentProtocolResponse(response_code, response)],
         }) as contexts:
             _, client = contexts
             with pytest.raises(exc_type, match=exc_pattern):
@@ -1378,9 +1274,9 @@ class TestAgentErrorResponses:
             + ssh_agent.SSHAgentClient.uint32(0)
         )
         with self._setup_agent_and_request_handler({
-            self.Request(_types.SSH_AGENTC.SIGN_REQUEST, sign_payload): [
-                self.Response(response_code, response)
-            ],
+            data.AgentProtocolRequest(
+                _types.SSH_AGENTC.SIGN_REQUEST, sign_payload
+            ): [data.AgentProtocolResponse(response_code, response)],
         }) as contexts:
             monkeypatch, client = contexts
             monkeypatch.setattr(client, "list_keys", lambda: loaded_keys)
@@ -1424,11 +1320,11 @@ class TestAgentErrorResponses:
         """Fail on malformed responses while querying extensions."""
         del running_ssh_agent
         with self._setup_agent_and_request_handler({
-            self.Request(
+            data.AgentProtocolRequest(
                 _types.SSH_AGENTC.EXTENSION,
                 ssh_agent.SSHAgentClient.string(b"query"),
             ): [
-                self.Response(
+                data.AgentProtocolResponse(
                     _types.SSH_AGENT.EXTENSION_RESPONSE, response_data
                 )
             ],
@@ -1447,7 +1343,7 @@ class TestAgentErrorResponses:
         code: Literal[
             _types.SSH_AGENT.EXTENSION_RESPONSE, _types.SSH_AGENT.SUCCESS
         ] = _types.SSH_AGENT.EXTENSION_RESPONSE,
-    ) -> Response:
+    ) -> data.AgentProtocolResponse:
         """Construct a response object from the given extensions.
 
         Args:
@@ -1463,30 +1359,32 @@ class TestAgentErrorResponses:
         payload = bytearray(b"\x00\x00\x00\x05query")
         for ext in extensions:
             payload.extend(TestStaticFunctionality.as_ssh_string(ext.encode()))
-        return self.Response(code, bytes(payload))
+        return data.AgentProtocolResponse(code, bytes(payload))
 
-    IDENTITIES_REQUEST: Final = Request(
+    IDENTITIES_REQUEST: Final = data.AgentProtocolRequest(
         _types.SSH_AGENTC.REQUEST_IDENTITIES, b""
     )
-    IDENTITIES_RESPONSE: Final = Response(
+    IDENTITIES_RESPONSE: Final = data.AgentProtocolResponse(
         _types.SSH_AGENT.IDENTITIES_ANSWER, b"\x00\x00\x00\x00"
     )
-    QUERY_REQUEST: Final = Request(
+    QUERY_REQUEST: Final = data.AgentProtocolRequest(
         _types.SSH_AGENTC.EXTENSION, b"\x00\x00\x00\x05query"
     )
-    EXTRA_RESPONSE: Final = Response(_types.SSH_AGENT.SUCCESS, b"")
+    EXTRA_RESPONSE: Final = data.AgentProtocolResponse(
+        _types.SSH_AGENT.SUCCESS, b""
+    )
 
     @pytest.mark.parametrize(
         ["success_after_query", "extensions"],
         [
             pytest.param(
                 False,
-                Response(_types.SSH_AGENT.FAILURE, b""),
+                data.AgentProtocolResponse(_types.SSH_AGENT.FAILURE, b""),
                 id="openssh-10.2",
             ),
             pytest.param(
                 True,
-                Response(_types.SSH_AGENT.FAILURE, b""),
+                data.AgentProtocolResponse(_types.SSH_AGENT.FAILURE, b""),
                 id="openssh-10.2-mocked",
                 marks=[
                     pytest.mark.xfail(
@@ -1528,7 +1426,9 @@ class TestAgentErrorResponses:
         ],
     )
     def test_tolerating_extra_success_after_extension_response(
-        self, success_after_query: bool, extensions: list[str] | Response
+        self,
+        success_after_query: bool,
+        extensions: list[str] | data.AgentProtocolResponse,
     ) -> None:
         """Tolerate an extra empty SUCCESS message from a "query" EXTENSION.
 
@@ -1548,7 +1448,7 @@ class TestAgentErrorResponses:
         """
         query_response = (
             extensions
-            if isinstance(extensions, self.Response)
+            if isinstance(extensions, data.AgentProtocolResponse)
             else self._query_response(*extensions)
         )
         request_responses_map = {

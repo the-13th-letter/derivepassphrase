@@ -255,6 +255,40 @@ class RunningSSHAgentInfo(NamedTuple):
         return self.socket
 
 
+class AgentProtocolRequest(NamedTuple):
+    """A request for the SSH agent protocol.
+
+    Attributes:
+        code:
+            The expected request code.
+        payload:
+            The expected payload.  Optional.
+
+    """
+
+    code: _types.SSH_AGENTC | int
+    """"""
+    payload: bytes
+    """"""
+
+
+class AgentProtocolResponse(NamedTuple):
+    """A response for the SSH agent protocol.
+
+    Attributes:
+        code:
+            The desired response code.
+        payload:
+            The desired response payload.
+
+    """
+
+    code: _types.SSH_AGENT | int
+    """"""
+    payload: bytes
+    """"""
+
+
 # Vault configurations
 # ====================
 
