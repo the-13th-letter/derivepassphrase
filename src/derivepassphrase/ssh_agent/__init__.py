@@ -462,6 +462,50 @@ class SSHAgentClient:
             v() for v in known_good_agents.values()
         )
 
+    def _send_request_message(
+        self, code: int | _types.SSH_AGENTC, payload: Buffer, /
+    ) -> None:
+        """Prepare and send a generic request to the SSH agent.
+
+        We take care of packing, framing and sending the request.
+
+        Args:
+            code:
+                See [request][].
+            payload:
+                See [request][].
+
+        """
+        payload = memoryview(payload)
+        request_message = bytearray([code])
+        request_message.extend(payload)
+        self._connection.sendall(self.string(request_message))
+
+    def _get_response_pair(self) -> tuple[int, bytes]:
+        """Read the response for a generic request to the SSH agent.
+
+        Returns:
+            A 2-tuple consisting of the response code and the payload,
+            with all wire framing removed.
+
+        Raises:
+            EOFError:
+                The response from the SSH agent is truncated or missing.
+            OSError:
+                There was a communication error with the SSH agent.
+
+        """
+        chunk = self._connection.recv(HEAD_LEN)
+        if len(chunk) < HEAD_LEN:
+            msg = "cannot read response length"
+            raise EOFError(msg)
+        response_length = int.from_bytes(chunk, "big", signed=False)
+        response = self._connection.recv(response_length)
+        if len(response) < response_length:
+            msg = "truncated response from SSH agent"
+            raise EOFError(msg)
+        return response[0], response[1:]
+
     @overload
     def request(
         self,
@@ -541,26 +585,13 @@ class SSHAgentClient:
         """
         if isinstance(response_code, int):  # pragma: no branch
             response_code = frozenset({response_code})
-        payload = memoryview(payload)
-        request_message = bytearray([
-            code if isinstance(code, int) else code.value
-        ])
-        request_message.extend(payload)
-        self._connection.sendall(self.string(request_message))
-        chunk = self._connection.recv(HEAD_LEN)
-        if len(chunk) < HEAD_LEN:
-            msg = "cannot read response length"
-            raise EOFError(msg)
-        response_length = int.from_bytes(chunk, "big", signed=False)
-        response = self._connection.recv(response_length)
-        if len(response) < response_length:
-            msg = "truncated response from SSH agent"
-            raise EOFError(msg)
+        self._send_request_message(code, payload)
+        actual_code, response = self._get_response_pair()
         if not response_code:  # pragma: no cover [failsafe]
-            return response[0], response[1:]
-        if response[0] not in response_code:
-            raise SSHAgentFailedError(response[0], response[1:])
-        return response[1:]
+            return actual_code, response
+        if actual_code not in response_code:
+            raise SSHAgentFailedError(actual_code, response)
+        return response
 
     def list_keys(self) -> Sequence[_types.SSHKeyCommentPair]:
         """Request a list of keys known to the SSH agent.
