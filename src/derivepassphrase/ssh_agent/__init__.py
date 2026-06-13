@@ -72,8 +72,8 @@ class SSHAgentFailedError(RuntimeError):
             return "The SSH agent failed to complete the request"
         elif self.args[1]:  # noqa: RET505  # pragma: no cover [failsafe]
             code = self.args[0]
-            msg = self.args[1].decode("utf-8", "surrogateescape")
-            return f"[Code {code:d}] {msg:s}"
+            msg = self.args[1]
+            return f"[Code {code:d}] {msg!r}"
         else:  # pragma: no cover [failsafe]
             return repr(self)
 
