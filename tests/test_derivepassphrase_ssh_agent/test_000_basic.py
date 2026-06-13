@@ -1481,16 +1481,14 @@ class TestSSHAgentSocketProviderFailures:
             ):
                 provider()
 
-    @pytest.mark.skipif(
-        not hasattr(ctypes, "WinDLL"),
-        reason="not relevant to systems without Windows named pipe support",
-    )
     @hypothesis.given(named_pipe_name=Strategies.bad_named_pipe_names())
     def test_ssh_auth_sock_on_windows_provider_bad_named_pipe_name(
         self,
         named_pipe_name: str,
+        skip_if_no_ctypes_windll_support: None,
     ) -> None:
         """For `ssh_auth_sock_on_windows`, fail for bad named pipe names."""
+        del skip_if_no_ctypes_windll_support
         provider = socketprovider.SocketProvider.resolve(
             "ssh_auth_sock_on_windows"
         )

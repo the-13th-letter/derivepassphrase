@@ -63,16 +63,30 @@ def term_handler() -> Iterator[None]:  # pragma: no cover [external]
 
 @pytest.fixture(scope="session")
 def skip_if_no_af_unix_support() -> None:  # pragma: no cover [external]
-    """Skip the test if Python does not support AF_UNIX.
+    """Skip the test if Python does not support `AF_UNIX`.
 
-    Implemented as a fixture instead of a mark because it has
-    consequences for other fixtures, and because another "autouse"
+    Implemented as a fixture instead of a mark because another "autouse"
     session fixture may want to force/simulate non-support of
     [`socket.AF_UNIX`][].
 
     """
     if not hasattr(socket, "AF_UNIX"):
         pytest.skip("No Python or system support for UNIX domain sockets.")
+
+
+@pytest.fixture(scope="session")
+def skip_if_no_ctypes_windll_support() -> None:  # pragma: no cover [external]
+    """Skip the test if Python does not support WinDLL in `ctypes`.
+
+    Implemented as a fixture instead of a mark because another "autouse"
+    session fixture may want to force/simulate non-support of
+    [`ctypes.WinDLL`][].
+
+    """
+    if not hasattr(ctypes, "WinDLL"):
+        pytest.skip(
+            "No Python or system support for interfacing Windows DLLs."
+        )
 
 
 class SSHAgentSpawnFunc(Protocol):

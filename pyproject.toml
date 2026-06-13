@@ -271,6 +271,7 @@ exclude_also = [
     # exclusions for platform-specific code that will not trigger on POSIX:
     #
     # 'pragma: unless the-annoying-os no cover',
+    # 'skip_if_no_ctypes_windll_support: None,',
 
     # If running only on The Annoying OS (Microsoft Windows), then you may
     # want to enable the following exclusions for platform-specific code

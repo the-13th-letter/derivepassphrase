@@ -351,7 +351,11 @@ class AgentProtocolResponseQueue:
         exc_value: BaseException | None,
         exc_tb: types.TracebackType | None,
     ) -> Literal[False]:
-        if (exc_type, exc_value, exc_tb) != (None, None, None):
+        if (exc_type, exc_value, exc_tb) != (
+            None,
+            None,
+            None,
+        ):  # pragma: no cover [external]
             return False
         assert not self, f"Agent I/O queue still has contents: {self.queue!r}"
         return False
