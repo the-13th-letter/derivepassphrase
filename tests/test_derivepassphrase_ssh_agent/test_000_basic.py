@@ -16,7 +16,7 @@ import re
 import socket
 import sys
 import types
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, Final, NamedTuple
 
 import click
 import hypothesis
@@ -1439,6 +1439,129 @@ class TestAgentErrorResponses:
                 match=r"Malformed response|does not match request",
             ):
                 client.query_extensions()
+
+    def _query_response(
+        self,
+        /,
+        *extensions: str,
+        code: Literal[
+            _types.SSH_AGENT.EXTENSION_RESPONSE, _types.SSH_AGENT.SUCCESS
+        ] = _types.SSH_AGENT.EXTENSION_RESPONSE,
+    ) -> Response:
+        """Construct a response object from the given extensions.
+
+        Args:
+            extensions:
+                Names of extensions to advertise support for.
+            code:
+                The response code of the message.
+
+        Returns:
+            An appropriately constructed response object.
+
+        """
+        payload = bytearray(b"\x00\x00\x00\x05query")
+        for ext in extensions:
+            payload.extend(TestStaticFunctionality.as_ssh_string(ext.encode()))
+        return self.Response(code, bytes(payload))
+
+    IDENTITIES_REQUEST: Final = Request(
+        _types.SSH_AGENTC.REQUEST_IDENTITIES, b""
+    )
+    IDENTITIES_RESPONSE: Final = Response(
+        _types.SSH_AGENT.IDENTITIES_ANSWER, b"\x00\x00\x00\x00"
+    )
+    QUERY_REQUEST: Final = Request(
+        _types.SSH_AGENTC.EXTENSION, b"\x00\x00\x00\x05query"
+    )
+    EXTRA_RESPONSE: Final = Response(_types.SSH_AGENT.SUCCESS, b"")
+
+    @pytest.mark.parametrize(
+        ["success_after_query", "extensions"],
+        [
+            pytest.param(
+                False,
+                Response(_types.SSH_AGENT.FAILURE, b""),
+                id="openssh-10.2",
+            ),
+            pytest.param(
+                True,
+                Response(_types.SSH_AGENT.FAILURE, b""),
+                id="openssh-10.2-mocked",
+                marks=[
+                    pytest.mark.xfail(
+                        reason="specific to OpenSSH 10.3 output", strict=True
+                    )
+                ],
+            ),
+            pytest.param(
+                False, ["session-bind@openssh.com"], id="openssh-fixed"
+            ),
+            pytest.param(
+                True, ["session-bind@openssh.com"], id="openssh-10.3"
+            ),
+            pytest.param(
+                False,
+                [
+                    "add-ppk@putty.projects.tartarus.org",
+                    "reencrypt@putty.projects.tartarus.org",
+                    "reencrypt-all@putty.projects.tartarus.org",
+                    "list-extended@putty.projects.tartarus.org",
+                ],
+                id="pageant",
+            ),
+            pytest.param(
+                True,
+                [
+                    "add-ppk@putty.projects.tartarus.org",
+                    "reencrypt@putty.projects.tartarus.org",
+                    "reencrypt-all@putty.projects.tartarus.org",
+                    "list-extended@putty.projects.tartarus.org",
+                ],
+                id="pageant-mocked",
+                marks=[
+                    pytest.mark.xfail(
+                        reason="specific to OpenSSH 10.3 output", strict=True
+                    )
+                ],
+            ),
+        ],
+    )
+    def test_tolerating_extra_success_after_extension_response(
+        self, success_after_query: bool, extensions: list[str] | Response
+    ) -> None:
+        """Tolerate an extra empty SUCCESS message from a "query" EXTENSION.
+
+        Specifically, in a "query"
+        [`EXTENSION`][_types.SSH_AGENTC.EXTENSION] request, tolerate
+        getting potentially both an
+        [`EXTENSION_RESPONSE`][_types.SSH_AGENT.EXTENSION_RESPONSE] or
+        [`SUCCESS`][_types.SSH_AGENT.SUCCESS] message and an additional
+        empty [`SUCCESS`][_types.SSH_AGENT.SUCCESS] message afterwards,
+        instead of only the first message.  This is spec-uncompliant
+        behavior observed in `ssh-agent` from OpenSSH 10.3.  (And since
+        then reported and acknowledged upstream, to be fixed in OpenSSH
+        10.4: [OpenSSH Bug 3967][OPENSSH_BZ3967].)
+
+        [OPENSSH_BZ3967]: https://bugzilla.mindrot.org/show_bug.cgi?id=3967
+
+        """
+        query_response = (
+            extensions
+            if isinstance(extensions, self.Response)
+            else self._query_response(*extensions)
+        )
+        request_responses_map = {
+            self.IDENTITIES_REQUEST: [self.IDENTITIES_RESPONSE],
+            self.QUERY_REQUEST: [query_response, self.EXTRA_RESPONSE]
+            if success_after_query
+            else [query_response],
+        }
+        with self._setup_agent_and_request_handler(
+            request_responses_map
+        ) as contexts:
+            _, client = contexts
+            client.query_extensions()
 
 
 class TestSSHAgentSocketProviderFailures:
