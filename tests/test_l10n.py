@@ -172,14 +172,14 @@ class TestDebugTranslations:
         assert not suffix or suffix.startswith("(")
 
     @hypothesis.given(value=Strategies.printable_strings())
-    @hypothesis.example("{")
+    @hypothesis.example(value="{")
     def test_get_str(self, value: str) -> None:
         """Translating a raw string object does nothing."""
         translated = msg.translation.gettext(value)
         assert translated == value
 
     @hypothesis.given(value=Strategies.printable_strings())
-    @hypothesis.example("{")
+    @hypothesis.example(value="{")
     def test_get_ts_str(self, value: str) -> None:
         """Translating a constant TranslatableString does nothing."""
         translated = msg.TranslatedString.constant(value)

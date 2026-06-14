@@ -164,21 +164,24 @@ class TestStaticFunctionality:
             )
 
     @hypothesis.given(test_case=BigEndianNumberTest.strategy())
+    # decimal example
     @hypothesis.example(
-        BigEndianNumberTest([1, 2, 3, 4, 5, 6], 10, 123456)
-    ).via("manual decimal example")
-    @hypothesis.example(
-        BigEndianNumberTest([1, 2, 3, 4, 5, 6], 100, 10203040506)
-    ).via("manual decimal example in different base")
-    @hypothesis.example(BigEndianNumberTest([0, 0, 1, 4, 9, 7], 10, 1497)).via(
-        "manual example with leading zeroes"
+        test_case=BigEndianNumberTest([1, 2, 3, 4, 5, 6], 10, 123456)
     )
+    # decimal example, different base
     @hypothesis.example(
-        BigEndianNumberTest([1, 0, 0, 1, 0, 0, 0, 0], 2, 144)
-    ).via("manual binary example")
-    @hypothesis.example(BigEndianNumberTest([1, 7, 5, 5], 8, 0o1755)).via(
-        "manual octal example"
+        test_case=BigEndianNumberTest([1, 2, 3, 4, 5, 6], 100, 10203040506)
     )
+    # leading zeroes example
+    @hypothesis.example(
+        test_case=BigEndianNumberTest([0, 0, 1, 4, 9, 7], 10, 1497)
+    )
+    # binary example
+    @hypothesis.example(
+        test_case=BigEndianNumberTest([1, 0, 0, 1, 0, 0, 0, 0], 2, 144)
+    )
+    # octal example
+    @hypothesis.example(test_case=BigEndianNumberTest([1, 7, 5, 5], 8, 0o1755))
     def test_big_endian_number(self, test_case: BigEndianNumberTest) -> None:
         """Conversion to big endian numbers in any base works.
 
@@ -294,22 +297,28 @@ class TestSequin:
             )
 
     @hypothesis.given(test_case=ConstructorTestCase.strategy())
+    # bitstring example
     @hypothesis.example(
-        ConstructorTestCase([1, 0, 0, 1, 0, 1], True, [1, 0, 0, 1, 0, 1])
-    ).via("manual example bitstring")
+        test_case=ConstructorTestCase(
+            [1, 0, 0, 1, 0, 1], True, [1, 0, 0, 1, 0, 1]
+        )
+    )
+    # bitstring as bytestring example
     @hypothesis.example(
-        ConstructorTestCase(
+        test_case=ConstructorTestCase(
             [1, 0, 0, 1, 0, 1],
             False,
             bitseq("000000010000000000000000000000010000000000000001"),
         )
-    ).via("manual example bitstring as byte string")
+    )
+    # true byte string example
     @hypothesis.example(
-        ConstructorTestCase(b"OK", False, bitseq("0100111101001011"))
-    ).via("manual example true byte string")
+        test_case=ConstructorTestCase(b"OK", False, bitseq("0100111101001011"))
+    )
+    # latin1 text example
     @hypothesis.example(
-        ConstructorTestCase("OK", False, bitseq("0100111101001011"))
-    ).via("manual example latin1 text")
+        test_case=ConstructorTestCase("OK", False, bitseq("0100111101001011"))
+    )
     def test_constructor(
         self,
         test_case: ConstructorTestCase,
@@ -355,8 +364,9 @@ class TestSequin:
                 ],
             )
 
+    @hypothesis.given(sequence=GenerationSequence.strategy())
     @hypothesis.example(
-        GenerationSequence(
+        sequence=GenerationSequence(
             bitseq("110101011111001"),
             [
                 (1, 0),
@@ -367,8 +377,7 @@ class TestSequin:
                 (1, sequin.SequinExhaustedError),
             ],
         )
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.given(sequence=GenerationSequence.strategy())
+    )
     def test_generating(self, sequence: GenerationSequence) -> None:
         """The sequin generates deterministic sequences."""
         seq = sequin.Sequin(sequence.bit_sequence, is_bitstring=True)
@@ -396,8 +405,9 @@ class TestSequin:
         with pytest.raises(ValueError, match="invalid target range"):
             seq.generate(0)
 
+    @hypothesis.given(sequence=GenerationSequence.strategy())
     @hypothesis.example(
-        GenerationSequence(
+        sequence=GenerationSequence(
             bitseq("110101011111001"),
             [
                 (1, 0),
@@ -408,8 +418,7 @@ class TestSequin:
                 (1, sequin.SequinExhaustedError),
             ],
         )
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.given(sequence=GenerationSequence.strategy())
+    )
     def test_internal_generating(self, sequence: GenerationSequence) -> None:
         """The sequin internals generate deterministic sequences."""
         seq = sequin.Sequin(sequence.bit_sequence, is_bitstring=True)
@@ -495,7 +504,7 @@ class TestSequin:
 
     @hypothesis.given(sequence=ShiftSequence.strategy())
     @hypothesis.example(
-        ShiftSequence(
+        sequence=ShiftSequence(
             bitseq("1010010001"),
             [
                 (3, bitseq("101"), bitseq("0010001")),

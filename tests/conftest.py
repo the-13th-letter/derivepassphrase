@@ -31,16 +31,27 @@ startup_ssh_auth_sock = os.environ.get("SSH_AUTH_SOCK", None)
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    """Configure `pytest`: add the `heavy_duty` marker."""
+    """Configure `pytest`: add custom markers."""
     config.addinivalue_line(
         "markers",
         (
             "heavy_duty: "
-            "mark test as a slow, heavy-duty test (e.g., an integration test)"
-            "\n"
+            "mark test as a slow, heavy-duty test"
+        )
+    )
+    config.addinivalue_line(
+        "markers",
+        (
+            "correctness_focused: "
+            "mark test as a potentially slow, correctness-focused test"
+        )
+    )
+    config.addinivalue_line(
+        "markers",
+        (
             "non_reentrant_agent: "
             "mark the agent (fixture output) as non-reentrant"
-        ),
+        )
     )
     hypothesis_machinery._hypothesis_settings_setup()
 

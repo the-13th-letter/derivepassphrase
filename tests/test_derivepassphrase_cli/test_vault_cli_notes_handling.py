@@ -141,6 +141,9 @@ class TestNotesPrinting:
 
     @Parametrize.NOTES_PLACEMENT
     @hypothesis.given(notes=Strategies.notes().filter(str.strip))
+    @hypothesis.example(notes="  ").xfail(
+        reason="empty notes", raises=AssertionError
+    )
     def test_notes_placement(
         self,
         notes_placement: Literal["before", "after"],
@@ -347,11 +350,15 @@ class TestNotesEditingValid(TestNotesEditing):
         ],
     )
     @hypothesis.given(
-        notes=Strategies.notes()
+        notes=Strategies
+        .notes()
         .filter(str.strip)
         .filter(lambda notes: notes != TestNotesEditingValid.CURRENT_NOTES)
     )
     @hypothesis.example(TestNotesEditing.CURRENT_NOTES)
+    @hypothesis.example(notes="  ").xfail(
+        reason="empty notes", raises=AssertionError
+    )
     def test_successful_edit(
         self,
         caplog: pytest.LogCaptureFixture,
@@ -463,6 +470,9 @@ class TestNotesEditingValid(TestNotesEditing):
         ],
     )
     @hypothesis.given(notes=Strategies.notes().filter(str.strip))
+    @hypothesis.example(notes="  ").xfail(
+        reason="empty notes", raises=AssertionError
+    )
     def test_marker_removed(
         self,
         caplog: pytest.LogCaptureFixture,
@@ -509,7 +519,7 @@ class TestNotesEditingInvalid(TestNotesEditing):
     """Tests concerning editing service notes: invalid/error calls."""
 
     @hypothesis.given(notes=Strategies.notes())
-    @hypothesis.example("")
+    @hypothesis.example(notes="")
     def test_abort(
         self,
         notes: str,
@@ -548,7 +558,7 @@ class TestNotesEditingInvalid(TestNotesEditing):
         ],
     )
     @hypothesis.given(notes=Strategies.notes())
-    @hypothesis.example("")
+    @hypothesis.example(notes="")
     def test_fail_on_config_option_missing(
         self,
         caplog: pytest.LogCaptureFixture,

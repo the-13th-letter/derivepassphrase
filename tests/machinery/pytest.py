@@ -143,19 +143,30 @@ def xfail_on_the_annoying_os(
 
 heavy_duty = pytest.mark.heavy_duty
 """
-A cached `pytest` mark indicating that this test function/class/module
-is a slow, heavy duty test.  Users who are impatient (or otherwise
-cannot afford to wait for these tests to complete) may wish to exclude
-these tests; this mark helps in achieving that.
-
-All current heavy duty tests are integration tests.
+Test functions/classes/modules with this `pytest` mark are slow, heavy
+duty tests.  Users who are impatient (or otherwise cannot afford to wait
+for these tests to complete) may wish to exclude these tests; this mark
+helps in achieving that.
 """
 
+correctness_focused = pytest.mark.correctness_focused
+"""
+Test functions/classes/modules with this `pytest` mark are designed
+primarily to verify correctness and to find novel failure cases, even at
+the cost of high CPU or wall clock time.
+
+Contrast this with tests designed primarily to verify that the existing
+system still behaves as before in all the important ways ("is healthy")
+even after introducing a small change, but before committing it.  (See
+[Two kinds of testing][TWO_KINDS] for more elaboration.)
+
+[TWO_KINDS]: https://blog.nelhage.com/post/two-kinds-of-testing/
+"""
 
 non_isolated_agent_use = pytest.mark.xdist_group("non_isolated_agent_use")
 """
-A cached `pytest` mark, for use with xdist's "loadgroup" scheduling,
-that marks a test as part of the group of tests that use a potentially
+Tests with this `pytest` mark (for use with xdist's "loadgroup"
+scheduling), comprise the group of tests that use a potentially
 non-isolated agent, and thus need to be run serially, in the same worker
 (because of the setup and teardown).
 

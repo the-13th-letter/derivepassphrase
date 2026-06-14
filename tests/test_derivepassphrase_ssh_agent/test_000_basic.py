@@ -533,17 +533,17 @@ class TestSSHProtocolDatatypes(TestStaticFunctionality):
         uint32 = ssh_agent.SSHAgentClient.uint32
         assert uint32(input) == expected
 
-    @hypothesis.given(strategies.integers(min_value=0, max_value=0xFFFFFFFF))
-    @hypothesis.example(0xDEADBEEF).via("manual, pre-hypothesis example")
+    @hypothesis.given(
+        num=strategies.integers(min_value=0, max_value=0xFFFFFFFF)
+    )
+    @hypothesis.example(num=0xDEADBEEF)
     def test_uint32_from_number(self, num: int) -> None:
         """`uint32` encoding works, starting from numbers."""
         uint32 = ssh_agent.SSHAgentClient.uint32
         assert int.from_bytes(uint32(num), "big", signed=False) == num
 
-    @hypothesis.given(strategies.binary(min_size=4, max_size=4))
-    @hypothesis.example(b"\xde\xad\xbe\xef").via(
-        "manual, pre-hypothesis example"
-    )
+    @hypothesis.given(bytestring=strategies.binary(min_size=4, max_size=4))
+    @hypothesis.example(bytestring=b"\xde\xad\xbe\xef")
     def test_uint32_from_bytestring(self, bytestring: bytes) -> None:
         """`uint32` encoding works, starting from length four byte strings."""
         uint32 = ssh_agent.SSHAgentClient.uint32
@@ -560,10 +560,9 @@ class TestSSHProtocolDatatypes(TestStaticFunctionality):
         string = ssh_agent.SSHAgentClient.string
         assert bytes(string(input)) == expected
 
-    @hypothesis.given(strategies.binary(max_size=0x0001FFFF))
-    @hypothesis.example(b"DEADBEEF" * 10000).via(
-        "manual, pre-hypothesis example with highest order bit set"
-    )
+    @hypothesis.given(bytestring=strategies.binary(max_size=0x0001FFFF))
+    # example with highest order bit set
+    @hypothesis.example(bytestring=b"DEADBEEF" * 10000)
     def test_string_from_bytestring(self, bytestring: bytes) -> None:
         """SSH string encoding works, starting from a byte string."""
         res = ssh_agent.SSHAgentClient.string(bytestring)
@@ -584,13 +583,11 @@ class TestSSHProtocolDatatypes(TestStaticFunctionality):
             b"",
         )
 
-    @hypothesis.given(strategies.binary(max_size=0x00FFFFFF))
-    @hypothesis.example(b"\x00\x00\x00\x07ssh-rsa").via(
-        "manual, pre-hypothesis example to attempt to detect double-decoding"
-    )
-    @hypothesis.example(b"\x00\x00\x00\x01").via(
-        "detect no-op encoding via ill-formed SSH string"
-    )
+    @hypothesis.given(bytestring=strategies.binary(max_size=0x00FFFFFF))
+    # should not double-decode
+    @hypothesis.example(bytestring=b"\x00\x00\x00\x07ssh-rsa")
+    # should not choke on ill-formed SSH string payloads
+    @hypothesis.example(bytestring=b"\x00\x00\x00\x01")
     def test_unstring_of_string_of_data(self, bytestring: bytes) -> None:
         """SSH string decoding of encoded SSH strings works.
 
@@ -612,7 +609,7 @@ class TestSSHProtocolDatatypes(TestStaticFunctionality):
         assert unstring_prefix(encoded2) == (bytestring, trailing_data)
 
     @hypothesis.given(
-        strategies.binary(max_size=0x00FFFFFF).map(
+        encoded=strategies.binary(max_size=0x00FFFFFF).map(
             # Scoping issues, and the fact that staticmethod objects
             # (before class finalization) are not callable, necessitate
             # wrapping this staticmethod call in a lambda.

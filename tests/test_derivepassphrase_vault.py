@@ -303,8 +303,7 @@ class TestPhraseDependence:
         service=Strategies.text_strategy(),
     )
     @hypothesis.example(phrases=[b"\x00", b"\x00\x00"], service="0").xfail(
-        reason="phrases are interchangable",
-        raises=AssertionError,
+        reason="phrases are interchangable", raises=AssertionError
     )
     def test_small(self, phrases: Sequence[bytes], service: str) -> None:
         """The internal hash is dependent on the master passphrase.
@@ -320,6 +319,10 @@ class TestPhraseDependence:
         ),
         service=Strategies.text_strategy(),
     )
+    @hypothesis.example(
+        phrases=[b"\x01" * DIGEST_SIZE, b"\x01" * DIGEST_SIZE],
+        service="service",
+    ).xfail(reason="phrases are interchangable", raises=AssertionError)
     def test_medium(self, phrases: Sequence[bytes], service: str) -> None:
         """The internal hash is dependent on the master passphrase.
 

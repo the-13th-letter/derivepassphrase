@@ -1245,7 +1245,9 @@ class TestTempdir:
             ),
         ),
     )
-    @hypothesis.example(env_var="", suffix=".")
+    @hypothesis.example(env_var="", suffix=".").via(
+        "static example; branch coverage (test)"
+    )
     def test_get_tempdir(
         self,
         env_var: str,

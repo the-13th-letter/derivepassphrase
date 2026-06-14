@@ -17,7 +17,6 @@ All similar-minded code requiring only plain `pytest` lives in [the
 from __future__ import annotations
 
 import copy
-import datetime
 import importlib
 import importlib.util
 import math
@@ -94,36 +93,45 @@ def _hypothesis_settings_setup() -> None:
             and isinstance(trace_func.__self__, pytracer_class)
         ):
             slowdown = 8.0
-    settings = hypothesis.settings(
+    hypothesis.settings.register_profile(
+        "default",
+        parent=settings,
         deadline=slowdown * settings.deadline
-        if slowdown
+        if slowdown and settings.deadline is not None
         else settings.deadline,
         stateful_step_count=32,
-        suppress_health_check=(hypothesis.HealthCheck.too_slow,),
+        suppress_health_check=[hypothesis.HealthCheck.too_slow],
     )
-    hypothesis.settings.register_profile("default", settings)
+    default_profile = hypothesis.settings.get_profile("default")
     hypothesis.settings.register_profile(
-        "dev", derandomize=True, max_examples=10
+        "regression",
+        parent=hypothesis.settings.get_profile("ci"),
+        derandomize=True,
+        database=None,
+        max_examples=3,
+        stateful_step_count=3,
+        suppress_health_check=[hypothesis.HealthCheck.too_slow],
+        phases=[
+            hypothesis.Phase.explicit,
+            hypothesis.Phase.reuse,
+            hypothesis.Phase.generate,
+        ],
     )
     hypothesis.settings.register_profile(
         "debug",
-        parent=hypothesis.settings.get_profile("dev"),
+        parent=default_profile,
         verbosity=hypothesis.Verbosity.verbose,
     )
     hypothesis.settings.register_profile(
-        "flaky",
-        deadline=(
-            settings.deadline - settings.deadline // 4
-            if settings.deadline is not None
-            else datetime.timedelta(milliseconds=150)
-        ),
+        "debug-regression",
+        parent=hypothesis.settings.get_profile("regression"),
+        verbosity=hypothesis.Verbosity.verbose,
     )
-    ci_profile = hypothesis.settings.get_profile("ci")
     hypothesis.settings.register_profile(
-        "intense",
-        parent=ci_profile,
+        "correctness",
+        parent=default_profile,
         derandomize=False,
-        max_examples=10 * ci_profile.max_examples,
+        max_examples=10 * default_profile.max_examples,
     )
 
 
@@ -161,13 +169,13 @@ def get_process_spawning_state_machine_examples_count(
     examples count by default, and require the user to opt-in to the
     original naive example count explicitly.
 
-    If the "intense" profile is in effect, or something with even higher
-    `max_examples` and `stateful_step_count`, then we return the
+    If the "correctness" profile is in effect, or something with even
+    higher `max_examples` and `stateful_step_count`, then we return the
     unaltered example count for the *default* profile.  Otherwise, we
     return the square root of the `max_examples` setting (rounded down).
-    We *never* return a value below the "dev" profile's example count:
-    any lower computed example count is increased to the "dev" profile's
-    example count.
+    We *never* return a value below the "regression" profile's example
+    count: any lower computed example count is increased to the
+    "regression" profile's example count.
 
     Args:
         settings:
@@ -182,20 +190,22 @@ def get_process_spawning_state_machine_examples_count(
     _hypothesis_settings_setup()
 
     these_values = (settings.max_examples, settings.stateful_step_count)
-    intense_profile = hypothesis.settings.get_profile("intense")
-    intense_values = (
-        intense_profile.max_examples,
-        intense_profile.stateful_step_count,
+    correctness_profile = hypothesis.settings.get_profile("correctness")
+    correctness_values = (
+        correctness_profile.max_examples,
+        correctness_profile.stateful_step_count,
     )
-    min_count = hypothesis.settings.get_profile("dev").max_examples
+    min_count = hypothesis.settings.get_profile("regression").max_examples
     high_count = hypothesis.settings.get_profile("default").max_examples
-    we_are_intense = (
-        these_values[0] >= intense_values[0]
-        and these_values[1] >= intense_values[1]
+    correctness_based_testing = (
+        these_values[0] >= correctness_values[0]
+        and these_values[1] >= correctness_values[1]
     )
     return max(
         min_count,
-        high_count if we_are_intense else math.isqrt(settings.max_examples),
+        high_count
+        if correctness_based_testing
+        else math.isqrt(settings.max_examples),
     )
 
 

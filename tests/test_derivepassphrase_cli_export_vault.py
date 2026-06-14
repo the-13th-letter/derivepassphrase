@@ -391,6 +391,7 @@ class TestStoreroom:
                 == data.VAULT_STOREROOM_CONFIG_DATA
             )
 
+    @pytest_machinery.correctness_focused
     def test_decrypt_bucket_item_unknown_version(self) -> None:
         """Fail on unknown versions of the master keys file."""
         bucket_item = (
@@ -404,6 +405,7 @@ class TestStoreroom:
         with pytest.raises(ValueError, match="Cannot handle version 255"):
             storeroom._decrypt_bucket_item(bucket_item, master_keys)
 
+    @pytest_machinery.correctness_focused
     @Parametrize.BAD_CONFIG
     def test_decrypt_bucket_file_bad_json_or_version(
         self,
@@ -427,6 +429,7 @@ class TestStoreroom:
             with pytest.raises(ValueError, match="Invalid bucket file: "):
                 list(storeroom._decrypt_bucket_file(p, master_keys))
 
+    @pytest_machinery.correctness_focused
     @Parametrize.BAD_MASTER_KEYS_DATA
     @Parametrize.STOREROOM_HANDLER
     def test_export_storeroom_data_bad_master_keys_file(
@@ -447,6 +450,7 @@ class TestStoreroom:
             with pytest.raises(RuntimeError, match=err_msg):
                 handler(format="storeroom")
 
+    @pytest_machinery.correctness_focused
     @Parametrize.BAD_STOREROOM_CONFIG_DATA
     @Parametrize.STOREROOM_HANDLER
     def test_export_storeroom_data_bad_directory_listing(
@@ -476,6 +480,7 @@ class TestStoreroom:
             with pytest.raises(RuntimeError, match=error_text):
                 handler(format="storeroom")
 
+    @pytest_machinery.correctness_focused
     def test_decrypt_keys_wrong_data_length(self) -> None:
         """Fail on internal structural data of the wrong size.
 
@@ -527,6 +532,7 @@ class TestStoreroom:
                 ),
             )
 
+    @pytest_machinery.correctness_focused
     @hypothesis.given(
         data=strategies.binary(
             min_size=storeroom.MAC_SIZE, max_size=storeroom.MAC_SIZE

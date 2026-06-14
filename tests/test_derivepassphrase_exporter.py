@@ -193,66 +193,86 @@ class TestCLIUtilities:
             )
             yield monkeypatch
 
-    @hypothesis.example(
-        VaultKeyEnvironment("4username", None, None, None, "4username")
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment("3user", None, None, "3user", None)
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment("3user", None, None, "3user", "4username")
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment("2logname", None, "2logname", None, None)
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment("2logname", None, "2logname", None, "4username")
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment("2logname", None, "2logname", "3user", None)
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment("2logname", None, "2logname", "3user", "4username")
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment("1vault_key", "1vault_key", None, None, None)
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment(
-            "1vault_key", "1vault_key", None, None, "4username"
-        )
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment("1vault_key", "1vault_key", None, "3user", None)
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment(
-            "1vault_key", "1vault_key", None, "3user", "4username"
-        )
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment("1vault_key", "1vault_key", "2logname", None, None)
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment(
-            "1vault_key", "1vault_key", "2logname", None, "4username"
-        )
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment(
-            "1vault_key", "1vault_key", "2logname", "3user", None
-        )
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment(
-            "1vault_key", "1vault_key", "2logname", "3user", "4username"
-        )
-    ).via("manual, pre-hypothesis parametrization value")
     @hypothesis.given(
         vault_key_env=VaultKeyEnvironment.strategy().filter(
             lambda env: bool(env.expected)
         ),
     )
+    # BEGIN pre-hypothesis parametrization examples
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "4username", None, None, None, "4username"
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment("3user", None, None, "3user", None)
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "3user", None, None, "3user", "4username"
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "2logname", None, "2logname", None, None
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "2logname", None, "2logname", None, "4username"
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "2logname", None, "2logname", "3user", None
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "2logname", None, "2logname", "3user", "4username"
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "1vault_key", "1vault_key", None, None, None
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "1vault_key", "1vault_key", None, None, "4username"
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "1vault_key", "1vault_key", None, "3user", None
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "1vault_key", "1vault_key", None, "3user", "4username"
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "1vault_key", "1vault_key", "2logname", None, None
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "1vault_key", "1vault_key", "2logname", None, "4username"
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "1vault_key", "1vault_key", "2logname", "3user", None
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "1vault_key", "1vault_key", "2logname", "3user", "4username"
+        )
+    )
+    # END pre-hypothesis parametrization examples
     def test_get_vault_key(
         self,
         vault_key_env: VaultKeyEnvironment,
