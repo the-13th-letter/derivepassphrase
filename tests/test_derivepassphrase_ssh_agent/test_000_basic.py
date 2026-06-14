@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import base64
 import contextlib
-import ctypes
 import importlib.metadata
 import io
 import re
@@ -1388,7 +1387,9 @@ class TestAgentErrorResponses:
                 id="openssh-10.2-mocked",
                 marks=[
                     pytest.mark.xfail(
-                        reason="specific to OpenSSH 10.3 output", strict=True
+                        reason="specific to OpenSSH 10.3 output",
+                        raises=AssertionError,
+                        strict=True,
                     )
                 ],
             ),
@@ -1419,7 +1420,9 @@ class TestAgentErrorResponses:
                 id="pageant-mocked",
                 marks=[
                     pytest.mark.xfail(
-                        reason="specific to OpenSSH 10.3 output", strict=True
+                        reason="specific to OpenSSH 10.3 output",
+                        raises=AssertionError,
+                        strict=True,
                     )
                 ],
             ),
@@ -1427,6 +1430,7 @@ class TestAgentErrorResponses:
     )
     def test_tolerating_extra_success_after_extension_response(
         self,
+        running_ssh_agent: data.RunningSSHAgentInfo,
         success_after_query: bool,
         extensions: list[str] | data.AgentProtocolResponse,
     ) -> None:
@@ -1446,6 +1450,7 @@ class TestAgentErrorResponses:
         [OPENSSH_BZ3967]: https://bugzilla.mindrot.org/show_bug.cgi?id=3967
 
         """
+        del running_ssh_agent
         query_response = (
             extensions
             if isinstance(extensions, data.AgentProtocolResponse)
