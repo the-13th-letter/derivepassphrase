@@ -38,6 +38,19 @@ if sys.version_info < (3, 11):
     from exceptiongroup import ExceptionGroup
 
 
+@pytest.fixture
+def use_stub_agent() -> Iterator[None]:
+    """Enforce use of the stubbed SSH agent."""
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            ssh_agent.SSHAgentClient,
+            "SOCKET_PROVIDERS",
+            (_types.BuiltinSSHAgentSocketProvider.STUB_AGENT,),
+        )
+        monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
+        yield
+
+
 class Parametrize(types.SimpleNamespace):
     BAD_ENTRY_POINTS = pytest.mark.parametrize(
         "additional_entry_points",
@@ -1154,6 +1167,7 @@ class TestOtherConstructorFeatures:
         ssh_agent.SSHAgentClient(socket=conn)
 
 
+@pytest.mark.usefixtures("use_stub_agent")
 class TestAgentErrorResponses:
     """Test actually talking to the SSH agent: errors from the SSH agent."""
 
@@ -1190,11 +1204,9 @@ class TestAgentErrorResponses:
     @Parametrize.TRUNCATED_AGENT_RESPONSES
     def test_truncated_server_response(
         self,
-        running_ssh_agent: data.RunningSSHAgentInfo,
         response: bytes,
     ) -> None:
         """Fail on truncated responses from the SSH agent."""
-        del running_ssh_agent
         client = ssh_agent.SSHAgentClient()
         response_stream = io.BytesIO(response)
 
@@ -1214,7 +1226,6 @@ class TestAgentErrorResponses:
     @Parametrize.LIST_KEYS_ERROR_RESPONSES
     def test_list_keys_error_responses(
         self,
-        running_ssh_agent: data.RunningSSHAgentInfo,
         response_code: _types.SSH_AGENT,
         response: bytes | bytearray,
         exc_type: type[Exception],
@@ -1230,7 +1241,6 @@ class TestAgentErrorResponses:
           - The agent response is overlong.
 
         """
-        del running_ssh_agent
         with self._setup_agent_and_request_handler({
             data.AgentProtocolRequest(
                 _types.SSH_AGENTC.REQUEST_IDENTITIES, b""
@@ -1243,7 +1253,6 @@ class TestAgentErrorResponses:
     @Parametrize.SIGN_ERROR_RESPONSES
     def test_sign_error_responses(
         self,
-        running_ssh_agent: data.RunningSSHAgentInfo,
         key: bytes | bytearray,
         check: bool,
         response_code: _types.SSH_AGENT,
@@ -1260,7 +1269,6 @@ class TestAgentErrorResponses:
             failed.
 
         """
-        del running_ssh_agent
         Pair: TypeAlias = _types.SSHKeyCommentPair
         com = b"no comment"
         loaded_keys = [
@@ -1285,7 +1293,6 @@ class TestAgentErrorResponses:
     @Parametrize.REQUEST_ERROR_RESPONSES
     def test_request_error_responses(
         self,
-        running_ssh_agent: data.RunningSSHAgentInfo,
         request_code: _types.SSH_AGENTC,
         response_code: _types.SSH_AGENT,
         exc_type: type[Exception],
@@ -1300,8 +1307,6 @@ class TestAgentErrorResponses:
             failed.
 
         """
-        del running_ssh_agent
-
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -1313,11 +1318,9 @@ class TestAgentErrorResponses:
     @Parametrize.QUERY_EXTENSIONS_MALFORMED_RESPONSES
     def test_query_extensions_malformed_responses(
         self,
-        running_ssh_agent: data.RunningSSHAgentInfo,
         response_data: bytes,
     ) -> None:
         """Fail on malformed responses while querying extensions."""
-        del running_ssh_agent
         with self._setup_agent_and_request_handler({
             data.AgentProtocolRequest(
                 _types.SSH_AGENTC.EXTENSION,
@@ -1430,7 +1433,6 @@ class TestAgentErrorResponses:
     )
     def test_tolerating_extra_success_after_extension_response(
         self,
-        running_ssh_agent: data.RunningSSHAgentInfo,
         success_after_query: bool,
         extensions: list[str] | data.AgentProtocolResponse,
     ) -> None:
@@ -1450,7 +1452,6 @@ class TestAgentErrorResponses:
         [OPENSSH_BZ3967]: https://bugzilla.mindrot.org/show_bug.cgi?id=3967
 
         """
-        del running_ssh_agent
         query_response = (
             extensions
             if isinstance(extensions, data.AgentProtocolResponse)
