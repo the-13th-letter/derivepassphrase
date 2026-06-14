@@ -832,7 +832,7 @@ class TestUtilities(TestVault):
             space=1,
             length=1,
         )
-        assert v._entropy() == 0.0
+        assert v._entropy() == 0.0  # noqa: RUF069
         assert v._estimate_sufficient_hash_length() > 0
 
     @Parametrize.SAMPLE_SERVICES_AND_PHRASES
@@ -849,7 +849,7 @@ class TestUtilities(TestVault):
         monkeypatch.setattr(
             v,
             "_estimate_sufficient_hash_length",
-            lambda *args, **kwargs: 1,  # noqa: ARG005
+            lambda *_args, **_kwargs: 1,
         )
         assert v._estimate_sufficient_hash_length() < len(self.phrase)
         assert v.generate(service) == expected

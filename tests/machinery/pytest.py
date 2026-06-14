@@ -512,8 +512,10 @@ def isolated_vault_exporter_config(
             ) -> Iterator[None]:  # pragma: no branch
                 oldpath = pathlib.Path.cwd().resolve()
                 os.chdir(newpath)
-                yield
-                os.chdir(oldpath)
+                try:
+                    yield
+                finally:
+                    os.chdir(oldpath)
 
     with runner.isolated_filesystem():
         cwd = str(pathlib.Path.cwd().resolve())

@@ -136,8 +136,10 @@ def format_key(key: tests.data.SSHTestKey) -> str:
         ]
         for sig in key.expected_signatures.values():
             expected_signature_lines.extend([
-                f"    {sig.signature_class!s}: "
-                "SSHTestKeyDeterministicSignature(\n",
+                (
+                    f"    {sig.signature_class!s}: "
+                    "SSHTestKeyDeterministicSignature(\n"
+                ),
                 "        signature=" + f(sig.signature) + ",\n",
                 "        derived_passphrase="
                 + f(sig.derived_passphrase)

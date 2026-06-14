@@ -330,7 +330,8 @@ class TestUserConfigurationFileOther:
                     main_config_str=main_config,
                 )
             )
-            yield monkeypatch
+            # If the setup blows up, then bubble the exception.
+            yield monkeypatch  # noqa: RUF075
             result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ["--phrase", "--", DUMMY_SERVICE],

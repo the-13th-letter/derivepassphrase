@@ -541,7 +541,8 @@ class TestExportConfigInvalid:
                     vault_config=config,
                 )
             )
-            yield command_line
+            # If the setup blows up, bubble the exception.
+            yield command_line  # noqa: RUF075
             result = runner.invoke(
                 cli.derivepassphrase_vault,
                 command_line,
@@ -743,7 +744,8 @@ class TestStoringConfigurationFailures:
                     "get_suitable_ssh_keys",
                     callables.suitable_ssh_keys,
                 )
-            yield monkeypatch
+            # If the setup blows up, bubble the exception.
+            yield monkeypatch  # noqa: RUF075
             result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ["--config", *command_line],

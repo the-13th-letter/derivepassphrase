@@ -81,7 +81,7 @@ def test_js_truthiness(value: Any) -> None:
         value is not None  # noqa: PLR1714
         and value != False  # noqa: E712
         and value != 0
-        and value != 0.0
+        and value != 0.0  # noqa: RUF069
         and value != ""
         and not (isinstance(value, float) and math.isnan(value))
     )

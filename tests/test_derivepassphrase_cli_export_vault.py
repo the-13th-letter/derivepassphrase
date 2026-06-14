@@ -271,7 +271,8 @@ class TestCLIFailures:
                     vault_key=vault_key,
                 )
             )
-            yield monkeypatch
+            # If the setup blows up, bubble the exception.
+            yield monkeypatch  # noqa: RUF075
             result = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 command_line,

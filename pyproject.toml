@@ -484,6 +484,11 @@ ignore = [
     # We catch type-ignore comments without specific code via the mypy
     # configuration, not via ruff.
     'PGH003',
+    # Provisionally ignore the `__init__.py` rule, until we can adapt our
+    # codebase.
+    'RUF067',
+    # Still undecided about this one.
+    'PLW0717',
 ]
 preview = true
 # We select here in the order of presentation on the ruff documentation

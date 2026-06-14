@@ -377,8 +377,7 @@ class TestStubbedSSHAgentSocketRequests:
         with contextlib.ExitStack() as stack:
             monkeypatch = stack.enter_context(pytest.MonkeyPatch.context())
             monkeypatch.setenv("SSH_AUTH_SOCK", agent_class.ADDRESS)
-            agent = stack.enter_context(agent_class())
-            yield agent
+            yield stack.enter_context(agent_class())
 
     def test_query_extensions_base(self) -> None:
         """The base agent implements no extensions."""
