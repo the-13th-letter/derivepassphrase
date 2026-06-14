@@ -444,10 +444,7 @@ class TestStubbedSSHAgentSocketRequests:
             orig_message: bytes | bytearray = bytearray(
                 agent.recv(message_length)
             )
-            assert (
-                _types.SSH_AGENT(orig_message[0])
-                == _types.SSH_AGENT.IDENTITIES_ANSWER
-            )
+            assert orig_message[0] == _types.SSH_AGENT.IDENTITIES_ANSWER
             identity_count = int.from_bytes(orig_message[1:5], "big")
             message = bytes(orig_message[5:])
             for _ in range(identity_count):
@@ -477,9 +474,7 @@ class TestStubbedSSHAgentSocketRequests:
             orig_message: bytes | bytearray = bytearray(
                 agent.recv(message_length)
             )
-            assert (
-                _types.SSH_AGENT(orig_message[0]) == _types.SSH_AGENT.SUCCESS
-            )
+            assert orig_message[0] == _types.SSH_AGENT.SUCCESS
             identity_count = int.from_bytes(orig_message[1:5], "big")
             message = bytes(orig_message[5:])
             for _ in range(identity_count):

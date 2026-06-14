@@ -12,6 +12,7 @@ wrappers, stub systems, and the like.
 
 from __future__ import annotations
 
+import collections
 import contextlib
 import errno
 import logging
@@ -23,16 +24,17 @@ from typing import TYPE_CHECKING, TypedDict
 import click.testing
 from typing_extensions import NamedTuple
 
-import tests.data
 from derivepassphrase import _types, cli, ssh_agent, vault
 from derivepassphrase.ssh_agent import socketprovider
+from tests import data
 
 __all__ = ()
 
 if TYPE_CHECKING:
+    import types
     from collections.abc import Callable, Iterator, Mapping, Sequence
     from contextlib import AbstractContextManager
-    from typing import IO, NotRequired
+    from typing import IO, Literal, NotRequired
 
     from typing_extensions import Any, Buffer, Self
 
@@ -191,7 +193,7 @@ class ReadableResult(NamedTuple):
                         error_match(error, line)
                         for line in self.stderr.splitlines(True)
                     )
-                    or tests.machinery.error_emitted(error, record_tuples)
+                    or error_emitted(error, record_tuples)
                 )
             )
 
@@ -295,6 +297,88 @@ class CliRunner:
         )
 
 
+# Stubbed SSH agent request/response queue
+# ========================================
+
+
+class AgentProtocolResponseQueue:
+    """A response queue for the SSH agent protocol.
+
+    This queue wraps a map of request messages
+    ([`AgentProtocolRequest`][data.AgentProtocolRequest]) to multiple
+    response messages
+    ([`AgentProtocolResponse`][data.AgentProtocolResponse]).  Whenever
+    [`_request_message`][] is called with a payload that matches
+    a [`AgentProtocolRequest`][data.AgentProtocolRequest] from the map,
+    the corresponding
+    [`AgentProtocolResponse`][data.AgentProtocolResponse] objects are
+    added to the queue, to be read by subsequent [`_response_pair`][]
+    calls.
+
+    The queue is a context manager.  When entered or exited, it
+    verifies that the queue is empty.
+
+    Use this agent stub implementation if you are modelling well-formed
+    requests and responses, without network errors or protocol framing
+    errors.  For modelling the latter, see [`StubbedSSHAgentSocket`][].
+
+    """
+
+    def __init__(
+        self,
+        request_responses_mapping: Mapping[
+            data.AgentProtocolRequest,
+            Sequence[data.AgentProtocolResponse],
+        ],
+    ) -> None:
+        self.responses_map = request_responses_mapping
+        self.queue: collections.deque[data.AgentProtocolResponse] = (
+            collections.deque()
+        )
+
+    def __bool__(self) -> bool:
+        return bool(self.queue)
+
+    def __enter__(self) -> Self:
+        assert not self, (
+            f"Agent I/O queue already has contents: {self.queue!r}"
+        )
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> Literal[False]:
+        if (exc_type, exc_value, exc_tb) != (
+            None,
+            None,
+            None,
+        ):  # pragma: no cover [external]
+            return False
+        assert not self, f"Agent I/O queue still has contents: {self.queue!r}"
+        return False
+
+    def _send_request_message(
+        self,
+        request_code: int | _types.SSH_AGENTC,
+        payload: bytes | bytearray,
+    ) -> None:
+        req = data.AgentProtocolRequest(request_code, bytes(payload))
+        assert req in self.responses_map, (
+            f"No prepared response for the request {req!r}"
+        )
+        self.queue.extend(self.responses_map[req])
+
+    def _get_response_pair(
+        self,
+    ) -> tuple[int | _types.SSH_AGENT, bytes | bytearray]:
+        assert self.queue, "No more responses left to replay"
+        response = self.queue.popleft()
+        return response.code, response.payload
+
+
 # Stubbed SSH agent socket
 # ========================
 
@@ -384,7 +468,7 @@ class StubbedSSHAgentSocket:
         try:
             self.parse_client_request_and_dispatch()
         except ValueError:
-            payload = int.to_bytes(_types.SSH_AGENT.FAILURE.value, 1, "big")
+            payload = int.to_bytes(_types.SSH_AGENT.FAILURE, 1, "big")
             self.send_to_client.extend(int.to_bytes(len(payload), 4, "big"))
             self.send_to_client.extend(payload)
         finally:
@@ -490,7 +574,7 @@ class StubbedSSHAgentSocket:
             iterable of 8-bit integers.
 
         """
-        yield _types.SSH_AGENT.EXTENSION_RESPONSE.value
+        yield _types.SSH_AGENT.EXTENSION_RESPONSE
         yield from ssh_agent.SSHAgentClient.string(b"query")
         extension_answers = [
             b"query",
@@ -518,22 +602,22 @@ class StubbedSSHAgentSocket:
 
         """
         if list_extended:
-            yield _types.SSH_AGENT.SUCCESS.value
+            yield _types.SSH_AGENT.SUCCESS
         else:
-            yield _types.SSH_AGENT.IDENTITIES_ANSWER.value
+            yield _types.SSH_AGENT.IDENTITIES_ANSWER
         signature_classes = [
-            tests.data.SSHTestKeyDeterministicSignatureClass.SPEC,
+            data.SSHTestKeyDeterministicSignatureClass.SPEC,
         ]
         if (
             "list-extended@putty.projects.tartarus.org"
             in self.enabled_extensions
         ):
             signature_classes.append(
-                tests.data.SSHTestKeyDeterministicSignatureClass.RFC_6979
+                data.SSHTestKeyDeterministicSignatureClass.RFC_6979
             )
         keys = [
             v
-            for v in tests.data.ALL_KEYS.values()
+            for v in data.ALL_KEYS.values()
             if any(cls in v.expected_signatures for cls in signature_classes)
         ]
         yield from ssh_agent.SSHAgentClient.uint32(len(keys))
@@ -559,8 +643,8 @@ class StubbedSSHAgentSocket:
             "list-extended@putty.projects.tartarus.org"
             in self.enabled_extensions
         )
-        spec = tests.data.SSHTestKeyDeterministicSignatureClass.SPEC
-        rfc6979 = tests.data.SSHTestKeyDeterministicSignatureClass.RFC_6979
+        spec = data.SSHTestKeyDeterministicSignatureClass.SPEC
+        rfc6979 = data.SSHTestKeyDeterministicSignatureClass.RFC_6979
         key_blob, rest = ssh_agent.SSHAgentClient.unstring_prefix(
             self.receive_from_client[self.HEADER_SIZE + self.CODE_SIZE :]
         )
@@ -572,17 +656,17 @@ class StubbedSSHAgentSocket:
             raise ValueError(self._UNSUPPORTED_REQUEST)
         if sign_data != vault.Vault.UUID:
             raise ValueError(self._UNSUPPORTED_REQUEST)
-        for key in tests.data.ALL_KEYS.values():
+        for key in data.ALL_KEYS.values():
             if key.public_key_data == key_blob:
                 if spec in key.expected_signatures:
                     return int.to_bytes(
-                        _types.SSH_AGENT.SIGN_RESPONSE.value, 1, "big"
+                        _types.SSH_AGENT.SIGN_RESPONSE, 1, "big"
                     ) + ssh_agent.SSHAgentClient.string(
                         key.expected_signatures[spec].signature
                     )
                 if try_rfc6979 and rfc6979 in key.expected_signatures:
                     return int.to_bytes(
-                        _types.SSH_AGENT.SIGN_RESPONSE.value, 1, "big"
+                        _types.SSH_AGENT.SIGN_RESPONSE, 1, "big"
                     ) + ssh_agent.SSHAgentClient.string(
                         key.expected_signatures[rfc6979].signature
                     )

@@ -32,6 +32,79 @@ __all__ = ("SSHAgentClient",)
 # a 4-byte/32-bit unsigned integer at the beginning.
 HEAD_LEN = 4
 
+# Needed for handling OpenSSH bug 3967.  See
+# _check_for_extra_success_response_after_query_extension_request.
+_OPENSSH_AGENT_10_3_QUERY_EXTENSION_RESPONSE_PAYLOAD = bytes.fromhex("""
+00 00 00 05 71 75 65 72 79
+00 00 00 18 73 65 73 73 69 6f 6e 2d
+62 69 6e 64 40 6f 70 65 6e 73 73 68 2e 63 6f 6d
+""")
+
+
+def _check_for_extra_empty_success_response_after_query_extension_request(
+    client: SSHAgentClient, response_data: bytes | bytearray
+) -> None:
+    """Check for extra `SUCCESS` responses after a "query" extension request.
+
+    OpenSSH's `ssh-agent` version 10.3 erroneously answers a "query"
+    extension request with two response messages: the expected
+    [`EXTENSION_RESPONSE`][_types.SSH_AGENT.EXTENSION_RESPONSE] or
+    [`SUCCESS`][_types.SSH_AGENT.SUCCESS] message, and the unexpected
+    extra `SUCCESS` message.  This causes a misalignment of the request
+    and response messages if further requests are later issued to the
+    agent.
+
+    ([OpenSSH acknowledges this as Bug 3967][OPENSSH_BZ3967], and
+    intends to fix this in version 10.4.)
+
+    This callback is intended to run immediately after issuing a "query"
+    extension request to the agent, and after reading its response.  If
+    we detect the aforementioned OpenSSH behavior, then we re-align the
+    request and response messages queue.  Otherwise, we do nothing.  In
+    particular, it is safe to call us (at the aforementioned time) even
+    on different SSH agents, or on versions of OpenSSH's agent that do
+    not exhibit this bug.
+
+    [OPENSSH_BZ3967]: https://bugzilla.mindrot.org/show_bug.cgi?id=3967
+
+    Args:
+        client:
+            The client connected to the SSH agent that may or may not
+            exhibit this OpenSSH behavior.  We assume that the client
+            has just issued a "query" extension request, that the client
+            has read and parsed the (first) response of the agent, that
+            the response message was an `EXTENSION_RESPONSE` or
+            a `SUCCESS` message, and that the response message (except
+            for the response code) is exactly the contents of the
+            `response_data` argument.
+        response_data:
+            The payload of the response message to a "query" extension
+            request issued to the SSH agent immediately prior.
+
+    """
+    if response_data == _OPENSSH_AGENT_10_3_QUERY_EXTENSION_RESPONSE_PAYLOAD:
+        # We cannot blindly read from the agent socket to check
+        # for a possible extra SUCCESS response: that would
+        # deadlock if the extra response is missing.  Instead,
+        # we issue a second "query" request, and depending on
+        # whether we next see the extra empty SUCCESS response or not,
+        # we know whether to discard an additional two response
+        # messages or not.
+        #
+        # (Principally any request that does *not* ellicit
+        # a SUCCESS response and which does not modify the
+        # agent's state would do for this.)
+        response_code, response_data2 = client.request(
+            _types.SSH_AGENTC.REQUEST_IDENTITIES, b"", response_code=None
+        )
+        if response_code == _types.SSH_AGENT.SUCCESS and not response_data2:
+            response_code, response_data2 = client._get_response_pair()  # noqa: SLF001
+        assert response_code == _types.SSH_AGENT.IDENTITIES_ANSWER, (
+            "failed to re-synchronize with agent via REQUEST_IDENTITIES "
+            'after "query" EXTENSION_REQUEST: want IDENTITIES_ANSWER, '
+            f"got {response_code!r}, {response_data2!r}"
+        )
+
 
 class TrailingDataError(RuntimeError):
     """The result contained trailing data."""
@@ -66,14 +139,14 @@ class SSHAgentFailedError(RuntimeError):
         # TODO(the-13th-letter): Rewrite using structural pattern matching.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
         if self.args == (  # pragma: no branch
-            _types.SSH_AGENT.FAILURE.value,
+            _types.SSH_AGENT.FAILURE,
             b"",
         ):
             return "The SSH agent failed to complete the request"
         elif self.args[1]:  # noqa: RET505  # pragma: no cover [failsafe]
             code = self.args[0]
-            msg = self.args[1].decode("utf-8", "surrogateescape")
-            return f"[Code {code:d}] {msg:s}"
+            msg = self.args[1]
+            return f"[Code {code:d}] {msg!r}"
         else:  # pragma: no cover [failsafe]
             return repr(self)
 
@@ -462,6 +535,50 @@ class SSHAgentClient:
             v() for v in known_good_agents.values()
         )
 
+    def _send_request_message(
+        self, code: int | _types.SSH_AGENTC, payload: Buffer, /
+    ) -> None:
+        """Prepare and send a generic request to the SSH agent.
+
+        We take care of packing, framing and sending the request.
+
+        Args:
+            code:
+                See [request][].
+            payload:
+                See [request][].
+
+        """
+        payload = memoryview(payload)
+        request_message = bytearray([code])
+        request_message.extend(payload)
+        self._connection.sendall(self.string(request_message))
+
+    def _get_response_pair(self) -> tuple[int, bytes]:
+        """Read the response for a generic request to the SSH agent.
+
+        Returns:
+            A 2-tuple consisting of the response code and the payload,
+            with all wire framing removed.
+
+        Raises:
+            EOFError:
+                The response from the SSH agent is truncated or missing.
+            OSError:
+                There was a communication error with the SSH agent.
+
+        """
+        chunk = self._connection.recv(HEAD_LEN)
+        if len(chunk) < HEAD_LEN:
+            msg = "cannot read response length"
+            raise EOFError(msg)
+        response_length = int.from_bytes(chunk, "big", signed=False)
+        response = self._connection.recv(response_length)
+        if len(response) < response_length:
+            msg = "truncated response from SSH agent"
+            raise EOFError(msg)
+        return response[0], response[1:]
+
     @overload
     def request(
         self,
@@ -539,34 +656,15 @@ class SSHAgentClient:
                 any of them.
 
         """
-        if isinstance(  # pragma: no branch
-            response_code, (int, _types.SSH_AGENT)
-        ):
+        if isinstance(response_code, int):  # pragma: no branch
             response_code = frozenset({response_code})
-        if response_code is not None:  # pragma: no branch
-            response_code = frozenset({
-                c if isinstance(c, int) else c.value for c in response_code
-            })
-        payload = memoryview(payload)
-        request_message = bytearray([
-            code if isinstance(code, int) else code.value
-        ])
-        request_message.extend(payload)
-        self._connection.sendall(self.string(request_message))
-        chunk = self._connection.recv(HEAD_LEN)
-        if len(chunk) < HEAD_LEN:
-            msg = "cannot read response length"
-            raise EOFError(msg)
-        response_length = int.from_bytes(chunk, "big", signed=False)
-        response = self._connection.recv(response_length)
-        if len(response) < response_length:
-            msg = "truncated response from SSH agent"
-            raise EOFError(msg)
+        self._send_request_message(code, payload)
+        actual_code, response = self._get_response_pair()
         if not response_code:  # pragma: no cover [failsafe]
-            return response[0], response[1:]
-        if response[0] not in response_code:
-            raise SSHAgentFailedError(response[0], response[1:])
-        return response[1:]
+            return actual_code, response
+        if actual_code not in response_code:
+            raise SSHAgentFailedError(actual_code, response)
+        return response
 
     def list_keys(self) -> Sequence[_types.SSHKeyCommentPair]:
         """Request a list of keys known to the SSH agent.
@@ -679,7 +777,7 @@ class SSHAgentClient:
         return bytes(
             self.unstring(
                 self.request(
-                    _types.SSH_AGENTC.SIGN_REQUEST.value,
+                    _types.SSH_AGENTC.SIGN_REQUEST,
                     request_data,
                     response_code=_types.SSH_AGENT.SIGN_RESPONSE,
                 )
@@ -711,6 +809,17 @@ class SSHAgentClient:
 
         """
         try:
+            # The draft-miller-ssh-agent-14 (2024-04-15) version of the
+            # SSH agent protocol specification introduced the
+            # SSH_AGENT_EXTENSION_RESPONSE protocol message, and
+            # suggested the use of this message in the response for
+            # SSH_AGENTC_EXTENSION requests.  Older versions of the spec
+            # used the SSH_AGENT_SUCCESS response, and even the newer
+            # spec versions contain wording that allows such usage
+            # across all SSH_AGENTC_EXTENSION requests.  Both response
+            # codes are used in the wild (`ssh-agent`/OpenSSH 10.3,
+            # `pageant`/PuTTY 0.83), so both of them need to be
+            # supported for compatibility reasons.
             response_data = self.request(
                 _types.SSH_AGENTC.EXTENSION,
                 self.string(b"query"),
@@ -719,9 +828,13 @@ class SSHAgentClient:
                     _types.SSH_AGENT.SUCCESS,
                 },
             )
+            _check_for_extra_empty_success_response_after_query_extension_request(
+                self, response_data
+            )
         except SSHAgentFailedError:
             # Cannot query extension support.  Assume no extensions.
-            # This isn't necessarily true, e.g. for OpenSSH's ssh-agent.
+            # This isn't necessarily true, e.g. for OpenSSH's ssh-agent
+            # 10.2 and older.
             return frozenset()
         extensions: set[bytes] = set()
         msg = "Malformed response from SSH agent"

@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import base64
 import enum
-from typing import TYPE_CHECKING, Protocol, cast
+from typing import TYPE_CHECKING, cast
 
 from typing_extensions import NamedTuple
 
@@ -31,7 +31,7 @@ from derivepassphrase.ssh_agent import socketprovider
 __all__ = ()
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
+    from collections.abc import Mapping
 
     from typing_extensions import Any
 
@@ -255,24 +255,38 @@ class RunningSSHAgentInfo(NamedTuple):
         return self.socket
 
 
-# `derivepassphrase` internal functions
-# -------------------------------------
+class AgentProtocolRequest(NamedTuple):
+    """A request for the SSH agent protocol.
+
+    Attributes:
+        code:
+            The expected request code.
+        payload:
+            The expected payload.  Optional.
+
+    """
+
+    code: _types.SSH_AGENTC | int
+    """"""
+    payload: bytes
+    """"""
 
 
-class RequestFunc(Protocol):
-    """The call signature of [`ssh_agent.SSHAgentClient.request`][]."""
+class AgentProtocolResponse(NamedTuple):
+    """A response for the SSH agent protocol.
 
-    def __call__(
-        self,
-        request_code: int | _types.SSH_AGENTC,
-        payload: bytes | bytearray,
-        /,
-        *,
-        response_code: Iterable[int | _types.SSH_AGENT]
-        | int
-        | _types.SSH_AGENT
-        | None = None,
-    ) -> tuple[int, bytes | bytearray] | bytes | bytearray: ...
+    Attributes:
+        code:
+            The desired response code.
+        payload:
+            The desired response payload.
+
+    """
+
+    code: _types.SSH_AGENT | int
+    """"""
+    payload: bytes
+    """"""
 
 
 # Vault configurations
