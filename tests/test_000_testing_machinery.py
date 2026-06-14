@@ -283,6 +283,7 @@ class TestTestKeys:
         assert base64.standard_b64encode(key.public_key_data) == public_key_b64
         assert key.public_key_data.startswith(string(key_type_name))
 
+    # TODO(the-13th-letter): Put RSA key mangling into helper method.
     @Parametrize.TEST_KEYS
     def test_private_keys_are_consistent_with_public_keys(
         self,
@@ -531,7 +532,7 @@ class TestStubbedSSHAgentSocketProperOperations:
         del agent
 
     def test_closed_agents_cannot_be_interacted_with(self) -> None:
-        """The agent can be closed repeatedly."""
+        """The agent cannot be usefully used after close."""
         with machinery.StubbedSSHAgentSocket() as agent:
             pass
         query_request = (

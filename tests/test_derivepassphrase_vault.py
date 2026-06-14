@@ -40,6 +40,20 @@ TWITTER_PHRASE = rb"[ (HN_N:lI&<ro=)3'g9"
 The standard derived passphrase for the "twitter" service, from
 <i>vault</i>(1)'s test suite.
 """
+INTERCHANGABLE_PHRASE1 = (
+    b"plnlrtfpijpuhqylxbgqiiyipieyxvfsavzgxbbcfusqkozwpngsyejqlmjsytrmd"
+)
+"""
+One of two [interchangable passphrases][INTERCHANGABLE_PASSPHRASES],
+based on [Wikipedia's page on PBKDF2 (HMAC collisions)][HMAC_COL].
+
+[INTERCHANGABLE_PASSPHRASES]: https://the13thletter.info/derivepassphrase/0.x/explanation/faq-vault-interchangable-passphrases/ 'What are "interchangable passphrases" in `vault`, and what does that mean in practice?'
+[HMAC_COL]: https://en.wikipedia.org/w/index.php?title=PBKDF2&oldid=1264881215#HMAC_collisions
+"""
+INTERCHANGABLE_PHRASE2 = b"eBkXQTfuBqp'cTcar&g*"
+"""
+Same purpose as [`INTERCHANGABLE_PHRASE1`][INTERCHANGABLE_PHRASE1].
+"""
 
 buffer_types: dict[str, Callable[..., Buffer]] = {
     "bytes": bytes,
@@ -79,8 +93,9 @@ class Parametrize(types.SimpleNamespace):
         [
             "ñ",
             "Düsseldorf",
-            "liberté, egalité, fraternité",
+            "Liberté, égalité, fraternité",
             "ASCII",
+            "こんにちは。",
             b"D\xc3\xbcsseldorf",
             bytearray([2, 3, 5, 7, 11, 13]),
         ],
@@ -352,22 +367,9 @@ class TestPhraseDependence:
         service=Strategies.text_strategy(),
     )
     @hypothesis.example(
-        phrases=[
-            (
-                b"plnlrtfpijpuhqylxbgqiiyipieyxvfs"
-                b"avzgxbbcfusqkozwpngsyejqlmjsytrmd"
-            ),
-            b"eBkXQTfuBqp'cTcar&g*",
-        ],
+        phrases=[INTERCHANGABLE_PHRASE1, INTERCHANGABLE_PHRASE2],
         service="any service name here",
-    ).xfail(
-        reason=(
-            "phrases are interchangable (Wikipedia example:"
-            "https://en.wikipedia.org/w/index.php?title=PBKDF2&oldid=1264881215#HMAC_collisions"
-            ")"
-        ),
-        raises=AssertionError,
-    )
+    ).xfail(reason="phrases are interchangable", raises=AssertionError)
     def test_mixed(self, phrases: Sequence[bytes], service: str) -> None:
         """The internal hash is dependent on the master passphrase.
 
@@ -625,7 +627,7 @@ class TestConstraintSatisfactionFromUpstream(TestVault):
         assert generated == b"763252593304946694588866"
 
 
-class TestConstraintSatisfactionThoroughness(TestVault):
+class TestConstraintSatisfactionThoroughness:
     """Test passphrase derivation with the "vault" scheme: constraint satisfaction."""
 
     @hypothesis.given(
@@ -690,7 +692,7 @@ class TestConstraintSatisfactionThoroughness(TestVault):
             assert count <= repeat
 
 
-class TestConstraintSatisfactionHeavyDuty(TestVault):
+class TestConstraintSatisfactionHeavyDuty:
     """Test passphrase derivation with the "vault" scheme: constraint satisfaction."""
 
     @hypothesis.given(
@@ -819,6 +821,8 @@ class TestUtilities(TestVault):
             )
         assert v._estimate_sufficient_hash_length(8.0) >= entropy
 
+    # TODO(the-13th-letter): Either fold this version into test_entropy,
+    # or remove degenerate cases from Parametrize.ENTROPY_RESULTS.
     def test_hash_length_estimation(self) -> None:
         """
         Estimating the entropy and hash length for degenerate cases works.

@@ -130,12 +130,18 @@ class TestNotesPrinting:
                     "expected known stderr contents"
                 )
 
-    @hypothesis.given(notes=Strategies.notes().filter(str.strip))
+    @hypothesis.given(notes=Strategies.notes())
     def test_service_with_notes_actually_prints_notes(
         self,
         notes: str,
     ) -> None:
-        """Service notes are printed, if they exist."""
+        """Service notes are printed, if they contain content.
+
+        (Service notes are trimmed before printing, and thus result in
+        output if and only if they are non-empty after trimming leading
+        and trailing whitespace.)
+
+        """
         hypothesis.assume("Error:" not in notes)
         self._test(notes, notes_placement=None, placement_args=())
 
@@ -404,6 +410,8 @@ class TestNotesEditingValid(TestNotesEditing):
             notes_unchanged=notes_unchanged,
         )
 
+    # TODO(the-13th-letter): Investigate behavior with respect to
+    # whitespace-only notes and the legacy editor interface.
     @Parametrize.MODERN_EDITOR_INTERFACE
     @hypothesis.settings(
         suppress_health_check=[

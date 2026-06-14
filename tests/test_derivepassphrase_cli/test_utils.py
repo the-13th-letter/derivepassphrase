@@ -1231,7 +1231,7 @@ class TestTempdir:
     # filenames.
     @hypothesis.given(
         env_var=strategies.sampled_from(["TMPDIR", "TEMP", "TMP"]),
-        suffix=strategies.builds(
+        subdir=strategies.builds(
             operator.add,
             strategies.text(
                 tuple(" 0123456789abcdefghijklmnopqrstuvwxyz"),
@@ -1245,13 +1245,13 @@ class TestTempdir:
             ),
         ),
     )
-    @hypothesis.example(env_var="", suffix=".").via(
+    @hypothesis.example(env_var="", subdir=".").via(
         "static example; branch coverage (test)"
     )
     def test_get_tempdir(
         self,
         env_var: str,
-        suffix: str,
+        subdir: str,
     ) -> None:
         """[`cli_helpers.get_tempdir`][] returns a temporary directory.
 
@@ -1290,7 +1290,7 @@ class TestTempdir:
             monkeypatch.delenv("TEMP", raising=False)
             monkeypatch.delenv("TMP", raising=False)
             monkeypatch.setattr(tempfile, "tempdir", None)
-            temp_path = pathlib.Path.cwd() / suffix
+            temp_path = pathlib.Path.cwd() / subdir
             if env_var:
                 monkeypatch.setenv(env_var, os.fsdecode(temp_path))
                 stack.enter_context(make_temporary_directory(temp_path))

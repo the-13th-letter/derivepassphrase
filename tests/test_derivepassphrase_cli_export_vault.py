@@ -392,6 +392,7 @@ class TestStoreroom:
                 == data.VAULT_STOREROOM_CONFIG_DATA
             )
 
+    # TODO(the-13th-letter): Rewrite as property-based test.
     @pytest_machinery.correctness_focused
     def test_decrypt_bucket_item_unknown_version(self) -> None:
         """Fail on unknown versions of the master keys file."""
@@ -406,6 +407,7 @@ class TestStoreroom:
         with pytest.raises(ValueError, match="Cannot handle version 255"):
             storeroom._decrypt_bucket_item(bucket_item, master_keys)
 
+    # TODO(the-13th-letter): Rewrite as property-based test.
     @pytest_machinery.correctness_focused
     @Parametrize.BAD_CONFIG
     def test_decrypt_bucket_file_bad_json_or_version(
@@ -430,6 +432,7 @@ class TestStoreroom:
             with pytest.raises(ValueError, match="Invalid bucket file: "):
                 list(storeroom._decrypt_bucket_file(p, master_keys))
 
+    # TODO(the-13th-letter): Rewrite as property-based test.
     @pytest_machinery.correctness_focused
     @Parametrize.BAD_MASTER_KEYS_DATA
     @Parametrize.STOREROOM_HANDLER
@@ -451,6 +454,7 @@ class TestStoreroom:
             with pytest.raises(RuntimeError, match=err_msg):
                 handler(format="storeroom")
 
+    # TODO(the-13th-letter): Rewrite as property-based test.
     @pytest_machinery.correctness_focused
     @Parametrize.BAD_STOREROOM_CONFIG_DATA
     @Parametrize.STOREROOM_HANDLER
@@ -481,6 +485,7 @@ class TestStoreroom:
             with pytest.raises(RuntimeError, match=error_text):
                 handler(format="storeroom")
 
+    # TODO(the-13th-letter): Rewrite as property-based test.
     @pytest_machinery.correctness_focused
     def test_decrypt_keys_wrong_data_length(self) -> None:
         """Fail on internal structural data of the wrong size.
@@ -533,6 +538,7 @@ class TestStoreroom:
                 ),
             )
 
+    # TODO(the-13th-letter): Generate key as well.
     @pytest_machinery.correctness_focused
     @hypothesis.given(
         data=strategies.binary(

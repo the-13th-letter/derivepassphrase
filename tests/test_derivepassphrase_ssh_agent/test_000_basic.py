@@ -627,10 +627,17 @@ class TestSSHProtocolDatatypes(TestStaticFunctionality):
         [DECODE_ENCODE]: https://hypothesis.works/articles/canonical-serialization/
 
         """
+        # Both canonicalization functions are built with slightly
+        # different primitives.  However, because SSH string encoding is
+        # a bijective encoding, their result should be the same.
         canonical_functions = [self.canonicalize1, self.canonicalize2]
+        # Test encoding equivalence.
         for canon1 in canonical_functions:
             for canon2 in canonical_functions:
                 assert canon1(encoded) == canon2(encoded)
+        # Test idempotence.
+        for canon1 in canonical_functions:
+            for canon2 in canonical_functions:
                 assert canon1(canon2(encoded)) == canon1(encoded)
 
     @Parametrize.UINT32_EXCEPTIONS

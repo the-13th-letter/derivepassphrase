@@ -346,6 +346,8 @@ class TestSequin:
         steps: Sequence[tuple[int, int | type[sequin.SequinExhaustedError]]]
         """"""
 
+        # TODO(the-13th-letter): Add more known sequences. Derive those
+        # from sequin.js.
         @strategies.composite
         @staticmethod
         def strategy(draw: strategies.DrawFn) -> TestSequin.GenerationSequence:
@@ -466,6 +468,8 @@ class TestSequin:
         steps: Sequence[tuple[int, Sequence[int], Sequence[int]]]
         """"""
 
+        # TODO(the-13th-letter): Check feasibility of encoding
+        # unsatisfiable shifts.
         @strategies.composite
         @staticmethod
         def strategy(draw: strategies.DrawFn) -> TestSequin.ShiftSequence:
@@ -486,7 +490,8 @@ class TestSequin:
                     operator.add,
                     no_op_counts_strategy,
                     true_counts_strategy,
-                ).flatmap(strategies.permutations)
+                ).flatmap(strategies.permutations),
+                label="sequence of bit shift sizes",
             )
             bit_sequence: list[int] = []
             steps: list[tuple[int, Sequence[int], list[int]]] = []
@@ -494,7 +499,8 @@ class TestSequin:
                 shift_result = draw(
                     strategies.lists(
                         bits_strategy, min_size=count, max_size=count
-                    )
+                    ),
+                    label=f"shift result #{i}",
                 )
                 for step in steps[:i]:
                     step[2].extend(shift_result)

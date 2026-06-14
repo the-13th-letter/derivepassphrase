@@ -328,6 +328,7 @@ class TestCLIUtilities:
                 == expected.expanduser().resolve()
             )
 
+    # TODO(the-13th-letter): Revise, or remove.
     def test_get_vault_path_without_home(self) -> None:
         """Fail to look up the vault path without `HOME`."""
 
@@ -465,6 +466,7 @@ class TestGenericVaultCLIErrors:
                 catch_exceptions=False,
             )
 
+    # TODO(the-13th-letter): Rewrite as property-based test.
     def test_invalid_format(self) -> None:
         """Reject invalid vault configuration format names."""
         result = self._call_cli(["-f", "INVALID", "VAULT_PATH"])
