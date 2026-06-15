@@ -690,12 +690,20 @@ class TestSSHAgentSocketProviderRegistry:
         resolve = socketprovider.SocketProvider.resolve
         lookup = socketprovider.SocketProvider.lookup
         with pytest.MonkeyPatch.context() as monkeypatch:
-            monkeypatch.setitem(registry, "stub_agent", None)
-            assert callable(lookup("native"))
-            assert callable(resolve("native"))
-            assert lookup("stub_agent") is None
+            monkeypatch.setitem(
+                registry, _types.BuiltinSSHAgentSocketProvider.STUB_AGENT, None
+            )
+            assert callable(
+                lookup(_types.BuiltinSSHAgentSocketProvider.NATIVE)
+            )
+            assert callable(
+                resolve(_types.BuiltinSSHAgentSocketProvider.NATIVE)
+            )
+            assert (
+                lookup(_types.BuiltinSSHAgentSocketProvider.STUB_AGENT) is None
+            )
             with pytest.raises(NotImplementedError):
-                resolve("stub_agent")
+                resolve(_types.BuiltinSSHAgentSocketProvider.STUB_AGENT)
 
     @Parametrize.RESOLVE_CHAINS
     def test_resolve_chains(
@@ -708,15 +716,17 @@ class TestSSHAgentSocketProviderRegistry:
         resolve = socketprovider.SocketProvider.resolve
         lookup = socketprovider.SocketProvider.lookup
         try:
-            implementation = resolve("native")
+            implementation = resolve(
+                _types.BuiltinSSHAgentSocketProvider.NATIVE
+            )
         except NotImplementedError:  # pragma: no cover
             pytest.fail("Native SSH agent socket provider is unavailable?!")
         # TODO(the-13th-letter): Rewrite using structural pattern matching.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        target = (
+        target: _types.SSHAgentSocketProvider | str | None = (
             None
             if terminal == "unimplemented"
-            else "native"
+            else _types.BuiltinSSHAgentSocketProvider.NATIVE
             if terminal == "alias"
             else implementation
         )
@@ -767,16 +777,18 @@ class TestSSHAgentSocketProviderRegistry:
         resolve = socketprovider.SocketProvider.resolve
         lookup = socketprovider.SocketProvider.lookup
         try:
-            implementation = resolve("native")
+            implementation = resolve(
+                _types.BuiltinSSHAgentSocketProvider.NATIVE
+            )
         except NotImplementedError:  # pragma: no cover
             hypothesis.note(f"{registry = }")
             pytest.fail("Native SSH agent socket provider is unavailable?!")
         # TODO(the-13th-letter): Rewrite using structural pattern matching.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        target = (
+        target: _types.SSHAgentSocketProvider | str | None = (
             None
             if terminal == "unimplemented"
-            else "native"
+            else _types.BuiltinSSHAgentSocketProvider.NATIVE
             if terminal == "alias"
             else implementation
         )
@@ -878,15 +890,21 @@ class TestSSHAgentSocketProviderRegistry:
     ) -> None:
         """Resolving a non-existant entry fails."""
         new_registry = {
-            "posix": socketprovider.SocketProvider.resolve("posix"),
-            "windows": socketprovider.SocketProvider.resolve("windows"),
+            _types.BuiltinSSHAgentSocketProvider.POSIX: socketprovider.SocketProvider.resolve(
+                _types.BuiltinSSHAgentSocketProvider.POSIX
+            ),
+            _types.BuiltinSSHAgentSocketProvider.WINDOWS: socketprovider.SocketProvider.resolve(
+                _types.BuiltinSSHAgentSocketProvider.WINDOWS
+            ),
         }
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setattr(
                 socketprovider.SocketProvider, "registry", new_registry
             )
             with pytest.raises(socketprovider.NoSuchProviderError):
-                socketprovider.SocketProvider.resolve("native")
+                socketprovider.SocketProvider.resolve(
+                    _types.BuiltinSSHAgentSocketProvider.NATIVE
+                )
 
     def test_register_new_entry(
         self,
@@ -898,8 +916,12 @@ class TestSSHAgentSocketProviderRegistry:
 
         names = ["spam", "ham", "eggs", "parrot"]
         new_registry = {
-            "posix": socketprovider.SocketProvider.resolve("posix"),
-            "windows": socketprovider.SocketProvider.resolve("windows"),
+            _types.BuiltinSSHAgentSocketProvider.POSIX: socketprovider.SocketProvider.resolve(
+                _types.BuiltinSSHAgentSocketProvider.POSIX
+            ),
+            _types.BuiltinSSHAgentSocketProvider.WINDOWS: socketprovider.SocketProvider.resolve(
+                _types.BuiltinSSHAgentSocketProvider.WINDOWS
+            ),
         }
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setattr(
@@ -1483,7 +1505,9 @@ class TestSSHAgentSocketProviderFailures:
     ) -> None:
         """For `posix`, fail if the running agent cannot be located."""
         del skip_if_no_af_unix_support
-        provider = socketprovider.SocketProvider.resolve("posix")
+        provider = socketprovider.SocketProvider.resolve(
+            _types.BuiltinSSHAgentSocketProvider.POSIX
+        )
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
             with pytest.raises(
@@ -1500,7 +1524,7 @@ class TestSSHAgentSocketProviderFailures:
         """For `ssh_auth_sock_on_windows`, fail for bad named pipe names."""
         del skip_if_no_ctypes_windll_support
         provider = socketprovider.SocketProvider.resolve(
-            "ssh_auth_sock_on_windows"
+            _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_WINDOWS
         )
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setenv("SSH_AUTH_SOCK", named_pipe_name)

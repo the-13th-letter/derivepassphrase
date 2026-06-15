@@ -386,7 +386,9 @@ class AgentProtocolResponseQueue:
 # ------------
 
 
-@socketprovider.SocketProvider.register("stub_agent")
+@socketprovider.SocketProvider.register(
+    _types.BuiltinSSHAgentSocketProvider.STUB_AGENT
+)
 class StubbedSSHAgentSocket:
     """A stubbed SSH agent presenting an [`_types.SSHAgentSocket`][]."""
 
@@ -678,7 +680,9 @@ class StubbedSSHAgentSocket:
 # ----------------
 
 
-@socketprovider.SocketProvider.register("stub_agent_with_address")
+@socketprovider.SocketProvider.register(
+    _types.BuiltinSSHAgentSocketProvider.STUB_AGENT_WITH_ADDRESS
+)
 class StubbedSSHAgentSocketWithAddress(StubbedSSHAgentSocket):
     """A [`StubbedSSHAgentSocket`][] requiring a specific address."""
 
@@ -724,7 +728,7 @@ class StubbedSSHAgentSocketWithAddress(StubbedSSHAgentSocket):
 
 
 @socketprovider.SocketProvider.register(
-    "stub_agent_with_address_and_deterministic_dsa"
+    _types.BuiltinSSHAgentSocketProvider.STUB_AGENT_WITH_ADDRESS_AND_DETERMINISTIC_DSA
 )
 class StubbedSSHAgentSocketWithAddressAndDeterministicDSA(
     StubbedSSHAgentSocketWithAddress

@@ -515,7 +515,7 @@ The standard registry of agent spawning functions, annotated as
 a `pytest` parameter set.  (In particular, this includes the conditional
 skip marks.)  Used by some test fixtures.
 """
-for key, handler in spawn_handlers.items():
+for instance, handler in spawn_handlers.items():
     marks = [
         pytest.mark.skipif(
             not is_agent_permitted(handler.instance.agent_type),
@@ -537,7 +537,10 @@ for key, handler in spawn_handlers.items():
     if handler.instance.agent_type != data.KnownSSHAgentType.StubbedSSHAgent:
         marks.append(pytest_machinery.non_isolated_agent_use)
     # Some agents require UNIX domain socket support.
-    if key in {"unix-pageant", "openssh"}:
+    if instance in {
+        data.KnownSSHAgentInstance.unix_pageant,
+        data.KnownSSHAgentInstance.openssh,
+    }:
         marks.append(
             pytest.mark.skipif(
                 not hasattr(socket, "AF_UNIX"),
@@ -545,14 +548,19 @@ for key, handler in spawn_handlers.items():
             )
         )
     # Others require Windows named pipe support.
-    if key in {"pageant", "openssh-on-windows"}:
+    if instance in {
+        data.KnownSSHAgentInstance.pageant,
+        data.KnownSSHAgentInstance.openssh_on_windows,
+    }:
         marks.append(
             pytest.mark.skipif(
                 not hasattr(ctypes, "WinDLL"),
                 reason="No Python or system support for Windows named pipes.",
             )
         )
-    spawn_handlers_params.append(pytest.param(handler, id=key, marks=marks))
+    spawn_handlers_params.append(
+        pytest.param(handler, id=instance, marks=marks)
+    )
 
 
 Popen = TypeVar("Popen", bound=subprocess.Popen)
@@ -692,10 +700,12 @@ def spawn_named_agent(  # noqa: C901
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient,
                 "SOCKET_PROVIDERS",
-                ["stub_agent_with_address_and_deterministic_dsa"]
+                [
+                    data.KnownSSHAgentInstance.stub_agent_with_address_and_deterministic_dsa
+                ]
                 if "stub_agent_with_address_and_deterministic_dsa"
                 in agent_name
-                else ["stub_agent_with_address"],
+                else [data.KnownSSHAgentInstance.stub_agent_with_address],
             )
             client = exit_stack.enter_context(
                 ssh_agent.SSHAgentClient.ensure_agent_subcontext(
@@ -801,7 +811,9 @@ def running_ssh_agent(  # pragma: no cover [external]
                 monkeypatch.setattr(
                     ssh_agent.SSHAgentClient,
                     "SOCKET_PROVIDERS",
-                    ["stub_agent_with_address"],
+                    [
+                        _types.BuiltinSSHAgentSocketProvider.STUB_AGENT_WITH_ADDRESS
+                    ],
                 )
                 monkeypatch.setenv(
                     "SSH_AUTH_SOCK",
