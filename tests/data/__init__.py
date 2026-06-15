@@ -23,7 +23,7 @@ import base64
 import enum
 from typing import TYPE_CHECKING, cast
 
-from typing_extensions import NamedTuple
+from typing_extensions import NamedTuple, assert_never
 
 from derivepassphrase import _types, ssh_agent, vault
 from derivepassphrase.ssh_agent import socketprovider
@@ -157,8 +157,8 @@ class SSHTestKey(NamedTuple):
         )
 
 
-class KnownSSHAgent(str, enum.Enum):
-    """Known SSH agents.
+class KnownSSHAgentType(str, enum.Enum):
+    """Known SSH agent types.
 
     Attributes:
         UNKNOWN (str):
@@ -194,6 +194,79 @@ class KnownSSHAgent(str, enum.Enum):
     """"""
 
 
+class KnownSSHAgentInstance(str, enum.Enum):
+    """Known SSH agent instances, as test cases/configurations.
+
+    Attributes:
+        pageant:
+            An instance of [`Pageant`][KnownSSHAgentType.Pageant].
+        openssh:
+            An instance of
+            [`OpenSSHAgent`][KnownSSHAgentType.OpenSSHAgent].
+        unix_pageant:
+            An instance of
+            [`UNIXPageant`][KnownSSHAgentType.UNIXPageant].
+        openssh_on_windows:
+            An instance of
+            [`OpenSSHAgentOnWindows`][KnownSSHAgentType.OpenSSHAgentOnWindows].
+        stub_agent_with_address:
+            An instance of
+            [`StubbedSSHAgent`][KnownSSHAgentType.StubbedSSHAgent] with
+            a specific "socket address".
+        stub_agent_with_address_and_deterministic_dsa:
+            An instance of
+            [`StubbedSSHAgent`][KnownSSHAgentType.StubbedSSHAgent] with
+            a specific "socket address" that also support deterministic
+            DSA signatures.
+        system_agent:
+            The system agent, of [unknown][KnownSSHAgentType.UNKNOWN]
+            type.
+
+    """
+
+    pageant = "pageant"
+    """"""
+    openssh = "openssh"
+    """"""
+    unix_pageant = "unix_pageant"
+    """"""
+    openssh_on_windows = "openssh_on_windows"
+    """"""
+    stub_agent_with_address = "stub_agent_with_address"
+    """"""
+    stub_agent_with_address_and_deterministic_dsa = (
+        "stub_agent_with_address_and_deterministic_dsa"
+    )
+    """"""
+    system_agent = "system_agent"
+    """"""
+
+    @property
+    def agent_type(self) -> KnownSSHAgentType:
+        """Return the agent type for this instance."""
+        # TODO(the-13th-letter): Rewrite using structural pattern
+        # matching.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        if self == KnownSSHAgentInstance.pageant:
+            return KnownSSHAgentType.Pageant
+        if self == KnownSSHAgentInstance.openssh:
+            return KnownSSHAgentType.OpenSSHAgent
+        if self == KnownSSHAgentInstance.unix_pageant:
+            return KnownSSHAgentType.UNIXPageant
+        if self == KnownSSHAgentInstance.openssh_on_windows:
+            return KnownSSHAgentType.OpenSSHAgentOnWindows
+        if self == KnownSSHAgentInstance.stub_agent_with_address:
+            return KnownSSHAgentType.StubbedSSHAgent
+        if (
+            self
+            == KnownSSHAgentInstance.stub_agent_with_address_and_deterministic_dsa
+        ):
+            return KnownSSHAgentType.StubbedSSHAgent
+        if self == KnownSSHAgentInstance.system_agent:
+            return KnownSSHAgentType.UNKNOWN
+        assert_never(self)
+
+
 class SpawnedSSHAgentInfo(NamedTuple):
     """Info about a spawned SSH agent, as provided by some fixtures.
 
@@ -215,7 +288,7 @@ class SpawnedSSHAgentInfo(NamedTuple):
 
     """
 
-    agent_type: KnownSSHAgent
+    agent_type: KnownSSHAgentType
     """"""
     client: ssh_agent.SSHAgentClient
     """"""
@@ -241,7 +314,7 @@ class RunningSSHAgentInfo(NamedTuple):
 
     socket: str | type[_types.SSHAgentSocket]
     """"""
-    agent_type: KnownSSHAgent
+    agent_type: KnownSSHAgentType
     """"""
 
     def require_external_address(self) -> str:  # pragma: no cover
