@@ -336,6 +336,9 @@ def interface_openssh_agent_on_the_annoying_os(
 class SpawnHandler(NamedTuple):
     """A handler for a spawned or interfaced SSH agent.
 
+    (The choice of terminology "spawn" instead of the more accurate
+    "spawn or interface" is due to historical reasons.)
+
     Attributes:
         instance:
             The SSH agent instance type under which this handler is
@@ -405,7 +408,10 @@ spawn_handlers: dict[str, SpawnHandler] = {
     ),
 }
 """
-The standard registry of agent spawning functions.
+The standard registry of agent spawning/interfacing functions.
+
+(The choice of terminology "spawn" instead of the more accurate "spawn
+or interface" is due to historical reasons.)
 """
 
 
@@ -514,6 +520,9 @@ spawn_handlers_params: list[Sequence] = []
 The standard registry of agent spawning functions, annotated as
 a `pytest` parameter set.  (In particular, this includes the conditional
 skip marks.)  Used by some test fixtures.
+
+(The choice of terminology "spawn" instead of the more accurate "spawn
+or interface" is due to historical reasons.)
 """
 for instance, handler in spawn_handlers.items():
     marks = [
@@ -613,6 +622,9 @@ def spawn_named_agent(  # noqa: C901
     The SSH agent's instructions for setting up the communication
     channel are parsed with [`callables.parse_sh_export_line`][].  See
     the caveats there.
+
+    (The choice of terminology "spawned" instead of the more accurate
+    "spawned or interfaced" is due to historical reasons.)
 
     Args:
         executable:
@@ -783,9 +795,10 @@ def running_ssh_agent(  # pragma: no cover [external]
 ) -> Iterator[data.RunningSSHAgentInfo]:
     """Ensure a running SSH agent, if possible, as a pytest fixture.
 
-    Check for a running SSH agent, or spawn a new one if possible.  We
-    know how to spawn OpenSSH's agent and PuTTY's Pageant.  If spawned
-    this way, the agent does not persist beyond the test.
+    Check for a running SSH agent, or spawn/interface a new one if
+    possible.  We know how to spawn OpenSSH's agent and PuTTY's Pageant
+    on UNIX, or interface them on The Annoying OS.  If spawned this way,
+    the agent does not persist beyond the test.
 
     This fixture can neither guarantee a particular running agent, nor
     can it guarantee a particular set of loaded keys.
@@ -862,12 +875,17 @@ def running_ssh_agent(  # pragma: no cover [external]
 def spawn_ssh_agent(
     request: pytest.FixtureRequest,
 ) -> Iterator[data.SpawnedSSHAgentInfo]:  # pragma: no cover [external]
-    """Spawn an isolated SSH agent, if possible, as a pytest fixture.
+    """Spawn or interface an SSH agent, as a pytest fixture.
 
-    Spawn a new SSH agent isolated from other SSH use by other
-    processes, if possible.  We know how to spawn OpenSSH's agent (on
-    UNIX) and PuTTY's Pageant (on UNIX), the stubbed agents, and the
-    "(system)" fallback agent.
+    Spawn a new SSH agent (isolated from other SSH use by other
+    processes, on a best-effort basis), or interface a running
+    (non-isolated) SSH agent.  We know how to spawn OpenSSH's agent (on
+    UNIX) and PuTTY's Pageant (on UNIX) and the stubbed agents, and how
+    to interface PuTTY's Pageant (on The Annoying OS), OpenSSH's agent
+    (on The Annoying OS) and the "system" agent (on every OS).
+
+    (The choice of terminology "spawned" instead of the more accurate
+    "spawned or interfaced" is due to historical reasons.)
 
     Yields:
         A [named tuple][collections.namedtuple] containing information
@@ -877,7 +895,8 @@ def spawn_ssh_agent(
 
     Raises:
         pytest.skip.Exception:
-            If the agent cannot be spawned, skip this test.
+            If the agent cannot be spawned or interfaced, skip this
+            test.
 
     """
 
