@@ -20,6 +20,7 @@ system itself is also in the `tests.machinery` module, not here.
 from __future__ import annotations
 
 import base64
+import copy
 import enum
 from typing import TYPE_CHECKING, cast
 
@@ -1457,17 +1458,17 @@ DUMMY_PASSPHRASE = "my secret passphrase"
 """A standard/sample passphrase."""
 DUMMY_KEY1 = SUPPORTED_KEYS["ed25519"].public_key_data
 """A sample universally supported SSH test key (in wire format)."""
-DUMMY_KEY1_B64 = base64.standard_b64encode(DUMMY_KEY1).decode("ASCII")
+DUMMY_KEY1_B64 = bytes.decode(base64.standard_b64encode(DUMMY_KEY1), "ASCII")
 """
 A sample universally supported SSH test key (in `authorized_keys` format).
 """
 DUMMY_KEY2 = SUPPORTED_KEYS["rsa"].public_key_data
 """A second supported SSH test key (in wire format)."""
-DUMMY_KEY2_B64 = base64.standard_b64encode(DUMMY_KEY2).decode("ASCII")
+DUMMY_KEY2_B64 = bytes.decode(base64.standard_b64encode(DUMMY_KEY2), "ASCII")
 """A second supported SSH test key (in `authorized_keys` format)."""
 DUMMY_KEY3 = SUPPORTED_KEYS["ed448"].public_key_data
 """A third supported SSH test key (in wire format)."""
-DUMMY_KEY3_B64 = base64.standard_b64encode(DUMMY_KEY3).decode("ASCII")
+DUMMY_KEY3_B64 = bytes.decode(base64.standard_b64encode(DUMMY_KEY3), "ASCII")
 """A third supported SSH test key (in `authorized_keys` format)."""
 DUMMY_CONFIG_SETTINGS_AS_CONSTRUCTOR_ARGS = cast(
     "_types.VaultConstructorArgs",
@@ -1527,13 +1528,13 @@ and encrypted with [`VAULT_MASTER_KEY`][].
 """
 VAULT_V02_CONFIG_DATA = {
     "global": {
-        "phrase": DUMMY_PASSPHRASE.rstrip("\n"),
+        "phrase": str.rstrip(DUMMY_PASSPHRASE, "\n"),
     },
     "services": {
         "(meta)": {
             "notes": "This config was originally in v0.2 format.",
         },
-        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
+        DUMMY_SERVICE: copy.copy(DUMMY_CONFIG_SETTINGS),
     },
 }
 """
@@ -1547,13 +1548,13 @@ and encrypted with [`VAULT_MASTER_KEY`][].
 """
 VAULT_V03_CONFIG_DATA = {
     "global": {
-        "phrase": DUMMY_PASSPHRASE.rstrip("\n"),
+        "phrase": str.rstrip(DUMMY_PASSPHRASE, "\n"),
     },
     "services": {
         "(meta)": {
             "notes": "This config was originally in v0.3 format.",
         },
-        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
+        DUMMY_SERVICE: copy.copy(DUMMY_CONFIG_SETTINGS),
     },
 }
 """
@@ -1619,13 +1620,13 @@ and then encoded in base64.
 """
 VAULT_STOREROOM_CONFIG_DATA = {
     "global": {
-        "phrase": DUMMY_PASSPHRASE.rstrip("\n"),
+        "phrase": str.rstrip(DUMMY_PASSPHRASE, "\n"),
     },
     "services": {
         "(meta)": {
             "notes": "This config was originally in storeroom format.",
         },
-        DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS.copy(),
+        DUMMY_SERVICE: copy.copy(DUMMY_CONFIG_SETTINGS),
     },
 }
 """
