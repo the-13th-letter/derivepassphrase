@@ -687,6 +687,10 @@ class SSH_AGENTC(int, enum.Enum):  # noqa: N801
     EXTENSION = 27
     """"""
 
+    def __bytes__(self) -> bytes:
+        """Return the corresponding request code."""
+        return int.to_bytes(self, 1, "big", signed=False)
+
 
 class SSH_AGENT(int, enum.Enum):  # noqa: N801
     """SSH agent protocol numbers: server replies.
@@ -719,6 +723,10 @@ class SSH_AGENT(int, enum.Enum):  # noqa: N801
     """"""
     EXTENSION_RESPONSE = 29
     """"""
+
+    def __bytes__(self) -> bytes:
+        """Return the corresponding response code."""
+        return int.to_bytes(self, 1, "big", signed=False)
 
 
 class StoreroomKeyPair(NamedTuple, Generic[T_Buffer]):
