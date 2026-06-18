@@ -15,12 +15,15 @@ from __future__ import annotations
 import base64
 import contextlib
 import errno
+import math
 import os
 import pathlib
 import re
 from typing import TYPE_CHECKING
 
+import hypothesis
 import pytest
+from hypothesis import strategies
 
 from derivepassphrase import _types, ssh_agent, vault
 from tests import data, machinery
@@ -191,7 +194,6 @@ class Parametrize:
         "message",
         [
             pytest.param(b"\x00\x00\x00\x00", id="empty-message"),
-            pytest.param(b"\x00\x00\x00\x0f\x0d", id="truncated-message"),
             pytest.param(
                 b"\x00\x00\x00\x06\x1b\x00\x00\x00\x01\xff",
                 id="invalid-extension-name",
@@ -199,6 +201,10 @@ class Parametrize:
             pytest.param(
                 b"\x00\x00\x00\x11\x0d\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
                 id="sign-with-trailing-data",
+            ),
+            pytest.param(
+                b"\x00\x00\x00\x05\x0d\x00\x00\x00\x00",
+                id="sign-without-payload",
             ),
         ],
     )
@@ -243,6 +249,8 @@ class Parametrize:
                     ])
                 ),
                 id="sign-key-no-expected-signature",
+                # NOTE: only unsupported when stubbed agent has RFC 6979
+                # support disabled
             ),
             pytest.param(
                 ssh_agent.SSHAgentClient.string(
@@ -262,6 +270,79 @@ class Parametrize:
         list(data.SUPPORTED_KEYS.items()),
         ids=data.SUPPORTED_KEYS.keys(),
     )
+
+
+class Strategies:
+    """Common hypothesis data generation strategies."""
+
+    @strategies.composite
+    @staticmethod
+    def proper_bytestring_partition(
+        draw: strategies.DrawFn, bs: bytes | bytearray, /
+    ) -> list[bytes]:
+        """Partition a non-empty string into non-empty parts.
+
+        A string of length `n` is partitioned [`math.isqrt(n
+        - 1)`][math.isqrt] many times, such that each substring is
+        non-empty.
+
+        """
+        n = len(bs)
+        hypothesis.assume(n > 0)
+        num_divisions = math.isqrt(n - 1)
+        divisions = draw(
+            strategies.lists(
+                strategies.integers(1, n - 1),
+                min_size=num_divisions,
+                max_size=num_divisions,
+                unique=True,
+            ).map(sorted),
+            label="divisions",
+        )
+        result: list[bytes] = []
+        i = 0
+        for div in divisions:
+            result.append(bytes(bs[i:div]))
+            i = div
+        result.append(bytes(bs[i:n]))
+        return result
+
+    @strategies.composite
+    @staticmethod
+    def truncated_agent_request(
+        draw: strategies.DrawFn, /, min_size: int = 0, max_size: int = 100
+    ) -> bytes:
+        """Generate a private-use SSH agent request with truncated payload.
+
+        The message will adhere to specified size bounds before
+        truncation.  The request message code will be from the private
+        use area.
+
+        Args:
+            min_size:
+                The minimum size of the request payload, after truncation.
+            max_size:
+                The maximum size of the request payload, before truncation.
+
+        """
+        request_code = draw(
+            strategies.integers(240, 255), label="request_code"
+        )
+        full_message_size = draw(
+            strategies.integers(min_size + 1, max_size),
+            label="full_message_size",
+        )
+        truncated_message = draw(
+            strategies.binary(
+                min_size=min_size, max_size=full_message_size - 1
+            )
+        )
+        payload = bytearray(
+            int.to_bytes(1 + full_message_size, 4, "big", signed=False)
+        )
+        payload.extend(int.to_bytes(request_code, 1, "big", signed=False))
+        payload.extend(truncated_message)
+        return bytes(payload)
 
 
 class TestTestKeys:
@@ -543,13 +624,10 @@ class TestStubbedSSHAgentSocketProperOperations:
             # payload: SSH string "query"
             b"\x00\x00\x00\x05query"
         )
-        query_response = b""
-        with pytest.raises(
-            ValueError,
-            match=re.escape(machinery.StubbedSSHAgentSocket._SOCKET_IS_CLOSED),
-        ):
+        with pytest.raises(OSError, match=re.escape(os.strerror(errno.EBADF))):
             agent.sendall(query_request)
-        assert agent.recv(100) == query_response
+        with pytest.raises(OSError, match=re.escape(os.strerror(errno.EBADF))):
+            agent.recv(100)
 
     def test_no_recv_without_sendall(self) -> None:
         """The agent requires a message before sending a response."""
@@ -561,6 +639,43 @@ class TestStubbedSSHAgentSocketProperOperations:
                 ),
             ):
                 agent.recv(100)
+
+    @hypothesis.given(
+        query_request_parts=Strategies.proper_bytestring_partition(
+            b"\x00\x00\x00\x0a\x1b\x00\x00\x00\x05query"
+        )
+    )
+    @hypothesis.example(
+        query_request_parts=[
+            b"",
+            b"\x00\x00\x00",
+            b"\x0a",
+            b"\x1b",
+            b"\x00\x00\x00\x05",
+            b"query",
+        ]
+    )
+    def test_piecemeal_sendall(self, query_request_parts: list[bytes]) -> None:
+        """The agent supports receiving messages incrementally."""
+        with machinery.StubbedSSHAgentSocket() as agent:
+            agent.enabled_extensions = frozenset({"query"})
+            for part in query_request_parts:
+                agent.sendall(part)
+            header = agent.recv(agent.HEADER_SIZE)
+            count = int.from_bytes(header, "big", signed=False)
+            payload = agent.recv(count)
+            assert len(payload) == count
+            assert bytes.startswith(
+                payload,
+                (
+                    bytes(_types.SSH_AGENT.SUCCESS),
+                    bytes(_types.SSH_AGENT.EXTENSION_RESPONSE),
+                ),
+            )
+            code = payload[: agent.CODE_SIZE]
+            assert code == bytes(_types.SSH_AGENT.SUCCESS) or code == bytes(
+                _types.SSH_AGENT.EXTENSION_RESPONSE
+            )
 
     @Parametrize.INVALID_SSH_AGENT_MESSAGES
     def test_invalid_ssh_agent_messages(
@@ -577,6 +692,19 @@ class TestStubbedSSHAgentSocketProperOperations:
         with machinery.StubbedSSHAgentSocket() as agent:
             agent.sendall(message)
             assert agent.recv(100) == query_response
+
+    @hypothesis.given(message=Strategies.truncated_agent_request())
+    @hypothesis.example(message=b"\x00\x00\x00\x0f\xff")
+    def test_truncated_ssh_agent_message(self, message: bytes) -> None:
+        """The agent diagnoses a final truncated request message."""
+        with pytest.raises(  # noqa: SIM117
+            AssertionError,
+            match=re.escape(
+                machinery.StubbedSSHAgentSocket._INCOMPLETE_REQUEST
+            ),
+        ):
+            with machinery.StubbedSSHAgentSocket() as agent:
+                agent.sendall(message)
 
 
 class TestStubbedSSHAgentSocketSupportedAndUnsupportedFeatures:

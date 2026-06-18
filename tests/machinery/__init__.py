@@ -308,12 +308,15 @@ class AgentProtocolResponseQueue:
     ([`AgentProtocolRequest`][data.AgentProtocolRequest]) to multiple
     response messages
     ([`AgentProtocolResponse`][data.AgentProtocolResponse]).  Whenever
-    [`_request_message`][] is called with a payload that matches
+    [`_send_request_message`][] is called with a payload that matches
     a [`AgentProtocolRequest`][data.AgentProtocolRequest] from the map,
     the corresponding
     [`AgentProtocolResponse`][data.AgentProtocolResponse] objects are
-    added to the queue, to be read by subsequent [`_response_pair`][]
-    calls.
+    added to the queue, to be read by subsequent
+    [`_get_response_pair`][] calls.  The [`_send_request_message`][] and
+    [`_get_response_pair`][] methods are function- and
+    interface-compatible with the internal methods of the same name in
+    [`ssh_agent.SSHAgentClient`][].
 
     The queue is a context manager.  When entered or exited, it
     verifies that the queue is empty.
@@ -390,13 +393,37 @@ class AgentProtocolResponseQueue:
     _types.BuiltinSSHAgentSocketProvider.STUB_AGENT
 )
 class StubbedSSHAgentSocket:
-    """A stubbed SSH agent presenting an [`_types.SSHAgentSocket`][]."""
+    """A stubbed SSH agent presenting an [`_types.SSHAgentSocket`][].
 
-    _SOCKET_IS_CLOSED = "Socket is closed."
+    On the network protocol side, the agent implements the full
+    [`_types.SSHAgentSocket`][] interface, including pipelined and
+    unaligned agent requests.  However, on the application side, the
+    agent is intrinsically tied to [the set of SSH test
+    keys][data.ALL_KEYS], and only gives meaningful answers for
+    operations on the test keys and for agent operations in use by
+    [`ssh_agent.SSHAgentClient`][].  The agent does not actually
+    implement any cryptography; all cryptography-related answers are
+    derived from the recorded test key data.
+
+    It is not safe to further monkeypatch the agent's [`recv`][] or
+    [`sendall`][] methods on their own: either monkeypatch both of them,
+    or manipulate the [`send_to_client`][] bytes queue directly instead.
+    Given an [`ssh_agent.SSHAgentClient`][] connected to
+    a [`StubbedSSHAgentSocket`][], if the test ensures proper message
+    serialization and protocol framing and if the monkeypatching can be
+    expressed in terms of full request messages and full response
+    messages, prefer using a [`AgentProtocolResponseQueue`][] to
+    monkeypatch the client's high-level request/response-loop instead of
+    monkeypatching the low-level socket communication in this agent
+    socket.
+
+    """
+
     _NO_FLAG_SUPPORT = "This stubbed SSH agent socket does not support flags."
     _PROTOCOL_VIOLATION = "SSH agent protocol violation."
     _INVALID_REQUEST = "Invalid request."
     _UNSUPPORTED_REQUEST = "Unsupported request."
+    _INCOMPLETE_REQUEST = "The last request was incomplete."
 
     HEADER_SIZE = 4
     CODE_SIZE = 1
@@ -435,8 +462,15 @@ class StubbedSSHAgentSocket:
         return self
 
     def __exit__(self, *args: object) -> None:
-        """Mark the agent's socket as closed."""
+        """Mark the agent's socket as closed.
+
+        Raises:
+            AssertionError:
+                The last request to the agent was incomplete.
+
+        """
         self.closed = True
+        assert not self.receive_from_client, self._INCOMPLETE_REQUEST
 
     def sendall(self, data: Buffer, flags: int = 0, /) -> None:
         """Send data to the SSH agent.
@@ -458,34 +492,66 @@ class StubbedSSHAgentSocket:
         Raises:
             AssertionError:
                 The flags argument, if specified, must be 0.
-            ValueError:
-                The agent's socket is already closed.  No further
-                requests can be sent.
+            OSError:
+                The socket connection is already closed.
 
         """
         assert not flags, self._NO_FLAG_SUPPORT
-        if self.closed:
-            raise ValueError(self._SOCKET_IS_CLOSED)
+        self._check_for_io_on_closed_connection()
         self.receive_from_client.extend(memoryview(data))
-        try:
-            self.parse_client_request_and_dispatch()
-        except ValueError:
-            payload = int.to_bytes(_types.SSH_AGENT.FAILURE, 1, "big")
-            self.send_to_client.extend(int.to_bytes(len(payload), 4, "big"))
-            self.send_to_client.extend(payload)
-        finally:
-            self.receive_from_client.clear()
+        while self.receive_from_client:
+            result: Buffer | Iterator[int]
+            if len(self.receive_from_client) < self.HEADER_SIZE:
+                break
+            count = int.from_bytes(
+                self.receive_from_client[: self.HEADER_SIZE],
+                "big",
+                signed=False,
+            )
+            if count:
+                code = int.from_bytes(
+                    self.receive_from_client[
+                        self.HEADER_SIZE : self.HEADER_SIZE + self.CODE_SIZE
+                    ],
+                    "big",
+                    signed=False,
+                )
+                request = bytes(
+                    self.receive_from_client[: self.HEADER_SIZE + count]
+                )
+                if len(request) < self.HEADER_SIZE + count:
+                    break
+                request_payload = request[self.HEADER_SIZE + self.CODE_SIZE :]
+
+                if code == _types.SSH_AGENTC.REQUEST_IDENTITIES:
+                    result = self.request_identities(list_extended=False)
+                elif code == _types.SSH_AGENTC.SIGN_REQUEST:
+                    result = self.sign(request_payload)
+                elif self._check_for_extension(code, "query"):
+                    result = self.query_extensions()
+                elif self._check_for_extension(
+                    code, "list-extended@putty.projects.tartarus.org"
+                ):
+                    result = self.request_identities(list_extended=True)
+                else:
+                    result = self._failure()
+            else:
+                request = bytes(self.receive_from_client[: self.HEADER_SIZE])
+                result = self._failure()
+            self.send_to_client.extend(
+                ssh_agent.SSHAgentClient.string(bytes(result))
+            )
+            self.receive_from_client[: len(request)] = b""
 
     def recv(self, count: int, flags: int = 0, /) -> bytes:
         """Read data from the SSH agent.
 
         As per the SSH agent protocol, data is only available to be read
-        immediately after a request via [`sendall`][].  Calls to
-        [`recv`][] at other points in time that attempt to read data
-        violate the protocol, and will fail.  Notwithstanding the last
-        sentence, at any point in time, though pointless, it is
-        additionally permissible to read 0 bytes from the agent, or any
-        number of bytes from a closed socket.
+        immediately after a request via [`sendall`][] and if the socket
+        connection is still open.  Calls to [`recv`][] at other points
+        in time that attempt to read data violate the protocol, and will
+        fail.  (A [`recv`][] of zero bytes does not read data.)  Calls
+        to [`recv`][] when the socket connection is closed always fail.
 
         Args:
             count:
@@ -495,8 +561,8 @@ class StubbedSSHAgentSocket:
 
         Returns:
             (A chunk of) the SSH agent's response to the most recent
-            request.  If reading 0 bytes, or if reading from a closed
-            socket, the returned chunk is always an empty byte string.
+            request.  If reading 0 bytes, the returned chunk is always
+            an empty byte string.
 
         Raises:
             AssertionError:
@@ -505,67 +571,33 @@ class StubbedSSHAgentSocket:
                 Alternatively, `recv` was called when there was no
                 response to be obtained, in violation of the SSH agent
                 protocol.
+            OSError:
+                The socket connection is already closed.
 
         """
         assert not flags, self._NO_FLAG_SUPPORT
-        assert not count or self.closed or self.send_to_client, (
-            self._PROTOCOL_VIOLATION
-        )
+        self._check_for_io_on_closed_connection()
+        assert not count or self.send_to_client, self._PROTOCOL_VIOLATION
         ret = bytes(self.send_to_client[:count])
         del self.send_to_client[:count]
         return ret
 
-    def parse_client_request_and_dispatch(self) -> None:
-        """Parse the client request and call the matching handler.
+    def _failure(self) -> bytes:
+        return bytes(_types.SSH_AGENT.FAILURE)
 
-        This agent supports the
-        [`SSH_AGENTC_REQUEST_IDENTITIES`][_types.SSH_AGENTC.REQUEST_IDENTITIES],
-        [`SSH_AGENTC_SIGN_REQUEST`][_types.SSH_AGENTC.SIGN_REQUEST] and
-        the [`SSH_AGENTC_EXTENSION`][_types.SSH_AGENTC.EXTENSION]
-        request types.
+    def _check_for_io_on_closed_connection(self) -> None:
+        if self.closed:
+            raise OSError(errno.EBADF, os.strerror(errno.EBADF))
 
-        """
-
-        if len(self.receive_from_client) < self.HEADER_SIZE + self.CODE_SIZE:
-            raise ValueError(self._INVALID_REQUEST)
-        target_header = ssh_agent.SSHAgentClient.uint32(
-            len(self.receive_from_client) - self.HEADER_SIZE
-        )
-        if target_header != self.receive_from_client[: self.HEADER_SIZE]:
-            raise ValueError(self._INVALID_REQUEST)
-        code = _types.SSH_AGENTC(
-            int.from_bytes(
-                self.receive_from_client[
-                    self.HEADER_SIZE : self.HEADER_SIZE + self.CODE_SIZE
-                ],
-                "big",
-            )
-        )
-
-        def is_enabled_extension(extension: str) -> bool:
-            if (
-                extension not in self.enabled_extensions
-                or code != _types.SSH_AGENTC.EXTENSION
-            ):
-                return False
-            string = ssh_agent.SSHAgentClient.string
-            extension_marker = b"\x1b" + string(extension.encode("ascii"))
-            return self.receive_from_client.startswith(extension_marker, 4)
-
-        result: Buffer | Iterator[int]
-        if code == _types.SSH_AGENTC.REQUEST_IDENTITIES:
-            result = self.request_identities(list_extended=False)
-        elif code == _types.SSH_AGENTC.SIGN_REQUEST:
-            result = self.sign()
-        elif is_enabled_extension("query"):
-            result = self.query_extensions()
-        elif is_enabled_extension("list-extended@putty.projects.tartarus.org"):
-            result = self.request_identities(list_extended=True)
-        else:
-            raise ValueError(self._UNSUPPORTED_REQUEST)
-        self.send_to_client.extend(
-            ssh_agent.SSHAgentClient.string(bytes(result))
-        )
+    def _check_for_extension(self, code: int, extension: str) -> bool:
+        if (
+            extension not in self.enabled_extensions
+            or code != _types.SSH_AGENTC.EXTENSION
+        ):
+            return False
+        string = ssh_agent.SSHAgentClient.string
+        extension_marker = b"\x1b" + string(extension.encode("ascii"))
+        return self.receive_from_client.startswith(extension_marker, 4)
 
     def query_extensions(self) -> Iterator[int]:
         """Answer an `SSH_AGENTC_EXTENSION` request.
@@ -633,8 +665,13 @@ class StubbedSSHAgentSocket:
                     ssh_agent.SSHAgentClient.uint32(0)
                 )
 
-    def sign(self) -> bytes:
+    def sign(self, request_payload: bytes, /) -> bytes:
         """Answer an `SSH_AGENTC_SIGN_REQUEST` request.
+
+        Args:
+            request_payload:
+                The data of the sign request, without the protocol
+                framing or the request code.
 
         Returns:
             The bytes payload of the response, without the protocol
@@ -647,17 +684,20 @@ class StubbedSSHAgentSocket:
         )
         spec = data.SSHTestKeyDeterministicSignatureClass.SPEC
         rfc6979 = data.SSHTestKeyDeterministicSignatureClass.RFC_6979
-        key_blob, rest = ssh_agent.SSHAgentClient.unstring_prefix(
-            self.receive_from_client[self.HEADER_SIZE + self.CODE_SIZE :]
-        )
-        sign_data, rest = ssh_agent.SSHAgentClient.unstring_prefix(rest)
+        try:
+            key_blob, rest = ssh_agent.SSHAgentClient.unstring_prefix(
+                request_payload
+            )
+            sign_data, rest = ssh_agent.SSHAgentClient.unstring_prefix(rest)
+        except ValueError:
+            return self._failure()
         if len(rest) != 4:
-            raise ValueError(self._INVALID_REQUEST)
+            return self._failure()
         flags = int.from_bytes(rest, "big")
         if flags:
-            raise ValueError(self._UNSUPPORTED_REQUEST)
+            return self._failure()
         if sign_data != vault.Vault.UUID:
-            raise ValueError(self._UNSUPPORTED_REQUEST)
+            return self._failure()
         for key in data.ALL_KEYS.values():
             if key.public_key_data == key_blob:
                 if spec in key.expected_signatures:
@@ -672,8 +712,8 @@ class StubbedSSHAgentSocket:
                     ) + ssh_agent.SSHAgentClient.string(
                         key.expected_signatures[rfc6979].signature
                     )
-                raise ValueError(self._UNSUPPORTED_REQUEST)
-        raise ValueError(self._UNSUPPORTED_REQUEST)
+                return self._failure()
+        return self._failure()
 
 
 # Standard variant
