@@ -23,7 +23,7 @@ from tests import data, machinery
 from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import Callable, Generator
 
     from typing_extensions import Any, Buffer
 
@@ -179,7 +179,7 @@ class TestCLIUtilities:
             return TestCLIUtilities.VaultKeyEnvironment(expected, *env_vars)
 
     @contextlib.contextmanager
-    def _setup_environment(self) -> Iterator[pytest.MonkeyPatch]:
+    def _setup_environment(self) -> Generator[pytest.MonkeyPatch, None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -353,7 +353,7 @@ class TestExportVaultConfigDataHandlerRegistry:
         *,
         registry: dict[str, Any] | None = None,
         find_handlers: Callable | None = None,
-    ) -> Iterator[pytest.MonkeyPatch]:
+    ) -> Generator[pytest.MonkeyPatch, None, None]:
         with pytest.MonkeyPatch.context() as monkeypatch:
             if registry is not None:  # pragma: no branch
                 monkeypatch.setattr(
@@ -435,7 +435,7 @@ class TestGenericVaultCLIErrors:
     @contextlib.contextmanager
     def _setup_environment(
         self, *, vault_config: str | bytes = data.VAULT_V03_CONFIG
-    ) -> Iterator[tuple[pytest.MonkeyPatch, machinery.CliRunner]]:
+    ) -> Generator[tuple[pytest.MonkeyPatch, machinery.CliRunner], None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.

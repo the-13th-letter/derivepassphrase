@@ -29,7 +29,7 @@ from derivepassphrase import _types, ssh_agent, vault
 from tests import data, machinery
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
     from typing_extensions import Buffer
 
@@ -498,7 +498,7 @@ class TestStubbedSSHAgentSocket:
     @contextlib.contextmanager
     def _get_agent(
         self, *, extended_agent: bool | None = False
-    ) -> Iterator[machinery.StubbedSSHAgentSocket]:
+    ) -> Generator[machinery.StubbedSSHAgentSocket, None, None]:
         agent_class: type[machinery.StubbedSSHAgentSocket] = (
             machinery.StubbedSSHAgentSocketWithAddressAndDeterministicDSA
             if extended_agent

@@ -29,7 +29,7 @@ from tests import data, machinery
 from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
 DUMMY_SERVICE = data.DUMMY_SERVICE
 DUMMY_PASSPHRASE = data.DUMMY_PASSPHRASE
@@ -315,7 +315,7 @@ class TestUserConfigurationFileOther:
         self,
         *,
         main_config: str = "",
-    ) -> Iterator[pytest.MonkeyPatch]:
+    ) -> Generator[pytest.MonkeyPatch, None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.

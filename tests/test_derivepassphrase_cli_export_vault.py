@@ -36,7 +36,7 @@ from cryptography.hazmat.primitives.ciphers import (  # noqa: E402
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import Callable, Generator
     from typing import Any
 
     from typing_extensions import Buffer, Literal
@@ -256,7 +256,7 @@ class TestCLIFailures:
         *,
         vault_config: str | bytes = data.VAULT_V03_CONFIG,
         vault_key: str = data.VAULT_MASTER_KEY,
-    ) -> Iterator[pytest.MonkeyPatch]:
+    ) -> Generator[pytest.MonkeyPatch, None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -354,7 +354,7 @@ class TestStoreroom:
         *,
         vault_config: str | bytes = data.VAULT_STOREROOM_CONFIG_ZIPPED,
         vault_key: str = data.VAULT_MASTER_KEY,
-    ) -> Iterator[tuple[pytest.MonkeyPatch, machinery.CliRunner]]:
+    ) -> Generator[tuple[pytest.MonkeyPatch, machinery.CliRunner], None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -575,7 +575,7 @@ class TestVaultNativeConfig:
         *,
         vault_config: str | bytes = data.VAULT_V03_CONFIG,
         vault_key: str = data.VAULT_MASTER_KEY,
-    ) -> Iterator[tuple[pytest.MonkeyPatch, machinery.CliRunner]]:
+    ) -> Generator[tuple[pytest.MonkeyPatch, machinery.CliRunner], None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.

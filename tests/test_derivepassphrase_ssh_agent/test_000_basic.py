@@ -30,7 +30,12 @@ from tests.data import callables
 from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator, Mapping, Sequence
+    from collections.abc import (
+        Callable,
+        Generator,
+        Mapping,
+        Sequence,
+    )
 
     from typing_extensions import Any, Literal
 
@@ -39,7 +44,7 @@ if sys.version_info < (3, 11):
 
 
 @pytest.fixture
-def use_stub_agent() -> Iterator[None]:
+def use_stub_agent() -> Generator[None, None, None]:
     """Enforce use of the stubbed SSH agent."""
     with pytest.MonkeyPatch.context() as monkeypatch:
         monkeypatch.setattr(
@@ -848,7 +853,7 @@ class TestSSHAgentSocketProviderRegistry:
         resolve = socketprovider.SocketProvider.resolve
         register = socketprovider.SocketProvider.register
 
-        def ancestry_chain(name: str) -> Iterator[str]:
+        def ancestry_chain(name: str) -> Generator[str, None, None]:
             current: _types.SSHAgentSocketProvider | str | None = name
             seen: set[_types.SSHAgentSocketProvider | str | None] = set()
             while isinstance(current, str) and current not in seen:
@@ -1204,7 +1209,9 @@ class TestAgentErrorResponses:
             data.AgentProtocolRequest, Sequence[data.AgentProtocolResponse]
         ],
         /,
-    ) -> Iterator[tuple[pytest.MonkeyPatch, ssh_agent.SSHAgentClient]]:
+    ) -> Generator[
+        tuple[pytest.MonkeyPatch, ssh_agent.SSHAgentClient], None, None
+    ]:
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
@@ -1558,7 +1565,7 @@ class TestWindowsNamedPipeHandle:
     @contextlib.contextmanager
     def stub_createfile_and_closehandle(
         self,
-    ) -> Iterator[None]:
+    ) -> Generator[None, None, None]:
         singleton = object()
 
         def create_file(*_args: Any, **_kwargs: Any) -> object:

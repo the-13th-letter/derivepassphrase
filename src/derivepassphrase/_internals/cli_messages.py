@@ -36,7 +36,7 @@ from typing_extensions import TypeAlias, override
 from derivepassphrase import _internals
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, Mapping, Sequence
+    from collections.abc import Generator, Iterable, Mapping, Sequence
 
     from typing_extensions import Any, Self
 
@@ -2589,7 +2589,7 @@ def _write_po_file(  # noqa: C901,PLR0912
 def _format_po_info(
     data: Mapping[str, Any],
     /,
-) -> Iterator[str]:  # pragma: no cover [internal]
+) -> Generator[str, None, None]:  # pragma: no cover [internal]
     """"""  # noqa: D419
     sortorder = [
         "project-id-version",

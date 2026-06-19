@@ -21,7 +21,7 @@ from hypothesis import strategies
 from derivepassphrase._internals import cli_messages as msg
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
     from typing import ClassVar
 
 
@@ -32,7 +32,7 @@ class Parametrize(types.SimpleNamespace):
 
 
 @pytest.fixture(scope="class")
-def use_debug_translations() -> Iterator[None]:
+def use_debug_translations() -> Generator[None, None, None]:
     """Force the use of debug translations (pytest class fixture)."""
     with pytest.MonkeyPatch.context() as monkeypatch:
         monkeypatch.setattr(msg, "translation", msg.DebugTranslations())
@@ -40,7 +40,7 @@ def use_debug_translations() -> Iterator[None]:
 
 
 @contextlib.contextmanager
-def monkeypatched_null_translations() -> Iterator[None]:
+def monkeypatched_null_translations() -> Generator[None, None, None]:
     """Force the use of no-op translations in this context."""
     with pytest.MonkeyPatch.context() as monkeypatch:
         monkeypatch.setattr(msg, "translation", gettext.NullTranslations())

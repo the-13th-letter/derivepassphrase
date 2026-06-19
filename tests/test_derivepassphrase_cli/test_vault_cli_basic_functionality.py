@@ -25,7 +25,7 @@ from tests.data import callables
 from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
     from typing import NoReturn
 
 DUMMY_SERVICE = data.DUMMY_SERVICE
@@ -568,7 +568,7 @@ class TestKeyBasic:
         main_config_str: str | None = None,
         registry: dict[str, _types.SSHAgentSocketProvider | str | None]
         | None = None,
-    ) -> Iterator[machinery.CliRunner]:
+    ) -> Generator[machinery.CliRunner, None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -901,7 +901,7 @@ class TestInvalidCommandLines:
                 DUMMY_SERVICE: {**DUMMY_CONFIG_SETTINGS},
             },
         },
-    ) -> Iterator[machinery.CliRunner]:
+    ) -> Generator[machinery.CliRunner, None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.

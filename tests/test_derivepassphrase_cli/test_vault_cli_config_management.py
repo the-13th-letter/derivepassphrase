@@ -39,7 +39,7 @@ from tests.machinery import hypothesis as hypothesis_machinery
 from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
     from typing import NoReturn
 
     from typing_extensions import Any
@@ -306,7 +306,7 @@ class TestImportConfigInvalid:
     """Tests concerning `vault` configuration imports: invalid imports."""
 
     @contextlib.contextmanager
-    def _setup_environment(self) -> Iterator[machinery.CliRunner]:
+    def _setup_environment(self) -> Generator[machinery.CliRunner, None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -527,7 +527,7 @@ class TestExportConfigInvalid:
         *,
         config: _types.VaultConfig = {"services": {}},  # noqa: B006
         error_messages: tuple[str, ...] = (),
-    ) -> Iterator[list[str]]:
+    ) -> Generator[list[str], None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -719,7 +719,7 @@ class TestStoringConfigurationFailures:
             "services": {},
         },
         patch_suitable_ssh_keys: bool = True,
-    ) -> Iterator[pytest.MonkeyPatch]:
+    ) -> Generator[pytest.MonkeyPatch, None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.

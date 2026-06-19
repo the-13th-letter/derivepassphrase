@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING
 from typing_extensions import assert_type
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
+    from collections.abc import Generator, Sequence
 
 __all__ = ("Sequin", "SequinExhaustedError")
 
@@ -87,7 +87,7 @@ class Sequin:
         """
         msg = "sequence item out of range"
 
-        def uint8_to_bits(value: int) -> Iterator[int]:
+        def uint8_to_bits(value: int) -> Generator[int, None, None]:
             """Yield individual bits of an 8-bit number, MSB first."""
             for i in (0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01):
                 yield 1 if value | i == value else 0

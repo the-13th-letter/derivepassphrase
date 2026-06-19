@@ -41,7 +41,7 @@ from derivepassphrase.ssh_agent import socketprovider
 __all__ = ()
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator, Sequence
+    from collections.abc import Callable, Generator, Sequence
     from contextlib import AbstractContextManager
 
     from typing_extensions import Any
@@ -225,7 +225,7 @@ class Parametrize(types.SimpleNamespace):
 def faked_entry_point_list(  # noqa: C901
     additional_entry_points: Sequence[importlib.metadata.EntryPoint],
     remove_conflicting_entries: bool = False,
-) -> Iterator[Sequence[str]]:
+) -> Generator[Sequence[str], None, None]:
     """Yield a context where additional entry points are visible.
 
     Args:
@@ -371,7 +371,7 @@ def isolated_config(
     monkeypatch: pytest.MonkeyPatch,
     runner: tests.machinery.CliRunner,
     main_config_str: str | None = None,
-) -> Iterator[None]:
+) -> Generator[None, None, None]:
     """Provide an isolated configuration setup, as a context.
 
     This context manager sets up (and changes into) a temporary
@@ -429,7 +429,7 @@ def isolated_vault_config(
     runner: tests.machinery.CliRunner,
     vault_config: Any,
     main_config_str: str | None = None,
-) -> Iterator[None]:
+) -> Generator[None, None, None]:
     """Provide an isolated vault configuration setup, as a context.
 
     Uses [`isolated_config`][] internally.  Beyond those actions, this
@@ -467,7 +467,7 @@ def isolated_vault_exporter_config(
     runner: tests.machinery.CliRunner,
     vault_config: str | bytes | None = None,
     vault_key: str | None = None,
-) -> Iterator[None]:
+) -> Generator[None, None, None]:
     """Provide an isolated vault configuration setup, as a context.
 
     Works similarly to [`isolated_config`][], except that no user
@@ -509,7 +509,7 @@ def isolated_vault_exporter_config(
             @contextlib.contextmanager
             def chdir(
                 newpath: str | bytes | os.PathLike,
-            ) -> Iterator[None]:  # pragma: no branch
+            ) -> Generator[None, None, None]:  # pragma: no branch
                 oldpath = pathlib.Path.cwd().resolve()
                 os.chdir(newpath)
                 try:

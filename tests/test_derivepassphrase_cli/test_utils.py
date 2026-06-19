@@ -42,7 +42,7 @@ from tests.machinery import hypothesis as hypothesis_machinery
 from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Iterator
+    from collections.abc import Callable, Generator, Iterable
     from typing import NoReturn
 
     from typing_extensions import Any
@@ -83,7 +83,7 @@ def vault_config_exporter_shell_interpreter(  # noqa: C901
     # about here.
     command: click.Command | click.Group | None = None,
     runner: machinery.CliRunner | None = None,
-) -> Iterator[machinery.ReadableResult]:
+) -> Generator[machinery.ReadableResult, None, None]:
     """A rudimentary sh(1) interpreter for `--export-as=sh` output.
 
     Assumes a script as emitted by `derivepassphrase vault
@@ -1265,7 +1265,7 @@ class TestTempdir:
         @contextlib.contextmanager
         def make_temporary_directory(
             path: pathlib.Path,
-        ) -> Iterator[pathlib.Path]:
+        ) -> Generator[pathlib.Path, None, None]:
             try:
                 path.mkdir()
                 yield path

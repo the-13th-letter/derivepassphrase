@@ -25,7 +25,7 @@ from tests.machinery import hypothesis as hypothesis_machinery
 from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
+    from collections.abc import Generator, Sequence
 
 startup_ssh_auth_sock = os.environ.get("SSH_AUTH_SOCK", None)
 
@@ -55,7 +55,9 @@ def pytest_configure(config: pytest.Config) -> None:
 # https://docs.pytest.org/en/stable/explanation/fixtures.html#a-note-about-fixture-cleanup
 # https://github.com/pytest-dev/pytest/issues/5243#issuecomment-491522595
 @pytest.fixture(scope="session", autouse=False)
-def term_handler() -> Iterator[None]:  # pragma: no cover [external]
+def term_handler() -> Generator[
+    None, None, None
+]:  # pragma: no cover [external]
     try:
         import signal  # noqa: PLC0415
 
@@ -581,7 +583,7 @@ Popen = TypeVar("Popen", bound=subprocess.Popen)
 @contextlib.contextmanager
 def terminate_on_exit(
     proc: Popen,
-) -> Iterator[Popen]:  # pragma: unless posix no cover [unused]
+) -> Generator[Popen, None, None]:  # pragma: unless posix no cover [unused]
     """Terminate and wait for the subprocess upon exiting the context.
 
     Args:
@@ -610,7 +612,9 @@ def spawn_named_agent(  # noqa: C901
     spawn_func: SSHAgentSpawnFunc | SSHAgentInterfaceFunc,
     agent_type: data.KnownSSHAgentType,
     agent_name: str,
-) -> Iterator[data.SpawnedSSHAgentInfo]:  # pragma: no cover [external]
+) -> Generator[
+    data.SpawnedSSHAgentInfo, None, None
+]:  # pragma: no cover [external]
     """Spawn the named SSH agent and check that it is operational.
 
     Using the correct agent-specific spawn function from the
@@ -792,7 +796,7 @@ def spawn_named_agent(  # noqa: C901
 )
 def running_ssh_agent(  # pragma: no cover [external]
     request: pytest.FixtureRequest,
-) -> Iterator[data.RunningSSHAgentInfo]:
+) -> Generator[data.RunningSSHAgentInfo, None, None]:
     """Ensure a running SSH agent, if possible, as a pytest fixture.
 
     Check for a running SSH agent, or spawn/interface a new one if
@@ -818,7 +822,7 @@ def running_ssh_agent(  # pragma: no cover [external]
 
     def prepare_environment(
         agent_type: data.KnownSSHAgentType,
-    ) -> Iterator[data.RunningSSHAgentInfo]:
+    ) -> Generator[data.RunningSSHAgentInfo, None, None]:
         with pytest.MonkeyPatch.context() as monkeypatch:
             if agent_type == data.KnownSSHAgentType.StubbedSSHAgent:
                 monkeypatch.setattr(
@@ -874,7 +878,9 @@ def running_ssh_agent(  # pragma: no cover [external]
 @pytest.fixture(params=spawn_handlers_params)
 def spawn_ssh_agent(
     request: pytest.FixtureRequest,
-) -> Iterator[data.SpawnedSSHAgentInfo]:  # pragma: no cover [external]
+) -> Generator[
+    data.SpawnedSSHAgentInfo, None, None
+]:  # pragma: no cover [external]
     """Spawn or interface an SSH agent, as a pytest fixture.
 
     Spawn a new SSH agent (isolated from other SSH use by other
@@ -1053,7 +1059,7 @@ def _load_key_optimistically(
 @pytest.fixture
 def ssh_agent_client_with_test_keys_loaded(
     spawn_ssh_agent: data.SpawnedSSHAgentInfo,
-) -> Iterator[ssh_agent.SSHAgentClient]:
+) -> Generator[ssh_agent.SSHAgentClient, None, None]:
     """Provide an SSH agent with loaded test keys, as a pytest fixture.
 
     Use the `spawn_ssh_agent` fixture to acquire a usable SSH agent,

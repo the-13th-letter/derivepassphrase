@@ -32,7 +32,13 @@ __all__ = ()
 
 if TYPE_CHECKING:
     import types
-    from collections.abc import Callable, Iterator, Mapping, Sequence
+    from collections.abc import (
+        Callable,
+        Generator,
+        Iterable,
+        Mapping,
+        Sequence,
+    )
     from contextlib import AbstractContextManager
     from typing import IO, Literal, NotRequired
 
@@ -500,7 +506,7 @@ class StubbedSSHAgentSocket:
         self._check_for_io_on_closed_connection()
         self.receive_from_client.extend(memoryview(data))
         while self.receive_from_client:
-            result: Buffer | Iterator[int]
+            result: Buffer | Iterable[int]
             if len(self.receive_from_client) < self.HEADER_SIZE:
                 break
             count = int.from_bytes(
@@ -599,7 +605,7 @@ class StubbedSSHAgentSocket:
         extension_marker = b"\x1b" + string(extension.encode("ascii"))
         return self.receive_from_client.startswith(extension_marker, 4)
 
-    def query_extensions(self) -> Iterator[int]:
+    def query_extensions(self) -> Generator[int, None, None]:
         """Answer an `SSH_AGENTC_EXTENSION` request.
 
         Yields:
@@ -619,7 +625,7 @@ class StubbedSSHAgentSocket:
 
     def request_identities(
         self, *, list_extended: bool = False
-    ) -> Iterator[int]:
+    ) -> Generator[int, None, None]:
         """Answer an `SSH_AGENTC_REQUEST_IDENTITIES` request.
 
         Args:

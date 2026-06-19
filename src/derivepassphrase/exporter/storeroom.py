@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from typing_extensions import Buffer
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
     from cryptography.hazmat.primitives import ciphers, hashes, hmac, padding
     from cryptography.hazmat.primitives.ciphers import algorithms, modes
@@ -666,7 +666,7 @@ def _decrypt_bucket_file(
     master_keys: _types.StoreroomMasterKeys,
     *,
     root_dir: str | bytes | os.PathLike = ".",
-) -> Iterator[Buffer]:
+) -> Generator[Buffer, None, None]:
     """Decrypt a complete bucket.
 
     Args:

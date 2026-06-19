@@ -47,7 +47,7 @@ else:
 if TYPE_CHECKING:
     import types
     from collections.abc import (
-        Iterator,
+        Generator,
         Mapping,
     )
     from contextlib import AbstractContextManager
@@ -564,7 +564,7 @@ def get_suitable_ssh_keys(
     | Sequence[str]
     | None = None,
     /,
-) -> Iterator[_types.SSHKeyCommentPair]:
+) -> Generator[_types.SSHKeyCommentPair, None, None]:
     """Yield all SSH keys suitable for passphrase derivation.
 
     Suitable SSH keys are queried from the running SSH agent (see
