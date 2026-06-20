@@ -10,12 +10,11 @@ import base64
 import contextlib
 import ctypes
 import importlib.metadata
-import io
 import re
 import socket
 import sys
 import types
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, cast
 
 import click
 import hypothesis
@@ -1247,6 +1246,7 @@ class TestOtherConstructorFeatures:
         self,
         spawn_ssh_agent: data.SpawnedSSHAgentInfo,
     ) -> None:
+        """The constructor accepts existing sockets."""
         conn = spawn_ssh_agent.client._connection
         ssh_agent.SSHAgentClient(socket=conn)
 
@@ -1294,18 +1294,10 @@ class TestAgentErrorResponses:
     ) -> None:
         """Fail on truncated responses from the SSH agent."""
         client = ssh_agent.SSHAgentClient()
-        response_stream = io.BytesIO(response)
-
-        class PseudoSocket:
-            def sendall(self, *args: Any, **kwargs: Any) -> Any:  # noqa: ARG002
-                return None
-
-            def recv(self, *args: Any, **kwargs: Any) -> Any:
-                return response_stream.read(*args, **kwargs)
-
-        pseudo_socket = PseudoSocket()
+        agent = cast("machinery.StubbedSSHAgentSocket", client._connection)
         with pytest.MonkeyPatch.context() as monkeypatch:
-            monkeypatch.setattr(client, "_connection", pseudo_socket)
+            monkeypatch.setattr(agent, "send_to_client", bytearray(response))
+            monkeypatch.setattr(agent, "sendall", lambda *_a, **_kw: None)
             with pytest.raises(EOFError):
                 client.request(255, b"")
 
