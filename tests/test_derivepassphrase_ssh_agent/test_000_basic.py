@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import base64
 import contextlib
+import ctypes
 import importlib.metadata
 import io
 import re
@@ -23,7 +24,7 @@ from hypothesis import strategies
 from typing_extensions import TypeAlias
 
 from derivepassphrase import _types, ssh_agent, vault
-from derivepassphrase._internals import cli_helpers
+from derivepassphrase._internals import cli_helpers, cli_messages
 from derivepassphrase.ssh_agent import socketprovider
 from tests import data, machinery
 from tests.data import callables
@@ -345,6 +346,31 @@ class Parametrize(types.SimpleNamespace):
                 "VARIABLE",
                 None,
                 id="no-export",
+            ),
+        ],
+    )
+    MISSING_AGENT_SUPPORT = pytest.mark.parametrize(
+        ["provider", "exception", "message"],
+        [
+            pytest.param(
+                _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX,
+                socketprovider.UnixDomainSocketsNotAvailableError,
+                str(
+                    cli_messages.TranslatedString(
+                        cli_messages.WarnMsgTemplate.NO_UNIX_DOMAIN_SOCKETS
+                    )
+                ),
+                id="unix_domain_sockets",
+            ),
+            pytest.param(
+                _types.BuiltinSSHAgentSocketProvider.WINDOWS_NAMED_PIPE,
+                socketprovider.WindowsNamedPipesNotAvailableError,
+                str(
+                    cli_messages.TranslatedString(
+                        cli_messages.WarnMsgTemplate.NO_WINDOWS_NAMED_PIPES
+                    )
+                ),
+                id="windows_named_pipes",
             ),
         ],
     )
@@ -1142,6 +1168,27 @@ class TestSuitableKeys:
 class TestConstructorFailures:
     """Test actually talking to the SSH agent: constructor failures."""
 
+    def _unsupport_provider_and_force_use(
+        self,
+        provider: _types.BuiltinSSHAgentSocketProvider,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Remove support for the named socket provider."""
+        if (
+            provider
+            == _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX
+        ):
+            monkeypatch.delattr(socket, "AF_UNIX", raising=False)
+        elif (
+            provider == _types.BuiltinSSHAgentSocketProvider.WINDOWS_NAMED_PIPE
+        ):
+            monkeypatch.delattr(ctypes, "WinDLL", raising=False)
+        else:
+            pytest.fail(f"Don't know how to remove support for {provider!r}.")
+        monkeypatch.setattr(
+            ssh_agent.SSHAgentClient, "SOCKET_PROVIDERS", [provider]
+        )
+
     def test_constructor_bad_running_agent(
         self,
         running_ssh_agent: data.RunningSSHAgentInfo,
@@ -1157,17 +1204,23 @@ class TestConstructorFailures:
             with pytest.raises(OSError):  # noqa: PT011
                 ssh_agent.SSHAgentClient()
 
-    def test_constructor_no_af_unix_support(self) -> None:
-        """Fail without [`socket.AF_UNIX`][] support."""
-        assert "posix" in socketprovider.SocketProvider.registry
+    @Parametrize.MISSING_AGENT_SUPPORT
+    def test_constructor_no_support(
+        self,
+        provider: _types.BuiltinSSHAgentSocketProvider,
+        exception: type[NotImplementedError],
+        message: str,
+    ) -> None:
+        """Fail without support for the communication technology."""
+        del message
+        assert provider in socketprovider.SocketProvider.registry
         with pytest.MonkeyPatch.context() as monkeypatch:
-            monkeypatch.setenv("SSH_AUTH_SOCK", "the value doesn't matter")
-            monkeypatch.delattr(socket, "AF_UNIX", raising=False)
-            with pytest.raises(
-                NotImplementedError,
-                match="UNIX domain sockets",
-            ):
-                ssh_agent.SSHAgentClient(socket="posix")
+            monkeypatch.setenv(
+                "SSH_AUTH_SOCK", "the value doesn't even matter"
+            )
+            self._unsupport_provider_and_force_use(provider, monkeypatch)
+            with pytest.raises(exception):
+                ssh_agent.SSHAgentClient(socket=provider)
 
     def test_no_ssh_agent_socket_provider_available(
         self,

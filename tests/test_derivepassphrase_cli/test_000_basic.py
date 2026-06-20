@@ -13,6 +13,7 @@ subsystems.)
 from __future__ import annotations
 
 import contextlib
+import ctypes
 import json
 import socket
 import textwrap
@@ -22,9 +23,8 @@ from typing import TYPE_CHECKING, ClassVar
 import pytest
 
 from derivepassphrase import _types, cli, ssh_agent
-from derivepassphrase._internals import (
-    cli_helpers,
-)
+from derivepassphrase._internals import cli_helpers, cli_messages
+from derivepassphrase.ssh_agent import socketprovider
 from tests import data, machinery
 from tests.machinery import pytest as pytest_machinery
 
@@ -218,6 +218,31 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
+    MISSING_AGENT_SUPPORT = pytest.mark.parametrize(
+        ["provider", "exception", "message"],
+        [
+            pytest.param(
+                _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX,
+                socketprovider.UnixDomainSocketsNotAvailableError,
+                str(
+                    cli_messages.TranslatedString(
+                        cli_messages.WarnMsgTemplate.NO_UNIX_DOMAIN_SOCKETS
+                    )
+                ),
+                id="unix_domain_sockets",
+            ),
+            pytest.param(
+                _types.BuiltinSSHAgentSocketProvider.WINDOWS_NAMED_PIPE,
+                socketprovider.WindowsNamedPipesNotAvailableError,
+                str(
+                    cli_messages.TranslatedString(
+                        cli_messages.WarnMsgTemplate.NO_WINDOWS_NAMED_PIPES
+                    )
+                ),
+                id="windows_named_pipes",
+            ),
+        ],
+    )
 
 
 class TestPassphraseUnicodeNormalization:
@@ -364,11 +389,37 @@ class TestUserConfigurationFileOther:
 class TestSSHAgentAvailability:
     """Tests concerning the availability of the SSH agent."""
 
-    def test_missing_af_unix_support(
+    def _unsupport_provider_and_force_use(
+        self,
+        provider: _types.BuiltinSSHAgentSocketProvider,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Remove support for the named socket provider."""
+        if (
+            provider
+            == _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX
+        ):
+            monkeypatch.delattr(socket, "AF_UNIX", raising=False)
+        elif (
+            provider == _types.BuiltinSSHAgentSocketProvider.WINDOWS_NAMED_PIPE
+        ):
+            monkeypatch.delattr(ctypes, "WinDLL", raising=False)
+        else:
+            pytest.fail(f"Don't know how to remove support for {provider!r}.")
+        monkeypatch.setattr(
+            ssh_agent.SSHAgentClient, "SOCKET_PROVIDERS", [provider]
+        )
+
+    @Parametrize.MISSING_AGENT_SUPPORT
+    def test_missing_agent_support(
         self,
         caplog: pytest.LogCaptureFixture,
+        provider: _types.BuiltinSSHAgentSocketProvider,
+        exception: type[NotImplementedError],
+        message: str,
     ) -> None:
-        """Querying the SSH agent without `AF_UNIX` support fails."""
+        """Querying the SSH agent without support fails."""
+        del exception
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -379,16 +430,13 @@ class TestSSHAgentAvailability:
                 pytest_machinery.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={"global": {"phrase": "abc"}, "services": {}},
+                    vault_config={"services": {}},
                 )
             )
             monkeypatch.setenv(
                 "SSH_AUTH_SOCK", "the value doesn't even matter"
             )
-            monkeypatch.setattr(
-                ssh_agent.SSHAgentClient, "SOCKET_PROVIDERS", ["posix"]
-            )
-            monkeypatch.delattr(socket, "AF_UNIX", raising=False)
+            self._unsupport_provider_and_force_use(provider, monkeypatch)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ["--key", "--config"],
@@ -397,7 +445,6 @@ class TestSSHAgentAvailability:
         assert result.error_exit(
             error="does not support communicating with it"
         ), "expected error exit and known error message"
-        assert machinery.warning_emitted(
-            "Cannot connect to an SSH agent via UNIX domain sockets",
-            caplog.record_tuples,
-        ), "expected known warning message in stderr"
+        assert machinery.warning_emitted(message, caplog.record_tuples), (
+            "expected known warning message in stderr"
+        )
