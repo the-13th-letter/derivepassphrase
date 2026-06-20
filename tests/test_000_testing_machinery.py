@@ -618,7 +618,9 @@ class TestStubbedSSHAgentSocketRequests(TestStubbedSSHAgentSocket):
 class TestStubbedSSHAgentSocketProperOperations(TestStubbedSSHAgentSocket):
     """Test the stubbed SSH agent socket: proper use and misuse."""
 
-    def test_close_multiple(self) -> None:
+    def test_close_multiple(
+        self,
+    ) -> None:
         """The agent can be closed repeatedly."""
         with self._get_agent(extended_agent=None) as agent:
             pass
@@ -626,7 +628,9 @@ class TestStubbedSSHAgentSocketProperOperations(TestStubbedSSHAgentSocket):
             pass
         del agent
 
-    def test_closed_agents_cannot_be_interacted_with(self) -> None:
+    def test_closed_agents_cannot_be_interacted_with(
+        self,
+    ) -> None:
         """The agent cannot be usefully used after close."""
         with self._get_agent(extended_agent=None) as agent:
             pass
@@ -643,7 +647,9 @@ class TestStubbedSSHAgentSocketProperOperations(TestStubbedSSHAgentSocket):
         with pytest.raises(OSError, match=re.escape(os.strerror(errno.EBADF))):
             agent.recv(100)
 
-    def test_no_recv_without_sendall(self) -> None:
+    def test_no_recv_without_sendall(
+        self,
+    ) -> None:
         """The agent requires a message before sending a response."""
         with self._get_agent(extended_agent=None) as agent:  # noqa: SIM117
             with pytest.raises(
@@ -669,7 +675,10 @@ class TestStubbedSSHAgentSocketProperOperations(TestStubbedSSHAgentSocket):
             b"query",
         ]
     )
-    def test_piecemeal_sendall(self, query_request_parts: list[bytes]) -> None:
+    def test_piecemeal_sendall(
+        self,
+        query_request_parts: list[bytes],
+    ) -> None:
         """The agent supports receiving messages incrementally."""
         with self._get_agent(extended_agent=None) as agent:
             agent.enabled_extensions = frozenset({"query"})
@@ -709,7 +718,10 @@ class TestStubbedSSHAgentSocketProperOperations(TestStubbedSSHAgentSocket):
 
     @hypothesis.given(message=Strategies.truncated_agent_request())
     @hypothesis.example(message=b"\x00\x00\x00\x0f\xff")
-    def test_truncated_ssh_agent_message(self, message: bytes) -> None:
+    def test_truncated_ssh_agent_message(
+        self,
+        message: bytes,
+    ) -> None:
         """The agent diagnoses a final truncated request message."""
         with pytest.raises(  # noqa: SIM117
             AssertionError,
