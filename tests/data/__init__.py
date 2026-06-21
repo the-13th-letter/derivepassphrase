@@ -244,7 +244,7 @@ class KnownSSHAgentInstance(str, enum.Enum):
 
     @property
     def agent_type(self) -> KnownSSHAgentType:
-        """Return the agent type for this instance."""
+        """The agent type for this instance."""
         # TODO(the-13th-letter): Rewrite using structural pattern
         # matching.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9

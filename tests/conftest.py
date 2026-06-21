@@ -45,6 +45,13 @@ def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line(
         "markers",
         (
+            "external_agent: "
+            "mark the agent (fixture output) as external to the test suite"
+        ),
+    )
+    config.addinivalue_line(
+        "markers",
+        (
             "non_reentrant_agent: "
             "mark the agent (fixture output) as non-reentrant"
         ),
@@ -534,18 +541,26 @@ for instance, handler in spawn_handlers.items():
             "environment variable.",
         ),
     ]
+    agent_type = handler.instance.agent_type
+    # Distinguish spawned/interfaced agents ("external agents") from the
+    # stub agents ("internal agents").  While this could be inferred from
+    # the other marks, it is sensible to have a dedicated mark for this.
+    # Tests that unnecessarily use external agents without testing anything
+    # that is specific to external agents can be found more easily using
+    # this mark, and converted to using internal agents only, with speed and
+    # flakiness-resistance benefits.
+    if agent_type != data.KnownSSHAgentType.StubbedSSHAgent:
+        marks.append(pytest.mark.external_agent)
     # Allow agents to be marked as non-reentrant.  Workaround for an
     # issue with GnuPG 2.4.8 on The Annoying OS when `gpg-agent`
     # masquerades as OpenSSH's `ssh-agent`.
-    if is_agent_non_reentrant(
-        handler.instance.agent_type
-    ):  # pragma: no cover [external]
+    if is_agent_non_reentrant(agent_type):  # pragma: no cover [external]
         marks.append(pytest.mark.non_reentrant_agent)
     # Mark non-isolated agents as, well, using non-isolated agents.
     # Assume by default that an agent is potentially non-isolated unless
     # we can be absolutely sure it is isolated, by design.  (The "stub"
     # agents fall into the latter category.)
-    if handler.instance.agent_type != data.KnownSSHAgentType.StubbedSSHAgent:
+    if agent_type != data.KnownSSHAgentType.StubbedSSHAgent:
         marks.append(pytest_machinery.non_isolated_agent_use)
     # Some agents require UNIX domain socket support.
     if instance in {
