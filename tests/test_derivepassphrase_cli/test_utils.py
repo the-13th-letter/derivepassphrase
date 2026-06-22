@@ -69,6 +69,21 @@ DUMMY_KEY3_B64 = data.DUMMY_KEY3_B64
 TEST_CONFIGS = data.TEST_CONFIGS
 
 
+@pytest.fixture
+def use_stub_agent_with_address() -> Generator[None, None, None]:
+    """Enforce use of the stubbed SSH agent with socket address."""
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            ssh_agent.SSHAgentClient,
+            "SOCKET_PROVIDERS",
+            (_types.BuiltinSSHAgentSocketProvider.STUB_AGENT_WITH_ADDRESS,),
+        )
+        monkeypatch.setenv(
+            "SSH_AUTH_SOCK", machinery.StubbedSSHAgentSocketWithAddress.ADDRESS
+        )
+        yield
+
+
 def vault_config_exporter_shell_interpreter(  # noqa: C901
     script: str | Iterable[str],
     /,
@@ -278,37 +293,25 @@ class SystemSupportAction(str, enum.Enum):
     """Test fixture settings for [`ssh_agent.SSHAgentClient`][] system support.
 
     Attributes:
-        UNSET_AF_UNIX:
-            Ensure lack of support for UNIX domain sockets.
         UNSET_AF_UNIX_AND_ENSURE_USE:
             Ensure lack of support for UNIX domain sockets, and that the
             agent will use this socket provider.
-        UNSET_NATIVE:
-            Ensure both `UNSET_AF_UNIX` and `UNSET_WINDLL`.
         UNSET_NATIVE_AND_ENSURE_USE:
             Ensure both `UNSET_AF_UNIX` and `UNSET_WINDLL`, and that the
             agent will use the native socket provider.
         UNSET_PROVIDER_LIST:
             Ensure an empty list of SSH agent socket providers.
-        UNSET_WINDLL:
-            Ensure lack of support for Windows named pipes.
         UNSET_WINDLL_AND_ENSURE_USE:
             Ensure lack of support for Windows named pipes, and that the
             agent will use this socket provider.
 
     """
 
-    UNSET_AF_UNIX = enum.auto()
-    """"""
     UNSET_AF_UNIX_AND_ENSURE_USE = enum.auto()
-    """"""
-    UNSET_NATIVE = enum.auto()
     """"""
     UNSET_NATIVE_AND_ENSURE_USE = enum.auto()
     """"""
     UNSET_PROVIDER_LIST = enum.auto()
-    """"""
-    UNSET_WINDLL = enum.auto()
     """"""
     UNSET_WINDLL_AND_ENSURE_USE = enum.auto()
     """"""
@@ -329,90 +332,32 @@ class SystemSupportAction(str, enum.Enum):
             monkeypatch.setattr(
                 ssh_agent.SSHAgentClient, "SOCKET_PROVIDERS", []
             )
-        elif self in {self.UNSET_NATIVE, self.UNSET_NATIVE_AND_ENSURE_USE}:
-            self.check_or_ensure_use(
-                _types.BuiltinSSHAgentSocketProvider.NATIVE,
-                monkeypatch=monkeypatch,
-                ensure_use=(self == self.UNSET_NATIVE_AND_ENSURE_USE),
+        elif self == self.UNSET_NATIVE_AND_ENSURE_USE:
+            monkeypatch.setattr(
+                ssh_agent.SSHAgentClient,
+                "SOCKET_PROVIDERS",
+                [_types.BuiltinSSHAgentSocketProvider.NATIVE],
             )
             monkeypatch.delattr(socket, "AF_UNIX", raising=False)
             monkeypatch.delattr(ctypes, "WinDLL", raising=False)
             monkeypatch.delattr(ctypes, "windll", raising=False)
-        elif self in {self.UNSET_AF_UNIX, self.UNSET_AF_UNIX_AND_ENSURE_USE}:
-            self.check_or_ensure_use(
-                _types.BuiltinSSHAgentSocketProvider.POSIX,
-                monkeypatch=monkeypatch,
-                ensure_use=(self == self.UNSET_AF_UNIX_AND_ENSURE_USE),
+        elif self == self.UNSET_AF_UNIX_AND_ENSURE_USE:
+            monkeypatch.setattr(
+                ssh_agent.SSHAgentClient,
+                "SOCKET_PROVIDERS",
+                [_types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX],
             )
             monkeypatch.delattr(socket, "AF_UNIX", raising=False)
-        elif self in {self.UNSET_WINDLL, self.UNSET_WINDLL_AND_ENSURE_USE}:
-            self.check_or_ensure_use(
-                _types.BuiltinSSHAgentSocketProvider.WINDOWS,
-                monkeypatch=monkeypatch,
-                ensure_use=(self == self.UNSET_WINDLL_AND_ENSURE_USE),
+        elif self == self.UNSET_WINDLL_AND_ENSURE_USE:
+            monkeypatch.setattr(
+                ssh_agent.SSHAgentClient,
+                "SOCKET_PROVIDERS",
+                [_types.BuiltinSSHAgentSocketProvider.WINDOWS_NAMED_PIPE],
             )
             monkeypatch.delattr(ctypes, "WinDLL", raising=False)
             monkeypatch.delattr(ctypes, "windll", raising=False)
         else:
             raise AssertionError()
-
-    @staticmethod
-    def check_or_ensure_use(
-        provider: str, /, *, monkeypatch: pytest.MonkeyPatch, ensure_use: bool
-    ) -> None:
-        """Check that the named SSH agent socket provider will be used.
-
-        Either ensure that the socket provider will definitely be used,
-        or, upon detecting that it won't be used, skip the test.
-
-        Args:
-            provider:
-                The provider to check for.
-            ensure_use:
-                If true, ensure that the socket provider will definitely
-                be used.  If false, then check for whether it will be
-                used, and skip this test if not.
-            monkeypatch:
-                The monkeypatch context within which the fixture
-                adjustments should be executed.
-
-        """
-        if ensure_use:
-            monkeypatch.setattr(
-                ssh_agent.SSHAgentClient, "SOCKET_PROVIDERS", [provider]
-            )
-        else:  # pragma: no cover [external]
-            # This branch operates completely on instrumented or on
-            # externally defined, non-deterministic state.
-            intended: (
-                _types.SSHAgentSocketProvider
-                | socketprovider.NoSuchProviderError
-                | None
-            )
-            try:
-                intended = socketprovider.SocketProvider.lookup(provider)
-            except socketprovider.NoSuchProviderError as exc:
-                intended = exc
-            actual: (
-                _types.SSHAgentSocketProvider
-                | socketprovider.NoSuchProviderError
-                | None
-            )
-            for name in ssh_agent.SSHAgentClient.SOCKET_PROVIDERS:
-                try:
-                    actual = socketprovider.SocketProvider.lookup(name)
-                except socketprovider.NoSuchProviderError as exc:
-                    actual = exc
-                if actual is None:
-                    continue
-                break
-            else:
-                actual = None
-            if intended != actual:
-                pytest.skip(
-                    f"{provider!r} SSH agent socket provider "
-                    f"is not currently in use"
-                )
 
 
 class Parametrize(types.SimpleNamespace):
@@ -477,7 +422,6 @@ class Parametrize(types.SimpleNamespace):
             "sign_action",
             "pattern",
             "warnings_patterns",
-            "tests_construction_failure",
         ],
         [
             pytest.param(
@@ -487,7 +431,6 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "not loaded into the agent",
                 [],
-                False,
                 id="key-not-loaded",
             ),
             pytest.param(
@@ -497,7 +440,6 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "SSH agent failed to or refused to",
                 [],
-                False,
                 id="list-keys-refused",
             ),
             pytest.param(
@@ -507,7 +449,6 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "SSH agent failed to or refused to",
                 [],
-                False,
                 id="list-keys-protocol-error",
             ),
             pytest.param(
@@ -517,7 +458,6 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "Cannot connect to the SSH agent",
                 [],
-                True,
                 id="agent-address-mangled",
             ),
             pytest.param(
@@ -527,17 +467,15 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "Cannot find any running SSH agent",
                 [],
-                True,
                 id="agent-address-missing",
             ),
             pytest.param(
                 None,
                 None,
-                SystemSupportAction.UNSET_NATIVE,
+                SystemSupportAction.UNSET_NATIVE_AND_ENSURE_USE,
                 SignAction.FAIL,
                 "does not support communicating with it",
                 [],
-                True,
                 id="no-native-agent-available",
             ),
             pytest.param(
@@ -547,7 +485,6 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "does not support communicating with it",
                 [],
-                True,
                 id="no-agents-in-agent-provider-list",
             ),
             pytest.param(
@@ -557,7 +494,6 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "does not support communicating with it",
                 ["Cannot connect to an SSH agent via UNIX domain sockets"],
-                True,
                 id="no-unix-domain-sockets",
             ),
             pytest.param(
@@ -567,7 +503,6 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL,
                 "does not support communicating with it",
                 ["Cannot connect to an SSH agent via Windows named pipes"],
-                True,
                 id="no-windows-named-pipes",
             ),
             pytest.param(
@@ -577,7 +512,6 @@ class Parametrize(types.SimpleNamespace):
                 SignAction.FAIL_RUNTIME,
                 "violates the communication protocol",
                 [],
-                False,
                 id="sign-violates-protocol",
             ),
         ],
@@ -1474,20 +1408,18 @@ class TestMisc:
                 )
 
     @Parametrize.KEY_TO_PHRASE_SETTINGS
-    def test_key_to_phrase(  # noqa: C901
+    def test_key_to_phrase(
         self,
-        request: pytest.FixtureRequest,
-        ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
+        use_stub_agent_with_address: None,
         list_keys_action: ListKeysAction | None,
         system_support_action: SystemSupportAction | None,
         address_action: SocketAddressAction | None,
         sign_action: SignAction,
         pattern: str,
         warnings_patterns: list[str],
-        tests_construction_failure: bool,
     ) -> None:
         """All errors in [`cli_helpers.key_to_phrase`][] are handled."""
-
+        del use_stub_agent_with_address
         captured_warnings: list[str] = []
 
         class ErrCallback(BaseException):
@@ -1503,12 +1435,10 @@ class TestMisc:
             if args:  # pragma: no branch
                 captured_warnings.append(str(args[0]))
 
+        with ssh_agent.SSHAgentClient.ensure_agent_subcontext() as client:
+            loaded_keys = list(client.list_keys())
+        loaded_key = base64.standard_b64encode(loaded_keys[0][0])
         with pytest.MonkeyPatch.context() as monkeypatch:
-            loaded_keys = list(
-                ssh_agent_client_with_test_keys_loaded.list_keys()
-            )
-            loaded_key = base64.standard_b64encode(loaded_keys[0][0])
-
             monkeypatch.setattr(ssh_agent.SSHAgentClient, "sign", sign_action)
             if list_keys_action:
                 monkeypatch.setattr(
@@ -1518,13 +1448,6 @@ class TestMisc:
                 address_action(monkeypatch)
             if system_support_action:
                 system_support_action(monkeypatch)
-
-            if not tests_construction_failure:
-                pytest_machinery.ensure_singleton_client_if_non_reentrant_agent(
-                    request=request,
-                    monkeypatch=monkeypatch,
-                    client=ssh_agent_client_with_test_keys_loaded,
-                )
 
             with pytest.raises(ErrCallback, match=pattern) as excinfo:
                 cli_helpers.key_to_phrase(
