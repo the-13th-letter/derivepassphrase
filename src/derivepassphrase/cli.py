@@ -1283,7 +1283,7 @@ class _VaultContext:  # noqa: PLR0904
             notes_legacy_instructions = _msg.TranslatedString(
                 _msg.Label.DERIVEPASSPHRASE_VAULT_NOTES_LEGACY_INSTRUCTION_TEXT
             )
-            old_notes_value = subtree.get("notes", "")
+            old_notes_value = cast("str", subtree.get("notes", ""))
             if modern_editor_interface:
                 text = "\n".join([
                     str(notes_instructions),
@@ -1292,8 +1292,9 @@ class _VaultContext:  # noqa: PLR0904
                 ])
             else:
                 text = old_notes_value or str(notes_legacy_instructions)
+            # pyrefly: ignore [bad-argument-type]
             notes_value = click.edit(text=text, require_save=False)
-            assert notes_value is not None
+            assert isinstance(notes_value, str)
             if (
                 not modern_editor_interface
                 and notes_value.strip() != old_notes_value.strip()
@@ -1428,7 +1429,7 @@ class _VaultContext:  # noqa: PLR0904
             "symbol",
         }
         kwargs = {
-            cast("str", k): cast("int", settings[k])
+            k: cast("int", settings[k])
             for k in vault_service_keys
             if k in settings
         }

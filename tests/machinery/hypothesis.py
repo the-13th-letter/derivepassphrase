@@ -24,6 +24,7 @@ import sys
 from typing import TYPE_CHECKING
 
 import hypothesis
+import hypothesis.errors
 from hypothesis import strategies
 
 from derivepassphrase import _types

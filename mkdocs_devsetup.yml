@@ -83,3 +83,10 @@ nav:
     - Release checklist: _release_checklist.md
   - Wishlist:
     - wishlist/index.md
+
+plugins:
+  mkdocstrings:
+    handlers:
+      python:
+        options:
+          filters: []

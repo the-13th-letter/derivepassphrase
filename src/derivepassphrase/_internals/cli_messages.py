@@ -137,7 +137,7 @@ class DebugTranslations(gettext.NullTranslations):
         cache = _debug_translation_message_cache
         for enum_class in MSG_TEMPLATE_CLASSES:
             for member in enum_class.__members__.values():
-                value = cast("TranslatableString", member.value)
+                value = member.value
                 queue: list[tuple[TranslatableString, frozenset[str]]] = [
                     (value, frozenset())
                 ]
@@ -170,7 +170,7 @@ class DebugTranslations(gettext.NullTranslations):
             return message if not message_plural or n == 1 else message_plural
         return cls._format_enum_name_maybe_with_fields(
             enum_name=str(enum_value),
-            ts=cast("TranslatableString", enum_value.value),
+            ts=enum_value.value,
             trimmed=trimmed,
         )
 
@@ -194,7 +194,6 @@ class DebugTranslations(gettext.NullTranslations):
     def gettext(
         self,
         message: str,
-        /,
     ) -> str:
         return self._locate_message(message)
 
@@ -204,7 +203,6 @@ class DebugTranslations(gettext.NullTranslations):
         msgid1: str,
         msgid2: str,
         n: int,
-        /,
     ) -> str:  # pragma: no cover [unused]
         """"""  # noqa: D419
         return self._locate_message(msgid1, message_plural=msgid2, n=n)
@@ -214,7 +212,6 @@ class DebugTranslations(gettext.NullTranslations):
         self,
         context: str,
         message: str,
-        /,
     ) -> str:
         return self._locate_message(message, context=context)
 
@@ -225,7 +222,6 @@ class DebugTranslations(gettext.NullTranslations):
         msgid1: str,
         msgid2: str,
         n: int,
-        /,
     ) -> str:  # pragma: no cover [unused]
         """"""  # noqa: D419
         return self._locate_message(
@@ -501,9 +497,18 @@ class TranslatedString:
                 More keyword arguments to be passed to [`str.format`][].
 
         """
-        if isinstance(template, MSG_TEMPLATE_CLASSES):
-            template = cast("TranslatableString", template.value)
-        self.template = template
+        # The cast is still needed for mypy.  For this use case --
+        # multiple related enums, all values of which share the same
+        # type, even across enums -- mypy's type inference is
+        # frustratingly surface-level.
+        #
+        # pyrefly: ignore [redundant-cast]
+        self.template = cast(
+            "str | TranslatableString",
+            template.value
+            if isinstance(template, MSG_TEMPLATE_CLASSES)
+            else template,
+        )
         self.kwargs = {**args_dict, **kwargs}
         self._rendered: str | None = None
 
@@ -2470,7 +2475,7 @@ def _write_po_file(  # noqa: C901,PLR0912
     entries: dict[str, dict[str, MsgTemplate]] = {}
     for enum_class in MSG_TEMPLATE_CLASSES:
         for member in enum_class.__members__.values():
-            value = cast("TranslatableString", member.value)
+            value = member.value
             ctx = value.l10n_context
             msg = value.singular
             if (
@@ -2569,7 +2574,7 @@ def _write_po_file(  # noqa: C901,PLR0912
         for _msg, enum_value in sorted(
             subdict.items(), key=lambda kv: str(kv[1])
         ):
-            value = cast("TranslatableString", enum_value.value)
+            value = enum_value.value
             value2 = value.maybe_without_filename()
             fileobj.writelines(
                 _format_po_entry(
@@ -2627,7 +2632,7 @@ def _format_po_entry(
 ) -> tuple[str, ...]:  # pragma: no cover [internal]
     """"""  # noqa: D419
     ret: list[str] = ["\n"]
-    ts = transformed_string or cast("TranslatableString", enum_value.value)
+    ts = transformed_string or enum_value.value
     if ts.translator_comments:
         comments = ts.translator_comments.splitlines(False)  # noqa: FBT003
         comments.extend(["", f"Message-ID: {enum_value}"])

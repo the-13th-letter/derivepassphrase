@@ -434,6 +434,23 @@ implicit_reexport = false
 sqlite_cache = true
 enable_error_code = ['ignore-without-code']
 
+[tool.pyrefly]
+project-includes = [
+    "src/**/*.py",
+    "tests/**/*.py",
+]
+search-path = [
+    "src",
+    "other-stubs",
+    ".",
+]
+preset = "legacy"
+infer-return-types = "never"
+permissive-ignores = true
+
+[tool.pyrefly.errors]
+unnecessary-type-conversion = "ignore"
+
 [tool.pytest.ini_options]
 addopts = '--doctest-modules --dist=loadgroup --import-mode=importlib'
 pythonpath = ['src']

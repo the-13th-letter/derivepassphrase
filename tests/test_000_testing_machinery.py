@@ -154,7 +154,7 @@ def minimize_openssh_keyfile_padding(
 
     new_private_block.extend(padding)
     result.extend(string(new_private_block))
-    return result
+    return bytes(result)
 
 
 class Parametrize:

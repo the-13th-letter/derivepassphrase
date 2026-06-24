@@ -136,7 +136,7 @@ def shell_complete_service(
     ctx: click.Context,
     parameter: click.Parameter,
     value: str,
-) -> list[str | click.shell_completion.CompletionItem]:
+) -> list[str]:
     """Return known vault service names as completion items.
 
     Service names are looked up in the vault configuration file.  All

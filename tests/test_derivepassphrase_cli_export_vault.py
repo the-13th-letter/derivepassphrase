@@ -513,11 +513,11 @@ class TestStoreroom:
         encryptor = ciphers.Cipher(
             algorithms.AES256(key), modes.CBC(iv)
         ).encryptor()
-        ciphertext = bytearray(encryptor.update(plaintext))
+        ciphertext = bytearray(encryptor.update(bytes(plaintext)))
         ciphertext.extend(encryptor.finalize())
         mac_obj = hmac.HMAC(key, hashes.SHA256())
         mac_obj.update(iv)
-        mac_obj.update(ciphertext)
+        mac_obj.update(bytes(ciphertext))
         data = iv + bytes(ciphertext) + mac_obj.finalize()
         with pytest.raises(
             ValueError,

@@ -258,15 +258,13 @@ except (
         dwFlagsAndAttributes: DWORD,  # noqa: N803
         hTemplateFile: HANDLE | None,  # noqa: N803
     ) -> HANDLE:  # pragma: no cover [external]
-        del (
-            lpFilename,
-            dwDesiredAccess,
-            dwShareMode,
-            lpSecurityAttributes,
-            dwCreationDisposition,
-            dwFlagsAndAttributes,
-            hTemplateFile,
-        )
+        del lpFilename
+        del dwDesiredAccess
+        del dwShareMode
+        del lpSecurityAttributes
+        del dwCreationDisposition
+        del dwFlagsAndAttributes
+        del hTemplateFile
         msg = "This Python version does not support Windows named pipes."
         raise WindowsNamedPipesNotAvailableError(msg)
 
@@ -277,13 +275,11 @@ except (
         lpNumberOfBytesRead: LPDWORD,  # noqa: N803
         lpOverlapped: LPOVERLAPPED,  # noqa: N803
     ) -> BOOL:  # pragma: no cover [external]
-        del (
-            hFile,
-            lpBuffer,
-            nNumberOfBytesToRead,
-            lpNumberOfBytesRead,
-            lpOverlapped,
-        )
+        del hFile
+        del lpBuffer
+        del nNumberOfBytesToRead
+        del lpNumberOfBytesRead
+        del lpOverlapped
         raise OSError(errno.ENOTSUP, os.strerror(errno.ENOTSUP))
 
     def WriteFile(  # noqa: N802
@@ -293,13 +289,11 @@ except (
         lpNumberOfBytesWritten: LPDWORD,  # noqa: N803
         lpOverlapped: LPOVERLAPPED,  # noqa: N803
     ) -> BOOL:  # pragma: no cover [external]
-        del (
-            hFile,
-            lpBuffer,
-            nNumberOfBytesToWrite,
-            lpNumberOfBytesWritten,
-            lpOverlapped,
-        )
+        del hFile
+        del lpBuffer
+        del nNumberOfBytesToWrite
+        del lpNumberOfBytesWritten
+        del lpOverlapped
         raise OSError(errno.ENOTSUP, os.strerror(errno.ENOTSUP))
 
     def CloseHandle(  # noqa: N802

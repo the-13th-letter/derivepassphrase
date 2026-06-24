@@ -292,7 +292,6 @@ class CliRunner:
             or "",
             stderr or "",
         )
-        return ReadableResult.parse(raw_result)
 
     def isolated_filesystem(
         self,

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import base64
 import contextlib
+import importlib.metadata
 import importlib.util
 import json
 import os
@@ -128,7 +129,7 @@ def xfail_on_the_annoying_os(
         empty, will follow.
 
     """
-    import hypothesis  # noqa: PLC0415
+    import hypothesis.errors  # noqa: PLC0415
 
     base_reason = "The Annoying OS behaves differently."
     full_reason = base_reason if not reason else f"{base_reason}  {reason}"

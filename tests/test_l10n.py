@@ -12,7 +12,7 @@ import gettext
 import os
 import re
 import types
-from typing import TYPE_CHECKING, TypeVar, cast
+from typing import TYPE_CHECKING, TypeVar
 
 import hypothesis
 import pytest
@@ -57,16 +57,13 @@ class Strategies:
         ]
     ] = {}
     for enum_class in msg.MSG_TEMPLATE_CLASSES:
-        all_translatable_strings_dict.update({
-            cast("msg.TranslatableString", v.value): v for v in enum_class
-        })
+        all_translatable_strings_dict.update({v.value: v for v in enum_class})
 
     all_translatable_strings_enum_values = tuple(
         sorted(all_translatable_strings_dict.values(), key=str)
     )
     all_translatable_strings = tuple(
-        cast("msg.TranslatableString", v.value)
-        for v in all_translatable_strings_enum_values
+        v.value for v in all_translatable_strings_enum_values
     )
 
     error_codes = tuple(
@@ -132,7 +129,7 @@ class Strategies:
     @classmethod
     def translatable_strings(
         cls,
-    ) -> strategies.SearchStrategy[msg.MsgTemplate]:
+    ) -> strategies.SearchStrategy[msg.TranslatableString]:
         """Return a strategy for translatable messages."""
         return strategies.sampled_from(cls.all_translatable_strings)
 
@@ -201,9 +198,7 @@ class TestDebugTranslations:
         value: msg.MsgTemplate,
     ) -> None:
         """Translating a MsgTemplate operates on the enum value."""
-        self._test_interpolated(
-            str(value), cast("msg.TranslatableString", value.value)
-        )
+        self._test_interpolated(str(value), value.value)
 
 
 @pytest.mark.usefixtures("use_debug_translations")

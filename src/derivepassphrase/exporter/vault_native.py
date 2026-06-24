@@ -429,7 +429,7 @@ class VaultNativeConfigParser(abc.ABC):
         )
         unpadder = padding.PKCS7(iv_size * 8).unpadder()
         plaintext = bytearray()
-        plaintext.extend(unpadder.update(padded_plaintext))
+        plaintext.extend(unpadder.update(bytes(padded_plaintext)))
         plaintext.extend(unpadder.finalize())
         logger.debug(
             _msg.TranslatedString(

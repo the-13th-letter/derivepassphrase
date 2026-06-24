@@ -320,9 +320,7 @@ class TestCLIUtilities:
         """
         with self._setup_environment() as monkeypatch:
             if path:
-                monkeypatch.setenv(
-                    "VAULT_PATH", os.fspath(path) if path is not None else None
-                )
+                monkeypatch.setenv("VAULT_PATH", os.fspath(path))
             assert (
                 exporter.get_vault_path().resolve()
                 == expected.expanduser().resolve()

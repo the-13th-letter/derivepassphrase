@@ -1322,7 +1322,7 @@ class TestAgentErrorResponses:
         with self._setup_agent_and_request_handler({
             data.AgentProtocolRequest(
                 _types.SSH_AGENTC.REQUEST_IDENTITIES, b""
-            ): [data.AgentProtocolResponse(response_code, response)],
+            ): [data.AgentProtocolResponse(response_code, bytes(response))],
         }) as contexts:
             _, client = contexts
             with pytest.raises(exc_type, match=exc_pattern):
@@ -1361,7 +1361,7 @@ class TestAgentErrorResponses:
         with self._setup_agent_and_request_handler({
             data.AgentProtocolRequest(
                 _types.SSH_AGENTC.SIGN_REQUEST, sign_payload
-            ): [data.AgentProtocolResponse(response_code, response)],
+            ): [data.AgentProtocolResponse(response_code, bytes(response))],
         }) as contexts:
             monkeypatch, client = contexts
             monkeypatch.setattr(client, "list_keys", lambda: loaded_keys)

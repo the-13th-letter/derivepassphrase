@@ -11,7 +11,7 @@ import json
 import types
 from typing import TYPE_CHECKING
 
-import click.testing
+import click.shell_completion
 import pytest
 from typing_extensions import Any
 
