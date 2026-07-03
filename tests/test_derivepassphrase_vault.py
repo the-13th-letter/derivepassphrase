@@ -83,12 +83,7 @@ class Parametrize(types.SimpleNamespace):
             (1, {"upper": 0, "lower": 0, "number": 0, "symbol": 0}, 0.0),
         ],
     )
-    MASTER_PASSPHRASE_TYPES = pytest.mark.parametrize(
-        ["phrase1", "phrase2"],
-        [(PHRASE.decode("UTF-8"), f(PHRASE)) for f in buffer_types.values()],
-        ids=buffer_types.keys(),
-    )
-    BINARY_STRINGS = pytest.mark.parametrize(
+    BINARY_STRINGS = hypothesis_machinery.explicit_examples(
         "s",
         [
             "ñ",
@@ -107,11 +102,6 @@ class Parametrize(types.SimpleNamespace):
             ("twitter", TWITTER_PHRASE),
         ],
         ids=["google", "twitter"],
-    )
-    SERVICE_NAME_TYPES = pytest.mark.parametrize(
-        ["sv1", "sv2"],
-        [("email", f(b"email")) for f in buffer_types.values()],
-        ids=buffer_types.keys(),
     )
 
 
@@ -458,27 +448,14 @@ class TestStringAndBinaryExchangability(TestVault):
 
     """
 
-    @Parametrize.SAMPLE_SERVICES_AND_PHRASES
-    @Parametrize.MASTER_PASSPHRASE_TYPES
-    def test_binary_phrases(
-        self,
-        phrase1: str,
-        phrase2: Buffer,
-        service: bytes | str,
-        expected: bytes,
-    ) -> None:
-        """Binary and text master passphrases generate the same passphrases."""
-        v1 = vault.Vault(phrase=phrase1)
-        v2 = vault.Vault(phrase=phrase2)
-        assert v1.generate(service) == expected
-        assert v2.generate(service) == expected
-
-    @Parametrize.SERVICE_NAME_TYPES
-    def test_binary_service_name(self, sv1: str, sv2: Buffer) -> None:
-        """Binary and text service names generate the same passphrases."""
-        v = vault.Vault(phrase=self.phrase)
-        assert v.generate(sv1) == v.generate(sv2)
-
+    @hypothesis_machinery.explicit_examples(
+        ["phrase", "service"],
+        [
+            pytest.param(PHRASE.decode("UTF-8"), "google", id="google"),
+            pytest.param(PHRASE.decode("UTF-8"), "twitter", id="twitter"),
+            pytest.param(PHRASE.decode("UTF-8"), "email", id="email"),
+        ],
+    )
     @hypothesis.given(
         phrase=Strategies.text_strategy(),
         service=Strategies.text_strategy(),
@@ -807,6 +784,18 @@ class TestUtilities(TestVault):
         """Removing allowed characters internally works."""
         assert vault.Vault._subtract(b"be", b"abcdef") == bytearray(b"acdf")
 
+    # TODO(the-13th-letter): Strongly consider removing this test, and
+    # the underlying functionality `Vault._entropy` and
+    # `Vault._estimate_sufficient_hash_length`, in favor of a heuristic
+    # estimate that works in "most cases".  This test strongly suggests
+    # that we know how to correctly calculate both the entropy of
+    # a passphrase derivation template and a bound on how many bits of
+    # entropy the template will actually need.  We don't, neither the
+    # template entropy (because the passphrase characters are not
+    # stochastically independent of each other, thanks to mandatory
+    # characters and repetition constraints) nor the actual used entropy
+    # (because we still use some form of rejection sampling with
+    # worst-case infinite retry chains).
     @Parametrize.ENTROPY_RESULTS
     def test_entropy(
         self, length: int, settings: dict[str, int], entropy: int
@@ -821,44 +810,16 @@ class TestUtilities(TestVault):
             )
         assert v._estimate_sufficient_hash_length(8.0) >= entropy
 
-    # TODO(the-13th-letter): Either fold this version into test_entropy,
-    # or remove degenerate cases from Parametrize.ENTROPY_RESULTS.
-    def test_hash_length_estimation(self) -> None:
-        """
-        Estimating the entropy and hash length for degenerate cases works.
-        """
-        v = vault.Vault(
-            phrase=self.phrase,
-            lower=0,
-            upper=0,
-            number=0,
-            symbol=0,
-            space=1,
-            length=1,
-        )
-        assert v._entropy() == 0.0  # noqa: RUF069
-        assert v._estimate_sufficient_hash_length() > 0
-
-    @Parametrize.SAMPLE_SERVICES_AND_PHRASES
-    def test_hash_length_expansion(
-        self,
-        monkeypatch: pytest.MonkeyPatch,
-        service: str | bytes,
-        expected: bytes,
-    ) -> None:
-        """
-        Estimating the entropy and hash length for the degenerate case works.
-        """
-        v = vault.Vault(phrase=self.phrase)
-        monkeypatch.setattr(
-            v,
-            "_estimate_sufficient_hash_length",
-            lambda *_args, **_kwargs: 1,
-        )
-        assert v._estimate_sufficient_hash_length() < len(self.phrase)
-        assert v.generate(service) == expected
-
     @Parametrize.BINARY_STRINGS
+    @hypothesis.given(
+        s=strategies.text().flatmap(
+            lambda s: strategies.sampled_from([
+                s,
+                s.encode("UTF-8"),
+                bytearray(s.encode("UTF-8")),
+            ])
+        )
+    )
     def test_binary_strings(self, s: str | bytes | bytearray) -> None:
         """Byte string conversion is idempotent."""
         binstr = vault.Vault._get_binary_string

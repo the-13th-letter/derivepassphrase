@@ -19,6 +19,7 @@ import pytest
 from hypothesis import strategies
 
 from derivepassphrase._internals import cli_messages as msg
+from tests.machinery import hypothesis as hypothesis_machinery
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -26,7 +27,7 @@ if TYPE_CHECKING:
 
 
 class Parametrize(types.SimpleNamespace):
-    MAYBE_FORMAT_STRINGS = pytest.mark.parametrize(
+    MAYBE_FORMAT_STRINGS = hypothesis_machinery.explicit_examples(
         "s", ["{spam}", "{spam}abc", "{", "}", "{{{"]
     )
 
@@ -281,6 +282,8 @@ class TestTranslatedStrings:
 class TestSuppressedInterpolations:
     """Test the interpolation suppression behavior of translated strings."""
 
+    # TODO(the-13th-letter): Revise this test, in particular, the error
+    # assertions.
     @Parametrize.MAYBE_FORMAT_STRINGS
     def test_missing_fields(self, s: str) -> None:
         """TranslatableStrings require fixed replacement fields.

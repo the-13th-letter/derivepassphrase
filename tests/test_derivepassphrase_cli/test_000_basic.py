@@ -389,6 +389,9 @@ class TestUserConfigurationFileOther:
 class TestSSHAgentAvailability:
     """Tests concerning the availability of the SSH agent."""
 
+    # TODO(the-13th-letter): Decouple tests from exact knowledge of how
+    # to unsupport a certain socket provider.  Coordinate with
+    # tests.test_derivepassphrase_ssh_agent.test_000_basic.TestConstructorFailures.
     def _unsupport_provider_and_force_use(
         self,
         provider: _types.BuiltinSSHAgentSocketProvider,

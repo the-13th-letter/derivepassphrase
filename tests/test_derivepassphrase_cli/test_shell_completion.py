@@ -12,6 +12,7 @@ import types
 from typing import TYPE_CHECKING
 
 import click.shell_completion
+import hypothesis
 import pytest
 from typing_extensions import Any
 
@@ -21,6 +22,7 @@ from derivepassphrase._internals import (
     cli_machinery as cli_machinery,  # noqa: PLC0414
 )
 from tests import data, machinery
+from tests.machinery import hypothesis as hypothesis_machinery
 from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
@@ -232,7 +234,7 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
-    COMPLETABLE_SUBCOMMANDS = pytest.mark.parametrize(
+    COMPLETABLE_SUBCOMMANDS = hypothesis_machinery.explicit_examples(
         ["command_prefix", "incomplete", "completions"],
         [
             pytest.param(
@@ -249,7 +251,7 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
-    COMPLETION_FUNCTION_INPUTS = pytest.mark.parametrize(
+    COMPLETION_FUNCTION_INPUTS = hypothesis_machinery.explicit_examples(
         ["config", "comp_func", "args", "incomplete", "results"],
         [
             pytest.param(
@@ -377,7 +379,7 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
-    SERVICE_NAME_COMPLETION_INPUTS = pytest.mark.parametrize(
+    SERVICE_NAME_COMPLETION_INPUTS = hypothesis_machinery.explicit_examples(
         ["config", "key", "incomplete", "completions"],
         [
             pytest.param(
@@ -525,13 +527,19 @@ class Parametrize(types.SimpleNamespace):
                 id="del_partial_specific",
             ),
         ],
+        settings=hypothesis.settings(
+            parent=hypothesis.settings(),
+            suppress_health_check=[
+                hypothesis.HealthCheck.function_scoped_fixture
+            ],
+        ),
     )
     SERVICE_NAME_EXCEPTIONS = pytest.mark.parametrize(
         "exc_type", [RuntimeError, KeyError, ValueError]
     )
     INCOMPLETE = pytest.mark.parametrize("incomplete", ["", "partial"])
     CONFIG_SETTING_MODE = pytest.mark.parametrize("mode", ["config", "import"])
-    COMPLETABLE_ITEMS = pytest.mark.parametrize(
+    COMPLETABLE_ITEMS = hypothesis_machinery.explicit_examples(
         ["partial", "is_completable"],
         [
             ("", True),
@@ -756,6 +764,7 @@ class TestCLICompletabilityHandling(TestShellCompletion):
         completions: AbstractSet[str],
     ) -> None:
         """Completion skips incompletable items."""
+        caplog.clear()
         vault_config = config if mode == "config" else {"services": {}}
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
@@ -822,6 +831,8 @@ class TestCLICompletabilityHandling(TestShellCompletion):
                 "",
             )
 
+    # TODO(the-13th-letter): Reevaluate whether to keep this as a
+    # non-hypothesis test.
     @Parametrize.SERVICE_NAME_EXCEPTIONS
     def test_handling_unexpected_exceptions(
         self,

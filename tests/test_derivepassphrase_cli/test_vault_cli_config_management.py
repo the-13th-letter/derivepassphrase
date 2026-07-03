@@ -178,7 +178,7 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
-    CONFIG_EDITING_VIA_CONFIG_FLAG = pytest.mark.parametrize(
+    CONFIG_EDITING_VIA_CONFIG_FLAG = hypothesis_machinery.explicit_examples(
         ["command_line", "input", "starting_config", "result_config"],
         [
             pytest.param(

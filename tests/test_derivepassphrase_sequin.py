@@ -19,6 +19,7 @@ import pytest
 from hypothesis import strategies
 
 from derivepassphrase import sequin
+from tests.machinery import hypothesis as hypothesis_machinery
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -56,7 +57,7 @@ def bitseq(string: str) -> list[int]:
 
 
 class Parametrize(types.SimpleNamespace):
-    BIG_ENDIAN_NUMBER_EXCEPTIONS = pytest.mark.parametrize(
+    BIG_ENDIAN_NUMBER_EXCEPTIONS = hypothesis_machinery.explicit_examples(
         ["exc_type", "exc_pattern", "sequence", "base"],
         [
             (ValueError, "invalid base 3 digit:", [-1], 3),
@@ -64,7 +65,7 @@ class Parametrize(types.SimpleNamespace):
             (TypeError, "not an integer:", [0.0, 1.0, 0.0, 1.0], 2),
         ],
     )
-    INVALID_SEQUIN_INPUTS = pytest.mark.parametrize(
+    INVALID_SEQUIN_INPUTS = hypothesis_machinery.explicit_examples(
         ["sequence", "is_bitstring", "exc_type", "exc_pattern"],
         [
             (

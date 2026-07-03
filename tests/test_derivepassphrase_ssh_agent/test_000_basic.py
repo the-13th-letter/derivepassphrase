@@ -27,6 +27,7 @@ from derivepassphrase._internals import cli_helpers, cli_messages
 from derivepassphrase.ssh_agent import socketprovider
 from tests import data, machinery
 from tests.data import callables
+from tests.machinery import hypothesis as hypothesis_machinery
 from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
@@ -135,7 +136,7 @@ class Parametrize(types.SimpleNamespace):
         ],
         ids=str,
     )
-    SSH_STRING_EXCEPTIONS = pytest.mark.parametrize(
+    SSH_STRING_EXCEPTIONS = hypothesis_machinery.explicit_examples(
         ["input", "exc_type", "exc_pattern"],
         [
             pytest.param(
@@ -143,7 +144,7 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
-    UINT32_EXCEPTIONS = pytest.mark.parametrize(
+    UINT32_EXCEPTIONS = hypothesis_machinery.explicit_examples(
         ["input", "exc_type", "exc_pattern"],
         [
             pytest.param(
@@ -160,7 +161,7 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
-    SSH_UNSTRING_EXCEPTIONS = pytest.mark.parametrize(
+    SSH_UNSTRING_EXCEPTIONS = hypothesis_machinery.explicit_examples(
         ["input", "exc_type", "exc_pattern", "parts"],
         [
             pytest.param(
@@ -186,7 +187,7 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
-    SSH_STRING_INPUT = pytest.mark.parametrize(
+    SSH_STRING_INPUT = hypothesis_machinery.explicit_examples(
         ["input", "expected"],
         [
             pytest.param(
@@ -206,7 +207,7 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
-    SSH_UNSTRING_INPUT = pytest.mark.parametrize(
+    SSH_UNSTRING_INPUT = hypothesis_machinery.explicit_examples(
         ["input", "expected"],
         [
             pytest.param(
@@ -221,21 +222,13 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
-    UINT32_INPUT = pytest.mark.parametrize(
+    UINT32_INPUT = hypothesis_machinery.explicit_examples(
         ["input", "expected"],
         [
             pytest.param(16777216, b"\x01\x00\x00\x00", id="16777216"),
         ],
     )
-    IO_OPERATIONS_ON_HANDLES = pytest.mark.parametrize(
-        "io_operation",
-        [
-            lambda handle: handle.recv(1),
-            lambda handle: handle.sendall(b"Hello, world!"),
-        ],
-        ids=["recv", "sendall"],
-    )
-    SIGN_ERROR_RESPONSES = pytest.mark.parametrize(
+    SIGN_ERROR_RESPONSES = hypothesis_machinery.explicit_examples(
         [
             "key",
             "check",
@@ -274,7 +267,7 @@ class Parametrize(types.SimpleNamespace):
         + [(callables.list_keys_singleton()[0].key, True)],
         ids=[*data.SUPPORTED_KEYS.keys(), "singleton"],
     )
-    SH_EXPORT_LINES = pytest.mark.parametrize(
+    SH_EXPORT_LINES = hypothesis_machinery.explicit_examples(
         ["line", "env_name", "value"],
         [
             pytest.param(
@@ -375,7 +368,7 @@ class Parametrize(types.SimpleNamespace):
         list(data.SUPPORTED_KEYS.values()),
         ids=list(data.SUPPORTED_KEYS.keys()),
     )
-    REQUEST_ERROR_RESPONSES = pytest.mark.parametrize(
+    REQUEST_ERROR_RESPONSES = hypothesis_machinery.explicit_examples(
         ["request_code", "response_code", "exc_type", "exc_pattern"],
         [
             pytest.param(
@@ -391,7 +384,7 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
-    TRUNCATED_AGENT_RESPONSES = pytest.mark.parametrize(
+    TRUNCATED_AGENT_RESPONSES = hypothesis_machinery.explicit_examples(
         "response",
         [
             b"\x00\x00",
@@ -399,7 +392,7 @@ class Parametrize(types.SimpleNamespace):
         ],
         ids=["in-header", "in-body"],
     )
-    LIST_KEYS_ERROR_RESPONSES = pytest.mark.parametrize(
+    LIST_KEYS_ERROR_RESPONSES = hypothesis_machinery.explicit_examples(
         ["response_code", "response", "exc_type", "exc_pattern"],
         [
             pytest.param(
@@ -425,7 +418,7 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
-    QUERY_EXTENSIONS_MALFORMED_RESPONSES = pytest.mark.parametrize(
+    QUERY_EXTENSIONS_MALFORMED_RESPONSES = hypothesis_machinery.explicit_examples(
         "response_data",
         [
             pytest.param(b"\xde\xad\xbe\xef", id="truncated"),
@@ -446,7 +439,7 @@ class Parametrize(types.SimpleNamespace):
         list(data.ALL_KEYS.items()),
         ids=data.ALL_KEYS.keys(),
     )
-    RESOLVE_CHAINS = pytest.mark.parametrize(
+    RESOLVE_CHAINS = hypothesis_machinery.explicit_examples(
         ["terminal", "chain"],
         [
             pytest.param("callable", ["a"], id="callable-1"),
@@ -483,10 +476,29 @@ class Strategies:
             alphabet=strategies.characters(min_codepoint=1), min_size=1
         ).filter(cls.select_invalid_pipe_names)
 
+    @staticmethod
+    def io_operations_on_handles() -> strategies.SearchStrategy[
+        Callable[[_types.SSHAgentSocket], Any]
+    ]:
+        """Return an I/O operation on an SSH agent socket."""
+        return strategies.one_of(
+            strategies.integers(min_value=0).map(
+                lambda i: lambda handle: handle.recv(i)
+            ),
+            strategies.binary().map(
+                lambda bs: lambda handle: handle.sendall(bs)
+            ),
+        )
+
 
 class TestStaticFunctionality:
     """Test the static functionality of the `ssh_agent` module."""
 
+    # TODO(the-13th-letter): Put this functionality into the
+    # tests.data.callables module. It is nice to have for other tests as
+    # well: `vault` tests, stubbed SSH agent tests, agent protocol
+    # response queue tests, etc. Also add an unstring and a u32
+    # function.
     @staticmethod
     def as_ssh_string(bytestring: bytes) -> bytes:
         """Return an encoded SSH string from a bytestring.
@@ -667,6 +679,7 @@ class TestSSHProtocolDatatypes(TestStaticFunctionality):
             for canon2 in canonical_functions:
                 assert canon1(canon2(encoded)) == canon1(encoded)
 
+    # TODO(the-13th-letter): Write a hypothesis strategy.
     @Parametrize.UINT32_EXCEPTIONS
     def test_uint32_exceptions(
         self, input: int, exc_type: type[Exception], exc_pattern: str
@@ -676,6 +689,7 @@ class TestSSHProtocolDatatypes(TestStaticFunctionality):
         with pytest.raises(exc_type, match=exc_pattern):
             uint32(input)
 
+    # TODO(the-13th-letter): Write a hypothesis strategy.
     @Parametrize.SSH_STRING_EXCEPTIONS
     def test_string_exceptions(
         self, input: Any, exc_type: type[Exception], exc_pattern: str
@@ -685,6 +699,7 @@ class TestSSHProtocolDatatypes(TestStaticFunctionality):
         with pytest.raises(exc_type, match=exc_pattern):
             string(input)
 
+    # TODO(the-13th-letter): Write a hypothesis strategy.
     @Parametrize.SSH_UNSTRING_EXCEPTIONS
     def test_unstring_exceptions(
         self,
@@ -705,6 +720,10 @@ class TestSSHProtocolDatatypes(TestStaticFunctionality):
                 unstring_prefix(input)
 
 
+# TODO(the-13th-letter): Introduce a registry analyzer that decomposes
+# the registry into chains.  On this decomposed representation, provide
+# strategies to draw chains, existing entries, non-existing entries,
+# leaves, aliases, etc.
 class TestSSHAgentSocketProviderRegistry:
     """Tests for the SSH agent socket provider registry."""
 
@@ -732,44 +751,6 @@ class TestSSHAgentSocketProviderRegistry:
                 resolve(_types.BuiltinSSHAgentSocketProvider.STUB_AGENT)
 
     @Parametrize.RESOLVE_CHAINS
-    def test_resolve_chains(
-        self,
-        terminal: Literal["unimplemented", "alias", "callable"],
-        chain: list[str],
-    ) -> None:
-        """Resolving a chain of providers works."""
-        registry = socketprovider.SocketProvider.registry
-        resolve = socketprovider.SocketProvider.resolve
-        lookup = socketprovider.SocketProvider.lookup
-        try:
-            implementation = resolve(
-                _types.BuiltinSSHAgentSocketProvider.NATIVE
-            )
-        except NotImplementedError:  # pragma: no cover
-            pytest.fail("Native SSH agent socket provider is unavailable?!")
-        # TODO(the-13th-letter): Rewrite using structural pattern matching.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        target: _types.SSHAgentSocketProvider | str | None = (
-            None
-            if terminal == "unimplemented"
-            else _types.BuiltinSSHAgentSocketProvider.NATIVE
-            if terminal == "alias"
-            else implementation
-        )
-        with pytest.MonkeyPatch.context() as monkeypatch:
-            for link in chain:
-                monkeypatch.setitem(registry, link, target)
-                target = link
-            for link in chain:
-                assert lookup(link) == (
-                    implementation if terminal != "unimplemented" else None
-                )
-                if terminal == "unimplemented":
-                    with pytest.raises(NotImplementedError):
-                        resolve(link)
-                else:
-                    assert resolve(link) == implementation
-
     @hypothesis.given(
         terminal=strategies.sampled_from([
             "unimplemented",
@@ -793,7 +774,7 @@ class TestSSHAgentSocketProviderRegistry:
             unique=True,
         ),
     )
-    def test_resolve_chains2(
+    def test_resolve_chains(
         self,
         terminal: Literal["unimplemented", "alias", "callable"],
         chain: list[str],
@@ -832,6 +813,8 @@ class TestSSHAgentSocketProviderRegistry:
                 else:
                     assert resolve(link) == implementation
 
+    # TODO(the-13th-letter): Reevaluate whether this makes sense as a
+    # property-based test.
     @Parametrize.GOOD_ENTRY_POINTS
     def test_find_all_socket_providers(
         self,
@@ -851,6 +834,8 @@ class TestSSHAgentSocketProviderRegistry:
                     *old_registry.values(),
                 }
 
+    # TODO(the-13th-letter): Reevaluate whether this makes sense as a
+    # property-based test.
     @Parametrize.BAD_ENTRY_POINTS
     def test_find_all_socket_providers_errors(
         self,
@@ -866,6 +851,8 @@ class TestSSHAgentSocketProviderRegistry:
             stack.enter_context(pytest.raises(AssertionError))
             socketprovider.SocketProvider._find_all_ssh_agent_socket_providers()
 
+    # TODO(the-13th-letter): Convert this to a property-based test once
+    # the registry analyzer is ready.
     def test_overwriting_existing_entries(
         self,
     ) -> None:
@@ -911,6 +898,8 @@ class TestSSHAgentSocketProviderRegistry:
             with pytest.raises(ValueError, match="already registered"):
                 register(names[1][0], names[0][1])(bases[1])
 
+    # TODO(the-13th-letter): Convert this to a property-based test once
+    # the registry analyzer is ready.
     def test_resolve_non_existant_entries(
         self,
     ) -> None:
@@ -932,6 +921,8 @@ class TestSSHAgentSocketProviderRegistry:
                     _types.BuiltinSSHAgentSocketProvider.NATIVE
                 )
 
+    # TODO(the-13th-letter): Convert this to a property-based test once
+    # the registry analyzer is ready.
     def test_register_new_entry(
         self,
     ) -> None:
@@ -968,6 +959,8 @@ class TestSSHAgentSocketProviderRegistry:
                 for n in names
             ])
 
+    # TODO(the-13th-letter): Convert this to a property-based test once
+    # the registry analyzer is ready.
     @Parametrize.EXISTING_REGISTRY_ENTRIES
     def test_register_old_entry(
         self,
@@ -1163,6 +1156,9 @@ class TestSuitableKeys:
 class TestConstructorFailures:
     """Test actually talking to the SSH agent: constructor failures."""
 
+    # TODO(the-13th-letter): Decouple tests from exact knowledge of how
+    # to unsupport a certain socket provider.  Coordinate with
+    # tests.test_derivepassphrase_cli.test_000_basic.TestSSHAgentAvailability.
     def _unsupport_provider_and_force_use(
         self,
         provider: _types.BuiltinSSHAgentSocketProvider,
@@ -1450,6 +1446,8 @@ class TestAgentErrorResponses:
         _types.SSH_AGENT.SUCCESS, b""
     )
 
+    # TODO(the-13th-letter): Reconsider whether to parametrize or
+    # hypothesize this test.
     @pytest.mark.parametrize(
         ["success_after_query", "extensions"],
         [
@@ -1620,7 +1618,7 @@ class TestWindowsNamedPipeHandle:
             monkeypatch.setattr(socketprovider, "CloseHandle", close_handle)
             yield
 
-    @Parametrize.IO_OPERATIONS_ON_HANDLES
+    @hypothesis.given(io_operation=Strategies.io_operations_on_handles())
     def test_closed_handle_cannot_be_operated_on(
         self,
         io_operation: Callable[[Any], Any],
@@ -1635,7 +1633,7 @@ class TestWindowsNamedPipeHandle:
             ):
                 io_operation(handle)
 
-    @Parametrize.IO_OPERATIONS_ON_HANDLES
+    @hypothesis.given(io_operation=Strategies.io_operations_on_handles())
     def test_handle_is_non_reentrant(
         self,
         io_operation: Callable[[Any], Any],

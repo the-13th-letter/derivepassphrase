@@ -706,6 +706,8 @@ def provider_registry() -> dict[
     }
 
 
+# TODO(the-13th-letter): Rewrite the parametrization to be somewhat more
+# transparent, but keep it this high-level if possible.
 class TestKeyExplicitSSHAgentSocketProvider(TestKeyBasic):
     """Tests for SSH key configuration: explicit SSH agent socket providers."""
 

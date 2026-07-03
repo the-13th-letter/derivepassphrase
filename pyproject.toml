@@ -70,11 +70,15 @@ dev = [
     # the extra, and accept that for PyPy environments, `hatch test -p`
     # will not be able to distinguish logical and physical CPU core
     # counts.
+    #
+    # We use `hypothesis.is_hypothesis_test`, which was introduced in
+    # 6.131.0, and `exc_type` for `pytest.importorskip`, which was
+    # introduced in 8.2.0.
     "coverage[toml] >= 7.4",
     "coverage-enable-subprocess >= 1.0",
-    "hypothesis >= 6.0",
+    "hypothesis >= 6.131.0",
     "packaging",
-    "pytest >= 8.1",
+    "pytest >= 8.2",
     "pytest-randomly >= 3.15",
     "pytest-xdist >= 3.6.0",
     'pytest-xdist[psutil] >= 3.6.0; platform_python_implementation != "PyPy"',
@@ -378,9 +382,9 @@ default-args = ['src', 'tests']
 dependencies = [
     "coverage[toml] >= 7.4",
     "coverage-enable-subprocess >= 1.0",
-    "hypothesis >= 6.0",
+    "hypothesis >= 6.131.0",
     "packaging",
-    "pytest >= 8.1",
+    "pytest >= 8.2",
     "pytest-randomly >= 3.15",
     "pytest-xdist >= 3.6.0",
     'pytest-xdist[psutil] >= 3.6.0; platform_python_implementation != "PyPy"',
