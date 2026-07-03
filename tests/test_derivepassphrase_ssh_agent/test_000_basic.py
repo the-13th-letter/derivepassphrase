@@ -161,13 +161,12 @@ class Parametrize(types.SimpleNamespace):
         ],
     )
     SSH_UNSTRING_EXCEPTIONS = pytest.mark.parametrize(
-        ["input", "exc_type", "exc_pattern", "has_trailer", "parts"],
+        ["input", "exc_type", "exc_pattern", "parts"],
         [
             pytest.param(
                 b"ssh",
                 ValueError,
                 "malformed SSH byte string",
-                False,
                 None,
                 id="unencoded",
             ),
@@ -175,7 +174,6 @@ class Parametrize(types.SimpleNamespace):
                 b"\x00\x00\x00\x08ssh-rsa",
                 ValueError,
                 "malformed SSH byte string",
-                False,
                 None,
                 id="truncated",
             ),
@@ -183,7 +181,6 @@ class Parametrize(types.SimpleNamespace):
                 b"\x00\x00\x00\x04XXX trailing text",
                 ValueError,
                 "malformed SSH byte string",
-                True,
                 (b"XXX ", b"trailing text"),
                 id="trailing-data",
             ),
@@ -691,19 +688,18 @@ class TestSSHProtocolDatatypes(TestStaticFunctionality):
     @Parametrize.SSH_UNSTRING_EXCEPTIONS
     def test_unstring_exceptions(
         self,
-        input: bytes | bytearray,
+        input: bytes,
         exc_type: type[Exception],
         exc_pattern: str,
-        has_trailer: bool,
-        parts: tuple[bytes | bytearray, bytes | bytearray] | None,
+        parts: tuple[bytes, bytes] | None,
     ) -> None:
         """SSH string decoding fails for invalid values."""
         unstring = ssh_agent.SSHAgentClient.unstring
         unstring_prefix = ssh_agent.SSHAgentClient.unstring_prefix
         with pytest.raises(exc_type, match=exc_pattern):
             unstring(input)
-        if has_trailer:
-            assert tuple(bytes(x) for x in unstring_prefix(input)) == parts
+        if parts is not None:
+            assert unstring_prefix(input) == parts
         else:
             with pytest.raises(exc_type, match=exc_pattern):
                 unstring_prefix(input)

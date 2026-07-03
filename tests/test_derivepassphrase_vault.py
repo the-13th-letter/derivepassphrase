@@ -862,12 +862,9 @@ class TestUtilities(TestVault):
     def test_binary_strings(self, s: str | bytes | bytearray) -> None:
         """Byte string conversion is idempotent."""
         binstr = vault.Vault._get_binary_string
-        if isinstance(s, str):
-            assert binstr(s) == s.encode("UTF-8")
-            assert binstr(binstr(s)) == s.encode("UTF-8")
-        else:
-            assert binstr(s) == bytes(s)
-            assert binstr(binstr(s)) == bytes(s)
+        expected = s.encode("UTF-8") if isinstance(s, str) else bytes(s)
+        assert binstr(s) == expected
+        assert binstr(binstr(s)) == binstr(s)
 
     def test_too_many_symbols(self) -> None:
         """Deriving short passphrases with large length constraints fails."""

@@ -329,7 +329,13 @@ class Parametrize(types.SimpleNamespace):
         ],
     )
     KEY_INDEX = pytest.mark.parametrize(
-        "key_index", [1, 2, 3], ids=lambda i: f"index{i}"
+        "key_index",
+        [
+            i
+            for i, x in enumerate(data.ALL_KEYS.values(), start=1)
+            if x.is_suitable()
+        ],
+        ids=lambda i: f"index{i}",
     )
     EXPLICIT_SSH_AGENT_SOCKET_PROVIDER = pytest.mark.parametrize(
         ["on_command_line", "in_config"],
@@ -363,7 +369,7 @@ class Parametrize(types.SimpleNamespace):
         ],
     )
     OPTION_COMBINATIONS_SERVICE_NEEDED = pytest.mark.parametrize(
-        ["options", "service", "input", "check_success"],
+        ["options", "needs_service", "input", "check_success"],
         [
             pytest.param(
                 o.options,
@@ -975,7 +981,7 @@ class TestInvalidCommandLines:
     def test_service_needed(
         self,
         options: list[str],
-        service: bool | None,
+        needs_service: bool | None,
         input: str | None,
         check_success: bool,
     ) -> None:
@@ -985,14 +991,14 @@ class TestInvalidCommandLines:
             "services": {},
         }
         result = self._call(
-            options if service else [*options, "--", DUMMY_SERVICE],
+            options if needs_service else [*options, "--", DUMMY_SERVICE],
             config=config,
             input=input,
         )
-        if service is not None:
+        if needs_service is not None:
             err_msg = (
                 " requires a SERVICE"
-                if service
+                if needs_service
                 else " does not take a SERVICE argument"
             )
             assert result.error_exit(error=err_msg), (
@@ -1000,7 +1006,9 @@ class TestInvalidCommandLines:
             )
             if check_success:
                 result = self._call(
-                    [*options, "--", DUMMY_SERVICE] if service else options,
+                    [*options, "--", DUMMY_SERVICE]
+                    if needs_service
+                    else options,
                     config=config,
                     input=input,
                 )

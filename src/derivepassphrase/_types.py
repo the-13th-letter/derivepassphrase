@@ -1101,7 +1101,7 @@ class BuiltinSSHAgentSocketProvider(str, enum.Enum):
     ) -> bool:  # pragma: no cover [external]
         """Return true if this SSH agent socket provider is available.
 
-        This works by actually attempting to connet to an agent via the
+        This works by actually attempting to connect to an agent via the
         socket provider.
 
         """
@@ -1166,7 +1166,7 @@ class SSHAgentSocket(Protocol):
 
     def sendall(self, data: Buffer, flags: int = 0, /) -> None: ...
 
-    def recv(self, data: int, flags: int = 0, /) -> bytes: ...
+    def recv(self, bufsize: int, flags: int = 0, /) -> bytes: ...
 
 
 SSHAgentSocketProvider: TypeAlias = "Callable[[], SSHAgentSocket]"
