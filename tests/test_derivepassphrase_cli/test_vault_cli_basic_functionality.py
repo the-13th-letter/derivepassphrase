@@ -187,6 +187,21 @@ for opt, config in SINGLES.items():
     )
 
 
+@pytest.fixture
+def use_stub_agent_with_address() -> Generator[None, None, None]:
+    """Enforce use of the stub SSH agent with socket address."""
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            ssh_agent.SSHAgentClient,
+            "SOCKET_PROVIDERS",
+            (_types.BuiltinSSHAgentSocketProvider.STUB_AGENT_WITH_ADDRESS,),
+        )
+        monkeypatch.setenv(
+            "SSH_AUTH_SOCK", machinery.StubbedSSHAgentSocketWithAddress.ADDRESS
+        )
+        yield
+
+
 def is_warning_line(line: str) -> bool:
     """Return true if the line is a warning line."""
     return " Warning: " in line or " Deprecation warning: " in line
@@ -819,12 +834,12 @@ class TestPhraseAndKeyOverriding:
     @Parametrize.KEY_INDEX
     def test_key_override_on_command_line(
         self,
-        running_ssh_agent: data.RunningSSHAgentInfo,
+        use_stub_agent_with_address: None,
         config: _types.VaultConfig,
         key_index: int,
     ) -> None:
         """A command-line SSH key will override the configured key."""
-        del running_ssh_agent
+        del use_stub_agent_with_address
         result = self._test(
             ["-k", "--", DUMMY_SERVICE],
             config=config,
@@ -838,10 +853,10 @@ class TestPhraseAndKeyOverriding:
 
     def test_service_phrase_if_key_in_global_config(
         self,
-        running_ssh_agent: data.RunningSSHAgentInfo,
+        use_stub_agent_with_address: None,
     ) -> None:
         """A configured passphrase does not override a configured key."""
-        del running_ssh_agent
+        del use_stub_agent_with_address
         result = self._test(
             ["--", DUMMY_SERVICE],
             config={
@@ -866,13 +881,13 @@ class TestPhraseAndKeyOverriding:
     @Parametrize.KEY_OVERRIDING_IN_CONFIG
     def test_setting_phrase_thus_overriding_key_in_config(
         self,
-        running_ssh_agent: data.RunningSSHAgentInfo,
+        use_stub_agent_with_address: None,
         caplog: pytest.LogCaptureFixture,
         config: _types.VaultConfig,
         command_line: list[str],
     ) -> None:
         """Configuring a passphrase atop an SSH key works, but warns."""
-        del running_ssh_agent
+        del use_stub_agent_with_address
         result = self._test(
             command_line, config=config, input=DUMMY_PASSPHRASE
         )
