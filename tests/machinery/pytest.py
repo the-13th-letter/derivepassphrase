@@ -36,7 +36,11 @@ from typing_extensions import assert_never, overload
 import tests.data
 import tests.machinery
 from derivepassphrase import _types, ssh_agent
-from derivepassphrase._internals import cli_helpers, cli_machinery
+from derivepassphrase._internals import (
+    cli_helpers,
+    cli_machinery,
+    cli_messages,
+)
 from derivepassphrase.ssh_agent import socketprovider
 
 __all__ = ()
@@ -213,6 +217,33 @@ class Parametrize(types.SimpleNamespace):
                 "storeroom",
                 tests.data.VAULT_STOREROOM_CONFIG_DATA,
                 id="storeroom",
+            ),
+        ],
+    )
+    MISSING_AGENT_SUPPORT = pytest.mark.parametrize(
+        ["provider", "sys_action", "exception", "message"],
+        [
+            pytest.param(
+                _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX,
+                tests.data.SystemSupportAction.UNSET_AF_UNIX_AND_ENSURE_USE,
+                socketprovider.UnixDomainSocketsNotAvailableError,
+                str(
+                    cli_messages.TranslatedString(
+                        cli_messages.WarnMsgTemplate.NO_UNIX_DOMAIN_SOCKETS
+                    )
+                ),
+                id="unix_domain_sockets",
+            ),
+            pytest.param(
+                _types.BuiltinSSHAgentSocketProvider.WINDOWS_NAMED_PIPE,
+                tests.data.SystemSupportAction.UNSET_WINDLL_AND_ENSURE_USE,
+                socketprovider.WindowsNamedPipesNotAvailableError,
+                str(
+                    cli_messages.TranslatedString(
+                        cli_messages.WarnMsgTemplate.NO_WINDOWS_NAMED_PIPES
+                    )
+                ),
+                id="windows_named_pipes",
             ),
         ],
     )
