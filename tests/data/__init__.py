@@ -21,7 +21,11 @@ from __future__ import annotations
 
 import base64
 import copy
+import ctypes
 import enum
+import errno
+import os
+import socket
 from typing import TYPE_CHECKING, cast
 
 from typing_extensions import NamedTuple, assert_never
@@ -33,8 +37,224 @@ __all__ = ()
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+    from typing import NoReturn
 
+    import pytest
     from typing_extensions import Any
+
+
+# Actions
+# =======
+
+
+class ListKeysAction(str, enum.Enum):
+    """Test fixture settings for [`ssh_agent.SSHAgentClient.list_keys`][].
+
+    Attributes:
+        EMPTY: Return an empty key list.
+        FAIL: Raise an [`ssh_agent.SSHAgentFailedError`][].
+        FAIL_RUNTIME: Raise an [`ssh_agent.TrailingDataError`][].
+
+    """
+
+    EMPTY = enum.auto()
+    """"""
+    FAIL = enum.auto()
+    """"""
+    FAIL_RUNTIME = enum.auto()
+    """"""
+
+    def __call__(self, *_args: Any, **_kwargs: Any) -> Any:
+        """Execute the respective action."""
+        # TODO(the-13th-letter): Rewrite using structural pattern
+        # matching.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        if self == self.EMPTY:
+            return []
+        if self == self.FAIL:
+            raise ssh_agent.SSHAgentFailedError(_types.SSH_AGENT.FAILURE, b"")
+        if self == self.FAIL_RUNTIME:
+            raise ssh_agent.TrailingDataError()
+        raise AssertionError()
+
+
+class SignAction(str, enum.Enum):
+    """Test fixture settings for [`ssh_agent.SSHAgentClient.sign`][].
+
+    Attributes:
+        FAIL: Raise an [`ssh_agent.SSHAgentFailedError`][].
+        FAIL_RUNTIME: Raise an [`ssh_agent.TrailingDataError`][].
+
+    """
+
+    FAIL = enum.auto()
+    """"""
+    FAIL_RUNTIME = enum.auto()
+    """"""
+
+    def __call__(self, *_args: Any, **_kwargs: Any) -> Any:
+        """Execute the respective action."""
+        # TODO(the-13th-letter): Rewrite using structural pattern
+        # matching.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        if self == self.FAIL:
+            raise ssh_agent.SSHAgentFailedError(_types.SSH_AGENT.FAILURE, b"")
+        if self == self.FAIL_RUNTIME:
+            raise ssh_agent.TrailingDataError()
+        raise AssertionError()
+
+
+class SocketAddressAction(str, enum.Enum):
+    """Test fixture settings for the SSH agent socket address.
+
+    Attributes:
+        MANGLE_ADDRESS:
+            Mangle the socket address.
+
+            For UNIX domain sockets, mangle the `SSH_AUTH_SOCK`
+            environment variable.
+
+            For Windows named pipes, skip the test.  (Addresses are
+            fixed, so cannot be mangled.)
+        UNSET_ADDRESS:
+            Unset the socket address.
+
+            For UNIX domain sockets, unset the `SSH_AUTH_SOCK`
+            environment variable.
+
+            For Windows named pipes, skip the test.  (Adresses are
+            fixed, so cannot be unset.)
+
+    """
+
+    MANGLE_ADDRESS = enum.auto()
+    """"""
+    UNSET_ADDRESS = enum.auto()
+    """"""
+
+    def __call__(
+        self, monkeypatch: pytest.MonkeyPatch, /, *_args: Any, **_kwargs: Any
+    ) -> None:
+        """Execute the respective action."""
+        # TODO(the-13th-letter): Rewrite using structural pattern
+        # matching.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        if self == self.MANGLE_ADDRESS:
+
+            def mangled_address(
+                *_args: Any, **_kwargs: Any
+            ) -> NoReturn:  # pragma: no cover [failsafe]
+                raise OSError(errno.ENOENT, os.strerror(errno.ENOENT))
+
+            monkeypatch.setattr(
+                socketprovider.WindowsNamedPipeHandle,
+                "for_pageant",
+                mangled_address,
+            )
+            monkeypatch.setattr(
+                socketprovider.WindowsNamedPipeHandle,
+                "for_openssh",
+                mangled_address,
+            )
+            monkeypatch.setenv(
+                "SSH_AUTH_SOCK",
+                os.environ["SSH_AUTH_SOCK"] + "~"
+                if "SSH_AUTH_SOCK" in os.environ
+                else socketprovider.PIPE_PREFIX
+                if os.name == "nt"
+                else "/",
+            )
+        elif self == self.UNSET_ADDRESS:
+
+            def no_address(
+                *_args: Any, **_kwargs: Any
+            ) -> NoReturn:  # pragma: no cover [failsafe]
+                raise KeyError("SSH_AUTH_SOCK")  # noqa: EM101
+
+            monkeypatch.setattr(
+                socketprovider.WindowsNamedPipeHandle,
+                "for_pageant",
+                no_address,
+            )
+            monkeypatch.setattr(
+                socketprovider.WindowsNamedPipeHandle,
+                "for_openssh",
+                no_address,
+            )
+            monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
+        else:
+            raise AssertionError()
+
+
+class SystemSupportAction(str, enum.Enum):
+    """Test fixture settings for [`ssh_agent.SSHAgentClient`][] system support.
+
+    Attributes:
+        UNSET_AF_UNIX_AND_ENSURE_USE:
+            Ensure lack of support for UNIX domain sockets, and that the
+            agent will use this socket provider.
+        UNSET_NATIVE_AND_ENSURE_USE:
+            Ensure both `UNSET_AF_UNIX` and `UNSET_WINDLL`, and that the
+            agent will use the native socket provider.
+        UNSET_PROVIDER_LIST:
+            Ensure an empty list of SSH agent socket providers.
+        UNSET_WINDLL_AND_ENSURE_USE:
+            Ensure lack of support for Windows named pipes, and that the
+            agent will use this socket provider.
+
+    """
+
+    UNSET_AF_UNIX_AND_ENSURE_USE = enum.auto()
+    """"""
+    UNSET_NATIVE_AND_ENSURE_USE = enum.auto()
+    """"""
+    UNSET_PROVIDER_LIST = enum.auto()
+    """"""
+    UNSET_WINDLL_AND_ENSURE_USE = enum.auto()
+    """"""
+
+    def __call__(
+        self, monkeypatch: pytest.MonkeyPatch, /, *_args: Any, **_kwargs: Any
+    ) -> None:
+        """Execute the respective action.
+
+        Args:
+            monkeypatch: The current monkeypatch context.
+
+        """
+        # TODO(the-13th-letter): Rewrite using structural pattern
+        # matching.
+        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
+        if self == self.UNSET_PROVIDER_LIST:
+            monkeypatch.setattr(
+                ssh_agent.SSHAgentClient, "SOCKET_PROVIDERS", []
+            )
+        elif self == self.UNSET_NATIVE_AND_ENSURE_USE:
+            monkeypatch.setattr(
+                ssh_agent.SSHAgentClient,
+                "SOCKET_PROVIDERS",
+                [_types.BuiltinSSHAgentSocketProvider.NATIVE],
+            )
+            monkeypatch.delattr(socket, "AF_UNIX", raising=False)
+            monkeypatch.delattr(ctypes, "WinDLL", raising=False)
+            monkeypatch.delattr(ctypes, "windll", raising=False)
+        elif self == self.UNSET_AF_UNIX_AND_ENSURE_USE:
+            monkeypatch.setattr(
+                ssh_agent.SSHAgentClient,
+                "SOCKET_PROVIDERS",
+                [_types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX],
+            )
+            monkeypatch.delattr(socket, "AF_UNIX", raising=False)
+        elif self == self.UNSET_WINDLL_AND_ENSURE_USE:
+            monkeypatch.setattr(
+                ssh_agent.SSHAgentClient,
+                "SOCKET_PROVIDERS",
+                [_types.BuiltinSSHAgentSocketProvider.WINDOWS_NAMED_PIPE],
+            )
+            monkeypatch.delattr(ctypes, "WinDLL", raising=False)
+            monkeypatch.delattr(ctypes, "windll", raising=False)
+        else:
+            raise AssertionError()
 
 
 # Types
