@@ -346,7 +346,7 @@ def _get_id(
     argvalue: object,
     ids: Sequence[str | None] | Callable[[Any], str | None] | None,
     i: int,
-) -> str | None:
+) -> str | None:  # pragma: no cover[external]
     if (
         isinstance(argvalue, pytest_mark.ParameterSet)
         and argvalue.id is not None

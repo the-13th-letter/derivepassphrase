@@ -308,16 +308,27 @@ class Strategies:
     def invalid_ssh_agent_messages() -> strategies.SearchStrategy[bytes]:
         """Generate invalid agent request messages."""
         string = ssh_agent.SSHAgentClient.string
-        empty_message = b"\x00\x00\x00\x00"
-        invalid_extension_name = b"\x00\x00\x00\x06\x1b\x00\x00\x00\x01\xff"
-        sign_with_trailing_data = b"\x00\x00\x00\x11\x0d\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-        sign_without_payload = b"\x00\x00\x00\x05\x0d\x00\x00\x00\x00"
-        return strategies.sampled_from([
-            empty_message,
-            invalid_extension_name,
-            sign_with_trailing_data,
-            sign_without_payload,
-        ]).map(string)
+        empty_message = [b""]
+        invalid_extension_name = [b"\x1b", b"\x00\x00\x00\x01\xff"]
+        sign_with_trailing_data = [
+            b"\x0d",
+            b"\x00\x00\x00\x00",
+            b"\x00\x00\x00\x00",
+            b"\x00\x00\x00\x00",
+            b"\x00\x00\x00\x00",
+        ]
+        sign_without_payload = [b"\x0d", b"\x00\x00\x00\x00"]
+        return (
+            strategies
+            .sampled_from([
+                empty_message,
+                invalid_extension_name,
+                sign_with_trailing_data,
+                sign_without_payload,
+            ])
+            .map(b"".join)
+            .map(string)
+        )
 
     @staticmethod
     def unsupported_ssh_agent_messages() -> strategies.SearchStrategy[bytes]:
