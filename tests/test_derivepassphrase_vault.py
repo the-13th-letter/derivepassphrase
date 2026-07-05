@@ -810,6 +810,24 @@ class TestUtilities(TestVault):
             )
         assert v._estimate_sufficient_hash_length(8.0) >= entropy
 
+    @Parametrize.SAMPLE_SERVICES_AND_PHRASES
+    def test_wrong_initial_hash_length(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        service: str | bytes,
+        expected: bytes,
+    ) -> None:
+        """
+        Generating passphrases with the wrong starting hash length still works.
+        """
+        v = vault.Vault(phrase=self.phrase)
+        monkeypatch.setattr(
+            v,
+            "_estimate_sufficient_hash_length",
+            lambda *_args, **_kwargs: 1,
+        )
+        assert v.generate(service) == expected
+
     @Parametrize.BINARY_STRINGS
     @hypothesis.given(
         s=strategies.text().flatmap(
