@@ -4,9 +4,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: derivepassphrase 0.6\n"
+"Project-Id-Version: derivepassphrase 0.6.1\n"
 "Report-Msgid-Bugs-To: software@the13thletter.info\n"
-"PO-Revision-Date: 2026-04-02 12:43+0200\n"
+"PO-Revision-Date: 2026-07-05 22:25+0200\n"
 "Last-Translator: Marco Ricci <software@the13thletter.info>\n"
 "Language: en_US@DEBUG\n"
 "Language-Team: English\n"
