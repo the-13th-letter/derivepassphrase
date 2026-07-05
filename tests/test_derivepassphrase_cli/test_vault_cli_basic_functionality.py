@@ -25,7 +25,7 @@ from tests.data import callables
 from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
     from typing import NoReturn
 
 DUMMY_SERVICE = data.DUMMY_SERVICE
@@ -335,7 +335,13 @@ class Parametrize(types.SimpleNamespace):
         ],
     )
     KEY_INDEX = pytest.mark.parametrize(
-        "key_index", [1, 2, 3], ids=lambda i: f"index{i}"
+        "key_index",
+        [
+            i
+            for i, x in enumerate(data.ALL_KEYS.values(), start=1)
+            if x.is_suitable()
+        ],
+        ids=lambda i: f"index{i}",
     )
     EXPLICIT_SSH_AGENT_SOCKET_PROVIDER = pytest.mark.parametrize(
         ["on_command_line", "in_config"],
@@ -369,7 +375,7 @@ class Parametrize(types.SimpleNamespace):
         ],
     )
     OPTION_COMBINATIONS_SERVICE_NEEDED = pytest.mark.parametrize(
-        ["options", "service", "input", "check_success"],
+        ["options", "needs_service", "input", "check_success"],
         [
             pytest.param(
                 o.options,
@@ -574,7 +580,7 @@ class TestKeyBasic:
         main_config_str: str | None = None,
         registry: dict[str, _types.SSHAgentSocketProvider | str | None]
         | None = None,
-    ) -> Iterator[machinery.CliRunner]:
+    ) -> Generator[machinery.CliRunner, None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -691,6 +697,8 @@ def provider_registry() -> dict[
     }
 
 
+# TODO(the-13th-letter): Rewrite the parametrization to be somewhat more
+# transparent, but keep it this high-level if possible.
 class TestKeyExplicitSSHAgentSocketProvider(TestKeyBasic):
     """Tests for SSH key configuration: explicit SSH agent socket providers."""
 
@@ -819,12 +827,12 @@ class TestPhraseAndKeyOverriding:
     @Parametrize.KEY_INDEX
     def test_key_override_on_command_line(
         self,
-        running_ssh_agent: data.RunningSSHAgentInfo,
+        use_stub_agent_with_address: None,
         config: _types.VaultConfig,
         key_index: int,
     ) -> None:
         """A command-line SSH key will override the configured key."""
-        del running_ssh_agent
+        del use_stub_agent_with_address
         result = self._test(
             ["-k", "--", DUMMY_SERVICE],
             config=config,
@@ -838,10 +846,10 @@ class TestPhraseAndKeyOverriding:
 
     def test_service_phrase_if_key_in_global_config(
         self,
-        running_ssh_agent: data.RunningSSHAgentInfo,
+        use_stub_agent_with_address: None,
     ) -> None:
         """A configured passphrase does not override a configured key."""
-        del running_ssh_agent
+        del use_stub_agent_with_address
         result = self._test(
             ["--", DUMMY_SERVICE],
             config={
@@ -866,13 +874,13 @@ class TestPhraseAndKeyOverriding:
     @Parametrize.KEY_OVERRIDING_IN_CONFIG
     def test_setting_phrase_thus_overriding_key_in_config(
         self,
-        running_ssh_agent: data.RunningSSHAgentInfo,
+        use_stub_agent_with_address: None,
         caplog: pytest.LogCaptureFixture,
         config: _types.VaultConfig,
         command_line: list[str],
     ) -> None:
         """Configuring a passphrase atop an SSH key works, but warns."""
-        del running_ssh_agent
+        del use_stub_agent_with_address
         result = self._test(
             command_line, config=config, input=DUMMY_PASSPHRASE
         )
@@ -915,7 +923,7 @@ class TestInvalidCommandLines:
                 DUMMY_SERVICE: {**DUMMY_CONFIG_SETTINGS},
             },
         },
-    ) -> Iterator[machinery.CliRunner]:
+    ) -> Generator[machinery.CliRunner, None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -989,7 +997,7 @@ class TestInvalidCommandLines:
     def test_service_needed(
         self,
         options: list[str],
-        service: bool | None,
+        needs_service: bool | None,
         input: str | None,
         check_success: bool,
     ) -> None:
@@ -999,14 +1007,14 @@ class TestInvalidCommandLines:
             "services": {},
         }
         result = self._call(
-            options if service else [*options, "--", DUMMY_SERVICE],
+            options if needs_service else [*options, "--", DUMMY_SERVICE],
             config=config,
             input=input,
         )
-        if service is not None:
+        if needs_service is not None:
             err_msg = (
                 " requires a SERVICE"
-                if service
+                if needs_service
                 else " does not take a SERVICE argument"
             )
             assert result.error_exit(error=err_msg), (
@@ -1014,7 +1022,9 @@ class TestInvalidCommandLines:
             )
             if check_success:
                 result = self._call(
-                    [*options, "--", DUMMY_SERVICE] if service else options,
+                    [*options, "--", DUMMY_SERVICE]
+                    if needs_service
+                    else options,
                     config=config,
                     input=input,
                 )

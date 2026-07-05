@@ -124,7 +124,7 @@ class Strategies:
     @strategies.composite
     @staticmethod
     def service_name_and_data_strategy(
-        draw: hypothesis.strategies.DrawFn,
+        draw: strategies.DrawFn,
         num_entries: int,
     ) -> tuple[tuple[str, _types.VaultConfigServicesSettings], ...]:
         """Return a strategy for tuples of service names and settings.
@@ -366,10 +366,14 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         """
         config = copy.deepcopy(config)
         setting = copy.deepcopy(setting)
-        config_global = config.get("global", {})
+        config_global = config.get(
+            "global", cast("_types.VaultConfigGlobalSettings", {})
+        )
         maybe_unset = set(maybe_unset) - setting.keys()
         if overwrite:
-            config["global"] = config_global = {}
+            config["global"] = config_global = cast(
+                "_types.VaultConfigGlobalSettings", {}
+            )
         elif maybe_unset:
             for key in maybe_unset:
                 config_global.pop(key, None)  # type: ignore[misc]
@@ -437,7 +441,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         self,
         service: str,
         config: _types.VaultConfig,
-        setting: _types.VaultConfigGlobalSettings,
+        setting: _types.VaultConfigServicesSettings,
         maybe_unset: AbstractSet[str],
         overwrite: bool,
     ) -> tuple[_types.VaultConfig, AbstractSet[str]]:
@@ -471,7 +475,7 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         config_service = config["services"].get(service, {})
         maybe_unset = set(maybe_unset) - setting.keys()
         if overwrite:
-            config["services"][service] = config_service = {}
+            config["services"][service] = config_service = cast("_types.VaultConfigServicesSettings", {})
         elif maybe_unset:
             for key in maybe_unset:
                 config_service.pop(key, None)  # type: ignore[misc]

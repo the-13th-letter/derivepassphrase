@@ -23,7 +23,7 @@ from tests import data, machinery
 from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import Callable, Generator
 
     from typing_extensions import Any, Buffer
 
@@ -179,7 +179,7 @@ class TestCLIUtilities:
             return TestCLIUtilities.VaultKeyEnvironment(expected, *env_vars)
 
     @contextlib.contextmanager
-    def _setup_environment(self) -> Iterator[pytest.MonkeyPatch]:
+    def _setup_environment(self) -> Generator[pytest.MonkeyPatch, None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -193,66 +193,86 @@ class TestCLIUtilities:
             )
             yield monkeypatch
 
-    @hypothesis.example(
-        VaultKeyEnvironment("4username", None, None, None, "4username")
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment("3user", None, None, "3user", None)
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment("3user", None, None, "3user", "4username")
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment("2logname", None, "2logname", None, None)
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment("2logname", None, "2logname", None, "4username")
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment("2logname", None, "2logname", "3user", None)
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment("2logname", None, "2logname", "3user", "4username")
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment("1vault_key", "1vault_key", None, None, None)
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment(
-            "1vault_key", "1vault_key", None, None, "4username"
-        )
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment("1vault_key", "1vault_key", None, "3user", None)
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment(
-            "1vault_key", "1vault_key", None, "3user", "4username"
-        )
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment("1vault_key", "1vault_key", "2logname", None, None)
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment(
-            "1vault_key", "1vault_key", "2logname", None, "4username"
-        )
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment(
-            "1vault_key", "1vault_key", "2logname", "3user", None
-        )
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.example(
-        VaultKeyEnvironment(
-            "1vault_key", "1vault_key", "2logname", "3user", "4username"
-        )
-    ).via("manual, pre-hypothesis parametrization value")
     @hypothesis.given(
         vault_key_env=VaultKeyEnvironment.strategy().filter(
             lambda env: bool(env.expected)
         ),
     )
+    # BEGIN pre-hypothesis parametrization examples
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "4username", None, None, None, "4username"
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment("3user", None, None, "3user", None)
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "3user", None, None, "3user", "4username"
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "2logname", None, "2logname", None, None
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "2logname", None, "2logname", None, "4username"
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "2logname", None, "2logname", "3user", None
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "2logname", None, "2logname", "3user", "4username"
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "1vault_key", "1vault_key", None, None, None
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "1vault_key", "1vault_key", None, None, "4username"
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "1vault_key", "1vault_key", None, "3user", None
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "1vault_key", "1vault_key", None, "3user", "4username"
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "1vault_key", "1vault_key", "2logname", None, None
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "1vault_key", "1vault_key", "2logname", None, "4username"
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "1vault_key", "1vault_key", "2logname", "3user", None
+        )
+    )
+    @hypothesis.example(
+        vault_key_env=VaultKeyEnvironment(
+            "1vault_key", "1vault_key", "2logname", "3user", "4username"
+        )
+    )
+    # END pre-hypothesis parametrization examples
     def test_get_vault_key(
         self,
         vault_key_env: VaultKeyEnvironment,
@@ -300,14 +320,13 @@ class TestCLIUtilities:
         """
         with self._setup_environment() as monkeypatch:
             if path:
-                monkeypatch.setenv(
-                    "VAULT_PATH", os.fspath(path) if path is not None else None
-                )
+                monkeypatch.setenv("VAULT_PATH", os.fspath(path))
             assert (
                 exporter.get_vault_path().resolve()
                 == expected.expanduser().resolve()
             )
 
+    # TODO(the-13th-letter): Revise, or remove.
     def test_get_vault_path_without_home(self) -> None:
         """Fail to look up the vault path without `HOME`."""
 
@@ -332,7 +351,7 @@ class TestExportVaultConfigDataHandlerRegistry:
         *,
         registry: dict[str, Any] | None = None,
         find_handlers: Callable | None = None,
-    ) -> Iterator[pytest.MonkeyPatch]:
+    ) -> Generator[pytest.MonkeyPatch, None, None]:
         with pytest.MonkeyPatch.context() as monkeypatch:
             if registry is not None:  # pragma: no branch
                 monkeypatch.setattr(
@@ -414,7 +433,7 @@ class TestGenericVaultCLIErrors:
     @contextlib.contextmanager
     def _setup_environment(
         self, *, vault_config: str | bytes = data.VAULT_V03_CONFIG
-    ) -> Iterator[tuple[pytest.MonkeyPatch, machinery.CliRunner]]:
+    ) -> Generator[tuple[pytest.MonkeyPatch, machinery.CliRunner], None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -445,6 +464,7 @@ class TestGenericVaultCLIErrors:
                 catch_exceptions=False,
             )
 
+    # TODO(the-13th-letter): Rewrite as property-based test.
     def test_invalid_format(self) -> None:
         """Reject invalid vault configuration format names."""
         result = self._call_cli(["-f", "INVALID", "VAULT_PATH"])

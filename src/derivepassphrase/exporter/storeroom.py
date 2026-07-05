@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from typing_extensions import Buffer
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
     from cryptography.hazmat.primitives import ciphers, hashes, hmac, padding
     from cryptography.hazmat.primitives.ciphers import algorithms, modes
@@ -391,7 +391,7 @@ def _decrypt_master_keys_data(
         padded_plaintext.extend(decryptor.finalize())
         unpadder = padding.PKCS7(IV_SIZE * 8).unpadder()
         plaintext = bytearray()
-        plaintext.extend(unpadder.update(padded_plaintext))
+        plaintext.extend(unpadder.update(bytes(padded_plaintext)))
         plaintext.extend(unpadder.finalize())
         hashing_key, encryption_key, signing_key = struct.unpack(
             f"{KEY_SIZE}s {KEY_SIZE}s {KEY_SIZE}s", plaintext
@@ -484,7 +484,7 @@ def _decrypt_session_keys(
         padded_plaintext.extend(decryptor.finalize())
         unpadder = padding.PKCS7(IV_SIZE * 8).unpadder()
         plaintext = bytearray()
-        plaintext.extend(unpadder.update(padded_plaintext))
+        plaintext.extend(unpadder.update(bytes(padded_plaintext)))
         plaintext.extend(unpadder.finalize())
         session_encryption_key, session_signing_key = struct.unpack(
             f"{KEY_SIZE}s {KEY_SIZE}s", plaintext
@@ -590,7 +590,7 @@ def _decrypt_contents(
     padded_plaintext.extend(decryptor.finalize())
     unpadder = padding.PKCS7(IV_SIZE * 8).unpadder()
     plaintext = bytearray()
-    plaintext.extend(unpadder.update(padded_plaintext))
+    plaintext.extend(unpadder.update(bytes(padded_plaintext)))
     plaintext.extend(unpadder.finalize())
 
     logger.debug(
@@ -666,7 +666,7 @@ def _decrypt_bucket_file(
     master_keys: _types.StoreroomMasterKeys,
     *,
     root_dir: str | bytes | os.PathLike = ".",
-) -> Iterator[Buffer]:
+) -> Generator[Buffer, None, None]:
     """Decrypt a complete bucket.
 
     Args:

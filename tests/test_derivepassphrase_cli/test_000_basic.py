@@ -14,29 +14,25 @@ from __future__ import annotations
 
 import contextlib
 import json
-import socket
 import textwrap
-import types
 from typing import TYPE_CHECKING, ClassVar
 
 import pytest
 
-from derivepassphrase import _types, cli, ssh_agent
-from derivepassphrase._internals import (
-    cli_helpers,
-)
+from derivepassphrase import _types, cli
+from derivepassphrase._internals import cli_helpers
 from tests import data, machinery
 from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
 DUMMY_SERVICE = data.DUMMY_SERVICE
 DUMMY_PASSPHRASE = data.DUMMY_PASSPHRASE
 DUMMY_CONFIG_SETTINGS = data.DUMMY_CONFIG_SETTINGS
 
 
-class Parametrize(types.SimpleNamespace):
+class Parametrize(pytest_machinery.Parametrize):
     """Common test parametrizations."""
 
     UNICODE_NORMALIZATION_ERROR_INPUTS = pytest.mark.parametrize(
@@ -315,7 +311,7 @@ class TestUserConfigurationFileOther:
         self,
         *,
         main_config: str = "",
-    ) -> Iterator[pytest.MonkeyPatch]:
+    ) -> Generator[pytest.MonkeyPatch, None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -330,7 +326,8 @@ class TestUserConfigurationFileOther:
                     main_config_str=main_config,
                 )
             )
-            yield monkeypatch
+            # If the setup blows up, then bubble the exception.
+            yield monkeypatch  # noqa: RUF075
             result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ["--phrase", "--", DUMMY_SERVICE],
@@ -363,11 +360,18 @@ class TestUserConfigurationFileOther:
 class TestSSHAgentAvailability:
     """Tests concerning the availability of the SSH agent."""
 
-    def test_missing_af_unix_support(
+    @Parametrize.MISSING_AGENT_SUPPORT
+    def test_missing_agent_support(
         self,
         caplog: pytest.LogCaptureFixture,
+        provider: _types.BuiltinSSHAgentSocketProvider,
+        sys_action: data.SystemSupportAction,
+        exception: type[NotImplementedError],
+        message: str,
     ) -> None:
-        """Querying the SSH agent without `AF_UNIX` support fails."""
+        """Querying the SSH agent without support fails."""
+        del provider
+        del exception
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -378,16 +382,13 @@ class TestSSHAgentAvailability:
                 pytest_machinery.isolated_vault_config(
                     monkeypatch=monkeypatch,
                     runner=runner,
-                    vault_config={"global": {"phrase": "abc"}, "services": {}},
+                    vault_config={"services": {}},
                 )
             )
             monkeypatch.setenv(
                 "SSH_AUTH_SOCK", "the value doesn't even matter"
             )
-            monkeypatch.setattr(
-                ssh_agent.SSHAgentClient, "SOCKET_PROVIDERS", ["posix"]
-            )
-            monkeypatch.delattr(socket, "AF_UNIX", raising=False)
+            sys_action(monkeypatch)
             result = runner.invoke(
                 cli.derivepassphrase_vault,
                 ["--key", "--config"],
@@ -396,7 +397,6 @@ class TestSSHAgentAvailability:
         assert result.error_exit(
             error="does not support communicating with it"
         ), "expected error exit and known error message"
-        assert machinery.warning_emitted(
-            "Cannot connect to an SSH agent via UNIX domain sockets",
-            caplog.record_tuples,
-        ), "expected known warning message in stderr"
+        assert machinery.warning_emitted(message, caplog.record_tuples), (
+            "expected known warning message in stderr"
+        )

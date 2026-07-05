@@ -17,15 +17,18 @@ All similar-minded code requiring only plain `pytest` lives in [the
 from __future__ import annotations
 
 import copy
-import datetime
 import importlib
 import importlib.util
 import math
 import sys
-from typing import TYPE_CHECKING
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Callable
 
 import hypothesis
+import hypothesis.errors
+from _pytest import mark as pytest_mark
 from hypothesis import strategies
+from typing_extensions import assert_type
 
 from derivepassphrase import _types
 from tests import data, machinery
@@ -33,7 +36,7 @@ from tests import data, machinery
 __all__ = ()
 
 if TYPE_CHECKING:
-    from typing_extensions import Any
+    from typing_extensions import Any, TypeIs
 
 
 # Hypothesis settings management
@@ -94,36 +97,45 @@ def _hypothesis_settings_setup() -> None:
             and isinstance(trace_func.__self__, pytracer_class)
         ):
             slowdown = 8.0
-    settings = hypothesis.settings(
+    hypothesis.settings.register_profile(
+        "default",
+        parent=settings,
         deadline=slowdown * settings.deadline
-        if slowdown
+        if slowdown and settings.deadline is not None
         else settings.deadline,
         stateful_step_count=32,
-        suppress_health_check=(hypothesis.HealthCheck.too_slow,),
+        suppress_health_check=[hypothesis.HealthCheck.too_slow],
     )
-    hypothesis.settings.register_profile("default", settings)
+    default_profile = hypothesis.settings.get_profile("default")
     hypothesis.settings.register_profile(
-        "dev", derandomize=True, max_examples=10
+        "regression",
+        parent=hypothesis.settings.get_profile("ci"),
+        derandomize=True,
+        database=None,
+        max_examples=3,
+        stateful_step_count=3,
+        suppress_health_check=[hypothesis.HealthCheck.too_slow],
+        phases=[
+            hypothesis.Phase.explicit,
+            hypothesis.Phase.reuse,
+            hypothesis.Phase.generate,
+        ],
     )
     hypothesis.settings.register_profile(
         "debug",
-        parent=hypothesis.settings.get_profile("dev"),
+        parent=default_profile,
         verbosity=hypothesis.Verbosity.verbose,
     )
     hypothesis.settings.register_profile(
-        "flaky",
-        deadline=(
-            settings.deadline - settings.deadline // 4
-            if settings.deadline is not None
-            else datetime.timedelta(milliseconds=150)
-        ),
+        "debug-regression",
+        parent=hypothesis.settings.get_profile("regression"),
+        verbosity=hypothesis.Verbosity.verbose,
     )
-    ci_profile = hypothesis.settings.get_profile("ci")
     hypothesis.settings.register_profile(
-        "intense",
-        parent=ci_profile,
+        "correctness",
+        parent=default_profile,
         derandomize=False,
-        max_examples=10 * ci_profile.max_examples,
+        max_examples=10 * default_profile.max_examples,
     )
 
 
@@ -161,13 +173,13 @@ def get_process_spawning_state_machine_examples_count(
     examples count by default, and require the user to opt-in to the
     original naive example count explicitly.
 
-    If the "intense" profile is in effect, or something with even higher
-    `max_examples` and `stateful_step_count`, then we return the
+    If the "correctness" profile is in effect, or something with even
+    higher `max_examples` and `stateful_step_count`, then we return the
     unaltered example count for the *default* profile.  Otherwise, we
     return the square root of the `max_examples` setting (rounded down).
-    We *never* return a value below the "dev" profile's example count:
-    any lower computed example count is increased to the "dev" profile's
-    example count.
+    We *never* return a value below the "regression" profile's example
+    count: any lower computed example count is increased to the
+    "regression" profile's example count.
 
     Args:
         settings:
@@ -182,20 +194,22 @@ def get_process_spawning_state_machine_examples_count(
     _hypothesis_settings_setup()
 
     these_values = (settings.max_examples, settings.stateful_step_count)
-    intense_profile = hypothesis.settings.get_profile("intense")
-    intense_values = (
-        intense_profile.max_examples,
-        intense_profile.stateful_step_count,
+    correctness_profile = hypothesis.settings.get_profile("correctness")
+    correctness_values = (
+        correctness_profile.max_examples,
+        correctness_profile.stateful_step_count,
     )
-    min_count = hypothesis.settings.get_profile("dev").max_examples
+    min_count = hypothesis.settings.get_profile("regression").max_examples
     high_count = hypothesis.settings.get_profile("default").max_examples
-    we_are_intense = (
-        these_values[0] >= intense_values[0]
-        and these_values[1] >= intense_values[1]
+    correctness_based_testing = (
+        these_values[0] >= correctness_values[0]
+        and these_values[1] >= correctness_values[1]
     )
     return max(
         min_count,
-        high_count if we_are_intense else math.isqrt(settings.max_examples),
+        high_count
+        if correctness_based_testing
+        else math.isqrt(settings.max_examples),
     )
 
 
@@ -314,3 +328,191 @@ def smudged_vault_test_config(
                 service[key] = draw(strategies.sampled_from(falsy_no_zero))
     hypothesis.assume(obj != conf.config)
     return data.VaultTestConfig(obj, conf.comment, conf.validation_settings)
+
+
+# Hypothesis decorators
+# =====================
+
+
+def _is_paramset(
+    seq: Sequence[pytest_mark.ParameterSet] | Sequence[object], /
+) -> TypeIs[Sequence[pytest_mark.ParameterSet]]:
+    return all(
+        isinstance(argvalue, pytest_mark.ParameterSet) for argvalue in seq
+    )
+
+
+def _get_id(
+    argvalue: object,
+    ids: Sequence[str | None] | Callable[[Any], str | None] | None,
+    i: int,
+) -> str | None:  # pragma: no cover[external]
+    if (
+        isinstance(argvalue, pytest_mark.ParameterSet)
+        and argvalue.id is not None
+    ):
+        return argvalue.id
+    if callable(ids):
+        result = ids(argvalue)
+        return result if result is not None else None
+    if isinstance(ids, Sequence):
+        result = ids[i]
+        return result if result is not None else None
+    assert_type(ids, None)
+    return None
+
+
+def _get_examples_data_and_ids(
+    *,
+    argnames: str | Sequence[str],
+    argvalues: Sequence[pytest_mark.ParameterSet] | Sequence[object],
+    ids: Sequence[str | None] | Callable[[Any], str | None] | None,
+) -> tuple[list[dict[str, Any]], list[str | None]]:
+    names = (
+        tuple(argnames.split(","))
+        if isinstance(argnames, str)
+        else tuple(argnames)
+    )
+    examples_data: list[dict[str, Any]] = []
+    final_ids: list[str | None] = []
+    k = len(names)
+
+    if _is_paramset(argvalues):
+        for i, argvalue in enumerate(argvalues):
+            if len(argvalue.values) != k:  # pragma: no cover [failsafe]
+                msg = f"not a {k}-tuple: {argvalue!r}"
+                raise ValueError(msg)
+            examples_data.append(dict(zip(names, argvalue.values)))
+            final_ids.append(_get_id(argvalue, ids, i))
+    else:
+        for i, argvalue in enumerate(argvalues):
+            if k > 1:
+                if (
+                    not isinstance(argvalue, Sequence) or len(argvalue) != k
+                ):  # pragma: no cover [failsafe]
+                    msg = f"not a {k}-tuple: {argvalue!r}"
+                    raise ValueError(msg)
+                examples_data.append(dict(zip(names, argvalue)))
+            else:
+                examples_data.append({names[0]: argvalue})
+            final_ids.append(_get_id(argvalue, ids, i))
+
+    return examples_data, final_ids
+
+
+def explicit_examples(
+    argnames: str | Sequence[str],
+    argvalues: Sequence[pytest_mark.ParameterSet] | Sequence[object],
+    ids: Sequence[str | None] | Callable[[Any], str | None] | None = None,
+    *,
+    settings: hypothesis.settings | None = None,
+) -> Callable[[Callable[..., None]], Callable[..., None]]:
+    """Decorate a function to take explicit (hypothesis) examples.
+
+    Using the same signature as [`pytest.mark.parametrize`][], we
+    replicate the effect of decorating the function with multiple
+    [`hypothesis.example`][] calls.  This is useful in particular if the
+    exact number of examples isn't known statically.  If the decorated
+    function is not already a hypothesis test, we also decorate the
+    function with [`hypothesis.given`][] and [`hypothesis.settings`][],
+    in a manner that only ever runs the explicit examples.  One obvious
+    way of writing the (sentinel) strategy to be passed to
+    [`hypothesis.given`][] actually triggers
+    [`hypothesis.errors.Unsatisfiable`][], so we are careful to avoid
+    that ([Hypothesis bug #4774][H4774]).
+
+    [H4774]: https://github.com/HypothesisWorks/hypothesis/issues/4774
+
+    Args:
+        argnames:
+            A comma-separated list of argument names, or a sequence of
+            argument name strings.
+        argvalues:
+            A sequence of realizations for the named arguments.  If
+            only one argument name is given, then each realization must
+            be a single value.  Otherwise, each realization must be a
+            (correctly sized) tuple of argument values.
+        ids:
+            An optional sequence of id strings to use for the
+            respective realization, or a callable that takes the
+            realization and returns an id string or `None`, or `None`.
+            If `None` or if the callable returns `None`, and if
+            additionally the argvalue is a pytest parameter set that
+            has its `id` set, then use that `id`; else fall back to
+            auto-generated IDs.
+
+    Returns:
+        A decorator that does the equivalent of
+
+            @hypothesis.example(
+                argnames[0]=argvalues[0][0],
+                argnames[1]=argvalues[0][1],
+                ...
+            )
+            @hypothesis.example(
+                argnames[1]=argvalues[1][0],
+                argnames[1]=argvalues[1][1],
+                ...
+            )
+            ...
+            @hypothesis.example(
+                argnames[0]=argvalues[-1][0],
+                argnames[1]=argvalues[-1][1],
+                ...
+            )
+            def f(...) -> ...: ...
+
+        and, if not already a hypothesis test, prepends
+
+            @hypothesis.given(
+                argnames[0]=strategies.just(argvalues[0][0]),
+                argnames[1]=strategies.just(argvalues[0][1]),
+                ...
+            )
+
+    Warning:
+        Because of the way [`pytest.mark.parametrize`][] and
+        [`hypothesis.example`][] work, having multiple
+        `explicit_examples` decorators behaves differently from
+        multiple [`pytest.mark.parametrize`][] decorators, and
+        is not drop-in compatible.  `explicit_examples` adds
+        *more examples on the same argument names*, whereas
+        [`pytest.mark.parametrize`][] adds *more argument names
+        and values to the same set of existing examples*!
+
+    """
+    if not argnames or not argvalues:  # pragma: no cover [failsafe]
+        msg = "no explicit examples given"
+        raise ValueError(msg)
+
+    examples_data, final_ids = _get_examples_data_and_ids(
+        argnames=argnames, argvalues=argvalues, ids=ids
+    )
+
+    def decorator(f: Callable[..., None], /) -> Callable[..., None]:
+        ret = f
+        for i, arg in reversed(list(enumerate(examples_data))):
+            ex_id = final_ids[i]
+            ex = hypothesis.example(**arg)
+            ex = (
+                ex.via("id={!r}".format(str(ex_id)))  # noqa: UP032
+                if ex_id is not None
+                else ex
+            )
+            ret = ex(ret)
+        if not hypothesis.is_hypothesis_test(
+            f
+        ):  # pragma: no branch [external]
+            kwargs = {
+                k: strategies.just(v) for k, v in examples_data[0].items()
+            }
+            given = hypothesis.given(**kwargs)
+            ret = given(ret)
+            new_settings = hypothesis.settings(
+                parent=settings,
+                phases=[hypothesis.Phase.explicit, hypothesis.Phase.reuse],
+            )
+            ret = new_settings(ret)
+        return ret
+
+    return decorator

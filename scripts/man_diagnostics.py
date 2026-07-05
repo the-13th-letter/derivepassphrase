@@ -29,7 +29,8 @@ mark_only = cast("DiagnosticText", "<mark only>")
 
 def _replace_known_metavars(string: str) -> str:
     return (
-        string.replace(
+        string
+        .replace(
             "{service_metavar!s}",
             cli_messages.Label.VAULT_METAVAR_SERVICE.value.singular,
         )
@@ -178,7 +179,8 @@ def _check_manpagedoc(
         ):
             name = cast(
                 "EnumName",
-                line.removeprefix("<!-- Message-ID (mark only):")
+                line
+                .removeprefix("<!-- Message-ID (mark only):")
                 .removesuffix("-->")
                 .strip(),
             )
@@ -186,7 +188,8 @@ def _check_manpagedoc(
         elif line.startswith("<!-- Message-ID:") and line.endswith("-->"):
             name = cast(
                 "EnumName",
-                line.removeprefix("<!-- Message-ID:")
+                line
+                .removeprefix("<!-- Message-ID:")
                 .removesuffix("-->")
                 .strip(),
             )

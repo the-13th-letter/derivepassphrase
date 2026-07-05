@@ -70,11 +70,15 @@ dev = [
     # the extra, and accept that for PyPy environments, `hatch test -p`
     # will not be able to distinguish logical and physical CPU core
     # counts.
+    #
+    # We use `hypothesis.is_hypothesis_test`, which was introduced in
+    # 6.131.0, and `exc_type` for `pytest.importorskip`, which was
+    # introduced in 8.2.0.
     "coverage[toml] >= 7.4",
     "coverage-enable-subprocess >= 1.0",
-    "hypothesis >= 6.0",
+    "hypothesis >= 6.131.0",
     "packaging",
-    "pytest >= 8.1",
+    "pytest >= 8.2",
     "pytest-randomly >= 3.15",
     "pytest-xdist >= 3.6.0",
     'pytest-xdist[psutil] >= 3.6.0; platform_python_implementation != "PyPy"',
@@ -378,9 +382,9 @@ default-args = ['src', 'tests']
 dependencies = [
     "coverage[toml] >= 7.4",
     "coverage-enable-subprocess >= 1.0",
-    "hypothesis >= 6.0",
+    "hypothesis >= 6.131.0",
     "packaging",
-    "pytest >= 8.1",
+    "pytest >= 8.2",
     "pytest-randomly >= 3.15",
     "pytest-xdist >= 3.6.0",
     'pytest-xdist[psutil] >= 3.6.0; platform_python_implementation != "PyPy"',
@@ -434,6 +438,23 @@ implicit_reexport = false
 sqlite_cache = true
 enable_error_code = ['ignore-without-code']
 
+[tool.pyrefly]
+project-includes = [
+    "src/**/*.py",
+    "tests/**/*.py",
+]
+search-path = [
+    "src",
+    "other-stubs",
+    ".",
+]
+preset = "legacy"
+infer-return-types = "never"
+permissive-ignores = true
+
+[tool.pyrefly.errors]
+unnecessary-type-conversion = "ignore"
+
 [tool.pytest.ini_options]
 addopts = '--doctest-modules --dist=loadgroup --import-mode=importlib'
 pythonpath = ['src']
@@ -484,6 +505,11 @@ ignore = [
     # We catch type-ignore comments without specific code via the mypy
     # configuration, not via ruff.
     'PGH003',
+    # Provisionally ignore the `__init__.py` rule, until we can adapt our
+    # codebase.
+    'RUF067',
+    # Still undecided about this one.
+    'PLW0717',
 ]
 preview = true
 # We select here in the order of presentation on the ruff documentation

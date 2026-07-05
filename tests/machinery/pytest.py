@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import base64
 import contextlib
+import importlib.metadata
 import importlib.util
 import json
 import os
@@ -35,13 +36,17 @@ from typing_extensions import assert_never, overload
 import tests.data
 import tests.machinery
 from derivepassphrase import _types, ssh_agent
-from derivepassphrase._internals import cli_helpers, cli_machinery
+from derivepassphrase._internals import (
+    cli_helpers,
+    cli_machinery,
+    cli_messages,
+)
 from derivepassphrase.ssh_agent import socketprovider
 
 __all__ = ()
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator, Sequence
+    from collections.abc import Callable, Generator, Sequence
     from contextlib import AbstractContextManager
 
     from typing_extensions import Any
@@ -128,7 +133,7 @@ def xfail_on_the_annoying_os(
         empty, will follow.
 
     """
-    import hypothesis  # noqa: PLC0415
+    import hypothesis.errors  # noqa: PLC0415
 
     base_reason = "The Annoying OS behaves differently."
     full_reason = base_reason if not reason else f"{base_reason}  {reason}"
@@ -143,19 +148,30 @@ def xfail_on_the_annoying_os(
 
 heavy_duty = pytest.mark.heavy_duty
 """
-A cached `pytest` mark indicating that this test function/class/module
-is a slow, heavy duty test.  Users who are impatient (or otherwise
-cannot afford to wait for these tests to complete) may wish to exclude
-these tests; this mark helps in achieving that.
-
-All current heavy duty tests are integration tests.
+Test functions/classes/modules with this `pytest` mark are slow, heavy
+duty tests.  Users who are impatient (or otherwise cannot afford to wait
+for these tests to complete) may wish to exclude these tests; this mark
+helps in achieving that.
 """
 
+correctness_focused = pytest.mark.correctness_focused
+"""
+Test functions/classes/modules with this `pytest` mark are designed
+primarily to verify correctness and to find novel failure cases, even at
+the cost of high CPU or wall clock time.
+
+Contrast this with tests designed primarily to verify that the existing
+system still behaves as before in all the important ways ("is healthy")
+even after introducing a small change, but before committing it.  (See
+[Two kinds of testing][TWO_KINDS] for more elaboration.)
+
+[TWO_KINDS]: https://blog.nelhage.com/post/two-kinds-of-testing/
+"""
 
 non_isolated_agent_use = pytest.mark.xdist_group("non_isolated_agent_use")
 """
-A cached `pytest` mark, for use with xdist's "loadgroup" scheduling,
-that marks a test as part of the group of tests that use a potentially
+Tests with this `pytest` mark (for use with xdist's "loadgroup"
+scheduling), comprise the group of tests that use a potentially
 non-isolated agent, and thus need to be run serially, in the same worker
 (because of the setup and teardown).
 
@@ -204,6 +220,33 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
     )
+    MISSING_AGENT_SUPPORT = pytest.mark.parametrize(
+        ["provider", "sys_action", "exception", "message"],
+        [
+            pytest.param(
+                _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX,
+                tests.data.SystemSupportAction.UNSET_AF_UNIX_AND_ENSURE_USE,
+                socketprovider.UnixDomainSocketsNotAvailableError,
+                str(
+                    cli_messages.TranslatedString(
+                        cli_messages.WarnMsgTemplate.NO_UNIX_DOMAIN_SOCKETS
+                    )
+                ),
+                id="unix_domain_sockets",
+            ),
+            pytest.param(
+                _types.BuiltinSSHAgentSocketProvider.WINDOWS_NAMED_PIPE,
+                tests.data.SystemSupportAction.UNSET_WINDLL_AND_ENSURE_USE,
+                socketprovider.WindowsNamedPipesNotAvailableError,
+                str(
+                    cli_messages.TranslatedString(
+                        cli_messages.WarnMsgTemplate.NO_WINDOWS_NAMED_PIPES
+                    )
+                ),
+                id="windows_named_pipes",
+            ),
+        ],
+    )
 
 
 # Monkeypatchings
@@ -214,7 +257,7 @@ class Parametrize(types.SimpleNamespace):
 def faked_entry_point_list(  # noqa: C901
     additional_entry_points: Sequence[importlib.metadata.EntryPoint],
     remove_conflicting_entries: bool = False,
-) -> Iterator[Sequence[str]]:
+) -> Generator[Sequence[str], None, None]:
     """Yield a context where additional entry points are visible.
 
     Args:
@@ -360,7 +403,7 @@ def isolated_config(
     monkeypatch: pytest.MonkeyPatch,
     runner: tests.machinery.CliRunner,
     main_config_str: str | None = None,
-) -> Iterator[None]:
+) -> Generator[None, None, None]:
     """Provide an isolated configuration setup, as a context.
 
     This context manager sets up (and changes into) a temporary
@@ -418,7 +461,7 @@ def isolated_vault_config(
     runner: tests.machinery.CliRunner,
     vault_config: Any,
     main_config_str: str | None = None,
-) -> Iterator[None]:
+) -> Generator[None, None, None]:
     """Provide an isolated vault configuration setup, as a context.
 
     Uses [`isolated_config`][] internally.  Beyond those actions, this
@@ -456,7 +499,7 @@ def isolated_vault_exporter_config(
     runner: tests.machinery.CliRunner,
     vault_config: str | bytes | None = None,
     vault_key: str | None = None,
-) -> Iterator[None]:
+) -> Generator[None, None, None]:
     """Provide an isolated vault configuration setup, as a context.
 
     Works similarly to [`isolated_config`][], except that no user
@@ -498,11 +541,13 @@ def isolated_vault_exporter_config(
             @contextlib.contextmanager
             def chdir(
                 newpath: str | bytes | os.PathLike,
-            ) -> Iterator[None]:  # pragma: no branch
+            ) -> Generator[None, None, None]:  # pragma: no branch
                 oldpath = pathlib.Path.cwd().resolve()
                 os.chdir(newpath)
-                yield
-                os.chdir(oldpath)
+                try:
+                    yield
+                finally:
+                    os.chdir(oldpath)
 
     with runner.isolated_filesystem():
         cwd = str(pathlib.Path.cwd().resolve())

@@ -8,8 +8,6 @@ from __future__ import annotations
 
 import base64
 import contextlib
-import ctypes
-import enum
 import errno
 import io
 import json
@@ -35,14 +33,13 @@ from derivepassphrase._internals import (
     cli_helpers,
     cli_machinery,
 )
-from derivepassphrase.ssh_agent import socketprovider
 from tests import data, machinery
 from tests.data import callables
 from tests.machinery import hypothesis as hypothesis_machinery
 from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Iterator
+    from collections.abc import Callable, Generator, Iterable
     from typing import NoReturn
 
     from typing_extensions import Any
@@ -83,7 +80,7 @@ def vault_config_exporter_shell_interpreter(  # noqa: C901
     # about here.
     command: click.Command | click.Group | None = None,
     runner: machinery.CliRunner | None = None,
-) -> Iterator[machinery.ReadableResult]:
+) -> Generator[machinery.ReadableResult, None, None]:
     """A rudimentary sh(1) interpreter for `--export-as=sh` output.
 
     Assumes a script as emitted by `derivepassphrase vault
@@ -133,286 +130,6 @@ def vault_config_exporter_shell_interpreter(  # noqa: C901
             catch_exceptions=False,
             input=("".join(x + "\n" for x in input_buffer) or None),
         )
-
-
-class ListKeysAction(str, enum.Enum):
-    """Test fixture settings for [`ssh_agent.SSHAgentClient.list_keys`][].
-
-    Attributes:
-        EMPTY: Return an empty key list.
-        FAIL: Raise an [`ssh_agent.SSHAgentFailedError`][].
-        FAIL_RUNTIME: Raise an [`ssh_agent.TrailingDataError`][].
-
-    """
-
-    EMPTY = enum.auto()
-    """"""
-    FAIL = enum.auto()
-    """"""
-    FAIL_RUNTIME = enum.auto()
-    """"""
-
-    def __call__(self, *_args: Any, **_kwargs: Any) -> Any:
-        """Execute the respective action."""
-        # TODO(the-13th-letter): Rewrite using structural pattern
-        # matching.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        if self == self.EMPTY:
-            return []
-        if self == self.FAIL:
-            raise ssh_agent.SSHAgentFailedError(_types.SSH_AGENT.FAILURE, b"")
-        if self == self.FAIL_RUNTIME:
-            raise ssh_agent.TrailingDataError()
-        raise AssertionError()
-
-
-class SignAction(str, enum.Enum):
-    """Test fixture settings for [`ssh_agent.SSHAgentClient.sign`][].
-
-    Attributes:
-        FAIL: Raise an [`ssh_agent.SSHAgentFailedError`][].
-        FAIL_RUNTIME: Raise an [`ssh_agent.TrailingDataError`][].
-
-    """
-
-    FAIL = enum.auto()
-    """"""
-    FAIL_RUNTIME = enum.auto()
-    """"""
-
-    def __call__(self, *_args: Any, **_kwargs: Any) -> Any:
-        """Execute the respective action."""
-        # TODO(the-13th-letter): Rewrite using structural pattern
-        # matching.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        if self == self.FAIL:
-            raise ssh_agent.SSHAgentFailedError(_types.SSH_AGENT.FAILURE, b"")
-        if self == self.FAIL_RUNTIME:
-            raise ssh_agent.TrailingDataError()
-        raise AssertionError()
-
-
-class SocketAddressAction(str, enum.Enum):
-    """Test fixture settings for the SSH agent socket address.
-
-    Attributes:
-        MANGLE_ADDRESS:
-            Mangle the socket address.
-
-            For UNIX domain sockets, mangle the `SSH_AUTH_SOCK`
-            environment variable.
-
-            For Windows named pipes, skip the test.  (Addresses are
-            fixed, so cannot be mangled.)
-        UNSET_ADDRESS:
-            Unset the socket address.
-
-            For UNIX domain sockets, unset the `SSH_AUTH_SOCK`
-            environment variable.
-
-            For Windows named pipes, skip the test.  (Adresses are
-            fixed, so cannot be unset.)
-
-    """
-
-    MANGLE_ADDRESS = enum.auto()
-    """"""
-    UNSET_ADDRESS = enum.auto()
-    """"""
-
-    def __call__(
-        self, monkeypatch: pytest.MonkeyPatch, /, *_args: Any, **_kwargs: Any
-    ) -> None:
-        """Execute the respective action."""
-        # TODO(the-13th-letter): Rewrite using structural pattern
-        # matching.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        if self == self.MANGLE_ADDRESS:
-
-            def mangled_address(
-                *_args: Any, **_kwargs: Any
-            ) -> NoReturn:  # pragma: no cover [failsafe]
-                raise OSError(errno.ENOENT, os.strerror(errno.ENOENT))
-
-            monkeypatch.setattr(
-                socketprovider.WindowsNamedPipeHandle,
-                "for_pageant",
-                mangled_address,
-            )
-            monkeypatch.setattr(
-                socketprovider.WindowsNamedPipeHandle,
-                "for_openssh",
-                mangled_address,
-            )
-            monkeypatch.setenv(
-                "SSH_AUTH_SOCK",
-                os.environ["SSH_AUTH_SOCK"] + "~"
-                if "SSH_AUTH_SOCK" in os.environ
-                else socketprovider.PIPE_PREFIX
-                if os.name == "nt"
-                else "/",
-            )
-        elif self == self.UNSET_ADDRESS:
-
-            def no_address(
-                *_args: Any, **_kwargs: Any
-            ) -> NoReturn:  # pragma: no cover [failsafe]
-                raise KeyError("SSH_AUTH_SOCK")  # noqa: EM101
-
-            monkeypatch.setattr(
-                socketprovider.WindowsNamedPipeHandle,
-                "for_pageant",
-                no_address,
-            )
-            monkeypatch.setattr(
-                socketprovider.WindowsNamedPipeHandle,
-                "for_openssh",
-                no_address,
-            )
-            monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
-        else:
-            raise AssertionError()
-
-
-class SystemSupportAction(str, enum.Enum):
-    """Test fixture settings for [`ssh_agent.SSHAgentClient`][] system support.
-
-    Attributes:
-        UNSET_AF_UNIX:
-            Ensure lack of support for UNIX domain sockets.
-        UNSET_AF_UNIX_AND_ENSURE_USE:
-            Ensure lack of support for UNIX domain sockets, and that the
-            agent will use this socket provider.
-        UNSET_NATIVE:
-            Ensure both `UNSET_AF_UNIX` and `UNSET_WINDLL`.
-        UNSET_NATIVE_AND_ENSURE_USE:
-            Ensure both `UNSET_AF_UNIX` and `UNSET_WINDLL`, and that the
-            agent will use the native socket provider.
-        UNSET_PROVIDER_LIST:
-            Ensure an empty list of SSH agent socket providers.
-        UNSET_WINDLL:
-            Ensure lack of support for Windows named pipes.
-        UNSET_WINDLL_AND_ENSURE_USE:
-            Ensure lack of support for Windows named pipes, and that the
-            agent will use this socket provider.
-
-    """
-
-    UNSET_AF_UNIX = enum.auto()
-    """"""
-    UNSET_AF_UNIX_AND_ENSURE_USE = enum.auto()
-    """"""
-    UNSET_NATIVE = enum.auto()
-    """"""
-    UNSET_NATIVE_AND_ENSURE_USE = enum.auto()
-    """"""
-    UNSET_PROVIDER_LIST = enum.auto()
-    """"""
-    UNSET_WINDLL = enum.auto()
-    """"""
-    UNSET_WINDLL_AND_ENSURE_USE = enum.auto()
-    """"""
-
-    def __call__(
-        self, monkeypatch: pytest.MonkeyPatch, /, *_args: Any, **_kwargs: Any
-    ) -> None:
-        """Execute the respective action.
-
-        Args:
-            monkeypatch: The current monkeypatch context.
-
-        """
-        # TODO(the-13th-letter): Rewrite using structural pattern
-        # matching.
-        # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        if self == self.UNSET_PROVIDER_LIST:
-            monkeypatch.setattr(
-                ssh_agent.SSHAgentClient, "SOCKET_PROVIDERS", []
-            )
-        elif self in {self.UNSET_NATIVE, self.UNSET_NATIVE_AND_ENSURE_USE}:
-            self.check_or_ensure_use(
-                _types.BuiltinSSHAgentSocketProvider.NATIVE,
-                monkeypatch=monkeypatch,
-                ensure_use=(self == self.UNSET_NATIVE_AND_ENSURE_USE),
-            )
-            monkeypatch.delattr(socket, "AF_UNIX", raising=False)
-            monkeypatch.delattr(ctypes, "WinDLL", raising=False)
-            monkeypatch.delattr(ctypes, "windll", raising=False)
-        elif self in {self.UNSET_AF_UNIX, self.UNSET_AF_UNIX_AND_ENSURE_USE}:
-            self.check_or_ensure_use(
-                _types.BuiltinSSHAgentSocketProvider.POSIX,
-                monkeypatch=monkeypatch,
-                ensure_use=(self == self.UNSET_AF_UNIX_AND_ENSURE_USE),
-            )
-            monkeypatch.delattr(socket, "AF_UNIX", raising=False)
-        elif self in {self.UNSET_WINDLL, self.UNSET_WINDLL_AND_ENSURE_USE}:
-            self.check_or_ensure_use(
-                _types.BuiltinSSHAgentSocketProvider.WINDOWS,
-                monkeypatch=monkeypatch,
-                ensure_use=(self == self.UNSET_WINDLL_AND_ENSURE_USE),
-            )
-            monkeypatch.delattr(ctypes, "WinDLL", raising=False)
-            monkeypatch.delattr(ctypes, "windll", raising=False)
-        else:
-            raise AssertionError()
-
-    @staticmethod
-    def check_or_ensure_use(
-        provider: str, /, *, monkeypatch: pytest.MonkeyPatch, ensure_use: bool
-    ) -> None:
-        """Check that the named SSH agent socket provider will be used.
-
-        Either ensure that the socket provider will definitely be used,
-        or, upon detecting that it won't be used, skip the test.
-
-        Args:
-            provider:
-                The provider to check for.
-            ensure_use:
-                If true, ensure that the socket provider will definitely
-                be used.  If false, then check for whether it will be
-                used, and skip this test if not.
-            monkeypatch:
-                The monkeypatch context within which the fixture
-                adjustments should be executed.
-
-        """
-        if ensure_use:
-            monkeypatch.setattr(
-                ssh_agent.SSHAgentClient, "SOCKET_PROVIDERS", [provider]
-            )
-        else:  # pragma: no cover [external]
-            # This branch operates completely on instrumented or on
-            # externally defined, non-deterministic state.
-            intended: (
-                _types.SSHAgentSocketProvider
-                | socketprovider.NoSuchProviderError
-                | None
-            )
-            try:
-                intended = socketprovider.SocketProvider.lookup(provider)
-            except socketprovider.NoSuchProviderError as exc:
-                intended = exc
-            actual: (
-                _types.SSHAgentSocketProvider
-                | socketprovider.NoSuchProviderError
-                | None
-            )
-            for name in ssh_agent.SSHAgentClient.SOCKET_PROVIDERS:
-                try:
-                    actual = socketprovider.SocketProvider.lookup(name)
-                except socketprovider.NoSuchProviderError as exc:
-                    actual = exc
-                if actual is None:
-                    continue
-                break
-            else:
-                actual = None
-            if intended != actual:
-                pytest.skip(
-                    f"{provider!r} SSH agent socket provider "
-                    f"is not currently in use"
-                )
 
 
 class Parametrize(types.SimpleNamespace):
@@ -477,107 +194,96 @@ class Parametrize(types.SimpleNamespace):
             "sign_action",
             "pattern",
             "warnings_patterns",
-            "tests_construction_failure",
         ],
         [
             pytest.param(
-                ListKeysAction.EMPTY,
+                data.ListKeysAction.EMPTY,
                 None,
                 None,
-                SignAction.FAIL,
+                data.SignAction.FAIL,
                 "not loaded into the agent",
                 [],
-                False,
                 id="key-not-loaded",
             ),
             pytest.param(
-                ListKeysAction.FAIL,
+                data.ListKeysAction.FAIL,
                 None,
                 None,
-                SignAction.FAIL,
+                data.SignAction.FAIL,
                 "SSH agent failed to or refused to",
                 [],
-                False,
                 id="list-keys-refused",
             ),
             pytest.param(
-                ListKeysAction.FAIL_RUNTIME,
+                data.ListKeysAction.FAIL_RUNTIME,
                 None,
                 None,
-                SignAction.FAIL,
+                data.SignAction.FAIL,
                 "SSH agent failed to or refused to",
                 [],
-                False,
                 id="list-keys-protocol-error",
             ),
             pytest.param(
                 None,
-                SocketAddressAction.MANGLE_ADDRESS,
+                data.SocketAddressAction.MANGLE_ADDRESS,
                 None,
-                SignAction.FAIL,
+                data.SignAction.FAIL,
                 "Cannot connect to the SSH agent",
                 [],
-                True,
                 id="agent-address-mangled",
             ),
             pytest.param(
                 None,
-                SocketAddressAction.UNSET_ADDRESS,
+                data.SocketAddressAction.UNSET_ADDRESS,
                 None,
-                SignAction.FAIL,
+                data.SignAction.FAIL,
                 "Cannot find any running SSH agent",
                 [],
-                True,
                 id="agent-address-missing",
             ),
             pytest.param(
                 None,
                 None,
-                SystemSupportAction.UNSET_NATIVE,
-                SignAction.FAIL,
+                data.SystemSupportAction.UNSET_NATIVE_AND_ENSURE_USE,
+                data.SignAction.FAIL,
                 "does not support communicating with it",
                 [],
-                True,
                 id="no-native-agent-available",
             ),
             pytest.param(
                 None,
                 None,
-                SystemSupportAction.UNSET_PROVIDER_LIST,
-                SignAction.FAIL,
+                data.SystemSupportAction.UNSET_PROVIDER_LIST,
+                data.SignAction.FAIL,
                 "does not support communicating with it",
                 [],
-                True,
                 id="no-agents-in-agent-provider-list",
             ),
             pytest.param(
                 None,
                 None,
-                SystemSupportAction.UNSET_AF_UNIX_AND_ENSURE_USE,
-                SignAction.FAIL,
+                data.SystemSupportAction.UNSET_AF_UNIX_AND_ENSURE_USE,
+                data.SignAction.FAIL,
                 "does not support communicating with it",
                 ["Cannot connect to an SSH agent via UNIX domain sockets"],
-                True,
                 id="no-unix-domain-sockets",
             ),
             pytest.param(
                 None,
                 None,
-                SystemSupportAction.UNSET_WINDLL_AND_ENSURE_USE,
-                SignAction.FAIL,
+                data.SystemSupportAction.UNSET_WINDLL_AND_ENSURE_USE,
+                data.SignAction.FAIL,
                 "does not support communicating with it",
                 ["Cannot connect to an SSH agent via Windows named pipes"],
-                True,
                 id="no-windows-named-pipes",
             ),
             pytest.param(
                 None,
                 None,
                 None,
-                SignAction.FAIL_RUNTIME,
+                data.SignAction.FAIL_RUNTIME,
                 "violates the communication protocol",
                 [],
-                False,
                 id="sign-violates-protocol",
             ),
         ],
@@ -1238,7 +944,7 @@ class TestTempdir:
     # filenames.
     @hypothesis.given(
         env_var=strategies.sampled_from(["TMPDIR", "TEMP", "TMP"]),
-        suffix=strategies.builds(
+        subdir=strategies.builds(
             operator.add,
             strategies.text(
                 tuple(" 0123456789abcdefghijklmnopqrstuvwxyz"),
@@ -1252,11 +958,13 @@ class TestTempdir:
             ),
         ),
     )
-    @hypothesis.example(env_var="", suffix=".")
+    @hypothesis.example(env_var="", subdir=".").via(
+        "static example; branch coverage (test)"
+    )
     def test_get_tempdir(
         self,
         env_var: str,
-        suffix: str,
+        subdir: str,
     ) -> None:
         """[`cli_helpers.get_tempdir`][] returns a temporary directory.
 
@@ -1270,7 +978,7 @@ class TestTempdir:
         @contextlib.contextmanager
         def make_temporary_directory(
             path: pathlib.Path,
-        ) -> Iterator[pathlib.Path]:
+        ) -> Generator[pathlib.Path, None, None]:
             try:
                 path.mkdir()
                 yield path
@@ -1295,7 +1003,7 @@ class TestTempdir:
             monkeypatch.delenv("TEMP", raising=False)
             monkeypatch.delenv("TMP", raising=False)
             monkeypatch.setattr(tempfile, "tempdir", None)
-            temp_path = pathlib.Path.cwd() / suffix
+            temp_path = pathlib.Path.cwd() / subdir
             if env_var:
                 monkeypatch.setenv(env_var, os.fsdecode(temp_path))
                 stack.enter_context(make_temporary_directory(temp_path))
@@ -1479,20 +1187,18 @@ class TestMisc:
                 )
 
     @Parametrize.KEY_TO_PHRASE_SETTINGS
-    def test_key_to_phrase(  # noqa: C901
+    def test_key_to_phrase(
         self,
-        request: pytest.FixtureRequest,
-        ssh_agent_client_with_test_keys_loaded: ssh_agent.SSHAgentClient,
-        list_keys_action: ListKeysAction | None,
-        system_support_action: SystemSupportAction | None,
-        address_action: SocketAddressAction | None,
-        sign_action: SignAction,
+        use_stub_agent_with_address: None,
+        list_keys_action: data.ListKeysAction | None,
+        system_support_action: data.SystemSupportAction | None,
+        address_action: data.SocketAddressAction | None,
+        sign_action: data.SignAction,
         pattern: str,
         warnings_patterns: list[str],
-        tests_construction_failure: bool,
     ) -> None:
         """All errors in [`cli_helpers.key_to_phrase`][] are handled."""
-
+        del use_stub_agent_with_address
         captured_warnings: list[str] = []
 
         class ErrCallback(BaseException):
@@ -1508,12 +1214,10 @@ class TestMisc:
             if args:  # pragma: no branch
                 captured_warnings.append(str(args[0]))
 
+        with ssh_agent.SSHAgentClient.ensure_agent_subcontext() as client:
+            loaded_keys = list(client.list_keys())
+        loaded_key = base64.standard_b64encode(loaded_keys[0][0])
         with pytest.MonkeyPatch.context() as monkeypatch:
-            loaded_keys = list(
-                ssh_agent_client_with_test_keys_loaded.list_keys()
-            )
-            loaded_key = base64.standard_b64encode(loaded_keys[0][0])
-
             monkeypatch.setattr(ssh_agent.SSHAgentClient, "sign", sign_action)
             if list_keys_action:
                 monkeypatch.setattr(
@@ -1524,13 +1228,6 @@ class TestMisc:
             if system_support_action:
                 system_support_action(monkeypatch)
 
-            if not tests_construction_failure:
-                pytest_machinery.ensure_singleton_client_if_non_reentrant_agent(
-                    request=request,
-                    monkeypatch=monkeypatch,
-                    client=ssh_agent_client_with_test_keys_loaded,
-                )
-
             with pytest.raises(ErrCallback, match=pattern) as excinfo:
                 cli_helpers.key_to_phrase(
                     loaded_key, error_callback=err, warning_callback=warn
@@ -1540,7 +1237,7 @@ class TestMisc:
                 assert any([pat in string for string in captured_warnings]), (
                     f"expected some warning message to match {pat}"
                 )
-            if list_keys_action == ListKeysAction.FAIL_RUNTIME:
+            if list_keys_action == data.ListKeysAction.FAIL_RUNTIME:
                 assert excinfo.value.kwargs
                 assert isinstance(
                     excinfo.value.kwargs["exc_info"],

@@ -16,9 +16,11 @@ from typing import TYPE_CHECKING, NamedTuple
 
 import hypothesis
 import pytest
-from hypothesis import strategies
+from hypothesis import stateful, strategies
 
 from derivepassphrase import sequin
+from tests.machinery import hypothesis as hypothesis_machinery
+from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -56,7 +58,7 @@ def bitseq(string: str) -> list[int]:
 
 
 class Parametrize(types.SimpleNamespace):
-    BIG_ENDIAN_NUMBER_EXCEPTIONS = pytest.mark.parametrize(
+    BIG_ENDIAN_NUMBER_EXCEPTIONS = hypothesis_machinery.explicit_examples(
         ["exc_type", "exc_pattern", "sequence", "base"],
         [
             (ValueError, "invalid base 3 digit:", [-1], 3),
@@ -64,7 +66,7 @@ class Parametrize(types.SimpleNamespace):
             (TypeError, "not an integer:", [0.0, 1.0, 0.0, 1.0], 2),
         ],
     )
-    INVALID_SEQUIN_INPUTS = pytest.mark.parametrize(
+    INVALID_SEQUIN_INPUTS = hypothesis_machinery.explicit_examples(
         ["sequence", "is_bitstring", "exc_type", "exc_pattern"],
         [
             (
@@ -164,21 +166,24 @@ class TestStaticFunctionality:
             )
 
     @hypothesis.given(test_case=BigEndianNumberTest.strategy())
+    # decimal example
     @hypothesis.example(
-        BigEndianNumberTest([1, 2, 3, 4, 5, 6], 10, 123456)
-    ).via("manual decimal example")
-    @hypothesis.example(
-        BigEndianNumberTest([1, 2, 3, 4, 5, 6], 100, 10203040506)
-    ).via("manual decimal example in different base")
-    @hypothesis.example(BigEndianNumberTest([0, 0, 1, 4, 9, 7], 10, 1497)).via(
-        "manual example with leading zeroes"
+        test_case=BigEndianNumberTest([1, 2, 3, 4, 5, 6], 10, 123456)
     )
+    # decimal example, different base
     @hypothesis.example(
-        BigEndianNumberTest([1, 0, 0, 1, 0, 0, 0, 0], 2, 144)
-    ).via("manual binary example")
-    @hypothesis.example(BigEndianNumberTest([1, 7, 5, 5], 8, 0o1755)).via(
-        "manual octal example"
+        test_case=BigEndianNumberTest([1, 2, 3, 4, 5, 6], 100, 10203040506)
     )
+    # leading zeroes example
+    @hypothesis.example(
+        test_case=BigEndianNumberTest([0, 0, 1, 4, 9, 7], 10, 1497)
+    )
+    # binary example
+    @hypothesis.example(
+        test_case=BigEndianNumberTest([1, 0, 0, 1, 0, 0, 0, 0], 2, 144)
+    )
+    # octal example
+    @hypothesis.example(test_case=BigEndianNumberTest([1, 7, 5, 5], 8, 0o1755))
     def test_big_endian_number(self, test_case: BigEndianNumberTest) -> None:
         """Conversion to big endian numbers in any base works.
 
@@ -294,22 +299,28 @@ class TestSequin:
             )
 
     @hypothesis.given(test_case=ConstructorTestCase.strategy())
+    # bitstring example
     @hypothesis.example(
-        ConstructorTestCase([1, 0, 0, 1, 0, 1], True, [1, 0, 0, 1, 0, 1])
-    ).via("manual example bitstring")
+        test_case=ConstructorTestCase(
+            [1, 0, 0, 1, 0, 1], True, [1, 0, 0, 1, 0, 1]
+        )
+    )
+    # bitstring as bytestring example
     @hypothesis.example(
-        ConstructorTestCase(
+        test_case=ConstructorTestCase(
             [1, 0, 0, 1, 0, 1],
             False,
             bitseq("000000010000000000000000000000010000000000000001"),
         )
-    ).via("manual example bitstring as byte string")
+    )
+    # true byte string example
     @hypothesis.example(
-        ConstructorTestCase(b"OK", False, bitseq("0100111101001011"))
-    ).via("manual example true byte string")
+        test_case=ConstructorTestCase(b"OK", False, bitseq("0100111101001011"))
+    )
+    # latin1 text example
     @hypothesis.example(
-        ConstructorTestCase("OK", False, bitseq("0100111101001011"))
-    ).via("manual example latin1 text")
+        test_case=ConstructorTestCase("OK", False, bitseq("0100111101001011"))
+    )
     def test_constructor(
         self,
         test_case: ConstructorTestCase,
@@ -337,6 +348,8 @@ class TestSequin:
         steps: Sequence[tuple[int, int | type[sequin.SequinExhaustedError]]]
         """"""
 
+        # TODO(the-13th-letter): Add more known sequences. Derive those
+        # from sequin.js.
         @strategies.composite
         @staticmethod
         def strategy(draw: strategies.DrawFn) -> TestSequin.GenerationSequence:
@@ -355,8 +368,9 @@ class TestSequin:
                 ],
             )
 
+    @hypothesis.given(sequence=GenerationSequence.strategy())
     @hypothesis.example(
-        GenerationSequence(
+        sequence=GenerationSequence(
             bitseq("110101011111001"),
             [
                 (1, 0),
@@ -367,8 +381,7 @@ class TestSequin:
                 (1, sequin.SequinExhaustedError),
             ],
         )
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.given(sequence=GenerationSequence.strategy())
+    )
     def test_generating(self, sequence: GenerationSequence) -> None:
         """The sequin generates deterministic sequences."""
         seq = sequin.Sequin(sequence.bit_sequence, is_bitstring=True)
@@ -396,8 +409,9 @@ class TestSequin:
         with pytest.raises(ValueError, match="invalid target range"):
             seq.generate(0)
 
+    @hypothesis.given(sequence=GenerationSequence.strategy())
     @hypothesis.example(
-        GenerationSequence(
+        sequence=GenerationSequence(
             bitseq("110101011111001"),
             [
                 (1, 0),
@@ -408,8 +422,7 @@ class TestSequin:
                 (1, sequin.SequinExhaustedError),
             ],
         )
-    ).via("manual, pre-hypothesis parametrization value")
-    @hypothesis.given(sequence=GenerationSequence.strategy())
+    )
     def test_internal_generating(self, sequence: GenerationSequence) -> None:
         """The sequin internals generate deterministic sequences."""
         seq = sequin.Sequin(sequence.bit_sequence, is_bitstring=True)
@@ -457,6 +470,8 @@ class TestSequin:
         steps: Sequence[tuple[int, Sequence[int], Sequence[int]]]
         """"""
 
+        # TODO(the-13th-letter): Check feasibility of encoding
+        # unsatisfiable shifts.
         @strategies.composite
         @staticmethod
         def strategy(draw: strategies.DrawFn) -> TestSequin.ShiftSequence:
@@ -477,7 +492,8 @@ class TestSequin:
                     operator.add,
                     no_op_counts_strategy,
                     true_counts_strategy,
-                ).flatmap(strategies.permutations)
+                ).flatmap(strategies.permutations),
+                label="sequence of bit shift sizes",
             )
             bit_sequence: list[int] = []
             steps: list[tuple[int, Sequence[int], list[int]]] = []
@@ -485,7 +501,8 @@ class TestSequin:
                 shift_result = draw(
                     strategies.lists(
                         bits_strategy, min_size=count, max_size=count
-                    )
+                    ),
+                    label=f"shift result #{i}",
                 )
                 for step in steps[:i]:
                     step[2].extend(shift_result)
@@ -495,7 +512,7 @@ class TestSequin:
 
     @hypothesis.given(sequence=ShiftSequence.strategy())
     @hypothesis.example(
-        ShiftSequence(
+        sequence=ShiftSequence(
             bitseq("1010010001"),
             [
                 (3, bitseq("101"), bitseq("0010001")),
@@ -541,3 +558,379 @@ class TestSequin:
         """The sequin raises on invalid bit and integer sequences."""
         with pytest.raises(exc_type, match=exc_pattern):
             sequin.Sequin(sequence, is_bitstring=is_bitstring)
+
+
+class SequinStateMachine(stateful.RuleBasedStateMachine):
+    r"""A state machine for the sequin.
+
+    Compares the output of [`sequin.Sequin.generate`][] with the output
+    of a 1-to-1 translation of the original JavaScript Sequin code.
+
+    """
+
+    ORIGINAL_SOURCE = r"""
+        'use strict';
+
+        var Stream = function(sequence, bits) {
+          bits = bits || (sequence instanceof Buffer ? 8 : 1);
+          var binary = '', b, i, n;
+
+          for (i = 0, n = sequence.length; i < n; i++) {
+            b = this._get(sequence, i).toString(2);
+            while (b.length < bits) b = '0' + b;
+            binary = binary + b;
+          }
+          binary = binary.split('').map(function(b) { return parseInt(b, 2) });
+
+          this._bases = {'2': binary};
+        };
+
+        Stream.prototype.generate = function(n, base, inner) {
+          base = base || 2;
+
+          var value = n,
+              k = Math.ceil(Math.log(n) / Math.log(base)),
+              r = Math.pow(base, k) - n,
+              chunk;
+
+          loop: while (value >= n) {
+            chunk = this._shift(base, k);
+            if (!chunk) return inner ? n : null;
+
+            value = this._evaluate(chunk, base);
+
+            if (value >= n) {
+              if (r === 1) continue loop;
+              this._push(r, value - n);
+              value = this.generate(n, r, true);
+            }
+          }
+          return value;
+        };
+
+        Stream.prototype._get = function(sequence, i) {
+          return sequence.readUInt8 ? sequence.readUInt8(i) : sequence[i];
+        };
+
+        Stream.prototype._evaluate = function(chunk, base) {
+          var sum = 0,
+              i   = chunk.length;
+
+          while (i--) sum += chunk[i] * Math.pow(base, chunk.length - (i+1));
+          return sum;
+        };
+
+        Stream.prototype._push = function(base, value) {
+          this._bases[base] = this._bases[base] || [];
+          this._bases[base].push(value);
+        };
+
+        Stream.prototype._shift = function(base, k) {
+          var list = this._bases[base];
+          if (!list || list.length < k) return null;
+          else return list.splice(0,k);
+        };
+
+        module.exports = Stream;
+    """
+    """
+    The original JavaScript code: Sequin 0.1.1, Copyright 2017 James
+    Coglan.  Released under the following MIT License:
+
+        Copyright (c) 2012-2017 James Coglan
+
+        Permission is hereby granted, free of charge, to any person obtaining a copy of
+        this software and associated documentation files (the 'Software'), to deal in
+        the Software without restriction, including without limitation the rights to
+        use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+        the Software, and to permit persons to whom the Software is furnished to do so,
+        subject to the following conditions:
+
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+
+        THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+        FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+        COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+        IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+        CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    """
+
+    class Stream:  # pragma: no cover
+        def __init__(
+            self,
+            sequence: bytes | bytearray | Sequence[int],
+            bits: int | None = None,
+        ) -> None:
+            r"""Initialize the stream.
+
+            Corresponding JavaScript source:
+
+                var Stream = function(sequence, bits) {
+                  bits = bits || (sequence instanceof Buffer ? 8 : 1);
+                  var binary = '', b, i, n;
+
+                  for (i = 0, n = sequence.length; i < n; i++) {
+                    b = this._get(sequence, i).toString(2);
+                    while (b.length < bits) b = '0' + b;
+                    binary = binary + b;
+                  }
+                  binary = binary.split('').map(function(b) { return parseInt(b, 2) });
+
+                  this._bases = {'2': binary};
+                };
+
+            """
+            bits = (
+                bits
+                if bits is not None
+                else 8
+                if isinstance(sequence, (bytes, bytearray))
+                else 1
+            )
+            binary = ""
+            b: str
+            i: int
+            n = len(sequence)
+
+            for i in range(n):
+                b = "{:b}".format(self._get(sequence, i))  # noqa: UP032
+                while len(b) < bits:
+                    b = "0" + b
+                binary = binary + b  # noqa: PLR6104
+            binary_ = list(map(lambda b: int(b, 2), list(binary)))  # noqa: C417
+
+            self._bases = {2: binary_}
+
+        def generate(self, n: int, base: int = 2) -> int | None:
+            r"""Main method "generate".
+
+            Corresponding JavaScript source:
+
+                Stream.prototype.generate = function(n, base, inner) {
+                  base = base || 2;
+
+                  var value = n,
+                      k = Math.ceil(Math.log(n) / Math.log(base)),
+                      r = Math.pow(base, k) - n,
+                      chunk;
+
+                  loop: while (value >= n) {
+                    chunk = this._shift(base, k);
+                    if (!chunk) return inner ? n : null;
+
+                    value = this._evaluate(chunk, base);
+
+                    if (value >= n) {
+                      if (r === 1) continue loop;
+                      this._push(r, value - n);
+                      value = this.generate(n, r, true);
+                    }
+                  }
+                  return value;
+                };
+
+            ...except that we hardcode `inner` to False, for typing
+            reasons.  ([`_generate_inner`][] is the version with `inner`
+            hardcoded to True.)
+
+            """
+            value: int = n
+            k = math.ceil(math.log(n) / math.log(base))
+            r = pow(base, k) - n
+            chunk: Sequence[int] | None
+
+            while value >= n:
+                chunk = self._shift(base, k)
+                if not chunk:
+                    return None
+
+                value = self._evaluate(chunk, base)
+
+                if value >= n:
+                    if r == 1:
+                        continue
+                    self._push(r, value - n)
+                    value = self._generate_inner(n, r)
+            return value
+
+        def _generate_inner(self, n: int, base: int = 2) -> int:
+            r"""Helper method.
+
+            Corresponding JavaScript source:
+
+                Stream.prototype.generate = function(n, base, inner) {
+                  base = base || 2;
+
+                  var value = n,
+                      k = Math.ceil(Math.log(n) / Math.log(base)),
+                      r = Math.pow(base, k) - n,
+                      chunk;
+
+                  loop: while (value >= n) {
+                    chunk = this._shift(base, k);
+                    if (!chunk) return inner ? n : null;
+
+                    value = this._evaluate(chunk, base);
+
+                    if (value >= n) {
+                      if (r === 1) continue loop;
+                      this._push(r, value - n);
+                      value = this.generate(n, r, true);
+                    }
+                  }
+                  return value;
+                };
+
+            ...except that we hardcode `inner` to True, for typing
+            reasons.  ([`generate`][] is the version with `inner`
+            hardcoded to False.)
+
+            """
+            value: int = n
+            k = math.ceil(math.log(n) / math.log(base))
+            r = pow(base, k) - n
+            chunk: Sequence[int] | None
+
+            while value >= n:
+                chunk = self._shift(base, k)
+                if not chunk:
+                    return n
+
+                value = self._evaluate(chunk, base)
+
+                if value >= n:
+                    if r == 1:
+                        continue
+                    self._push(r, value - n)
+                    value = self._generate_inner(n, r)
+            return value
+
+        @staticmethod
+        def _get(sequence: bytes | bytearray | Sequence[int], i: int) -> int:
+            r"""Helper method.
+
+            Corresponding JavaScript source:
+
+                Stream.prototype._get = function(sequence, i) {
+                  return sequence.readUInt8 ? sequence.readUInt8(i) : sequence[i];
+                };
+
+            """
+            return (
+                sequence[i]  # noqa: RUF034
+                if isinstance(sequence, (bytes, bytearray))
+                else sequence[i]
+            )
+
+        @staticmethod
+        def _evaluate(chunk: Sequence[int], base: int) -> int:
+            r"""Helper method.
+
+            Corresponding JavaScript source:
+
+                Stream.prototype._evaluate = function(chunk, base) {
+                  var sum = 0,
+                      i   = chunk.length;
+
+                  while (i--) sum += chunk[i] * Math.pow(base, chunk.length - (i+1));
+                  return sum;
+                };
+
+            """
+            sum_ = 0
+            i = len(chunk)
+            while i > 0:
+                i -= 1
+                sum_ += chunk[i] * pow(base, len(chunk) - (i + 1))
+            return sum_
+
+        def _push(self, base: int, value: int) -> None:
+            r"""Helper method.
+
+            Corresponding JavaScript source:
+
+                Stream.prototype._push = function(base, value) {
+                  this._bases[base] = this._bases[base] || [];
+                  this._bases[base].push(value);
+                };
+
+            """
+            self._bases.setdefault(base, [])
+            self._bases[base].append(value)
+
+        def _shift(self, base: int, k: int) -> Sequence[int] | None:
+            r"""Helper method.
+
+            Corresponding JavaScript source:
+
+                Stream.prototype._shift = function(base, k) {
+                  var list = this._bases[base];
+                  if (!list || list.length < k) return null;
+                  else return list.splice(0,k);
+                };
+
+            """
+            list_ = self._bases[base]
+            if not list_ or len(list_) < k:
+                return None
+            else:  # noqa: RET505
+                result = list_[0:k]
+                list_[0:k] = []
+                return result
+
+    def __init__(self) -> None:
+        """Initialize this state machine."""
+        super().__init__()
+        self.reference_sequin: SequinStateMachine.Stream
+        self.sequin: sequin.Sequin
+
+    @stateful.initialize(
+        sequence=strategies.one_of(
+            strategies.lists(strategies.integers(0, 1)), strategies.binary()
+        )
+    )
+    def _init(self, sequence: bytes | bytearray | list[int]) -> None:
+        if isinstance(sequence, (bytes, bytearray)):
+            self.reference_sequin = SequinStateMachine.Stream(bytes(sequence))
+            self.sequin = sequin.Sequin(bytes(sequence), is_bitstring=False)
+        else:
+            self.reference_sequin = SequinStateMachine.Stream(sequence.copy())
+            self.sequin = sequin.Sequin(sequence.copy(), is_bitstring=True)
+
+    @staticmethod
+    def normalize_bases_structure(
+        bases: dict[int, list[int]] | dict[int, collections.deque[int]],
+    ) -> list[tuple[int, tuple[int, ...]]]:
+        return sorted((k, tuple(v)) for k, v in bases.items() if v)
+
+    @stateful.invariant()
+    def check_sequin_state(self) -> None:
+        reference_bases = self.reference_sequin._bases
+        sequin_bases = self.sequin.bases
+        assert self.normalize_bases_structure(
+            reference_bases
+        ) == self.normalize_bases_structure(sequin_bases)
+
+    @stateful.rule(n=strategies.integers(1, 128))
+    def generate(self, n: int) -> None:
+        value1 = self.reference_sequin.generate(n)
+        try:
+            value2 = self.sequin.generate(n)
+        except sequin.SequinExhaustedError:
+            value2 = None
+        if n == 1:
+            # As per upstream's own tests, Sequin.generate(1) should
+            # return 0, and we do.  But the original JavaScript version
+            # returns `null`.  Therefore, just assert that both are
+            # equally falsy.
+            assert not value1
+            assert not value2
+        else:
+            assert value1 == value2
+
+
+@pytest_machinery.heavy_duty
+class TestStateAgainstReferenceSequin(SequinStateMachine.TestCase):  # type: ignore[misc,valid-type]
+    pass

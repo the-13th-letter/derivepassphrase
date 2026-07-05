@@ -27,7 +27,7 @@ __all__ = ()
 
 if TYPE_CHECKING:
     import socket
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
     from typing_extensions import Any
 
@@ -99,7 +99,9 @@ def list_keys_singleton(self: Any = None) -> list[_types.SSHKeyCommentPair]:
 # -------------
 
 
-def suitable_ssh_keys(conn: Any) -> Iterator[_types.SSHKeyCommentPair]:
+def suitable_ssh_keys(
+    conn: Any,
+) -> Generator[_types.SSHKeyCommentPair, None, None]:
     """Return a two-item list of SSH test keys (key/comment pairs).
 
     Intended as a monkeypatching replacement for

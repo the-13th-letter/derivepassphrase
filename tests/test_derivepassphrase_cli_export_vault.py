@@ -36,7 +36,7 @@ from cryptography.hazmat.primitives.ciphers import (  # noqa: E402
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import Callable, Generator
     from typing import Any
 
     from typing_extensions import Buffer, Literal
@@ -256,7 +256,7 @@ class TestCLIFailures:
         *,
         vault_config: str | bytes = data.VAULT_V03_CONFIG,
         vault_key: str = data.VAULT_MASTER_KEY,
-    ) -> Iterator[pytest.MonkeyPatch]:
+    ) -> Generator[pytest.MonkeyPatch, None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -271,7 +271,8 @@ class TestCLIFailures:
                     vault_key=vault_key,
                 )
             )
-            yield monkeypatch
+            # If the setup blows up, bubble the exception.
+            yield monkeypatch  # noqa: RUF075
             result = runner.invoke(
                 cli.derivepassphrase_export_vault,
                 command_line,
@@ -353,7 +354,7 @@ class TestStoreroom:
         *,
         vault_config: str | bytes = data.VAULT_STOREROOM_CONFIG_ZIPPED,
         vault_key: str = data.VAULT_MASTER_KEY,
-    ) -> Iterator[tuple[pytest.MonkeyPatch, machinery.CliRunner]]:
+    ) -> Generator[tuple[pytest.MonkeyPatch, machinery.CliRunner], None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.
@@ -391,6 +392,8 @@ class TestStoreroom:
                 == data.VAULT_STOREROOM_CONFIG_DATA
             )
 
+    # TODO(the-13th-letter): Rewrite as property-based test.
+    @pytest_machinery.correctness_focused
     def test_decrypt_bucket_item_unknown_version(self) -> None:
         """Fail on unknown versions of the master keys file."""
         bucket_item = (
@@ -404,6 +407,8 @@ class TestStoreroom:
         with pytest.raises(ValueError, match="Cannot handle version 255"):
             storeroom._decrypt_bucket_item(bucket_item, master_keys)
 
+    # TODO(the-13th-letter): Rewrite as property-based test.
+    @pytest_machinery.correctness_focused
     @Parametrize.BAD_CONFIG
     def test_decrypt_bucket_file_bad_json_or_version(
         self,
@@ -427,6 +432,8 @@ class TestStoreroom:
             with pytest.raises(ValueError, match="Invalid bucket file: "):
                 list(storeroom._decrypt_bucket_file(p, master_keys))
 
+    # TODO(the-13th-letter): Rewrite as property-based test.
+    @pytest_machinery.correctness_focused
     @Parametrize.BAD_MASTER_KEYS_DATA
     @Parametrize.STOREROOM_HANDLER
     def test_export_storeroom_data_bad_master_keys_file(
@@ -447,6 +454,8 @@ class TestStoreroom:
             with pytest.raises(RuntimeError, match=err_msg):
                 handler(format="storeroom")
 
+    # TODO(the-13th-letter): Rewrite as property-based test.
+    @pytest_machinery.correctness_focused
     @Parametrize.BAD_STOREROOM_CONFIG_DATA
     @Parametrize.STOREROOM_HANDLER
     def test_export_storeroom_data_bad_directory_listing(
@@ -476,6 +485,8 @@ class TestStoreroom:
             with pytest.raises(RuntimeError, match=error_text):
                 handler(format="storeroom")
 
+    # TODO(the-13th-letter): Rewrite as property-based test.
+    @pytest_machinery.correctness_focused
     def test_decrypt_keys_wrong_data_length(self) -> None:
         """Fail on internal structural data of the wrong size.
 
@@ -502,11 +513,11 @@ class TestStoreroom:
         encryptor = ciphers.Cipher(
             algorithms.AES256(key), modes.CBC(iv)
         ).encryptor()
-        ciphertext = bytearray(encryptor.update(plaintext))
+        ciphertext = bytearray(encryptor.update(bytes(plaintext)))
         ciphertext.extend(encryptor.finalize())
         mac_obj = hmac.HMAC(key, hashes.SHA256())
         mac_obj.update(iv)
-        mac_obj.update(ciphertext)
+        mac_obj.update(bytes(ciphertext))
         data = iv + bytes(ciphertext) + mac_obj.finalize()
         with pytest.raises(
             ValueError,
@@ -527,6 +538,8 @@ class TestStoreroom:
                 ),
             )
 
+    # TODO(the-13th-letter): Generate key as well.
+    @pytest_machinery.correctness_focused
     @hypothesis.given(
         data=strategies.binary(
             min_size=storeroom.MAC_SIZE, max_size=storeroom.MAC_SIZE
@@ -562,7 +575,7 @@ class TestVaultNativeConfig:
         *,
         vault_config: str | bytes = data.VAULT_V03_CONFIG,
         vault_key: str = data.VAULT_MASTER_KEY,
-    ) -> Iterator[tuple[pytest.MonkeyPatch, machinery.CliRunner]]:
+    ) -> Generator[tuple[pytest.MonkeyPatch, machinery.CliRunner], None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
         # TODO(the-13th-letter): Rewrite using parenthesized
         # with-statements.

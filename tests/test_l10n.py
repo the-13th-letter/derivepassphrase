@@ -12,27 +12,28 @@ import gettext
 import os
 import re
 import types
-from typing import TYPE_CHECKING, TypeVar, cast
+from typing import TYPE_CHECKING, TypeVar
 
 import hypothesis
 import pytest
 from hypothesis import strategies
 
 from derivepassphrase._internals import cli_messages as msg
+from tests.machinery import hypothesis as hypothesis_machinery
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
     from typing import ClassVar
 
 
 class Parametrize(types.SimpleNamespace):
-    MAYBE_FORMAT_STRINGS = pytest.mark.parametrize(
+    MAYBE_FORMAT_STRINGS = hypothesis_machinery.explicit_examples(
         "s", ["{spam}", "{spam}abc", "{", "}", "{{{"]
     )
 
 
 @pytest.fixture(scope="class")
-def use_debug_translations() -> Iterator[None]:
+def use_debug_translations() -> Generator[None, None, None]:
     """Force the use of debug translations (pytest class fixture)."""
     with pytest.MonkeyPatch.context() as monkeypatch:
         monkeypatch.setattr(msg, "translation", msg.DebugTranslations())
@@ -40,7 +41,7 @@ def use_debug_translations() -> Iterator[None]:
 
 
 @contextlib.contextmanager
-def monkeypatched_null_translations() -> Iterator[None]:
+def monkeypatched_null_translations() -> Generator[None, None, None]:
     """Force the use of no-op translations in this context."""
     with pytest.MonkeyPatch.context() as monkeypatch:
         monkeypatch.setattr(msg, "translation", gettext.NullTranslations())
@@ -57,16 +58,13 @@ class Strategies:
         ]
     ] = {}
     for enum_class in msg.MSG_TEMPLATE_CLASSES:
-        all_translatable_strings_dict.update({
-            cast("msg.TranslatableString", v.value): v for v in enum_class
-        })
+        all_translatable_strings_dict.update({v.value: v for v in enum_class})
 
     all_translatable_strings_enum_values = tuple(
         sorted(all_translatable_strings_dict.values(), key=str)
     )
     all_translatable_strings = tuple(
-        cast("msg.TranslatableString", v.value)
-        for v in all_translatable_strings_enum_values
+        v.value for v in all_translatable_strings_enum_values
     )
 
     error_codes = tuple(
@@ -132,7 +130,7 @@ class Strategies:
     @classmethod
     def translatable_strings(
         cls,
-    ) -> strategies.SearchStrategy[msg.MsgTemplate]:
+    ) -> strategies.SearchStrategy[msg.TranslatableString]:
         """Return a strategy for translatable messages."""
         return strategies.sampled_from(cls.all_translatable_strings)
 
@@ -172,14 +170,14 @@ class TestDebugTranslations:
         assert not suffix or suffix.startswith("(")
 
     @hypothesis.given(value=Strategies.printable_strings())
-    @hypothesis.example("{")
+    @hypothesis.example(value="{")
     def test_get_str(self, value: str) -> None:
         """Translating a raw string object does nothing."""
         translated = msg.translation.gettext(value)
         assert translated == value
 
     @hypothesis.given(value=Strategies.printable_strings())
-    @hypothesis.example("{")
+    @hypothesis.example(value="{")
     def test_get_ts_str(self, value: str) -> None:
         """Translating a constant TranslatableString does nothing."""
         translated = msg.TranslatedString.constant(value)
@@ -201,9 +199,7 @@ class TestDebugTranslations:
         value: msg.MsgTemplate,
     ) -> None:
         """Translating a MsgTemplate operates on the enum value."""
-        self._test_interpolated(
-            str(value), cast("msg.TranslatableString", value.value)
-        )
+        self._test_interpolated(str(value), value.value)
 
 
 @pytest.mark.usefixtures("use_debug_translations")
@@ -286,6 +282,8 @@ class TestTranslatedStrings:
 class TestSuppressedInterpolations:
     """Test the interpolation suppression behavior of translated strings."""
 
+    # TODO(the-13th-letter): Revise this test, in particular, the error
+    # assertions.
     @Parametrize.MAYBE_FORMAT_STRINGS
     def test_missing_fields(self, s: str) -> None:
         """TranslatableStrings require fixed replacement fields.

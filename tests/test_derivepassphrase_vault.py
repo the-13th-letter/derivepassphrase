@@ -40,6 +40,20 @@ TWITTER_PHRASE = rb"[ (HN_N:lI&<ro=)3'g9"
 The standard derived passphrase for the "twitter" service, from
 <i>vault</i>(1)'s test suite.
 """
+INTERCHANGABLE_PHRASE1 = (
+    b"plnlrtfpijpuhqylxbgqiiyipieyxvfsavzgxbbcfusqkozwpngsyejqlmjsytrmd"
+)
+"""
+One of two [interchangable passphrases][INTERCHANGABLE_PASSPHRASES],
+based on [Wikipedia's page on PBKDF2 (HMAC collisions)][HMAC_COL].
+
+[INTERCHANGABLE_PASSPHRASES]: https://the13thletter.info/derivepassphrase/0.x/explanation/faq-vault-interchangable-passphrases/ 'What are "interchangable passphrases" in `vault`, and what does that mean in practice?'
+[HMAC_COL]: https://en.wikipedia.org/w/index.php?title=PBKDF2&oldid=1264881215#HMAC_collisions
+"""
+INTERCHANGABLE_PHRASE2 = b"eBkXQTfuBqp'cTcar&g*"
+"""
+Same purpose as [`INTERCHANGABLE_PHRASE1`][INTERCHANGABLE_PHRASE1].
+"""
 
 buffer_types: dict[str, Callable[..., Buffer]] = {
     "bytes": bytes,
@@ -69,18 +83,14 @@ class Parametrize(types.SimpleNamespace):
             (1, {"upper": 0, "lower": 0, "number": 0, "symbol": 0}, 0.0),
         ],
     )
-    MASTER_PASSPHRASE_TYPES = pytest.mark.parametrize(
-        ["phrase1", "phrase2"],
-        [(PHRASE.decode("UTF-8"), f(PHRASE)) for f in buffer_types.values()],
-        ids=buffer_types.keys(),
-    )
-    BINARY_STRINGS = pytest.mark.parametrize(
+    BINARY_STRINGS = hypothesis_machinery.explicit_examples(
         "s",
         [
             "ñ",
             "Düsseldorf",
-            "liberté, egalité, fraternité",
+            "Liberté, égalité, fraternité",
             "ASCII",
+            "こんにちは。",
             b"D\xc3\xbcsseldorf",
             bytearray([2, 3, 5, 7, 11, 13]),
         ],
@@ -92,11 +102,6 @@ class Parametrize(types.SimpleNamespace):
             ("twitter", TWITTER_PHRASE),
         ],
         ids=["google", "twitter"],
-    )
-    SERVICE_NAME_TYPES = pytest.mark.parametrize(
-        ["sv1", "sv2"],
-        [("email", f(b"email")) for f in buffer_types.values()],
-        ids=buffer_types.keys(),
     )
 
 
@@ -303,8 +308,7 @@ class TestPhraseDependence:
         service=Strategies.text_strategy(),
     )
     @hypothesis.example(phrases=[b"\x00", b"\x00\x00"], service="0").xfail(
-        reason="phrases are interchangable",
-        raises=AssertionError,
+        reason="phrases are interchangable", raises=AssertionError
     )
     def test_small(self, phrases: Sequence[bytes], service: str) -> None:
         """The internal hash is dependent on the master passphrase.
@@ -320,6 +324,10 @@ class TestPhraseDependence:
         ),
         service=Strategies.text_strategy(),
     )
+    @hypothesis.example(
+        phrases=[b"\x01" * DIGEST_SIZE, b"\x01" * DIGEST_SIZE],
+        service="service",
+    ).xfail(reason="phrases are interchangable", raises=AssertionError)
     def test_medium(self, phrases: Sequence[bytes], service: str) -> None:
         """The internal hash is dependent on the master passphrase.
 
@@ -349,22 +357,9 @@ class TestPhraseDependence:
         service=Strategies.text_strategy(),
     )
     @hypothesis.example(
-        phrases=[
-            (
-                b"plnlrtfpijpuhqylxbgqiiyipieyxvfs"
-                b"avzgxbbcfusqkozwpngsyejqlmjsytrmd"
-            ),
-            b"eBkXQTfuBqp'cTcar&g*",
-        ],
+        phrases=[INTERCHANGABLE_PHRASE1, INTERCHANGABLE_PHRASE2],
         service="any service name here",
-    ).xfail(
-        reason=(
-            "phrases are interchangable (Wikipedia example:"
-            "https://en.wikipedia.org/w/index.php?title=PBKDF2&oldid=1264881215#HMAC_collisions"
-            ")"
-        ),
-        raises=AssertionError,
-    )
+    ).xfail(reason="phrases are interchangable", raises=AssertionError)
     def test_mixed(self, phrases: Sequence[bytes], service: str) -> None:
         """The internal hash is dependent on the master passphrase.
 
@@ -453,27 +448,14 @@ class TestStringAndBinaryExchangability(TestVault):
 
     """
 
-    @Parametrize.SAMPLE_SERVICES_AND_PHRASES
-    @Parametrize.MASTER_PASSPHRASE_TYPES
-    def test_binary_phrases(
-        self,
-        phrase1: str,
-        phrase2: Buffer,
-        service: bytes | str,
-        expected: bytes,
-    ) -> None:
-        """Binary and text master passphrases generate the same passphrases."""
-        v1 = vault.Vault(phrase=phrase1)
-        v2 = vault.Vault(phrase=phrase2)
-        assert v1.generate(service) == expected
-        assert v2.generate(service) == expected
-
-    @Parametrize.SERVICE_NAME_TYPES
-    def test_binary_service_name(self, sv1: str, sv2: Buffer) -> None:
-        """Binary and text service names generate the same passphrases."""
-        v = vault.Vault(phrase=self.phrase)
-        assert v.generate(sv1) == v.generate(sv2)
-
+    @hypothesis_machinery.explicit_examples(
+        ["phrase", "service"],
+        [
+            pytest.param(PHRASE.decode("UTF-8"), "google", id="google"),
+            pytest.param(PHRASE.decode("UTF-8"), "twitter", id="twitter"),
+            pytest.param(PHRASE.decode("UTF-8"), "email", id="email"),
+        ],
+    )
     @hypothesis.given(
         phrase=Strategies.text_strategy(),
         service=Strategies.text_strategy(),
@@ -622,7 +604,7 @@ class TestConstraintSatisfactionFromUpstream(TestVault):
         assert generated == b"763252593304946694588866"
 
 
-class TestConstraintSatisfactionThoroughness(TestVault):
+class TestConstraintSatisfactionThoroughness:
     """Test passphrase derivation with the "vault" scheme: constraint satisfaction."""
 
     @hypothesis.given(
@@ -687,7 +669,7 @@ class TestConstraintSatisfactionThoroughness(TestVault):
             assert count <= repeat
 
 
-class TestConstraintSatisfactionHeavyDuty(TestVault):
+class TestConstraintSatisfactionHeavyDuty:
     """Test passphrase derivation with the "vault" scheme: constraint satisfaction."""
 
     @hypothesis.given(
@@ -802,6 +784,18 @@ class TestUtilities(TestVault):
         """Removing allowed characters internally works."""
         assert vault.Vault._subtract(b"be", b"abcdef") == bytearray(b"acdf")
 
+    # TODO(the-13th-letter): Strongly consider removing this test, and
+    # the underlying functionality `Vault._entropy` and
+    # `Vault._estimate_sufficient_hash_length`, in favor of a heuristic
+    # estimate that works in "most cases".  This test strongly suggests
+    # that we know how to correctly calculate both the entropy of
+    # a passphrase derivation template and a bound on how many bits of
+    # entropy the template will actually need.  We don't, neither the
+    # template entropy (because the passphrase characters are not
+    # stochastically independent of each other, thanks to mandatory
+    # characters and repetition constraints) nor the actual used entropy
+    # (because we still use some form of rejection sampling with
+    # worst-case infinite retry chains).
     @Parametrize.ENTROPY_RESULTS
     def test_entropy(
         self, length: int, settings: dict[str, int], entropy: int
@@ -816,51 +810,40 @@ class TestUtilities(TestVault):
             )
         assert v._estimate_sufficient_hash_length(8.0) >= entropy
 
-    def test_hash_length_estimation(self) -> None:
-        """
-        Estimating the entropy and hash length for degenerate cases works.
-        """
-        v = vault.Vault(
-            phrase=self.phrase,
-            lower=0,
-            upper=0,
-            number=0,
-            symbol=0,
-            space=1,
-            length=1,
-        )
-        assert v._entropy() == 0.0
-        assert v._estimate_sufficient_hash_length() > 0
-
     @Parametrize.SAMPLE_SERVICES_AND_PHRASES
-    def test_hash_length_expansion(
+    def test_wrong_initial_hash_length(
         self,
         monkeypatch: pytest.MonkeyPatch,
         service: str | bytes,
         expected: bytes,
     ) -> None:
         """
-        Estimating the entropy and hash length for the degenerate case works.
+        Generating passphrases with the wrong starting hash length still works.
         """
         v = vault.Vault(phrase=self.phrase)
         monkeypatch.setattr(
             v,
             "_estimate_sufficient_hash_length",
-            lambda *args, **kwargs: 1,  # noqa: ARG005
+            lambda *_args, **_kwargs: 1,
         )
-        assert v._estimate_sufficient_hash_length() < len(self.phrase)
         assert v.generate(service) == expected
 
     @Parametrize.BINARY_STRINGS
+    @hypothesis.given(
+        s=strategies.text().flatmap(
+            lambda s: strategies.sampled_from([
+                s,
+                s.encode("UTF-8"),
+                bytearray(s.encode("UTF-8")),
+            ])
+        )
+    )
     def test_binary_strings(self, s: str | bytes | bytearray) -> None:
         """Byte string conversion is idempotent."""
         binstr = vault.Vault._get_binary_string
-        if isinstance(s, str):
-            assert binstr(s) == s.encode("UTF-8")
-            assert binstr(binstr(s)) == s.encode("UTF-8")
-        else:
-            assert binstr(s) == bytes(s)
-            assert binstr(binstr(s)) == bytes(s)
+        expected = s.encode("UTF-8") if isinstance(s, str) else bytes(s)
+        assert binstr(s) == expected
+        assert binstr(binstr(s)) == binstr(s)
 
     def test_too_many_symbols(self) -> None:
         """Deriving short passphrases with large length constraints fails."""

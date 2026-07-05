@@ -27,7 +27,7 @@ from tests import machinery
 from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
 
 class VersionOutputData(NamedTuple):
@@ -334,7 +334,7 @@ def tokenize_version_output_item_listing(
     /,
     *,
     is_alias_annotation: bool = False,
-) -> Iterator[str]:
+) -> Generator[str, None, None]:
     """Yield the next feature in a `--version` feature listing.
 
     This is a regular expression-based parser (alluded to in

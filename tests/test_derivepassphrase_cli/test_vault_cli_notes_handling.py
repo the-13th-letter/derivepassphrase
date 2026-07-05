@@ -130,17 +130,26 @@ class TestNotesPrinting:
                     "expected known stderr contents"
                 )
 
-    @hypothesis.given(notes=Strategies.notes().filter(str.strip))
+    @hypothesis.given(notes=Strategies.notes())
     def test_service_with_notes_actually_prints_notes(
         self,
         notes: str,
     ) -> None:
-        """Service notes are printed, if they exist."""
+        """Service notes are printed, if they contain content.
+
+        (Service notes are trimmed before printing, and thus result in
+        output if and only if they are non-empty after trimming leading
+        and trailing whitespace.)
+
+        """
         hypothesis.assume("Error:" not in notes)
         self._test(notes, notes_placement=None, placement_args=())
 
     @Parametrize.NOTES_PLACEMENT
     @hypothesis.given(notes=Strategies.notes().filter(str.strip))
+    @hypothesis.example(notes="  ").xfail(
+        reason="empty notes", raises=AssertionError
+    )
     def test_notes_placement(
         self,
         notes_placement: Literal["before", "after"],
@@ -347,11 +356,15 @@ class TestNotesEditingValid(TestNotesEditing):
         ],
     )
     @hypothesis.given(
-        notes=Strategies.notes()
+        notes=Strategies
+        .notes()
         .filter(str.strip)
         .filter(lambda notes: notes != TestNotesEditingValid.CURRENT_NOTES)
     )
     @hypothesis.example(TestNotesEditing.CURRENT_NOTES)
+    @hypothesis.example(notes="  ").xfail(
+        reason="empty notes", raises=AssertionError
+    )
     def test_successful_edit(
         self,
         caplog: pytest.LogCaptureFixture,
@@ -397,6 +410,8 @@ class TestNotesEditingValid(TestNotesEditing):
             notes_unchanged=notes_unchanged,
         )
 
+    # TODO(the-13th-letter): Investigate behavior with respect to
+    # whitespace-only notes and the legacy editor interface.
     @Parametrize.MODERN_EDITOR_INTERFACE
     @hypothesis.settings(
         suppress_health_check=[
@@ -463,6 +478,9 @@ class TestNotesEditingValid(TestNotesEditing):
         ],
     )
     @hypothesis.given(notes=Strategies.notes().filter(str.strip))
+    @hypothesis.example(notes="  ").xfail(
+        reason="empty notes", raises=AssertionError
+    )
     def test_marker_removed(
         self,
         caplog: pytest.LogCaptureFixture,
@@ -509,7 +527,7 @@ class TestNotesEditingInvalid(TestNotesEditing):
     """Tests concerning editing service notes: invalid/error calls."""
 
     @hypothesis.given(notes=Strategies.notes())
-    @hypothesis.example("")
+    @hypothesis.example(notes="")
     def test_abort(
         self,
         notes: str,
@@ -548,7 +566,7 @@ class TestNotesEditingInvalid(TestNotesEditing):
         ],
     )
     @hypothesis.given(notes=Strategies.notes())
-    @hypothesis.example("")
+    @hypothesis.example(notes="")
     def test_fail_on_config_option_missing(
         self,
         caplog: pytest.LogCaptureFixture,

@@ -70,9 +70,7 @@ def js_nested_strategy(draw: strategies.DrawFn) -> Any:
 
 
 @hypothesis.given(value=js_nested_strategy())
-@hypothesis.example(float("nan")).via(
-    "for branch coverage in the implementation"
-)
+@hypothesis.example(value=float("nan")).via("branch coverage (implementation)")
 def test_js_truthiness(value: Any) -> None:
     """Determine the truthiness of a value according to JavaScript.
 
@@ -83,7 +81,7 @@ def test_js_truthiness(value: Any) -> None:
         value is not None  # noqa: PLR1714
         and value != False  # noqa: E712
         and value != 0
-        and value != 0.0
+        and value != 0.0  # noqa: RUF069
         and value != ""
         and not (isinstance(value, float) and math.isnan(value))
     )

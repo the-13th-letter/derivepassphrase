@@ -20,7 +20,7 @@ if sys.version_info < (3, 11):
     from exceptiongroup import ExceptionGroup
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator
+    from collections.abc import Generator, Iterable
     from collections.abc import Set as AbstractSet
     from types import TracebackType
 
@@ -442,7 +442,7 @@ class SSHAgentClient:
         | _types.SSHAgentSocket
         | Sequence[str]
         | None = None,
-    ) -> Iterator[SSHAgentClient]:
+    ) -> Generator[SSHAgentClient, None, None]:
         """Return an SSH agent client subcontext.
 
         If necessary, construct an SSH agent client first using the

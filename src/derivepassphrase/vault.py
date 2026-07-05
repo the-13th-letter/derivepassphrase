@@ -162,7 +162,7 @@ class Vault:
         self._required: list[bytes] = []
 
         def subtract_or_require(
-            count: int | None, characters: bytes | bytearray
+            count: int | None, characters: bytes
         ) -> None:
             if not isinstance(count, int):
                 return
@@ -479,15 +479,14 @@ class Vault:
         """
         key = bytes(key)
         TestFunc: TypeAlias = "Callable[[bytes | bytearray], bool]"
-        deterministic_signature_types: dict[str, TestFunc]
-        deterministic_signature_types = {
+        deterministic_signature_types: dict[str, TestFunc] = {
             "ssh-ed25519": lambda k: k.startswith(
                 b"\x00\x00\x00\x0bssh-ed25519"
             ),
             "ssh-ed448": lambda k: k.startswith(b"\x00\x00\x00\x09ssh-ed448"),
             "ssh-rsa": lambda k: k.startswith(b"\x00\x00\x00\x07ssh-rsa"),
         }
-        dsa_signature_types = {
+        dsa_signature_types: dict[str, TestFunc] = {
             "ssh-dss": lambda k: k.startswith(b"\x00\x00\x00\x07ssh-dss"),
             "ecdsa-sha2-nistp256": lambda k: k.startswith(
                 b"\x00\x00\x00\x13ecdsa-sha2-nistp256"
@@ -499,7 +498,7 @@ class Vault:
                 b"\x00\x00\x00\x13ecdsa-sha2-nistp521"
             ),
         }
-        criteria = [
+        criteria: list[Callable[[], bool]] = [
             lambda: any(
                 v(key) for v in deterministic_signature_types.values()
             ),

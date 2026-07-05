@@ -26,7 +26,7 @@ from typing_extensions import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator, Sequence
+    from collections.abc import Callable, Generator, Sequence
     from typing import Literal
 
     from typing_extensions import (
@@ -253,7 +253,7 @@ class _VaultConfigValidator:
 
     def walk_subconfigs(
         self,
-    ) -> Iterator[tuple[tuple[str] | tuple[str, str], str, Any]]:
+    ) -> Generator[tuple[tuple[str] | tuple[str, str], str, Any], None, None]:
         obj = cast("dict[str, dict[str, Any]]", self.maybe_config)
         if isinstance(obj.get("global", False), dict):
             for k, v in list(obj["global"].items()):
@@ -338,7 +338,7 @@ class _VaultConfigValidator:
             elif not allow_unknown_settings:
                 raise ValueError(err_unknown_setting.format(**kwargs))
 
-    def clean_up_falsy_values(self) -> Iterator[CleanupStep]:  # noqa: C901
+    def clean_up_falsy_values(self) -> Generator[CleanupStep, None, None]:  # noqa: C901
         obj = self.maybe_config
         if (
             not isinstance(obj, dict)
@@ -687,6 +687,10 @@ class SSH_AGENTC(int, enum.Enum):  # noqa: N801
     EXTENSION = 27
     """"""
 
+    def __bytes__(self) -> bytes:  # pragma: no cover [unused]
+        """Return the corresponding request code."""
+        return int.to_bytes(self, 1, "big", signed=False)
+
 
 class SSH_AGENT(int, enum.Enum):  # noqa: N801
     """SSH agent protocol numbers: server replies.
@@ -719,6 +723,10 @@ class SSH_AGENT(int, enum.Enum):  # noqa: N801
     """"""
     EXTENSION_RESPONSE = 29
     """"""
+
+    def __bytes__(self) -> bytes:  # pragma: no cover [unused]
+        """Return the corresponding response code."""
+        return int.to_bytes(self, 1, "big", signed=False)
 
 
 class StoreroomKeyPair(NamedTuple, Generic[T_Buffer]):
@@ -1093,7 +1101,7 @@ class BuiltinSSHAgentSocketProvider(str, enum.Enum):
     ) -> bool:  # pragma: no cover [external]
         """Return true if this SSH agent socket provider is available.
 
-        This works by actually attempting to connet to an agent via the
+        This works by actually attempting to connect to an agent via the
         socket provider.
 
         """
@@ -1158,7 +1166,7 @@ class SSHAgentSocket(Protocol):
 
     def sendall(self, data: Buffer, flags: int = 0, /) -> None: ...
 
-    def recv(self, data: int, flags: int = 0, /) -> bytes: ...
+    def recv(self, bufsize: int, flags: int = 0, /) -> bytes: ...
 
 
 SSHAgentSocketProvider: TypeAlias = "Callable[[], SSHAgentSocket]"
