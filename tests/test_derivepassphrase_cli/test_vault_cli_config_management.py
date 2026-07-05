@@ -701,7 +701,11 @@ class TestStoringConfigurationSuccesses:
             result_config={"global": {"phrase": "abc"}, "services": {}},
             input="abc\n",
         )
-        assert result.stderr == "Passphrase:", "program unexpectedly failed?!"
+        # Some versions of click leave the space and/or the line
+        # terminator in stderr when running in the test runner.
+        assert result.stderr.strip() == "Passphrase:", (
+            "program unexpectedly failed?!"
+        )
 
 
 class TestStoringConfigurationFailures:

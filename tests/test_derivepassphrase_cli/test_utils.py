@@ -822,6 +822,13 @@ Boo.
 [1] baked beans
 Will replace with spam, okay? (Please say "y" or "n".): Boo.
 """,
+            # Some versions of click concatenate stdout and stderr
+            # (in the test runner) instead of interleaving them.  This
+            # looks okay on-screen, but rather crazy in the test suite.
+            """\
+[1] baked beans
+Boo.
+Will replace with spam, okay? (Please say "y" or "n".): """,
         }, "expected known output"
 
     def test_passphrase(

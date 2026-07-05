@@ -38,6 +38,9 @@ DUMMY_KEY1_B64 = data.DUMMY_KEY1_B64
 DUMMY_KEY2_B64 = data.DUMMY_KEY2_B64
 
 
+PROG_NAME = cli.PROG_NAME
+
+
 class IncompatibleConfiguration(NamedTuple):
     other_options: list[tuple[str, ...]]
     needs_service: bool | None
@@ -189,7 +192,10 @@ for opt, config in SINGLES.items():
 
 def is_warning_line(line: str) -> bool:
     """Return true if the line is a warning line."""
-    return " Warning: " in line or " Deprecation warning: " in line
+    return line.startswith((
+        f"{PROG_NAME}: Warning: ",
+        f"{PROG_NAME}: Deprecation warning: ",
+    ))
 
 
 def is_harmless_config_import_warning(record: tuple[str, int, str]) -> bool:
@@ -872,8 +878,12 @@ class TestPhraseAndKeyOverriding:
         )
         assert not result.stdout.strip(), "expected no program output"
         assert result.stderr, "expected known error output"
-        err_lines = result.stderr.splitlines(False)
-        assert err_lines[0].startswith("Passphrase:")
+        # First line contains passphrase prompt.  Depending on the click
+        # version, either this is a standalone line, or the first warning
+        # line is attached to the end.  So it needs special treatment.
+        err_lines = result.stderr.splitlines(True)
+        prompt_line = err_lines[0]
+        assert prompt_line.startswith("Passphrase:")
         assert machinery.warning_emitted(
             "Setting a service passphrase is ineffective ",
             caplog.record_tuples,
@@ -881,7 +891,11 @@ class TestPhraseAndKeyOverriding:
             "Setting a global passphrase is ineffective ",
             caplog.record_tuples,
         ), "expected known warning message"
-        assert all(map(is_warning_line, result.stderr.splitlines(True)))
+        remainder = prompt_line.removeprefix("Passphrase:").lstrip()
+        other_lines = (
+            [remainder, *err_lines[1:]] if remainder else err_lines[1:]
+        )
+        assert all(map(is_warning_line, other_lines))
         assert all(
             map(is_harmless_config_import_warning, caplog.record_tuples)
         ), "unexpected error output"
