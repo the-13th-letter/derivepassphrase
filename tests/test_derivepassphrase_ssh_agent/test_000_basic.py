@@ -377,21 +377,23 @@ class Parametrize(pytest_machinery.Parametrize):
             ),
         ],
     )
-    QUERY_EXTENSIONS_MALFORMED_RESPONSES = hypothesis_machinery.explicit_examples(
-        "response_data",
-        [
-            pytest.param(b"\xde\xad\xbe\xef", id="truncated"),
-            pytest.param(
-                b"\x00\x00\x00\x0fwrong extension", id="wrong-extension"
-            ),
-            pytest.param(
-                b"\x00\x00\x00\x05query\xde\xad\xbe\xef", id="with-trailer"
-            ),
-            pytest.param(
-                b"\x00\x00\x00\x05query\x00\x00\x00\x04ext1\x00\x00",
-                id="with-extra-fields",
-            ),
-        ],
+    QUERY_EXTENSIONS_MALFORMED_RESPONSES = (
+        hypothesis_machinery.explicit_examples(
+            "response_data",
+            [
+                pytest.param(b"\xde\xad\xbe\xef", id="truncated"),
+                pytest.param(
+                    b"\x00\x00\x00\x0fwrong extension", id="wrong-extension"
+                ),
+                pytest.param(
+                    b"\x00\x00\x00\x05query\xde\xad\xbe\xef", id="with-trailer"
+                ),
+                pytest.param(
+                    b"\x00\x00\x00\x05query\x00\x00\x00\x04ext1\x00\x00",
+                    id="with-extra-fields",
+                ),
+            ],
+        )
     )
     ALL_SSH_TEST_KEYS = pytest.mark.parametrize(
         ["ssh_test_key_type", "ssh_test_key"],
