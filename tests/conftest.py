@@ -105,6 +105,34 @@ def skip_if_no_ctypes_windll_support() -> None:  # pragma: no cover [external]
         )
 
 
+@pytest.fixture
+def use_stub_agent() -> Generator[None, None, None]:
+    """Enforce use of the stubbed SSH agent."""
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            ssh_agent.SSHAgentClient,
+            "SOCKET_PROVIDERS",
+            (_types.BuiltinSSHAgentSocketProvider.STUB_AGENT,),
+        )
+        monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
+        yield
+
+
+@pytest.fixture
+def use_stub_agent_with_address() -> Generator[None, None, None]:
+    """Enforce use of the stub SSH agent with socket address."""
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            ssh_agent.SSHAgentClient,
+            "SOCKET_PROVIDERS",
+            (_types.BuiltinSSHAgentSocketProvider.STUB_AGENT_WITH_ADDRESS,),
+        )
+        monkeypatch.setenv(
+            "SSH_AUTH_SOCK", machinery.StubbedSSHAgentSocketWithAddress.ADDRESS
+        )
+        yield
+
+
 class SSHAgentSpawnFunc(Protocol):
     """Spawns an SSH agent, if possible."""
 

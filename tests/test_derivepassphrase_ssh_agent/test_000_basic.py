@@ -41,19 +41,6 @@ if sys.version_info < (3, 11):
     from exceptiongroup import ExceptionGroup
 
 
-@pytest.fixture
-def use_stub_agent() -> Generator[None, None, None]:
-    """Enforce use of the stubbed SSH agent."""
-    with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setattr(
-            ssh_agent.SSHAgentClient,
-            "SOCKET_PROVIDERS",
-            (_types.BuiltinSSHAgentSocketProvider.STUB_AGENT,),
-        )
-        monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
-        yield
-
-
 class Parametrize(pytest_machinery.Parametrize):
     BAD_ENTRY_POINTS = pytest.mark.parametrize(
         "additional_entry_points",

@@ -66,21 +66,6 @@ DUMMY_KEY3_B64 = data.DUMMY_KEY3_B64
 TEST_CONFIGS = data.TEST_CONFIGS
 
 
-@pytest.fixture
-def use_stub_agent_with_address() -> Generator[None, None, None]:
-    """Enforce use of the stubbed SSH agent with socket address."""
-    with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setattr(
-            ssh_agent.SSHAgentClient,
-            "SOCKET_PROVIDERS",
-            (_types.BuiltinSSHAgentSocketProvider.STUB_AGENT_WITH_ADDRESS,),
-        )
-        monkeypatch.setenv(
-            "SSH_AUTH_SOCK", machinery.StubbedSSHAgentSocketWithAddress.ADDRESS
-        )
-        yield
-
-
 def vault_config_exporter_shell_interpreter(  # noqa: C901
     script: str | Iterable[str],
     /,

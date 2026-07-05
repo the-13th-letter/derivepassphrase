@@ -187,21 +187,6 @@ for opt, config in SINGLES.items():
     )
 
 
-@pytest.fixture
-def use_stub_agent_with_address() -> Generator[None, None, None]:
-    """Enforce use of the stub SSH agent with socket address."""
-    with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setattr(
-            ssh_agent.SSHAgentClient,
-            "SOCKET_PROVIDERS",
-            (_types.BuiltinSSHAgentSocketProvider.STUB_AGENT_WITH_ADDRESS,),
-        )
-        monkeypatch.setenv(
-            "SSH_AUTH_SOCK", machinery.StubbedSSHAgentSocketWithAddress.ADDRESS
-        )
-        yield
-
-
 def is_warning_line(line: str) -> bool:
     """Return true if the line is a warning line."""
     return " Warning: " in line or " Deprecation warning: " in line

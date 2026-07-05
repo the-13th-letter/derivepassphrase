@@ -47,34 +47,6 @@ DUMMY_SERVICE = data.DUMMY_SERVICE
 DUMMY_KEY1_B64 = data.DUMMY_KEY1_B64
 
 
-@pytest.fixture
-def use_stub_agent() -> Generator[None, None, None]:
-    """Enforce use of the stubbed SSH agent."""
-    with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setattr(
-            ssh_agent.SSHAgentClient,
-            "SOCKET_PROVIDERS",
-            (_types.BuiltinSSHAgentSocketProvider.STUB_AGENT,),
-        )
-        monkeypatch.delenv("SSH_AUTH_SOCK", raising=False)
-        yield
-
-
-@pytest.fixture
-def use_stub_agent_with_address() -> Generator[None, None, None]:
-    """Enforce use of the stubbed SSH agent with socket address."""
-    with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setattr(
-            ssh_agent.SSHAgentClient,
-            "SOCKET_PROVIDERS",
-            (_types.BuiltinSSHAgentSocketProvider.STUB_AGENT_WITH_ADDRESS,),
-        )
-        monkeypatch.setenv(
-            "SSH_AUTH_SOCK", machinery.StubbedSSHAgentSocketWithAddress.ADDRESS
-        )
-        yield
-
-
 def is_harmless_config_import_warning(record: tuple[str, int, str]) -> bool:
     """Return true if the warning is harmless, during config import."""
     possible_warnings = [
