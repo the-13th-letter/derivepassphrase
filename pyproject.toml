@@ -457,7 +457,7 @@ unnecessary-type-conversion = "ignore"
 
 [tool.pytest.ini_options]
 addopts = '--doctest-modules --dist=loadgroup --import-mode=importlib'
-pythonpath = ['src']
+pythonpath = ['src', '.']
 testpaths = ['src', 'tests']
 xfail_strict = true
 

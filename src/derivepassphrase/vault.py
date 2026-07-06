@@ -161,9 +161,7 @@ class Vault:
         self._allowed = bytearray(self.CHARSETS["all"])
         self._required: list[bytes] = []
 
-        def subtract_or_require(
-            count: int | None, characters: bytes
-        ) -> None:
+        def subtract_or_require(count: int | None, characters: bytes) -> None:
             if not isinstance(count, int):
                 return
             if count <= 0:

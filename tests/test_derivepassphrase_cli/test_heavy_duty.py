@@ -475,7 +475,9 @@ class ConfigManagementStateMachine(stateful.RuleBasedStateMachine):
         config_service = config["services"].get(service, {})
         maybe_unset = set(maybe_unset) - setting.keys()
         if overwrite:
-            config["services"][service] = config_service = cast("_types.VaultConfigServicesSettings", {})
+            config["services"][service] = config_service = cast(
+                "_types.VaultConfigServicesSettings", {}
+            )
         elif maybe_unset:
             for key in maybe_unset:
                 config_service.pop(key, None)  # type: ignore[misc]
