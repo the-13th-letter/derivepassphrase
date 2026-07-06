@@ -9,5 +9,5 @@ __distribution_name__ = "derivepassphrase"
 
 # Automatically generated.  DO NOT EDIT! Use importlib.metadata instead
 # to query the correct values.
-__version__ = "0.6"
+__version__ = "0.6.1"
 # END automatically generated.
