@@ -27,6 +27,7 @@
       - [falsy-vault-config-values][]{: .fixed }
       - [no-stdlib-module-names][]{: .fixed }
       - [one-time-key-override-fails][]{: .fixed }
+      - [openssh-bug3967-workaround][]{: .fixed }
       - [print-service-notes][]{: .fixed }
       - [remove-pageant-build-info-check][]{: .fixed }
       - [single-toplevel-module][]{: .fixed }
@@ -75,6 +76,7 @@
   [no-stdlib-module-names]: no-stdlib-module-names.md
   [no-strict-compatibility-mode]: no-strict-compatibility-mode.md
   [one-time-key-override-fails]: one-time-key-override-fails.md
+  [openssh-bug3967-workaround]: openssh-bug3967-workaround.md
   [other-derivation-schemes]: other-derivation-schemes.md
   [pretty-print-json]: pretty-print-json.md
   [print-service-notes]: print-service-notes.md
