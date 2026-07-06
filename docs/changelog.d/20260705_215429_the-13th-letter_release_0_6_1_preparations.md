@@ -1,8 +1,9 @@
 ### Changed
 
-  - For developers: The [SSH agent client][ssh_agent.SSHAgentClient] has
-    separate internal methods for the "send" and the "receive" halves of
-    a request, each of which can be stubbed individually.
+  - For developers: The [SSH agent
+    client][derivepassphrase.ssh_agent.SSHAgentClient] has separate internal
+    methods for the "send" and the "receive" halves of a request, each of
+    which can be stubbed individually.
 
   - For developers: Several internal and mostly-minor changes to the
     categorization and organization of the test suite should make it
