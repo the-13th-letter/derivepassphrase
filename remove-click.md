@@ -23,7 +23,6 @@ This difference in library design philosophy is not reconcilable with `derivepas
 The cost-benefit ratio of `click` v8.2.0+ is thus too high to justify its continued use.
 
 <b>Therefore</b>, remove `click` as a dependency, and reimplement the command-line interface and testing machinery without it.
-<b>Until then</b>, pin `click` to v8.1.8, the last version adhering to the <i lang=la>de facto</i> stable <abbr title="application programming interface">API</abbr>.
 
 [click]: https://pypi.org/project/click/
 [CLICK_V8_2_0]: https://click.palletsprojects.com/en/stable/changes/#version-8-2-0
