@@ -4,7 +4,7 @@
     <table id="bug-summary" markdown>
         <tr><th scope=col>Class<td><i>bug</i><td>This is clearly an actual problem we want fixed.
         <tr><th scope=col>Present-in<td colspan=2><b>0.6</b>
-        <tr><th scope=col>Fixed-in<td colspan=2><a href="https://git.schokokeks.org/derivepassphrase.git/commit/20bcd8f960b0655700905e9f20f807de15809188">20bcd8f960b0655700905e9f20f807de15809188</a>
+        <tr><th scope=col>Fixed-in<td colspan=2><a href="https://git.schokokeks.org/derivepassphrase.git/commit/20bcd8f960b0655700905e9f20f807de15809188">20bcd8f960b0655700905e9f20f807de15809188</a> (0.6.1)
     </table>
 
 OpenSSH 10.3 is the first version to support the `query` extension request in its `ssh-agent`.
