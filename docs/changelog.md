@@ -103,7 +103,7 @@ specifically marked as such.)
     →[:material-bug:][BUG_OPENSSH_BUG3967_WORKAROUND]
 
   - Changes in the test runner behavior of `click` 8.2.0 and higher are now
-    accomodated in the test suite.
+    accommodated in the test suite.
     (User-visible behavior is still the same.)
 
 ## 0.6 (2026-04-02)  {#v0.6}

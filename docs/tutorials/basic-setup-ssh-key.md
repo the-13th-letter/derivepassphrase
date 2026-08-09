@@ -27,7 +27,7 @@ We have a working `derivepassphrase` installation, and a `derivepassphrase vault
 Once again, check that the installation was successful.
 
 ~~~~ shell-session
-$ devirepassphrase vault --version
+$ derivepassphrase vault --version
 derivepassphrase 0.5
 Using cryptography 44.0.0
 Using click 8.1.8
@@ -233,7 +233,7 @@ The key will persist as long as the agent is running, and will need to be re-add
         The user must confirm each use of the key
         ~~~~
 
-        Now each call to `derivepassphrase vault` using this SSH key (only when deriving a passphrase) will ellicit a confirmation prompt by the agent.
+        Now each call to `derivepassphrase vault` using this SSH key (only when deriving a passphrase) will elicit a confirmation prompt by the agent.
         Conversely, any confirmation prompt for this key *at other times* originates from a *different* program, and is therefore suspicious and should not be granted.
         (See operational risks above.)
 

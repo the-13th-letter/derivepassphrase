@@ -222,7 +222,7 @@ The exact commands depend on the SSH agent in use.
             contain the line `enable-win32-openssh-support`, which is
             equivalent to passing `--enable-win32-openssh-support` upon
             agent startup.
-            This causes `gpg-agent` to masquerade as OpenSSH`s agent.
+            This causes `gpg-agent` to masquerade as OpenSSH's agent.
 
             Then, inform `derivepassphrase` about the agent's address,
             i.e., of the OpenSSH agent's socket address:

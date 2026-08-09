@@ -76,7 +76,7 @@ This includes a list of known foreign configuration formats and enabled PEP 508 
 
 The <b>derivepassphrase export vault</b> utility exits 0 on success, and >0 if an error occurs.
 
-### Fatal error messsages on standard error
+### Fatal error messages on standard error
 
 (`%s` indicates a variable part of the message.)
 
