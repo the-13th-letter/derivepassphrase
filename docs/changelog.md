@@ -345,17 +345,17 @@ specifically marked as such.)
 ### Added  {#added-in-v0.5}
 
   - For the [`Vault`][derivepassphrase.vault.Vault] API, support reporting
-    on whether two master passphrases are interchangable with respect to the
-    service passphrases they can derive.
+    on whether two master passphrases are interchangeable with respect to
+    the service passphrases they can derive.
     This is an artefact of how the master passphrase is converted to the
     random bit sequence with which the service passphrases are generated.
-    See the corresponding [FAQ entry: What are "interchangable passphrases"
-    in vault?][INTERCHANGABLE_PASSPHRASES] for details, including the
+    See the corresponding [FAQ entry: What are "interchangeable passphrases"
+    in vault?][INTERCHEANGABLE_PASSPHRASES] for details, including the
     practical security (non-)implications.
 
     The [`derivepassphrase vault`][CLI_VAULT] command-line interface does
     not address this in any manner, mostly because the "non-standard"
-    interchangable variants of a given master password tend to be ugly to
+    interchangeable variants of a given master password tend to be ugly to
     type in, and because they do not have practical security implications.
 
   - For the [`Vault`][derivepassphrase.vault.Vault] API, accept arbitrary
@@ -876,7 +876,7 @@ specifically marked as such.)
 [CLI_EXPORT]: reference/derivepassphrase-export.1.md
 [CLI_EXPORT_VAULT]: reference/derivepassphrase-export-vault.1.md
 [CLI_VAULT]: reference/derivepassphrase-vault.1.md
-[INTERCHANGABLE_PASSPHRASES]: explanation/faq-vault-interchangable-passphrases.md
+[INTERCHANGEABLE_PASSPHRASES]: explanation/faq-vault-interchangeable-passphrases.md
 [REFERENCE]: reference/index.md
 
 [BUG_ALLOW_ALL_UNICODE_PASSPHRASES]: wishlist/allow-all-unicode-passphrases.md "Bug entry: “Allow all Unicode text strings as master passphrases”"

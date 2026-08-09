@@ -1,10 +1,10 @@
 ---
-title: What are "interchangable passphrases" in `vault`, and what does that mean in practice?
+title: What are "interchangeable passphrases" in `vault`, and what does that mean in practice?
 ---
 
-# What are "interchangable passphrases" in `vault`, and what does that mean in practice?
+# What are "interchangeable passphrases" in `vault`, and what does that mean in practice?
 
-## What are "interchangable passphrases"?
+## What are "interchangeable passphrases"?
 
 The "vault" derivation scheme internally uses PBKDF2-HMAC-SHA1[^1] to turn
 the master passphrase[^2] into a pseudo-random bit sequence, which then
@@ -15,7 +15,7 @@ key is thus subject to the HMAC key mapping procedure.
 Because the mapping of infinitely many arbitrarily sized keys to 64-byte
 sized keys cannot be one-to-one, there exist pairs of keys that behave
 identically when passed into (PBKDF2-)HMAC-SHA1, i.e., the keys (master
-passphrases) are "interchangable" from the vault scheme's perspective.
+passphrases) are "interchangeable" from the vault scheme's perspective.
 
 Fundamentally, this is an issue of *encoding*: the master passphrase is
 interpreted as an encoding of the HMAC-SHA1 key, and this encoding is not
@@ -117,15 +117,15 @@ SHA1) is secure against preimage attacks:
 
 ## What effect does the HMAC key mapping procedure have on `derivepassphrase`?
 
-`derivepassphrase vault` does not check for interchangable passphrases, and
+`derivepassphrase vault` does not check for interchangeable passphrases, and
 will happily accept any (non-empty) passphrase it is given.
 The [`derivepassphrase.vault.Vault`][] class does not check for
-interchangable passphrases either, and will happily accept any passphrase it
+interchangeable passphrases either, and will happily accept any passphrase it
 is given, even empty ones.
 
-Most interchangable variations of a master passphrase contain binary
+Most interchangeable variations of a master passphrase contain binary
 characters such as NUL, or even arbitrary byte sequences, which may be hard
 to type in or impossible to express in certain storage formats.  As such, it
 is unlikely---but otherwise supported---that the user would want to enter
-or store a different, interchangable version of their master passphrase in
+or store a different, interchangeable version of their master passphrase in
 the first place.

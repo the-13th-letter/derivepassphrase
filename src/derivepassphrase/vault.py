@@ -602,13 +602,13 @@ class Vault:
         return bytes(base64.standard_b64encode(signature_blob))
 
     @classmethod
-    def phrases_are_interchangable(
+    def phrases_are_interchangeable(
         cls,
         phrase1: Buffer,
         phrase2: Buffer,
         /,
     ) -> bool:
-        """Return true if the passphrases are interchangable to Vault.
+        """Return true if the passphrases are interchangeable to Vault.
 
         Vault internally passes the passphrase as the key to HMAC-SHA1.
         HMAC requires keys to have a certain fixed length, and therefore
@@ -659,7 +659,7 @@ class Vault:
         This is the actual HMAC key this passphrase would be transformed
         into when used within Vault.
 
-        See [`phrases_are_interchangable`][] for further explanations
+        See [`phrases_are_interchangeable`][] for further explanations
         and warnings about timing attack resistance.
 
         Args:
