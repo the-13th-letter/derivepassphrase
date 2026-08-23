@@ -24,6 +24,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
@@ -401,7 +402,7 @@ features = ["export", "export-dev-wheels"]
 matrix-name-format = '{variable}_{value}'
 
 [[tool.hatch.envs.hatch-test.matrix]]
-python = ["3.14", "3.13", "3.12", "3.11", "3.10", "3.9", "pypy3.11", "pypy3.10", "pypy3.9"]
+python = ["3.15", "3.14", "3.13", "3.12", "3.11", "3.10", "3.9", "pypy3.11", "pypy3.10", "pypy3.9"]
 parser-version = ["PEG"]
 
 [[tool.hatch.envs.hatch-test.matrix]]
