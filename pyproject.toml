@@ -457,8 +457,13 @@ unnecessary-type-conversion = "ignore"
 
 [tool.pytest.ini_options]
 addopts = '--doctest-modules --dist=loadgroup --import-mode=importlib'
-pythonpath = ['src', '.']
-testpaths = ['src', 'tests']
+pythonpath = [
+    'tests', # needed for re-importing test machinery with multiprocessing (spawn)
+]
+testpaths = [
+    'src', # doctests in API documentation
+    'tests', # other tests
+]
 xfail_strict = true
 
 [tool.ruff]
