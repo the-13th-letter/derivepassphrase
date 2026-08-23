@@ -56,16 +56,6 @@ if TYPE_CHECKING:
 # =====
 
 
-skip_if_cryptography_support = pytest.mark.skipif(
-    importlib.util.find_spec("cryptography") is not None,
-    reason='cryptography support available; cannot test "no support" scenario',
-)
-"""
-A cached pytest mark to skip this test if cryptography support is
-available.  Usually this means that the test targets
-`derivepassphrase`'s fallback functionality, which is not available
-whenever the primary functionality is.
-"""
 skip_if_no_cryptography_support = pytest.mark.skipif(
     importlib.util.find_spec("cryptography") is None,
     reason='no "cryptography" support',

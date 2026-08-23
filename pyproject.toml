@@ -391,23 +391,18 @@ dependencies = [
     'pytest < 8.4 ; python_version < "3.10"',
     'hypothesis != 6.130.13, != 6.131.*, != 6.132.*, != 6.133.*, != 6.134.*, != 6.135.0, != 6.135.1 ; python_version < "3.10"',
 ]
+features = ["export", "export-dev-wheels"]
 matrix-name-format = '{variable}_{value}'
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = ["3.14", "3.13", "3.12", "3.11", "3.10", "3.9", "pypy3.11", "pypy3.10", "pypy3.9"]
-cryptography = ["no", "yes"]
 parser-version = ["PEG"]
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = ["3.9", "pypy3.9"]
-cryptography = ["no", "yes"]
 parser-version = ["LL1"]
 
 [tool.hatch.envs.hatch-test.overrides]
-matrix.cryptography.features = [
-    { value = "export", if = ["yes"] },
-    { value = "export-dev-wheels", if = ["yes"] },
-]
 matrix.parser-version.env-vars = [
     { key = "PYTHONOLDPARSER", value = "1", if = ["LL1"] },
 ]
