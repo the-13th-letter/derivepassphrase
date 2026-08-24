@@ -11,6 +11,7 @@ import operator
 import os
 import pathlib
 import string
+import sys
 import types
 from typing import TYPE_CHECKING, NamedTuple, TypeVar
 
@@ -473,7 +474,6 @@ class TestGenericVaultCLIErrors:
                 "expected error exit and known error message"
             )
 
-    @pytest_machinery.skip_if_cryptography_support
     @pytest_machinery.Parametrize.VAULT_CONFIG_FORMATS_DATA
     def test_no_cryptography_error_message(
         self,
@@ -484,10 +484,27 @@ class TestGenericVaultCLIErrors:
     ) -> None:
         """Abort export call if no cryptography is available."""
         del config_data
-        result = self._call_cli(
-            ["-f", format, "VAULT_PATH"], vault_config=config
-        )
-        assert result.error_exit(
-            error=data.CANNOT_LOAD_CRYPTOGRAPHY,
-            record_tuples=caplog.record_tuples,
-        ), "expected error exit and known error message"
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setitem(sys.modules, "cryptography", None)
+            monkeypatch.delitem(
+                sys.modules,
+                "derivepassphrase.exporter.vault_native",
+                raising=False,
+            )
+            monkeypatch.delitem(
+                sys.modules,
+                "derivepassphrase.exporter.storeroom",
+                raising=False,
+            )
+            monkeypatch.delitem(  # also reset export_data handler registry
+                sys.modules,
+                "derivepassphrase.exporter",
+                raising=False,
+            )
+            result = self._call_cli(
+                ["-f", format, "VAULT_PATH"], vault_config=config
+            )
+            assert result.error_exit(
+                error=data.CANNOT_LOAD_CRYPTOGRAPHY,
+                record_tuples=caplog.record_tuples,
+            ), "expected error exit and known error message"

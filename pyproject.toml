@@ -24,6 +24,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
@@ -88,6 +89,11 @@ dev = [
     # not marked as incompatible with Python 3.9.
     'pytest < 8.4 ; python_version < "3.10"',
     'hypothesis != 6.130.13, != 6.131.*, != 6.132.*, != 6.133.*, != 6.134.*, != 6.135.0, != 6.135.1 ; python_version < "3.10"',
+    # `hypothesis` requires a Rust toolchain since version 6.156, and
+    # publishes wheels for PyPy 3.11 only. PyO3 version 0.27 also dropped
+    # support for PyPy 3.9 and 3.10, and cannot be overridden within
+    # pyproject.toml.
+    'hypothesis < 6.156 ; platform_python_implementation == "PyPy" and python_version < "3.11"',
 ]
 export = [
     # export - additional dependencies for `derivepassphrase export`
@@ -390,24 +396,20 @@ dependencies = [
     'pytest-xdist[psutil] >= 3.6.0; platform_python_implementation != "PyPy"',
     'pytest < 8.4 ; python_version < "3.10"',
     'hypothesis != 6.130.13, != 6.131.*, != 6.132.*, != 6.133.*, != 6.134.*, != 6.135.0, != 6.135.1 ; python_version < "3.10"',
+    'hypothesis < 6.156 ; platform_python_implementation == "PyPy" and python_version < "3.11"',
 ]
+features = ["export", "export-dev-wheels"]
 matrix-name-format = '{variable}_{value}'
 
 [[tool.hatch.envs.hatch-test.matrix]]
-python = ["3.14", "3.13", "3.12", "3.11", "3.10", "3.9", "pypy3.11", "pypy3.10", "pypy3.9"]
-cryptography = ["no", "yes"]
+python = ["3.15", "3.14", "3.13", "3.12", "3.11", "3.10", "3.9", "pypy3.11", "pypy3.10", "pypy3.9"]
 parser-version = ["PEG"]
 
 [[tool.hatch.envs.hatch-test.matrix]]
 python = ["3.9", "pypy3.9"]
-cryptography = ["no", "yes"]
 parser-version = ["LL1"]
 
 [tool.hatch.envs.hatch-test.overrides]
-matrix.cryptography.features = [
-    { value = "export", if = ["yes"] },
-    { value = "export-dev-wheels", if = ["yes"] },
-]
 matrix.parser-version.env-vars = [
     { key = "PYTHONOLDPARSER", value = "1", if = ["LL1"] },
 ]
@@ -457,8 +459,13 @@ unnecessary-type-conversion = "ignore"
 
 [tool.pytest.ini_options]
 addopts = '--doctest-modules --dist=loadgroup --import-mode=importlib'
-pythonpath = ['src', '.']
-testpaths = ['src', 'tests']
+pythonpath = [
+    'tests', # needed for re-importing test machinery with multiprocessing (spawn)
+]
+testpaths = [
+    'src', # doctests in API documentation
+    'tests', # other tests
+]
 xfail_strict = true
 
 [tool.ruff]

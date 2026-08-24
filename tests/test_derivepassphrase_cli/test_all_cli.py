@@ -13,7 +13,9 @@ from __future__ import annotations
 
 import contextlib
 import enum
+import importlib.metadata
 import re
+import sys
 import types
 from typing import TYPE_CHECKING
 
@@ -28,6 +30,8 @@ from tests.machinery import pytest as pytest_machinery
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+
+    from typing_extensions import Literal
 
 
 class VersionOutputData(NamedTuple):
@@ -160,6 +164,11 @@ class Parametrize(types.SimpleNamespace):
             ),
         ],
         ids=["cmd"],
+    )
+    HAS_EXPORT_EXTRA = pytest.mark.parametrize(
+        "export_extra",
+        [True, False],
+        ids=["has_export", "no_export"],
     )
     ISATTY = pytest.mark.parametrize(
         "isatty",
@@ -775,8 +784,11 @@ class TestVersionOutput:
         assert not version_data.features
         assert not version_data.extras
 
+    @Parametrize.HAS_EXPORT_EXTRA
     def test_export_vault_version_option_output(
         self,
+        monkeypatch: pytest.MonkeyPatch,
+        export_extra: bool,
     ) -> None:
         """The version output states supported features.
 
@@ -792,17 +804,46 @@ class TestVersionOutput:
         correct program version number.
 
         """
+        if not export_extra:
+            monkeypatch.delitem(
+                sys.modules,
+                "derivepassphrase.exporter.vault_native",
+                raising=False,
+            )
+            monkeypatch.delitem(
+                sys.modules,
+                "derivepassphrase.exporter.storeroom",
+                raising=False,
+            )
+            monkeypatch.delitem(
+                sys.modules, "derivepassphrase.exporter", raising=False
+            )
+            monkeypatch.setitem(sys.modules, "cryptography", None)
+            importlib_metadata_version = importlib.metadata.version
+
+            def no_cryptography_version(
+                distribution_name: str,
+            ) -> str:  # pragma: no cover [external]
+                if distribution_name == "cryptography":
+                    raise importlib.metadata.PackageNotFoundError(
+                        distribution_name
+                    )
+                return importlib_metadata_version(distribution_name)
+
+            monkeypatch.setattr(
+                importlib.metadata, "version", no_cryptography_version
+            )
+
+        from derivepassphrase.exporter import storeroom, vault_native  # noqa: I001,PLC0415
+
         version_data = self._test(["export", "vault"])
         actually_known_formats: dict[str, bool] = {}
         actually_enabled_extras: set[str] = set()
-        with contextlib.suppress(ModuleNotFoundError):
-            from derivepassphrase.exporter import storeroom, vault_native  # noqa: I001,PLC0415
-
-            actually_known_formats.update({
-                _types.ForeignConfigurationFormat.VAULT_STOREROOM: not storeroom.STUBBED,
-                _types.ForeignConfigurationFormat.VAULT_V02: not vault_native.STUBBED,
-                _types.ForeignConfigurationFormat.VAULT_V03: not vault_native.STUBBED,
-            })
+        actually_known_formats.update({
+            _types.ForeignConfigurationFormat.VAULT_STOREROOM: not storeroom.STUBBED,
+            _types.ForeignConfigurationFormat.VAULT_V02: not vault_native.STUBBED,
+            _types.ForeignConfigurationFormat.VAULT_V03: not vault_native.STUBBED,
+        })
         with contextlib.suppress(ModuleNotFoundError):
             import cryptography  # noqa: F401,PLC0415
 
