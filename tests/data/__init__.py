@@ -1391,23 +1391,48 @@ Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQ==
 }
 """The master list of SSH test keys."""
 SUPPORTED_KEYS: Mapping[str, SSHTestKey] = {
-    k: v for k, v in ALL_KEYS.items() if v.is_suitable()
+    k: v
+    for k, v in ALL_KEYS.items()
+    if v.expected_signatures.get(SSHTestKeyDeterministicSignatureClass.SPEC)
 }
-"""The subset of SSH test keys suitable for use with vault.
+"""The subset of SSH test keys always suitable for use with vault.
 
-Suitability is tested -- via [SSHTestKey.is_suitable][], then
-[vault.Vault.is_suitable_ssh_key][] -- via an internal whitelist, not
-via the presence or absence of a specific expected signature class.
+Suitability is tested via the presence of the
+[`SPEC`][SSHTestKeyDeterministicSignatureClass.SPEC] expected signature
+class.
+
+"""
+CONDITIONALLY_SUPPORTED_KEYS: Mapping[str, SSHTestKey] = {
+    k: v
+    for k, v in ALL_KEYS.items()
+    if k not in SUPPORTED_KEYS
+    and (
+        v.expected_signatures.get(
+            SSHTestKeyDeterministicSignatureClass.RFC_6979
+        )
+        or v.expected_signatures.get(
+            SSHTestKeyDeterministicSignatureClass.Pageant_068_080
+        )
+    )
+}
+"""The subset of SSH test keys conditionally suitable for use with vault.
+
+Suitability is tested via the presence of the
+[`RFC_6979`][SSHTestKeyDeterministicSignatureClass.RFC_6979] or the
+[`Pageant_068_080`][SSHTestKeyDeterministicSignatureClass.Pageant_068_080]
+expected signature class, if not already an always suitable key.
 
 """
 UNSUITABLE_KEYS: Mapping[str, SSHTestKey] = {
-    k: v for k, v in ALL_KEYS.items() if not v.is_suitable()
+    k: v
+    for k, v in ALL_KEYS.items()
+    if k not in SUPPORTED_KEYS and k not in CONDITIONALLY_SUPPORTED_KEYS
 }
 """The subset of SSH test keys not suitable for use with vault.
 
-Suitability is tested -- via [SSHTestKey.is_suitable][], then
-[vault.Vault.is_suitable_ssh_key][] -- via an internal whitelist, not
-via the presence or absence of a specific expected signature class.
+These are exactly the test keys that are neither
+[always][SUPPORTED_KEYS] nor [conditionally
+supported][CONDITIONALLY_SUPPORTED_KEYS].
 
 """
 
