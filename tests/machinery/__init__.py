@@ -247,8 +247,8 @@ class CliRunner:
         # checker, we disable static type checking for this call in
         # particular; our test suite will have to uncover any breakage
         # dynamically instead.
-        self.click_testing_clirunner = click.testing.CliRunner(  # type: ignore[misc]
-            **mix_stderr_args
+        self.click_testing_clirunner = click.testing.CliRunner(
+            **mix_stderr_args  # type: ignore[misc]
         )
 
     def invoke(

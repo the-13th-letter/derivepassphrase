@@ -538,7 +538,7 @@ class CommandWithHelpGroups(click.Command):
         if self.short_help:  # pragma: no cover [external-api]
             text = inspect.cleandoc(self._text(self.short_help))
         elif self.help:
-            text = click.utils.make_default_short_help(
+            text = click.utils.make_default_short_help(  # type: ignore[all]
                 self._text(self.help), limit
             )
         else:  # pragma: no cover [external-api]

@@ -31,8 +31,6 @@ from tests.machinery import pytest as pytest_machinery
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-    from typing_extensions import Literal
-
 
 class VersionOutputData(NamedTuple):
     derivation_schemes: dict[str, bool]

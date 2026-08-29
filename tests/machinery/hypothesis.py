@@ -349,7 +349,7 @@ def _get_id(
 ) -> str | None:  # pragma: no cover[external]
     if (
         isinstance(argvalue, pytest_mark.ParameterSet)
-        and argvalue.id is not None
+        and isinstance(argvalue.id, str)
     ):
         return argvalue.id
     if callable(ids):
