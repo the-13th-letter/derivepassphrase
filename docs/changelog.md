@@ -76,8 +76,8 @@ specifically marked as such.)
         stubbed property-based tests without too much writing effort.
 
     Other test suite improvements are not primarily based on the
-    "correctness"/"regression" split, but nonetheless should make the test
-    suite faster and/or easier to use:
+    correctness/regression split, but nonetheless should make the test suite
+    faster and/or easier to use:
 
       - SSH agent configurations and built-in SSH agent socket providers are
         now stored as an enum.
@@ -115,8 +115,8 @@ specifically marked as such.)
     agent: "SSH agent socket providers".
     Reframe the existing code for connecting to SSH agents on UNIX as
     a standard socket provider, and reserve a second standard socket
-    provider, yet to be written, for <abbr title="Microsoft Windows">The
-    Annoying OS</abbr>.[^the-annoying-os]
+    provider, introduced in this version, for
+    <abbr title="Microsoft Windows">The Annoying OS</abbr>.[^the-annoying-os]
 
     (The system is based on Python package [entry
     points][importlib.metadata.entry_points], and is open for third-party

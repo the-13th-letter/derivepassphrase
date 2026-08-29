@@ -2,11 +2,23 @@
 
 ## Python 3.15  {#py3.15}
 
-Not yet supported as of April 2026, because our development infrastructure does not provide any installations of Python 3.15 to test on.
+Supported as August 2026 without any known issues.
 
 ## Python 3.14  {#py3.14}
 
 Supported as of v0.5.1 (June 2025) without any known issues.
+
+### After end-of-life {#after-eol-py3.14}
+
+After Python 3.14 reaches end-of-life, future `derivepassphrase` versions may make use of the following Python functionality:
+
+  * lazy imports
+  * the `frozendict` built-in type
+  * the `sentinel` built-in type
+  * unpacking in comprehensions
+  * `bytearray.take_bytes(n=None, /)`
+
+The declared minimum required Python version will then be updated accordingly.
 
 ## Python 3.13  {#py3.13}
 

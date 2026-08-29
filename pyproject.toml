@@ -57,7 +57,7 @@ dev = [
     # available in the main virtual environment as well, so that your
     # editor/IDE setup can access them as well.
     "mypy >= 1.0",
-    "ruff >= 0.9.0",
+    "ruff >= 0.16.0",
     # Test dependencies should be installed as well, to have static
     # analysis in the test suite working too.
     #
@@ -370,11 +370,30 @@ extra-dependencies = [
 ]
 detached = false
 
-[tool.hatch.envs.hatch-static-analysis]
+[tool.hatch.envs.hatch-check-code]
 config-path = "/dev/null"
 dependencies = [
     # Override the default dependencies, lest the ruff requirements
     # conflict.
+]
+features = [
+    "dev",
+]
+[tool.hatch.envs.hatch-check-fmt]
+config-path = "/dev/null"
+dependencies = [
+    # Override the default dependencies, lest the ruff requirements
+    # conflict.
+]
+features = [
+    "dev",
+]
+[tool.hatch.envs.hatch-check-types]
+config-path = "/dev/null"
+dependencies = [
+    # Override the default dependencies, lest the ruff requirements
+    # conflict.
+    "pyrefly >= 1.0.0",
 ]
 features = [
     "dev",
@@ -487,36 +506,47 @@ ignore = [
     # that the linting and formatting can proceed, and then *afterwards*
     # the files are re-linted.  We hope that any *true* E501 errors left
     # over from this *are* text strings that should be manually broken.
-    'W191', 'E111', 'E114', 'E117', 'D206', 'D300', 'Q000', 'Q001',
-    'Q002', 'Q003', 'COM812', 'COM819', 'ISC001', 'ISC002',
+    'tab-indentation', 'indentation-with-invalid-multiple',
+    'indentation-with-invalid-multiple-comment', 'over-indented',
+    'docstring-tab-indentation', 'triple-single-quotes',
+    'bad-quotes-inline-string', 'bad-quotes-multiline-string',
+    'bad-quotes-docstring', 'avoidable-escaped-quote',
+    'missing-trailing-comma', 'prohibited-trailing-comma',
+    'single-line-implicit-string-concatenation',
+    'multi-line-implicit-string-concatenation',
     # We use `assert` regularly to appease the type checker, and because
     # it is the right language tool for this job.
-    'S101',
+    'assert',
     # The formatter takes care of trailing commas and docstring code
     # automatically.
-    'COM812', 'W505',
+    'missing-trailing-comma', 'doc-line-too-long',
     # We document transitive exceptions as well (if we feel they would
     # be surprising to the user otherwise).
-    'DOC502',
+    'docstring-extraneous-exception',
     # We currently don't have issues for every TODO.  Forcing an issue
     # also goes against the philosophy of TODOs as low-overhead markers
     # for future work; see
     # https://gist.github.com/dmnd/ed5d8ef8de2e4cfea174bd5dafcda382 .
-    'TD003',
+    'missing-todo-link',
     # We somewhat regularly use loops where each iteration needs
     # a separate try-except block.
-    'PERF203',
+    'try-except-in-loop',
     # We do not currently use pathlib.  The PTH rules are unselected,
     # but FURB includes several pathlib-related rules.
-    'FURB101', 'FURB103',
+    'read-whole-file', 'write-whole-file',
     # We catch type-ignore comments without specific code via the mypy
     # configuration, not via ruff.
-    'PGH003',
+    'blanket-type-ignore',
     # Provisionally ignore the `__init__.py` rule, until we can adapt our
     # codebase.
-    'RUF067',
+    'non-empty-init-module',
+    # We prefer noqa comments over ruff-specific ignores, for tool
+    # compatibility reasons, even if the comments themselves become harder
+    # to read. Using them in the ruff config section is fine thought,
+    # because that *is* ruff-specific.
+    'noqa-comments',
     # Still undecided about this one.
-    'PLW0717',
+    'too-many-statements-in-try-clause',
 ]
 preview = true
 # We select here in the order of presentation on the ruff documentation
@@ -550,25 +580,25 @@ select = [
     # Suggested by hatch, assumingly because it may be important to
     # verify that the value is exactly the empty string, and not just
     # any falsy value.
-    'PLC1901',
+    'compare-to-empty-string',
     # Suggested by hatch, assumingly because tests may use "magic
     # values".
-    'PLR2004',
+    'magic-value-comparison',
     # Suggested by hatch, because tests are typically organized as
     # classes and instance methods but may not really be using the
     # `self` argument.
-    'PLR6301',
+    'no-self-use',
     # Suggested by hatch, because these warnings may be precisely what
     # the tests are supposed to test.
     'S',
     # Suggested by hatch, because pytest-style tests conventionally
     # import code from each other via relative imports.
-    'TID252',
+    'relative-imports',
     # Our tests regularly use arguments named `input` to store an input
     # (text-/byte-)string.
-    'A002',
+    'builtin-argument-shadowing',
     # We regularly annotate pytest fixtures like monkeypatch as `Any`.
-    'ANN401',
+    'any-type',
     # Our tests generally don't contain docstrings.
     'D', 'DOC',
     # Our tests are regularly parametrized with booleans, for benign
@@ -577,24 +607,26 @@ select = [
     # One of our standard modules is called `derivepassphrase._types`.
     # Importing this from the tests directory would then automatically
     # trigger `PLC2701`.
-    'PLC2701',
+    'import-private-name',
     # Too many public methods/arguments/returns/branches/locals doesn't
     # really apply here.
-    'PLR0904', 'PLR0911', 'PLR0912', 'PLR0913', 'PLR0914', 'PLR0915',
-    'PLR0916', 'PLR0917',
+    'too-many-public-methods', 'too-many-return-statements',
+    'too-many-branches', 'too-many-arguments', 'too-many-locals',
+    'too-many-statements', 'too-many-boolean-expressions',
+    'too-many-positional-arguments',
     # To fully test the `derivepassphrase.cli` module (and a couple
     # other things), we need to call and to mock several internal
     # functions, which would automatically trigger `SLF001`.
-    'SLF001',
+    'private-member-access',
     # pytest does not support sensible introspection of
     # `assert all(...)` expressions in tests the same way it supports
     # introspection in `asssert all([...])`.  So the extra list
     # comprehension actually improves debuggability in this case.
-    'C419',
+    'unnecessary-comprehension-in-call',
     # The tests sometimes include long strings (in non-Python formats)
     # that should be included verbatim, without artificial line
     # breaking, so they can be grepped for.
-    'E501',
+    'line-too-long',
 ]
 
 [tool.ruff.lint.flake8-copyright]
