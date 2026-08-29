@@ -8,7 +8,7 @@ description = "An almost faithful Python reimplementation of James Coglan's vaul
 readme = "README.md"
 version = "0.6.1"
 requires-python = ">= 3.9"
-license = { text = "zlib/libpng" }
+license = "Zlib"
 keywords = []
 authors = [
     { name = "Marco Ricci", email = "software@the13thletter.info" },
@@ -16,7 +16,7 @@ authors = [
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
-    "License :: OSI Approved :: zlib/libpng License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -27,6 +27,7 @@ classifiers = [
     "Programming Language :: Python :: 3.15",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
+    "Typing :: Typed",
 ]
 dependencies = [
     # We use click for the command-line interface.  We require version
@@ -438,18 +439,6 @@ run = "pytest --hypothesis-profile={env:HYPOTHESIS_PROFILE:default}{env:HATCH_TE
 run-cov = "coverage run -m pytest --hypothesis-profile={env:HYPOTHESIS_PROFILE:default}{env:HATCH_TEST_ARGS:} {args}"
 cov-combine = "coverage combine"
 cov-report = "coverage report"
-
-[tool.hatch.envs.types]
-features = [
-    "dev",
-    "export",
-]
-
-[tool.hatch.envs.types.scripts]
-check = "mypy --install-types --non-interactive {args:src/derivepassphrase tests}"
-
-[tool.hatch.version]
-path = "src/derivepassphrase/__init__.py"
 
 [tool.mypy]
 files = ['src/**/*.py', 'tests/**/*.py']
