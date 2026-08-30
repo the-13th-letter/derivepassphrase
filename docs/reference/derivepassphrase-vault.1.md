@@ -325,7 +325,7 @@ This is a property specific to the key type, and sometimes the agent used:
 ??? example "`derivepassphrase vault --key --upper 9 --lower 9 --number 9 example.com`"
 
     Attempt to generate a passphrase as in the previous example.
-    This example will <em>error out</em>, because the passphrase constraints require at least 27 characters and the standard passphrase length 20 cannot accomodate this.
+    This example will <em>error out</em>, because the passphrase constraints require at least 27 characters and the standard passphrase length 20 cannot accommodate this.
 
 ??? example "`derivepassphrase vault --config --key --upper 9 --lower 9 --space 2`"
 
@@ -341,7 +341,7 @@ This is a property specific to the key type, and sometimes the agent used:
 
 The <b>derivepassphrase vault</b> utility exits 0 on success, and >0 if an error occurs.
 
-### Fatal error messsages on standard error
+### Fatal error messages on standard error
 
 (`%s` indicates a variable part of the message.)
 
