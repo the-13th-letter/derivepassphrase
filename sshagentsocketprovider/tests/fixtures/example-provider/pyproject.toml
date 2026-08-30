@@ -32,7 +32,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "derivepassphrase-sshagentsocketprovider >= 1.0a1",
+    "derivepassphrase-sshagentsocketprovider >= 1.0",
     "typing-extensions",
 ]
 

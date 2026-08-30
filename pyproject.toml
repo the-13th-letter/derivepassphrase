@@ -32,7 +32,7 @@ classifiers = [
 dependencies = [
     # Our API for SSH agent socket providers is declared in a separately
     # published package.
-    "derivepassphrase-sshagentsocketprovider",
+    "derivepassphrase-sshagentsocketprovider >= 1.0",
     # We use click for the command-line interface.  We require version
     # 8.1.0 or higher due to click issue #1985.
     "click >= 8.1",

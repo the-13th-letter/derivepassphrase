@@ -3,9 +3,11 @@
 [![PyPI - Version](https://img.shields.io/pypi/v/derivepassphrase-sshagentsocketprovider.svg)](https://pypi.org/project/derivepassphrase-sshagentsocketprovider)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/derivepassphrase-sshagentsocketprovider.svg)](https://pypi.org/project/derivepassphrase-sshagentsocketprovider)
 
-An interface for SSH agent socket providers, which expose an abstract communication channel for an SSH agent to `derivepassphrase`.
+An interface for SSH agent socket providers, which expose an abstract communication channel for an SSH agent to [`derivepassphrase`][DERIVEPASSPHRASE].
 
 This package contains only the interface definition and the types involved.
+
+[DERIVEPASSPHRASE]: https://the13thletter.info/derivepassphrase/
 
 -----
 

@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from typing_extensions import Any, Buffer
 
 # Semantic versioning.
-__version__ = "1.0a1"
+__version__ = "1.0"
 
 ENTRY_POINT_GROUP_NAME = "derivepassphrase.ssh_agent_socket_providers"
 """

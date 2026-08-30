@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "derivepassphrase-sshagentsocketprovider"
 description = 'An interface for SSH agent socket providers, which expose an abstract communication channel for an SSH agent to derivepassphrase.'
 readme = "README.md"
-version = "1.0a1"
+version = "1.0"
 requires-python = ">= 3.9"
 license = "Zlib"
 keywords = []
@@ -14,7 +14,7 @@ authors = [
     { name = "Marco Ricci", email = "software@the13thletter.info" },
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
