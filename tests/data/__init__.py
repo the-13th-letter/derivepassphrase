@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING, cast
 
 from typing_extensions import NamedTuple, assert_never
 
+import derivepassphrase_sshagentsocketprovider as d_sasp
 from derivepassphrase import _types, ssh_agent, vault
 from derivepassphrase.ssh_agent import socketprovider
 
@@ -533,7 +534,7 @@ class RunningSSHAgentInfo(NamedTuple):
 
     """
 
-    socket: str | type[_types.SSHAgentSocket]
+    socket: str | type[d_sasp.SSHAgentSocket]
     """"""
     agent_type: KnownSSHAgentType
     """"""
@@ -661,7 +662,7 @@ class VaultTestConfig(NamedTuple):
 # ------------------------------
 
 
-ssh_auth_sock_on_posix_entry = _types.SSHAgentSocketProviderEntry(
+ssh_auth_sock_on_posix_entry = d_sasp.SSHAgentSocketProviderEntry(
     socketprovider.SocketProvider.resolve(
         _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX
     ),
@@ -673,7 +674,7 @@ The standard [`_types.SSHAgentSocketProviderEntry`][] for the UNIX
 domain socket handler on POSIX systems.
 """
 
-ssh_auth_sock_on_windows_entry = _types.SSHAgentSocketProviderEntry(
+ssh_auth_sock_on_windows_entry = d_sasp.SSHAgentSocketProviderEntry(
     socketprovider.SocketProvider.resolve(
         _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_WINDOWS
     ),
@@ -685,7 +686,7 @@ The standard [`_types.SSHAgentSocketProviderEntry`][] for the Windows
 named pipe handler on The Annoying Operating System.
 """
 
-faulty_entry_callable = _types.SSHAgentSocketProviderEntry(
+faulty_entry_callable = d_sasp.SSHAgentSocketProviderEntry(
     (),  # type: ignore[arg-type]
     "tuple",
     (),
@@ -695,7 +696,7 @@ A faulty [`_types.SSHAgentSocketProviderEntry`][]: the indicated handler
 is not a callable.
 """
 
-faulty_entry_name_exists = _types.SSHAgentSocketProviderEntry(
+faulty_entry_name_exists = d_sasp.SSHAgentSocketProviderEntry(
     socketprovider.SocketProvider.resolve(
         _types.BuiltinSSHAgentSocketProvider.WINDOWS
     ),
@@ -707,7 +708,7 @@ A faulty [`_types.SSHAgentSocketProviderEntry`][]: the indicated handler
 is already registered with a different callable.
 """
 
-faulty_entry_alias_exists = _types.SSHAgentSocketProviderEntry(
+faulty_entry_alias_exists = d_sasp.SSHAgentSocketProviderEntry(
     socketprovider.SocketProvider.resolve(
         _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX
     ),
@@ -1391,23 +1392,48 @@ Rlc3Qga2V5IHdpdGhvdXQgcGFzc3BocmFzZQ==
 }
 """The master list of SSH test keys."""
 SUPPORTED_KEYS: Mapping[str, SSHTestKey] = {
-    k: v for k, v in ALL_KEYS.items() if v.is_suitable()
+    k: v
+    for k, v in ALL_KEYS.items()
+    if v.expected_signatures.get(SSHTestKeyDeterministicSignatureClass.SPEC)
 }
-"""The subset of SSH test keys suitable for use with vault.
+"""The subset of SSH test keys always suitable for use with vault.
 
-Suitability is tested -- via [SSHTestKey.is_suitable][], then
-[vault.Vault.is_suitable_ssh_key][] -- via an internal whitelist, not
-via the presence or absence of a specific expected signature class.
+Suitability is tested via the presence of the
+[`SPEC`][SSHTestKeyDeterministicSignatureClass.SPEC] expected signature
+class.
+
+"""
+CONDITIONALLY_SUPPORTED_KEYS: Mapping[str, SSHTestKey] = {
+    k: v
+    for k, v in ALL_KEYS.items()
+    if k not in SUPPORTED_KEYS
+    and (
+        v.expected_signatures.get(
+            SSHTestKeyDeterministicSignatureClass.RFC_6979
+        )
+        or v.expected_signatures.get(
+            SSHTestKeyDeterministicSignatureClass.Pageant_068_080
+        )
+    )
+}
+"""The subset of SSH test keys conditionally suitable for use with vault.
+
+Suitability is tested via the presence of the
+[`RFC_6979`][SSHTestKeyDeterministicSignatureClass.RFC_6979] or the
+[`Pageant_068_080`][SSHTestKeyDeterministicSignatureClass.Pageant_068_080]
+expected signature class, if not already an always suitable key.
 
 """
 UNSUITABLE_KEYS: Mapping[str, SSHTestKey] = {
-    k: v for k, v in ALL_KEYS.items() if not v.is_suitable()
+    k: v
+    for k, v in ALL_KEYS.items()
+    if k not in SUPPORTED_KEYS and k not in CONDITIONALLY_SUPPORTED_KEYS
 }
 """The subset of SSH test keys not suitable for use with vault.
 
-Suitability is tested -- via [SSHTestKey.is_suitable][], then
-[vault.Vault.is_suitable_ssh_key][] -- via an internal whitelist, not
-via the presence or absence of a specific expected signature class.
+These are exactly the test keys that are neither
+[always][SUPPORTED_KEYS] nor [conditionally
+supported][CONDITIONALLY_SUPPORTED_KEYS].
 
 """
 

@@ -27,6 +27,7 @@ from ctypes.wintypes import (  # type: ignore[attr-defined]
 )
 from typing import TYPE_CHECKING, cast
 
+import derivepassphrase_sshagentsocketprovider as d_sasp
 from derivepassphrase import _types
 
 if TYPE_CHECKING:
@@ -45,7 +46,7 @@ if TYPE_CHECKING:
     )
 
     SSHAgentSocketProviderT = TypeVar(
-        "SSHAgentSocketProviderT", bound=_types.SSHAgentSocketProvider
+        "SSHAgentSocketProviderT", bound=d_sasp.SSHAgentSocketProvider
     )
     """A parametrized SSH agent socket provider."""
 
@@ -378,7 +379,7 @@ else:  # pragma: unless the-annoying-os no cover
 class WindowsNamedPipeHandle:
     """A Windows named pipe handle.
 
-    This handle implements the [`SSHAgentSocket`][_types.SSHAgentSocket]
+    This handle implements the [`SSHAgentSocket`][d_sasp.SSHAgentSocket]
     interface.  It is only constructable if the Python installation can
     successfully call into the Annoying OS `kernel32.dll` library via
     [`ctypes`][].
@@ -759,7 +760,7 @@ class SocketProvider:
         return cls._windows_named_pipe(None)
 
     registry: ClassVar[
-        dict[str, _types.SSHAgentSocketProvider | str | None]
+        dict[str, d_sasp.SSHAgentSocketProvider | str | None]
     ] = {}
     """A dictionary of callables that provide SSH agent sockets.
 
@@ -850,8 +851,8 @@ class SocketProvider:
 
     @classmethod
     def lookup(
-        cls, provider: _types.SSHAgentSocketProvider | str | None, /
-    ) -> _types.SSHAgentSocketProvider | None:
+        cls, provider: d_sasp.SSHAgentSocketProvider | str | None, /
+    ) -> d_sasp.SSHAgentSocketProvider | None:
         """Look up a socket provider entry.
 
         Args:
@@ -876,8 +877,8 @@ class SocketProvider:
 
     @classmethod
     def resolve(
-        cls, provider: _types.SSHAgentSocketProvider | str | None, /
-    ) -> _types.SSHAgentSocketProvider:
+        cls, provider: d_sasp.SSHAgentSocketProvider | str | None, /
+    ) -> d_sasp.SSHAgentSocketProvider:
         """Resolve a socket provider to a proper callable.
 
         Args:
@@ -925,10 +926,10 @@ class SocketProvider:
         })
         canonical: dict[str, str] = {}
         sorter: graphlib.TopologicalSorter[
-            _types.SSHAgentSocketProvider | str | None
+            d_sasp.SSHAgentSocketProvider | str | None
         ] = graphlib.TopologicalSorter()
-        k: _types.SSHAgentSocketProvider | str | None
-        v: _types.SSHAgentSocketProvider | str | None
+        k: d_sasp.SSHAgentSocketProvider | str | None
+        v: d_sasp.SSHAgentSocketProvider | str | None
         for k, v in cls.registry.items():
             sorter.add(k, v)
         sorter.prepare()
@@ -956,14 +957,6 @@ class SocketProvider:
             for k, v in itertools.groupby(sorted_entries, key=by_value)
         }
 
-    ENTRY_POINT_GROUP_NAME = "derivepassphrase.ssh_agent_socket_providers"
-    """
-    The group name under which [entry
-    points][importlib.metadata.entry_points] for the SSH agent socket
-    provider registry should be recorded.  Each target of such an entry
-    point should be a [`_types.SSHAgentSocketProviderEntry`][] object.
-    """
-
     @classmethod
     def _find_all_ssh_agent_socket_providers(cls) -> None:
         """Find and load all declared SSH agent socket providers.
@@ -988,10 +981,10 @@ class SocketProvider:
         origins: dict[str, str | None] = {}
         entries = collections.ChainMap({}, cls.registry)
         for entry_point in importlib.metadata.entry_points(
-            group=cls.ENTRY_POINT_GROUP_NAME
+            group=d_sasp.ENTRY_POINT_GROUP_NAME
         ):
             provider_entry = cast(
-                "_types.SSHAgentSocketProviderEntry", entry_point.load()
+                "d_sasp.SSHAgentSocketProviderEntry", entry_point.load()
             )
             key = provider_entry.key
             value = entry_point.value
@@ -1004,7 +997,7 @@ class SocketProvider:
             if not callable(provider_entry.provider):
                 msg = (
                     f"Not an SSHAgentSocketProvider: "
-                    f"{dist = }, {cls.ENTRY_POINT_GROUP_NAME = }, "
+                    f"{dist = }, {d_sasp.ENTRY_POINT_GROUP_NAME = }, "
                     f"{value = }, {provider_entry = }"
                 )
                 raise AssertionError(msg)  # noqa: TRY004

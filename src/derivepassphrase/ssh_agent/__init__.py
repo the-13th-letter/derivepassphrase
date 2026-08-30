@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, ClassVar, overload
 
 from typing_extensions import Never, Self, assert_type
 
+import derivepassphrase_sshagentsocketprovider as d_sasp
 from derivepassphrase import _types
 
 if sys.version_info < (3, 11):
@@ -171,7 +172,7 @@ class SSHAgentClient:
 
     """
 
-    _connection: _types.SSHAgentSocket
+    _connection: d_sasp.SSHAgentSocket
     SOCKET_PROVIDERS: ClassVar = ("native",)
     """
     The default list of SSH agent socket providers.
@@ -181,7 +182,7 @@ class SSHAgentClient:
         self,
         /,
         *,
-        socket: _types.SSHAgentSocket | Sequence[str] | None = None,
+        socket: d_sasp.SSHAgentSocket | Sequence[str] | None = None,
     ) -> None:
         """Initialize the client.
 
@@ -251,7 +252,7 @@ class SSHAgentClient:
                 socket = self.SOCKET_PROVIDERS
             assert isinstance(socket, Sequence)  # for the type checker
             excs: list[NotImplementedError] = []
-            providers: list[_types.SSHAgentSocketProvider] = []
+            providers: list[d_sasp.SSHAgentSocketProvider] = []
             for candidate in socket:
                 try:
                     provider = socketprovider.SocketProvider.resolve(candidate)
@@ -275,7 +276,7 @@ class SSHAgentClient:
                     if excs
                     else NotImplementedError(msg)
                 )
-        elif isinstance(socket, _types.SSHAgentSocket):
+        elif isinstance(socket, d_sasp.SSHAgentSocket):
             self._connection = socket
         else:  # pragma: no cover [failsafe]
             assert_type(socket, Never)
@@ -439,7 +440,7 @@ class SSHAgentClient:
     def ensure_agent_subcontext(
         cls,
         conn: SSHAgentClient
-        | _types.SSHAgentSocket
+        | d_sasp.SSHAgentSocket
         | Sequence[str]
         | None = None,
     ) -> Generator[SSHAgentClient, None, None]:
@@ -486,7 +487,7 @@ class SSHAgentClient:
             with contextlib.nullcontext():
                 yield conn
         elif (
-            isinstance(conn, (_types.SSHAgentSocket, str, Sequence))
+            isinstance(conn, (d_sasp.SSHAgentSocket, str, Sequence))
             or conn is None
         ):
             with SSHAgentClient(socket=conn) as client:

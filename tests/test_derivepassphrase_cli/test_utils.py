@@ -44,6 +44,8 @@ if TYPE_CHECKING:
 
     from typing_extensions import Any
 
+    import derivepassphrase_sshagentsocketprovider as d_sasp
+
 
 DUMMY_SERVICE = data.DUMMY_SERVICE
 DUMMY_PASSPHRASE = data.DUMMY_PASSPHRASE
@@ -1154,7 +1156,7 @@ class TestMisc:
                 "list_keys",
                 callables.list_keys,
             )
-            hint: ssh_agent.SSHAgentClient | _types.SSHAgentSocket | None
+            hint: ssh_agent.SSHAgentClient | d_sasp.SSHAgentSocket | None
             # TODO(the-13th-letter): Rewrite using structural pattern
             # matching.
             # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9

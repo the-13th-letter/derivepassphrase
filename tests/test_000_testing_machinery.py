@@ -226,9 +226,11 @@ class Parametrize:
         ids=data.ALL_KEYS.keys(),
     )
     SUPPORTED_SSH_TEST_KEYS = pytest.mark.parametrize(
-        ["ssh_test_key_type", "ssh_test_key"],
-        list(data.SUPPORTED_KEYS.items()),
-        ids=data.SUPPORTED_KEYS.keys(),
+        ["ssh_test_key_type", "ssh_test_key", "requires_deterministic_dsa"],
+        [(k, v, False) for k, v in data.SUPPORTED_KEYS.items()]
+        + [(k, v, True) for k, v in data.CONDITIONALLY_SUPPORTED_KEYS.items()],
+        ids=list(data.SUPPORTED_KEYS.keys())
+        + list(data.CONDITIONALLY_SUPPORTED_KEYS.keys()),
     )
 
 
@@ -599,11 +601,27 @@ class TestStubbedSSHAgentSocketRequests(TestStubbedSSHAgentSocket):
         self,
         ssh_test_key_type: str,
         ssh_test_key: data.SSHTestKey,
+        requires_deterministic_dsa: bool,
     ) -> None:
         """The agent signs known key/message pairs."""
         del ssh_test_key_type
-        spec = data.SSHTestKeyDeterministicSignatureClass.SPEC
-        assert ssh_test_key.expected_signatures[spec].signature is not None
+        signature_types = (
+            [
+                data.SSHTestKeyDeterministicSignatureClass.RFC_6979,
+                data.SSHTestKeyDeterministicSignatureClass.Pageant_068_080,
+            ]
+            if requires_deterministic_dsa
+            else [data.SSHTestKeyDeterministicSignatureClass.SPEC]
+        )
+        signature_names = [t.name for t in signature_types]
+        expected_signatures = {
+            ssh_test_key.expected_signatures[t].signature
+            for t in signature_types
+            if ssh_test_key.expected_signatures[t].signature is not None
+        }
+        assert expected_signatures, (
+            f"expected a known {'/'.join(signature_names)} deterministic signature"
+        )
         string = ssh_agent.SSHAgentClient.string
         query_request = string(
             # request code: SSH_AGENTC_SIGN_REQUEST
@@ -615,15 +633,28 @@ class TestStubbedSSHAgentSocketRequests(TestStubbedSSHAgentSocket):
             # signing flags (uint32, empty)
             + b"\x00\x00\x00\x00"
         )
-        query_response = string(
-            # response code: SSH_AGENT_SIGN_RESPONSE
-            b"\x0e"
-            # expected payload: the binary signature as recorded in the test key data structure
-            + string(ssh_test_key.expected_signatures[spec].signature)
-        )
-        with machinery.StubbedSSHAgentSocket() as agent:
-            agent.sendall(query_request)
-            assert agent.recv(1000) == query_response
+        query_responses = {
+            string(
+                # response code: SSH_AGENT_SIGN_RESPONSE
+                b"\x0e"
+                # expected payload: the binary signature as recorded in the test key data structure
+                + string(sig)
+            )
+            for sig in expected_signatures
+        }
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setenv(
+                "SSH_AUTH_SOCK",
+                machinery.StubbedSSHAgentSocketWithAddress.ADDRESS,
+            )
+            agent: machinery.StubbedSSHAgentSocket = (
+                machinery.StubbedSSHAgentSocketWithAddressAndDeterministicDSA()
+                if requires_deterministic_dsa
+                else machinery.StubbedSSHAgentSocket()
+            )
+            with agent:
+                agent.sendall(query_request)
+                assert agent.recv(1000) in query_responses
 
 
 class TestStubbedSSHAgentSocketProperOperations(TestStubbedSSHAgentSocket):

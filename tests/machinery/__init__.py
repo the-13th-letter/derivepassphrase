@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     from contextlib import AbstractContextManager
     from typing import IO, Literal, NotRequired
 
-    from typing_extensions import Any, Buffer, Self
+    from typing_extensions import Any, Buffer, Self, TypeAlias
 
 
 # Test suite settings
@@ -394,10 +394,7 @@ class AgentProtocolResponseQueue:
 # ------------
 
 
-@socketprovider.SocketProvider.register(
-    _types.BuiltinSSHAgentSocketProvider.STUB_AGENT
-)
-class StubbedSSHAgentSocket:
+class StubbedSSHAgentSocket_:  # pragma: unless fakesshagent no cover  # noqa: N801
     """A stubbed SSH agent presenting an [`_types.SSHAgentSocket`][].
 
     On the network protocol side, the agent implements the full
@@ -725,10 +722,9 @@ class StubbedSSHAgentSocket:
 # ----------------
 
 
-@socketprovider.SocketProvider.register(
-    _types.BuiltinSSHAgentSocketProvider.STUB_AGENT_WITH_ADDRESS
-)
-class StubbedSSHAgentSocketWithAddress(StubbedSSHAgentSocket):
+class StubbedSSHAgentSocketWithAddress_(  # noqa: N801
+    StubbedSSHAgentSocket_
+):  # pragma: unless fakesshagent no cover
     """A [`StubbedSSHAgentSocket`][] requiring a specific address."""
 
     ADDRESS = "stub-ssh-agent:"
@@ -772,12 +768,9 @@ class StubbedSSHAgentSocketWithAddress(StubbedSSHAgentSocket):
 # ---------------------
 
 
-@socketprovider.SocketProvider.register(
-    _types.BuiltinSSHAgentSocketProvider.STUB_AGENT_WITH_ADDRESS_AND_DETERMINISTIC_DSA
-)
-class StubbedSSHAgentSocketWithAddressAndDeterministicDSA(
-    StubbedSSHAgentSocketWithAddress
-):
+class StubbedSSHAgentSocketWithAddressAndDeterministicDSA_(  # noqa: N801
+    StubbedSSHAgentSocketWithAddress_
+):  # pragma: unless fakesshagent no cover
     """A [`StubbedSSHAgentSocketWithAddress`][] supporting deterministic DSA."""
 
     def __init__(self) -> None:
@@ -796,3 +789,33 @@ class StubbedSSHAgentSocketWithAddressAndDeterministicDSA(
         super().__init__("query", "list-extended@putty.projects.tartarus.org")
         self.try_rfc6979 = True
         self.try_pageant_068_080 = True
+
+
+try:  # pragma: unless internalsshagent no cover [external]
+    from fakesshagent.machinery import (
+        StubbedSSHAgentSocket as StubbedSSHAgentSocket,
+    )
+    from fakesshagent.machinery import (
+        StubbedSSHAgentSocketWithAddress as StubbedSSHAgentSocketWithAddress,
+    )
+    from fakesshagent.machinery import (
+        StubbedSSHAgentSocketWithAddressAndDeterministicDSA as StubbedSSHAgentSocketWithAddressAndDeterministicDSA,
+    )
+except ModuleNotFoundError:  # pragma: unless fakesshagent no cover [external]
+    StubbedSSHAgentSocket: TypeAlias = StubbedSSHAgentSocket_  # type: ignore[no-redef]
+    StubbedSSHAgentSocketWithAddress: TypeAlias = (  # type: ignore[no-redef]
+        StubbedSSHAgentSocketWithAddress_
+    )
+    StubbedSSHAgentSocketWithAddressAndDeterministicDSA: TypeAlias = (  # type: ignore[no-redef]
+        StubbedSSHAgentSocketWithAddressAndDeterministicDSA_
+    )
+
+    socketprovider.SocketProvider.register(
+        _types.BuiltinSSHAgentSocketProvider.STUB_AGENT
+    )(StubbedSSHAgentSocket)
+    socketprovider.SocketProvider.register(
+        _types.BuiltinSSHAgentSocketProvider.STUB_AGENT_WITH_ADDRESS
+    )(StubbedSSHAgentSocketWithAddress)
+    socketprovider.SocketProvider.register(
+        _types.BuiltinSSHAgentSocketProvider.STUB_AGENT_WITH_ADDRESS_AND_DETERMINISTIC_DSA
+    )(StubbedSSHAgentSocketWithAddressAndDeterministicDSA)

@@ -20,6 +20,7 @@ import shlex
 import stat
 from typing import TYPE_CHECKING
 
+import derivepassphrase_sshagentsocketprovider as d_sasp
 import tests.data
 from derivepassphrase import _types, ssh_agent, vault
 
@@ -159,18 +160,18 @@ def phrase_from_key(
 # ===============================================
 
 
-def provider_entry_provider() -> _types.SSHAgentSocket:  # pragma: no cover
+def provider_entry_provider() -> d_sasp.SSHAgentSocket:  # pragma: no cover
     """A pseudo provider for a [`_types.SSHAgentSocketProviderEntry`][]."""
     msg = "We are not supposed to be called!"
     raise AssertionError(msg)
 
 
-provider_entry1 = _types.SSHAgentSocketProviderEntry(
+provider_entry1 = d_sasp.SSHAgentSocketProviderEntry(
     provider_entry_provider, "entry1", ("entry1a", "entry1b", "entry1c")
 )
 """A sample [`_types.SSHAgentSocketProviderEntry`][]."""
 
-provider_entry2 = _types.SSHAgentSocketProviderEntry(
+provider_entry2 = d_sasp.SSHAgentSocketProviderEntry(
     provider_entry_provider, "entry2", ("entry2d", "entry2e")
 )
 

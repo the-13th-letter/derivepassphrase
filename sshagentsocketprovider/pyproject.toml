@@ -1,0 +1,54 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "derivepassphrase-sshagentsocketprovider"
+description = 'An interface for SSH agent socket providers, which expose an abstract communication channel for an SSH agent to derivepassphrase.'
+readme = "README.md"
+version = "1.0"
+requires-python = ">= 3.9"
+license = "Zlib"
+keywords = []
+authors = [
+    { name = "Marco Ricci", email = "software@the13thletter.info" },
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Software Development :: Libraries",
+    "Typing :: Typed",
+]
+dependencies = [
+    "typing-extensions",
+]
+
+[project.urls]
+Documentation = "https://the13thletter.info/derivepassphrase/"
+Issues = "https://the13thletter.info/derivepassphrase/latest/wishlist/"
+Source = "https://git.schokokeks.org/derivepassphrase.git"
+
+# Don't attempt to collect coverage data at this point. There is only
+# one integration test, with linear execution, and it creates virtual
+# environments in subprocesses. So it is hard to get coverage installed
+# and configured in the target environment to actually collect data, and
+# even if that works, there is not much data to collect, because there
+# is no branching execution.
+
+[tool.pytest.ini_options]
+addopts = '--import-mode=importlib'
+testpaths = [
+    'tests',
+]
+xfail_strict = true

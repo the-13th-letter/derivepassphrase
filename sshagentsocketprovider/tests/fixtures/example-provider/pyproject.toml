@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "derivepassphrase-sshagentsocketprovider-example"
+description = 'An example SSH agent socket provider for derivepassphrase.'
+readme = "README.md"
+version = "0.0.0"
+requires-python = ">= 3.9"
+license = "Unlicense"
+keywords = []
+authors = [
+    { name = "Marco Ricci", email = "software@the13thletter.info" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Private :: Do Not Upload",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Software Development :: Libraries",
+    "Typing :: Typed",
+]
+dependencies = [
+    "derivepassphrase-sshagentsocketprovider >= 1.0",
+    "typing-extensions",
+]
+
+[project.urls]
+
+[project.entry-points."derivepassphrase.ssh_agent_socket_providers"]
+stdin_stdout = "derivepassphrase_sshagentsocketprovider_example.stdin_stdout: ENTRY_POINT"
+failure_response = "derivepassphrase_sshagentsocketprovider_example.failure_response: ENTRY_POINT"
+always_fail = "derivepassphrase_sshagentsocketprovider_example.always_fail: ENTRY_POINT"
