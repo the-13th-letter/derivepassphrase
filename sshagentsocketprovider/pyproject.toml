@@ -38,3 +38,17 @@ dependencies = [
 Documentation = "https://the13thletter.info/derivepassphrase/"
 Issues = "https://the13thletter.info/derivepassphrase/latest/wishlist/"
 Source = "https://git.schokokeks.org/derivepassphrase.git"
+
+# Don't attempt to collect coverage data at this point. There is only
+# one integration test, with linear execution, and it creates virtual
+# environments in subprocesses. So it is hard to get coverage installed
+# and configured in the target environment to actually collect data, and
+# even if that works, there is not much data to collect, because there
+# is no branching execution.
+
+[tool.pytest.ini_options]
+addopts = '--import-mode=importlib'
+testpaths = [
+    'tests',
+]
+xfail_strict = true
