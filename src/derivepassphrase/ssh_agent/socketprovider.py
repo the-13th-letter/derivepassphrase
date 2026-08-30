@@ -379,7 +379,7 @@ else:  # pragma: unless the-annoying-os no cover
 class WindowsNamedPipeHandle:
     """A Windows named pipe handle.
 
-    This handle implements the [`SSHAgentSocket`][_types.SSHAgentSocket]
+    This handle implements the [`SSHAgentSocket`][d_sasp.SSHAgentSocket]
     interface.  It is only constructable if the Python installation can
     successfully call into the Annoying OS `kernel32.dll` library via
     [`ctypes`][].

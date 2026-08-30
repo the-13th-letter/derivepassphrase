@@ -2,6 +2,10 @@
 title: Reference overview
 ---
 
+## Interfaces
+
+* [SSH agent socket providers][sasp]
+
 ## Man pages
 
 * [`derivepassphrase(1)`][top_man]: Derive a strong passphrase, deterministically, from a master secret.
@@ -20,11 +24,13 @@ title: Reference overview
     * [`derivepassphrase.ssh_agent`][]: A bare-bones SSH agent client supporting signing and key listing.
     * [`derivepassphrase._types`][]: Types used by `derivepassphrase`.
     * [`derivepassphrase.vault`][]: Python port of the vault(1) password generation scheme.
+* `derivepassphrase-sshagentsocketproviders`: Definitions for `derivepassphrase`'s SSH agent socket providers.
 
 ## Technical prerequisites
 
 * [Prerequisites for using `derivepassphrase vault` with an SSH key][PREREQ_SSH_KEY]
 
+  [sasp]: ssh-agent-socket-providers.md
   [top_man]: derivepassphrase.1.md
   [vault_man]: derivepassphrase-vault.1.md
   [export_man]: derivepassphrase-export.1.md

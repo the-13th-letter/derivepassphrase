@@ -75,6 +75,7 @@ plugins:
           show_object_full_path: false
           show_root_members_full_path: false
           show_root_heading: true
+          show_root_toc_entry: true
           show_symbol_type_heading: true
           show_symbol_type_toc: true
           members_order: 'source'
@@ -104,6 +105,8 @@ nav:
     - how-tos/passphrase-rotation.md
   - Reference:
     - reference/index.md
+    - Interfaces:
+      - SSH agent socket providers: reference/ssh-agent-socket-providers.md
     - Man pages:
       - 'derivepassphrase(1)': reference/derivepassphrase.1.md
       - 'derivepassphrase-vault(1)': reference/derivepassphrase-vault.1.md
@@ -116,6 +119,7 @@ nav:
       - Submodule ssh_agent: reference/derivepassphrase.ssh_agent.md
       - Submodule _types: reference/derivepassphrase._types.md
       - Submodule vault: reference/derivepassphrase.vault.md
+    - 'API docs: Module derivepassphrase_sshagentsocketprovider': reference/derivepassphrase_sshagentsocketprovider.md
     - Technical prerequisites:
       - 'Using derivepassphrase vault with an SSH key': reference/prerequisites-ssh-key.md
   - Design & Background:

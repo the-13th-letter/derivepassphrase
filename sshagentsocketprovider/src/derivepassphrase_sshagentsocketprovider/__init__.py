@@ -17,9 +17,20 @@ if TYPE_CHECKING:
 # Semantic versioning.
 __version__ = "1.0a1"
 
-# For later major versions, we would choose a different entry point
-# group name.
 ENTRY_POINT_GROUP_NAME = "derivepassphrase.ssh_agent_socket_providers"
+"""
+The name of the entry point group for SSH agent socket providers.
+
+We pledge to not change the interface of the entry point (name, type of
+the referred object) in a backwards-incompatible way without both
+
+  1. increasing the major version number of the package, and
+  2. changing the entry point name.
+
+(We cannot, however, guarantee that all consumers of this API will
+continue to support superseded entry point definitions forever.  That is
+up to the individual API consumer to decide.)
+"""
 
 
 @runtime_checkable
@@ -85,3 +96,4 @@ class SSHAgentSocketProviderEntry(NamedTuple):
     key: str
     """"""
     aliases: tuple[str, ...]
+    """"""
