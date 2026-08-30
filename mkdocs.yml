@@ -125,7 +125,7 @@ nav:
   - Design & Background:
     - explanation/index.md
     - '"altered versions" license requirement': explanation/faq-altered-versions.md
-    - '"interchangable passphrases" in vault': explanation/faq-vault-interchangable-passphrases.md
+    - '"interchangeable passphrases" in vault': explanation/faq-vault-interchangeable-passphrases.md
     - tradeoffs between passphrase & SSH key: explanation/tradeoffs-passphrase-ssh-key.md
     - explanation/many-master-secrets.md
   - Changelog:
