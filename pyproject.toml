@@ -339,6 +339,7 @@ relative_files = true
 [tool.hatch.build.targets.sdist]
 exclude = [
     'docs/changelog.d/*.md',
+    'sshagentsocketprovider/',
 ]
 
 [tool.hatch.build.targets.wheel]
