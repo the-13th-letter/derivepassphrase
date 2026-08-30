@@ -1,0 +1,1 @@
+--8<-- "sshagentsocketprovider/README.md"
