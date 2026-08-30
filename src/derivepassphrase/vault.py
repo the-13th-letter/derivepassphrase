@@ -16,12 +16,14 @@ from typing import TYPE_CHECKING, Final
 
 from typing_extensions import TypeAlias, assert_type
 
-from derivepassphrase import _types, sequin, ssh_agent
+from derivepassphrase import sequin, ssh_agent
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from typing_extensions import Buffer
+
+    import derivepassphrase_sshagentsocketprovider as d_sasp
 
 
 class Vault:
@@ -517,7 +519,7 @@ class Vault:
         /,
         *,
         conn: ssh_agent.SSHAgentClient
-        | _types.SSHAgentSocket
+        | d_sasp.SSHAgentSocket
         | Sequence[str]
         | None = None,
     ) -> bytes:

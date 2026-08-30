@@ -17,12 +17,10 @@ from typing_extensions import (
     Buffer,
     NamedTuple,
     NotRequired,
-    TypeAlias,
     TypedDict,
     deprecated,
     get_overloads,
     overload,
-    runtime_checkable,
 )
 
 if TYPE_CHECKING:
@@ -1140,63 +1138,3 @@ class BuiltinSSHAgentSocketProvider(str, enum.Enum):
 
     __str__ = str.__str__
     __format__ = str.__format__  # type: ignore[assignment]
-
-
-@runtime_checkable
-class SSHAgentSocket(Protocol):
-    """An abstract networking socket connected to an SSH agent.
-
-    The abstract socket supports the [`sendall`][socket.socket.sendall]
-    and a [`recv`][socket.socket.recv] operation, with the same
-    signatures and semantics as for "real" sockets.  The abstract socket
-    also supports use as a context manager, for automatically closing
-    the socket upon exiting the context.
-
-    """
-
-    def __enter__(self) -> Any: ...  # noqa: ANN401
-
-    # mypy/typeshed has a *very* lax annotation of
-    # socket.socket.__exit__, which we need to be compatible with.
-    # *sigh*
-    def __exit__(
-        self,
-        *args: object,
-    ) -> bool | None: ...
-
-    def sendall(self, data: Buffer, flags: int = 0, /) -> None: ...
-
-    def recv(self, bufsize: int, flags: int = 0, /) -> bytes: ...
-
-
-SSHAgentSocketProvider: TypeAlias = "Callable[[], SSHAgentSocket]"
-"""A callable that provides an SSH agent socket."""
-
-
-class SSHAgentSocketProviderEntry(NamedTuple):
-    """Registry information for the table of SSH agent socket providers.
-
-    Third-party developers can register new socket providers for
-    auto-discovery by setting up an entry point named
-    [`derivepassphrase.ssh_agent_socket_providers`][derivepassphrase.ssh_agent.socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME],
-    referencing an instance of this class.  Upon startup of the `vault`
-    subsystem, `derivepassphrase` will then add appropriate entries to
-    the registry.
-
-    Attributes:
-        provider: The callable that provides the socket.
-        key: The table key which this entry is registered as.
-        aliases: Other keys that shall point to this entry's key.
-
-    Note:
-        The socket provider registry table uses the key as the key, and
-        the provider as the value. It does not store this info object
-        directly.
-
-    """
-
-    provider: SSHAgentSocketProvider
-    """"""
-    key: str
-    """"""
-    aliases: tuple[str, ...]

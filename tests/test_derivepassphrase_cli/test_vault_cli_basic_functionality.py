@@ -28,6 +28,8 @@ if TYPE_CHECKING:
     from collections.abc import Generator
     from typing import NoReturn
 
+    import derivepassphrase_sshagentsocketprovider as d_sasp
+
 DUMMY_SERVICE = data.DUMMY_SERVICE
 DUMMY_PASSPHRASE = data.DUMMY_PASSPHRASE
 DUMMY_CONFIG_SETTINGS = data.DUMMY_CONFIG_SETTINGS
@@ -578,7 +580,7 @@ class TestKeyBasic:
             },
         },
         main_config_str: str | None = None,
-        registry: dict[str, _types.SSHAgentSocketProvider | str | None]
+        registry: dict[str, d_sasp.SSHAgentSocketProvider | str | None]
         | None = None,
     ) -> Generator[machinery.CliRunner, None, None]:
         runner = machinery.CliRunner(mix_stderr=False)
@@ -647,7 +649,7 @@ class TestKeyBasic:
             "services": {DUMMY_SERVICE: DUMMY_CONFIG_SETTINGS}
         },
         main_config_str: str | None = None,
-        registry: dict[str, _types.SSHAgentSocketProvider | str | None]
+        registry: dict[str, d_sasp.SSHAgentSocketProvider | str | None]
         | None = None,
         multiline: bool = False,
         input: str | bytes | None = None,
@@ -684,11 +686,11 @@ class TestKeyBasic:
 
 @pytest.fixture
 def provider_registry() -> dict[
-    str, _types.SSHAgentSocketProvider | str | None
+    str, d_sasp.SSHAgentSocketProvider | str | None
 ]:
     """Set up a controlled SSH agent socket provider registry."""
 
-    def err() -> _types.SSHAgentSocket:
+    def err() -> d_sasp.SSHAgentSocket:
         pytest.fail("Attempting to use the wrong SSH agent socket provider!")
 
     return {
@@ -722,7 +724,7 @@ class TestKeyExplicitSSHAgentSocketProvider(TestKeyBasic):
     def test_explicit_ssh_agent_socket_provider(
         self,
         provider_registry: dict[
-            str, _types.SSHAgentSocketProvider | str | None
+            str, d_sasp.SSHAgentSocketProvider | str | None
         ],
         config: _types.VaultConfig,
         on_command_line: bool,
@@ -748,7 +750,7 @@ class TestKeyExplicitSSHAgentSocketProvider(TestKeyBasic):
     def test_explicit_ssh_agent_socket_provider_not_found(
         self,
         provider_registry: dict[
-            str, _types.SSHAgentSocketProvider | str | None
+            str, d_sasp.SSHAgentSocketProvider | str | None
         ],
         config: _types.VaultConfig,
         on_command_line: bool,

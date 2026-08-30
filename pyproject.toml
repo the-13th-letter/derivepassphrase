@@ -30,6 +30,9 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
+    # Our API for SSH agent socket providers is declared in a separately
+    # published package.
+    "derivepassphrase-sshagentsocketprovider",
     # We use click for the command-line interface.  We require version
     # 8.1.0 or higher due to click issue #1985.
     "click >= 8.1",
@@ -632,7 +635,10 @@ parametrize-names-type = 'list'
 ban-relative-imports = "all"
 
 [tool.ruff.lint.isort]
-known-first-party = ["derivepassphrase"]
+known-first-party = [
+    "derivepassphrase",
+    "derivepassphrase_sshagentsocketprovider",
+]
 
 [tool.ruff.lint.pycodestyle]
 ignore-overlong-task-comments = true  # for E501

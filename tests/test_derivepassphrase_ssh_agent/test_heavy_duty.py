@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import contextlib
+from typing import TYPE_CHECKING
 
 import pytest
 from hypothesis import stateful, strategies
@@ -14,6 +15,9 @@ from hypothesis import stateful, strategies
 from derivepassphrase import _types
 from derivepassphrase.ssh_agent import socketprovider
 from tests.machinery import pytest as pytest_machinery
+
+if TYPE_CHECKING:
+    import derivepassphrase_sshagentsocketprovider as d_sasp
 
 # All tests in this module are heavy-duty tests.
 pytestmark = [pytest_machinery.heavy_duty]
@@ -146,7 +150,7 @@ class SSHAgentSocketProviderRegistryStateMachine(
         )
         self.orig_registry = socketprovider.SocketProvider.registry
         self.registry: dict[
-            str, _types.SSHAgentSocketProvider | str | None
+            str, d_sasp.SSHAgentSocketProvider | str | None
         ] = {
             _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX: (
                 self.orig_registry[
@@ -176,14 +180,14 @@ class SSHAgentSocketProviderRegistryStateMachine(
         self.monkeypatch.setattr(
             socketprovider.SocketProvider, "registry", self.registry
         )
-        self.model: dict[str, _types.SSHAgentSocketProvider | None] = {}
+        self.model: dict[str, d_sasp.SSHAgentSocketProvider | None] = {}
 
     known_keys: stateful.Bundle[str] = stateful.Bundle("known_keys")
     """"""
     new_keys: stateful.Bundle[str] = stateful.Bundle("new_keys")
     """"""
 
-    def sample_provider(self) -> _types.SSHAgentSocket:
+    def sample_provider(self) -> d_sasp.SSHAgentSocket:
         raise AssertionError
 
     @stateful.initialize(

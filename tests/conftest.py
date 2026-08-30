@@ -27,6 +27,8 @@ from tests.machinery import pytest as pytest_machinery
 if TYPE_CHECKING:
     from collections.abc import Generator, Sequence
 
+    import derivepassphrase_sshagentsocketprovider as d_sasp
+
 startup_ssh_auth_sock = os.environ.get("SSH_AUTH_SOCK", None)
 
 
@@ -171,7 +173,7 @@ class SSHAgentInterfaceFunc(Protocol):
         self,
         executable: str | None,
         env: dict[str, Any],
-    ) -> tuple[_types.SSHAgentSocket, str] | None:
+    ) -> tuple[d_sasp.SSHAgentSocket, str] | None:
         """Interface the SSH agent.
 
         Args:
@@ -319,7 +321,7 @@ def spawn_noop(  # pragma: no cover [unused]
 def interface_pageant_on_the_annoying_os(
     executable: str | None,
     env: dict[str, Any],
-) -> tuple[_types.SSHAgentSocket, str] | None:  # pragma: no cover [external]
+) -> tuple[d_sasp.SSHAgentSocket, str] | None:  # pragma: no cover [external]
     """Interface a Pageant instance on The Annoying OS, if possible.
 
     Args:
@@ -346,7 +348,7 @@ def interface_pageant_on_the_annoying_os(
 def interface_openssh_agent_on_the_annoying_os(
     executable: str | None,
     env: dict[str, Any],
-) -> tuple[_types.SSHAgentSocket, str] | None:  # pragma: no cover [external]
+) -> tuple[d_sasp.SSHAgentSocket, str] | None:  # pragma: no cover [external]
     """Interface an OpenSSH agent instance on The Annoying OS, if possible.
 
     Args:
@@ -778,7 +780,7 @@ def spawn_named_agent(  # noqa: C901
             not isinstance(proc_or_socket_data, subprocess.Popen)
             and proc_or_socket_data is not None
         ):
-            socket: _types.SSHAgentSocket
+            socket: d_sasp.SSHAgentSocket
             socket, ssh_auth_sock = proc_or_socket_data
             monkeypatch.setenv("SSH_AUTH_SOCK", ssh_auth_sock)
             client = exit_stack.enter_context(

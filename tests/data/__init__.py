@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING, cast
 
 from typing_extensions import NamedTuple, assert_never
 
+import derivepassphrase_sshagentsocketprovider as d_sasp
 from derivepassphrase import _types, ssh_agent, vault
 from derivepassphrase.ssh_agent import socketprovider
 
@@ -533,7 +534,7 @@ class RunningSSHAgentInfo(NamedTuple):
 
     """
 
-    socket: str | type[_types.SSHAgentSocket]
+    socket: str | type[d_sasp.SSHAgentSocket]
     """"""
     agent_type: KnownSSHAgentType
     """"""
@@ -661,7 +662,7 @@ class VaultTestConfig(NamedTuple):
 # ------------------------------
 
 
-ssh_auth_sock_on_posix_entry = _types.SSHAgentSocketProviderEntry(
+ssh_auth_sock_on_posix_entry = d_sasp.SSHAgentSocketProviderEntry(
     socketprovider.SocketProvider.resolve(
         _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX
     ),
@@ -673,7 +674,7 @@ The standard [`_types.SSHAgentSocketProviderEntry`][] for the UNIX
 domain socket handler on POSIX systems.
 """
 
-ssh_auth_sock_on_windows_entry = _types.SSHAgentSocketProviderEntry(
+ssh_auth_sock_on_windows_entry = d_sasp.SSHAgentSocketProviderEntry(
     socketprovider.SocketProvider.resolve(
         _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_WINDOWS
     ),
@@ -685,7 +686,7 @@ The standard [`_types.SSHAgentSocketProviderEntry`][] for the Windows
 named pipe handler on The Annoying Operating System.
 """
 
-faulty_entry_callable = _types.SSHAgentSocketProviderEntry(
+faulty_entry_callable = d_sasp.SSHAgentSocketProviderEntry(
     (),  # type: ignore[arg-type]
     "tuple",
     (),
@@ -695,7 +696,7 @@ A faulty [`_types.SSHAgentSocketProviderEntry`][]: the indicated handler
 is not a callable.
 """
 
-faulty_entry_name_exists = _types.SSHAgentSocketProviderEntry(
+faulty_entry_name_exists = d_sasp.SSHAgentSocketProviderEntry(
     socketprovider.SocketProvider.resolve(
         _types.BuiltinSSHAgentSocketProvider.WINDOWS
     ),
@@ -707,7 +708,7 @@ A faulty [`_types.SSHAgentSocketProviderEntry`][]: the indicated handler
 is already registered with a different callable.
 """
 
-faulty_entry_alias_exists = _types.SSHAgentSocketProviderEntry(
+faulty_entry_alias_exists = d_sasp.SSHAgentSocketProviderEntry(
     socketprovider.SocketProvider.resolve(
         _types.BuiltinSSHAgentSocketProvider.SSH_AUTH_SOCK_ON_POSIX
     ),

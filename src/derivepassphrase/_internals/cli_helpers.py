@@ -61,6 +61,8 @@ if TYPE_CHECKING:
 
     from typing_extensions import Buffer, Self
 
+    import derivepassphrase_sshagentsocketprovider as d_sasp
+
 PROG_NAME = _msg.PROG_NAME
 KEY_DISPLAY_LENGTH = 50
 
@@ -560,7 +562,7 @@ def load_user_config() -> dict[str, Any]:
 
 def get_suitable_ssh_keys(
     conn: ssh_agent.SSHAgentClient
-    | _types.SSHAgentSocket
+    | d_sasp.SSHAgentSocket
     | Sequence[str]
     | None = None,
     /,
@@ -854,7 +856,7 @@ def default_error_callback(
 
 def select_ssh_key(
     conn: ssh_agent.SSHAgentClient
-    | _types.SSHAgentSocket
+    | d_sasp.SSHAgentSocket
     | Sequence[str]
     | None = None,
     /,
@@ -1101,13 +1103,13 @@ def check_for_misleading_passphrase(
 
 def get_configured_connection_hint(
     conn: ssh_agent.SSHAgentClient
-    | _types.SSHAgentSocket
+    | d_sasp.SSHAgentSocket
     | Sequence[str]
     | None = None,
     /,
     *,
     main_config: dict[str, Any],
-) -> ssh_agent.SSHAgentClient | _types.SSHAgentSocket | Sequence[str] | None:
+) -> ssh_agent.SSHAgentClient | d_sasp.SSHAgentSocket | Sequence[str] | None:
     """Return a suitable connection hint for the SSH agent client.
 
     If a connection hint is already known, return that connection hint.
@@ -1129,12 +1131,12 @@ def get_configured_connection_hint(
 
     def handle_return_value(
         val: ssh_agent.SSHAgentClient
-        | _types.SSHAgentSocket
+        | d_sasp.SSHAgentSocket
         | str
         | Sequence[str]
         | None,
     ) -> (
-        ssh_agent.SSHAgentClient | _types.SSHAgentSocket | Sequence[str] | None
+        ssh_agent.SSHAgentClient | d_sasp.SSHAgentSocket | Sequence[str] | None
     ):  # pragma: no cover [external]
         # A separate function, to easily exclude it from coverage,
         # because it's just type handling, which the type checker
@@ -1168,7 +1170,7 @@ def key_to_phrase(
     error_callback: Callable[..., NoReturn],
     warning_callback: Callable[..., None],
     conn: ssh_agent.SSHAgentClient
-    | _types.SSHAgentSocket
+    | d_sasp.SSHAgentSocket
     | Sequence[str]
     | None = None,
 ) -> bytes:

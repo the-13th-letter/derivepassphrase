@@ -19,6 +19,7 @@ import pytest
 from hypothesis import strategies
 from typing_extensions import TypeAlias
 
+import derivepassphrase_sshagentsocketprovider as d_sasp
 from derivepassphrase import _types, ssh_agent, vault
 from derivepassphrase._internals import cli_helpers
 from derivepassphrase.ssh_agent import socketprovider
@@ -49,7 +50,7 @@ class Parametrize(pytest_machinery.Parametrize):
                 [
                     importlib.metadata.EntryPoint(
                         name=data.faulty_entry_callable.key,
-                        group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
+                        group=d_sasp.ENTRY_POINT_GROUP_NAME,
                         value="tests.data: faulty_entry_callable",
                     ),
                 ],
@@ -59,7 +60,7 @@ class Parametrize(pytest_machinery.Parametrize):
                 [
                     importlib.metadata.EntryPoint(
                         name=data.faulty_entry_name_exists.key,
-                        group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
+                        group=d_sasp.ENTRY_POINT_GROUP_NAME,
                         value="tests.data: faulty_entry_name_exists",
                     ),
                 ],
@@ -69,7 +70,7 @@ class Parametrize(pytest_machinery.Parametrize):
                 [
                     importlib.metadata.EntryPoint(
                         name=data.faulty_entry_alias_exists.key,
-                        group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
+                        group=d_sasp.ENTRY_POINT_GROUP_NAME,
                         value="tests.data: faulty_entry_alias_exists",
                     ),
                 ],
@@ -84,12 +85,12 @@ class Parametrize(pytest_machinery.Parametrize):
                 [
                     importlib.metadata.EntryPoint(
                         name=data.ssh_auth_sock_on_posix_entry.key,
-                        group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
+                        group=d_sasp.ENTRY_POINT_GROUP_NAME,
                         value="tests.data: ssh_auth_sock_on_posix_entry",
                     ),
                     importlib.metadata.EntryPoint(
                         name=data.ssh_auth_sock_on_windows_entry.key,
-                        group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
+                        group=d_sasp.ENTRY_POINT_GROUP_NAME,
                         value="tests.data: ssh_auth_sock_on_windows_entry",
                     ),
                 ],
@@ -99,12 +100,12 @@ class Parametrize(pytest_machinery.Parametrize):
                 [
                     importlib.metadata.EntryPoint(
                         name=callables.provider_entry1.key,
-                        group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
+                        group=d_sasp.ENTRY_POINT_GROUP_NAME,
                         value="tests.data.callables: provider_entry1",
                     ),
                     importlib.metadata.EntryPoint(
                         name=callables.provider_entry2.key,
-                        group=socketprovider.SocketProvider.ENTRY_POINT_GROUP_NAME,
+                        group=d_sasp.ENTRY_POINT_GROUP_NAME,
                         value="tests.data.callables: provider_entry2",
                     ),
                 ],
@@ -439,7 +440,7 @@ class Strategies:
 
     @staticmethod
     def io_operations_on_handles() -> strategies.SearchStrategy[
-        Callable[[_types.SSHAgentSocket], Any]
+        Callable[[d_sasp.SSHAgentSocket], Any]
     ]:
         """Return an I/O operation on an SSH agent socket."""
         return strategies.one_of(
@@ -753,7 +754,7 @@ class TestSSHAgentSocketProviderRegistry:
             pytest.fail("Native SSH agent socket provider is unavailable?!")
         # TODO(the-13th-letter): Rewrite using structural pattern matching.
         # https://the13thletter.info/derivepassphrase/latest/pycompatibility/#after-eol-py3.9
-        target: _types.SSHAgentSocketProvider | str | None = (
+        target: d_sasp.SSHAgentSocketProvider | str | None = (
             None
             if terminal == "unimplemented"
             else _types.BuiltinSSHAgentSocketProvider.NATIVE
@@ -823,8 +824,8 @@ class TestSSHAgentSocketProviderRegistry:
         register = socketprovider.SocketProvider.register
 
         def ancestry_chain(name: str) -> Generator[str, None, None]:
-            current: _types.SSHAgentSocketProvider | str | None = name
-            seen: set[_types.SSHAgentSocketProvider | str | None] = set()
+            current: d_sasp.SSHAgentSocketProvider | str | None = name
+            seen: set[d_sasp.SSHAgentSocketProvider | str | None] = set()
             while isinstance(current, str) and current not in seen:
                 yield current
                 seen.add(current)
@@ -889,7 +890,7 @@ class TestSSHAgentSocketProviderRegistry:
     ) -> None:
         """Registering new entries works."""
 
-        def socket_provider() -> _types.SSHAgentSocket:
+        def socket_provider() -> d_sasp.SSHAgentSocket:
             raise AssertionError
 
         names = ["spam", "ham", "eggs", "parrot"]

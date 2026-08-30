@@ -51,6 +51,8 @@ if TYPE_CHECKING:
 
     from typing_extensions import Any
 
+    import derivepassphrase_sshagentsocketprovider as d_sasp
+
 
 # Marks
 # =====
@@ -623,7 +625,7 @@ def ensure_singleton_client_if_non_reentrant_agent(
 
         def ensure_agent_subcontext(
             conn: ssh_agent.SSHAgentClient
-            | _types.SSHAgentSocket
+            | d_sasp.SSHAgentSocket
             | Sequence[str]
             | None = None,
         ) -> contextlib.AbstractContextManager[ssh_agent.SSHAgentClient]:
