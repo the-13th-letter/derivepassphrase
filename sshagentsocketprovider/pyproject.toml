@@ -30,7 +30,9 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
     "Typing :: Typed",
 ]
-dependencies = []
+dependencies = [
+    "typing-extensions",
+]
 
 [project.urls]
 Documentation = "https://the13thletter.info/derivepassphrase/"

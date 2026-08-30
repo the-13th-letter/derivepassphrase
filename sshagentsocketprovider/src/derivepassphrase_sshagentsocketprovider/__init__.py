@@ -11,9 +11,8 @@ from typing import TYPE_CHECKING, Protocol
 from typing_extensions import NamedTuple, runtime_checkable
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
 
-    from typing_extensions import Any, Buffer, TypeAlias
+    from typing_extensions import Any, Buffer
 
 # Semantic versioning.
 __version__ = "1.0a1"
@@ -51,8 +50,11 @@ class SSHAgentSocket(Protocol):
         """Like [socket.socket.recv][]."""
 
 
-SSHAgentSocketProvider: TypeAlias = "Callable[[], SSHAgentSocket]"
-"""A callable that provides an SSH agent socket."""
+@runtime_checkable
+class SSHAgentSocketProvider(Protocol):
+    """A callable that provides an SSH agent socket."""
+    def __call__(self) -> SSHAgentSocket:
+        """Returns an SSH agent socket when called without arguments."""
 
 
 # For later major versions, we would define a new type.  For minor
