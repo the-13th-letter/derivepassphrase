@@ -350,7 +350,7 @@ specifically marked as such.)
     This is an artefact of how the master passphrase is converted to the
     random bit sequence with which the service passphrases are generated.
     See the corresponding [FAQ entry: What are "interchangeable passphrases"
-    in vault?][INTERCHEANGABLE_PASSPHRASES] for details, including the
+    in vault?][INTERCHANGEABLE_PASSPHRASES] for details, including the
     practical security (non-)implications.
 
     The [`derivepassphrase vault`][CLI_VAULT] command-line interface does
