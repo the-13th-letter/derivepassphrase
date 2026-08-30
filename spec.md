@@ -24,7 +24,7 @@ Class
     | `bug`  | This is clearly an actual problem we want fixed. |
     | `wish` | This is a request for an enhancement.            |
 
-    (We do not differentiate `semi-bug`, `vulnerability` and `bug` at the class level.)
+    (Unlike PuTTY, we do not further differentiate between `semi-bug`, `vulnerability` and `bug` at the class level.)
 
 Priority
 :   How urgent is this entry?
@@ -77,8 +77,8 @@ Blocks:
 
     (Not documented in PuTTY's wishlist entry specification, but in use across that wishlist.)
 
-[^distinguishing-bugs-and-wishes]:
-    A bug is specifically an entry describing an aspect of `derivepassphrase` that, if not fixed, impedes or prohibits the user from accomplishing their goal within `derivepassphrase`.
+[^distinguishing-between-bugs-and-wishes]:
+    A bug is specifically an entry describing an aspect of this software that, if not fixed, impedes or prohibits the user from accomplishing their goal with or within this software.
     Every other entry is a wish.
 
 ## The summary
@@ -89,4 +89,4 @@ In particular, the summary *should not* be a chronological listing of events or 
 
 Specific to this system, the summary always contains a paragraph beginning with <b>Therefore</b> that describes the action to take for this entry.
 If applicable, a sentence beginning with <b>Until then</b> within that paragraph contains workarounds or partial solutions that will be applied or have already been applied.
-Except for optional historical context that may follow this paragraph and may be interactively hidden, the <b>Therefore</b> paragraph is the *last* paragraph of the summary.
+Except for optional historical context that may follow this paragraph and is then hidden by default, the <b>Therefore</b> paragraph is the *last* paragraph of the summary.
